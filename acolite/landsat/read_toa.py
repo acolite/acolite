@@ -1,0 +1,48 @@
+## def read_band
+## generic function to read and convert landsat toa data
+##
+## written by Quinten Vanhellemont, RBINS
+## 2021-02-05
+## modifications:
+
+def read_toa(fm, mus = 1, sub=None, usgs_reflectance = True, usgs_radiance=False, usgs_bt=True):
+    import numpy as np
+    import acolite as ac
+
+    ## read data
+    data = ac.landsat.read_band(fm['FILE'], sub=sub).astype(np.float32)
+
+    ## mask data
+    data[data<fm['QUANTIZE_CAL_MIN']] = np.nan
+    data[data>fm['QUANTIZE_CAL_MAX']] = np.nan
+
+    ## check if thermal
+    thermal = False
+    if ('K1_CONSTANT' in fm) & ('K2_CONSTANT' in fm):
+        usgs_reflectance = False
+        usgs_radiance = True
+        thermal = True
+
+    ## convert to reflectance
+    if usgs_reflectance:
+        slope = float(fm['REFLECTANCE_MULT'])
+        offset = float(fm['REFLECTANCE_ADD'])
+        data *= slope
+        data += offset
+        ## normalise to sun zenith angle
+        data /= mus
+    ## convert to radiance
+    else:
+        slope = float(fm['RADIANCE_MULT'])
+        offset = float(fm['RADIANCE_ADD'])
+        data *= slope
+        data += offset
+        ## or not
+        if not usgs_radiance:
+            d = fm['se_distance']
+            f0 = fm['f0']
+            data *= (np.pi * d * d) / (f0 * mus)
+        if thermal & usgs_bt:
+            data = fm['K2_CONSTANT'] / np.log((fm['K1_CONSTANT']/data)+1.)
+
+    return(data)
