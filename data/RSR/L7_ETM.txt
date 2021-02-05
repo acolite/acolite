@@ -855,7 +855,7 @@
 	2.384	-0.009
 	2.386	0.007
 #
-#  Landsat 7 ETM Band Pan
+#  Landsat 7 ETM Band 8
 #
 #  Wavelength
 #   (microns)	Reflectance
