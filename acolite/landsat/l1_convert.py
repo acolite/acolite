@@ -143,9 +143,13 @@ def l1_convert(bundle, output=None,
         sub = dct_sub['sub']
 
     ## get pan dimensions and subset
+    #pan_padding = None
     if sub is None:
         pan_ms_dims = global_dims
         pan_dims = global_dims[0]*2, global_dims[1]*2
+        #if 'PANCHROMATIC_LINES' in meta[rk]:
+        #    pan_dims_ = int(meta[rk]['PANCHROMATIC_LINES']), int(meta[rk]['PANCHROMATIC_SAMPLES'])
+        #    pan_padding = pan_dims[0]-pan_dims_[0], pan_dims[1]-pan_dims_[1]
         sub_pan = None
         gatts['pan_dims'] = pan_dims
         gatts['global_dims'] = dct['dimensions']
@@ -190,7 +194,8 @@ def l1_convert(bundle, output=None,
             sza = None
             vza = None
     else:
-        mus = gatts['mus']  ## average cos sun zenith
+        mus = np.asarray(gatts['mus'])  ## average cos sun zenith
+        #mus.shape+=(1,1)
 
     ## write lat/lon
     if (output_geolocation):
@@ -225,9 +230,20 @@ def l1_convert(bundle, output=None,
                 if b in pan_bands:
                     if (not output_pan) & (not output_pan_ms): continue
                     pan = True
-                    data = ac.landsat.read_toa(fmeta[b], sub=sub_pan)
+                    if len(np.atleast_1d(mus))>1:
+                        mus_pan = scipy.ndimage.zoom(mus, zoom=2, order=1)
+                    # this is now done in read_toa? to also support crops that go over the border
+                    #    ## subset if we are "missing" a pan pixel
+                    #    if pan_padding is not None:
+                    #        mus_pan = mus_pan[0:pan_dims[0]-pan_padding[0],
+                    #                          0:pan_dims[1]-pan_padding[1]]
+
+                    else:
+                        mus_pan = mus * 1
+                    data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan)
+                    mus_pan = None
                 else:
-                    data = ac.landsat.read_toa(fmeta[b], sub=sub)
+                    data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=mus)
 
                 ds = 'rhot_{}'.format(waves_names[b])
                 ds_att = {'wavelength':waves_mu[b]*1000}
@@ -238,6 +254,8 @@ def l1_convert(bundle, output=None,
 
                 if output_pan & pan:
                     ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
+
+                    ## add padding to pan data
                     if data.shape[0] <  pan_dims[0]:
                         data = np.vstack((data, np.zeros((pan_dims[0]-data.shape[0], data.shape[1]))))
                     elif data.shape[0] >  pan_dims[0]:

@@ -30,7 +30,15 @@ def read_toa(fm, mus = 1, sub=None, usgs_reflectance = True, usgs_radiance=False
         data *= slope
         data += offset
         ## normalise to sun zenith angle
-        data /= mus
+        if len(np.atleast_1d(mus))>1:
+            pad = mus.shape[0]-data.shape[0], mus.shape[1]-data.shape[1]
+            if pad[0]<0 or pad[1]<0:
+                print('read_toa padding error')
+                print(pad)
+                print(mus.shape)
+            data /= mus[0:mus.shape[0]-pad[0], 0:mus.shape[1]-pad[1]]
+        else:
+            data /= mus
     ## convert to radiance
     else:
         slope = float(fm['RADIANCE_MULT'])
