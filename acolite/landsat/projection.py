@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
 ## modifications: 2021-02-05 (QV) now xrange/yrange represents UL->LR, with negative y pixel size
+##                2021-02-05 (QV) added to_epsg
 
 def projection(meta):
     from pyproj import Proj
@@ -83,7 +84,8 @@ def projection(meta):
     yrange = [max(y),min(y)]
 
 
-    dct = {'p': p, 'xrange': xrange, 'yrange': yrange,
+    dct = {'p': p, 'epsg':  p.crs.to_epsg(),
+           'xrange': xrange, 'yrange': yrange,
            'proj4_string':proj4_string, 'dimensions':dimensions,
            'pixel_size': pixel_size, 'utm': is_utm, 'ps': is_ps}
     if is_utm: dct['zone'] : zone

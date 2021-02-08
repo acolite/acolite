@@ -216,12 +216,12 @@ def l1_convert(inputfile, output=None,
         ## write geometry
         if ('VAA' in fmeta) & ('SAA' in fmeta) & ('VZA' in fmeta) & ('SZA' in fmeta):
             if verbosity > 1: print('Reading per pixel geometry')
-            sza = ac.landsat.read_band(fmeta['SZA']['FILE'], sub=sub).astype(np.float32)/100
+            sza = ac.shared.read_band(fmeta['SZA']['FILE'], sub=sub).astype(np.float32)/100
             mus = np.cos(sza*(np.pi/180.)) ## per pixel cos sun zenith
             if (output_geometry):
-                saa = ac.landsat.read_band(fmeta['SAA']['FILE'], sub=sub).astype(np.float32)/100
-                vza = ac.landsat.read_band(fmeta['VZA']['FILE'], sub=sub).astype(np.float32)/100
-                vaa = ac.landsat.read_band(fmeta['VAA']['FILE'], sub=sub).astype(np.float32)/100
+                saa = ac.shared.read_band(fmeta['SAA']['FILE'], sub=sub).astype(np.float32)/100
+                vza = ac.shared.read_band(fmeta['VZA']['FILE'], sub=sub).astype(np.float32)/100
+                vaa = ac.shared.read_band(fmeta['VAA']['FILE'], sub=sub).astype(np.float32)/100
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
                 vza[mask] = np.nan
                 sza[mask] = np.nan

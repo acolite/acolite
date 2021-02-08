@@ -10,7 +10,7 @@ def read_toa(fm, mus = 1, sub=None, usgs_reflectance = True, usgs_radiance=False
     import acolite as ac
 
     ## read data
-    data = ac.landsat.read_band(fm['FILE'], sub=sub).astype(np.float32)
+    data = ac.shared.read_band(fm['FILE'], sub=sub).astype(np.float32)
 
     ## mask data
     data[data<fm['QUANTIZE_CAL_MIN']] = np.nan
