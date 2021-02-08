@@ -50,11 +50,17 @@ def projection_sub(dct, limit, four_corners=True):
     xsize = int(xrange[1]-xrange[0])
     ysize = int(yrange[1]-yrange[0])
 
-    xsize_pix = int(xsize/pixel_size[0])
-    ysize_pix = int(ysize/pixel_size[1])
+    xsize_pix = int(xsize/pixel_size[0])+1
+    ysize_pix = int(ysize/pixel_size[1])+1
 
     xregion = [int((i - xscene[0])/pixel_size[0]) for i in xrange_region]
     yregion = [int((i - yscene[0])/pixel_size[1]) for i in yrange_region]
+
+    xsize_region = int(xrange_region[1]-xrange_region[0])
+    ysize_region = int(yrange_region[1]-yrange_region[0])
+
+    xsize_region_pix = int(xsize_region/pixel_size[0])+1
+    ysize_region_pix = int(ysize_region/pixel_size[1])+1
 
     xpos = [int((i - xscene[0])/pixel_size[0]) for i in xrange]
     if xpos[0] < 0: xpos[0]=0
@@ -64,16 +70,30 @@ def projection_sub(dct, limit, four_corners=True):
     if ypos[0] < 0: ypos[0]=0
     if ypos[1] >= ydim: ypos[1]=ydim
 
-    sub = [xpos[0], ypos[0], xpos[1]-xpos[0]+1, ypos[1]-ypos[0]+1]
+    #sub = [xpos[0], ypos[0], xpos[1]-xpos[0]+1, ypos[1]-ypos[0]+1]
+    #sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0]+1, yregion[1]-yregion[0]+1]
+    sub = [xpos[0], ypos[0], xpos[1]-xpos[0], ypos[1]-ypos[0]]
+    sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0], yregion[1]-yregion[0]]
 
     sub_dct = {'source': dct, 'out_lon': out_lon, 'out_lat': out_lat,
                'sub': sub, 'limit': limit, 'p': dct['p'],
                'xdim': sub[2], 'ydim': sub[3],
                'dimensions': (sub[3], sub[2]),
                'dimensions_xfirst': (sub[2], sub[3]),
-               'xrange': xrange, 'xrange_region': xrange_region, 'xregion': xregion,
-               'xpos': xpos, 'xsize': xsize, 'xsize_pix':xsize_pix,
-               'yrange': yrange, 'yrange_region': yrange_region, 'yregion': yregion,
-               'ypos': ypos, 'ysize': ysize, 'ysize_pix':ysize_pix}
+               'xrange': xrange, 'xpos': xpos, 'xsize': xsize, 'xsize_pix':xsize_pix,
+               'yrange': yrange, 'ypos': ypos, 'ysize': ysize, 'ysize_pix':ysize_pix}
 
+    ## copy missing keys from input dict
+    for k in dct:
+        if k not in sub_dct: sub_dct[k] = dct[k]
+
+    ## save extended region for merging tiles
+    sub_dct['region'] = { 'p': dct['p'], 'sub': sub_region,
+                         'xdim': sub_region[2], 'ydim': sub_region[3],
+                         'xrange': xrange_region,
+                         'xsize_pix':xsize_region_pix,
+                         'xregion': xregion, 'xsize':xsize_region,
+                         'yrange': yrange_region,
+                         'ysize_pix':ysize_region_pix,
+                         'yregion': yregion, 'ysize':ysize_region}
     return(sub_dct)
