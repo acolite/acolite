@@ -3,8 +3,9 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
 ## modifications: 2021-02-09 (QV) added one pixel to sub to correspond to gdalwarp output sizes
+##                                target_pixel_size to get x and yrange to the nearest full pixel
 
-def projection_sub(dct, limit, four_corners=True):
+def projection_sub(dct, limit, four_corners=True, target_pixel_size=None):
 
     ## input dict has pixel size (x, y)
     ## dimensions (y, x)
@@ -26,8 +27,12 @@ def projection_sub(dct, limit, four_corners=True):
     else:
         xrange_raw, yrange_raw = dct['p']([limit[1],limit[3]],[limit[0],limit[2]])
 
-    xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
-    yrange = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
+    if target_pixel_size is None:
+        xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
+        yrange = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
+    else:
+        xrange = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
+        yrange = [yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2), yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2)]
 
     if (xrange[1] < xscene[0]) or (xrange[0] > xscene[1]):
         #print('Limits out of scene longitude')
@@ -50,8 +55,8 @@ def projection_sub(dct, limit, four_corners=True):
     xsize = int(xrange[1]-xrange[0])
     ysize = int(yrange[1]-yrange[0])
 
-    xsize_pix = int(xsize/pixel_size[0])+1
-    ysize_pix = int(ysize/pixel_size[1])+1
+    xsize_pix = int(xsize/pixel_size[0])
+    ysize_pix = int(ysize/pixel_size[1])
 
     xregion = [int((i - xscene[0])/pixel_size[0]) for i in xrange_region]
     yregion = [int((i - yscene[0])/pixel_size[1]) for i in yrange_region]
@@ -59,8 +64,8 @@ def projection_sub(dct, limit, four_corners=True):
     xsize_region = int(xrange_region[1]-xrange_region[0])
     ysize_region = int(yrange_region[1]-yrange_region[0])
 
-    xsize_region_pix = int(xsize_region/pixel_size[0])+1
-    ysize_region_pix = int(ysize_region/pixel_size[1])+1
+    xsize_region_pix = int(xsize_region/pixel_size[0])
+    ysize_region_pix = int(ysize_region/pixel_size[1])
 
     xpos = [int((i - xscene[0])/pixel_size[0]) for i in xrange]
     if xpos[0] < 0: xpos[0]=0
@@ -69,9 +74,6 @@ def projection_sub(dct, limit, four_corners=True):
     ypos = [int((i - yscene[0])/pixel_size[1]) for i in yrange]
     if ypos[0] < 0: ypos[0]=0
     if ypos[1] >= ydim: ypos[1]=ydim
-
-    #sub = [xpos[0], ypos[0], xpos[1]-xpos[0], ypos[1]-ypos[0]]
-    #sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0], yregion[1]-yregion[0]]
 
     sub = [xpos[0], ypos[0], xpos[1]-xpos[0]+1, ypos[1]-ypos[0]+1]
     sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0]+1, yregion[1]-yregion[0]+1]
