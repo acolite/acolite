@@ -17,6 +17,7 @@
 ##                QV 2020-07-14 added fillvalue keyword
 ##                QV 2020-07-22 added update_attributes keyword
 ##                QV 2020-07-23 skip fillvalue in ds attributes
+##                QV 2021-02-09 added replace_nan option for data without offset, changed numpy import
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -29,8 +30,8 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
 
     from netCDF4 import Dataset
     import time, os
-    from numpy import ndarray, isnan, where, nan, float32, float64
     from math import ceil
+    import numpy as np
 
     if os.path.exists(os.path.dirname(ncfile)) is False:
          os.makedirs(os.path.dirname(ncfile))
@@ -82,19 +83,27 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                         except:
                             print('Failed to write attribute: {}'.format(key))
 
-    if (not double) & (data.dtype == float64):
-        data = data.astype(float32)
+    if (not double) & (data.dtype == np.float64):
+        data = data.astype(np.float32)
 
     ## write data
     if dataset in nc.variables.keys():
         ## dataset already in NC file
         if offset is None:
-            if data.dtype in (float32, float64): nc.variables[dataset][:] = nan
-            nc.variables[dataset][:] = data
+            if replace_nan:
+                tmp = nc.variables[dataset][:]
+                sub_isnan=np.where(np.isnan(tmp))
+                tmp[sub_isnan]=data[sub_isnan]
+                nc.variables[dataset][:] = tmp
+                #nc.variables[dataset][sub_isnan] = data[sub_isnan]
+                tmp = None
+            else:
+                if data.dtype in (np.float32, np.float64): nc.variables[dataset][:] = np.nan
+                nc.variables[dataset][:] = data
         else:
             if replace_nan:
                 tmp = nc.variables[dataset][offset[1]:offset[1]+dims[0],offset[0]:offset[0]+dims[1]]
-                sub_isnan=isnan(tmp)
+                sub_isnan=np.where(np.isnan(tmp))
                 tmp[sub_isnan]=data[sub_isnan]
                 nc.variables[dataset][offset[1]:offset[1]+dims[0],offset[0]:offset[0]+dims[1]] = tmp
                 tmp = None
@@ -113,10 +122,10 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                 setattr(var, att, dataset_attributes[att])
 
         if offset is None:
-            if data.dtype in (float32, float64): var[:] = nan
+            if data.dtype in (np.float32, np.float64): var[:] = np.nan
             var[:] = data
         else:
-            if data.dtype in (float32, float64): var[:] = nan
+            if data.dtype in (np.float32, np.float64): var[:] = np.nan
             var[offset[1]:offset[1]+dims[0],offset[0]:offset[0]+dims[1]] = data
     if keep is not True: data = None
 

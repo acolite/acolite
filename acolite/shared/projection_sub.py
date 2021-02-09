@@ -2,7 +2,7 @@
 ## generic image/projection subset
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
-## modifications:
+## modifications: 2021-02-09 (QV) added one pixel to sub to correspond to gdalwarp output sizes
 
 def projection_sub(dct, limit, four_corners=True):
 
@@ -70,10 +70,11 @@ def projection_sub(dct, limit, four_corners=True):
     if ypos[0] < 0: ypos[0]=0
     if ypos[1] >= ydim: ypos[1]=ydim
 
-    #sub = [xpos[0], ypos[0], xpos[1]-xpos[0]+1, ypos[1]-ypos[0]+1]
-    #sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0]+1, yregion[1]-yregion[0]+1]
-    sub = [xpos[0], ypos[0], xpos[1]-xpos[0], ypos[1]-ypos[0]]
-    sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0], yregion[1]-yregion[0]]
+    #sub = [xpos[0], ypos[0], xpos[1]-xpos[0], ypos[1]-ypos[0]]
+    #sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0], yregion[1]-yregion[0]]
+
+    sub = [xpos[0], ypos[0], xpos[1]-xpos[0]+1, ypos[1]-ypos[0]+1]
+    sub_region = [xregion[0], yregion[0], xregion[1]-xregion[0]+1, yregion[1]-yregion[0]+1]
 
     sub_dct = {'source': dct, 'out_lon': out_lon, 'out_lat': out_lat,
                'sub': sub, 'limit': limit, 'p': dct['p'],

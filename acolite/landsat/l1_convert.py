@@ -46,6 +46,7 @@ def l1_convert(inputfile, output=None,
 
     new = True
     new_pan = True
+    warp_to = None
     ofile = None
     ofiles = []
 
@@ -56,7 +57,7 @@ def l1_convert(inputfile, output=None,
         mtl = glob.glob('{}/{}'.format(bundle, '*MTL.txt'))
         if len(mtl) == 0:
             if verbosity > 0: print('No metadata file found for {}'.format(bundle))
-            return(1)
+            continue
         else:
             mtl = mtl[0]
 
@@ -98,7 +99,7 @@ def l1_convert(inputfile, output=None,
         else:
             print(spacecraft_id, sensor_id)
             print('Not configured')
-            return(1)
+            continue
 
         sensor = '{}_{}'.format(sat,sen)
 
@@ -165,10 +166,10 @@ def l1_convert(inputfile, output=None,
             dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
-                return(1)
+                continue
             if dct_sub['out_lat']:
                 if verbosity > 1: print('Latitude limits outside {}'.format(bundle))
-                return(1)
+                continue
             sub = dct_sub['sub']
         else:
             if extend_region:
@@ -199,13 +200,38 @@ def l1_convert(inputfile, output=None,
             gatts['pan_dims'] = pan_dims
             gatts['pan_sub'] = sub_pan
 
+            ## get the target NetCDF dimensions and dataset fofset
             if extend_region:
-                nc_dim = dct_sub['region']['ydim'], dct_sub['region']['xdim']
-                nc_off_yx = (int((dct_sub['yrange'][0]-dct_sub['region']['yrange'][0])/dct_sub['pixel_size'][1]),
-                             int((dct_sub['xrange'][0]-dct_sub['region']['xrange'][0])/dct_sub['pixel_size'][0]))
-                nc_off = (int((dct_sub['xrange'][0]-dct_sub['region']['xrange'][0])/dct_sub['pixel_size'][0]),
-                          int((dct_sub['yrange'][0]-dct_sub['region']['yrange'][0])/dct_sub['pixel_size'][1]))
-                gatts['global_dims'] = nc_dim
+                if (not merge_tiles) | ((merge_tiles) & (warp_to is None)):
+                    warp_to = (dct_sub['region']['proj4_string'], [min(dct_sub['region']['xrange']),
+                                                                   min(dct_sub['region']['yrange'])+dct_sub['region']['pixel_size'][1],
+                                                                   max(dct_sub['region']['xrange'])+dct_sub['region']['pixel_size'][0],
+                                                                   max(dct_sub['region']['yrange'])],
+                                                                   dct_sub['region']['pixel_size'][0],
+                                                                   dct_sub['region']['pixel_size'][1],
+                                                                   'near')
+                    print(warp_to)
+                elif merge_tiles:
+                    nc_dim = dct_sub['region']['ydim'], dct_sub['region']['xdim']
+                    #nc_off_yx = (int((dct_sub['yrange'][0]-dct_sub['region']['yrange'][0])/dct_sub['pixel_size'][1]),
+                    #             int((dct_sub['xrange'][0]-dct_sub['region']['xrange'][0])/dct_sub['pixel_size'][0]))
+                    nc_off = (int((dct_sub['xrange'][0]-dct_sub['region']['xrange'][0])/dct_sub['pixel_size'][0]),
+                              int((dct_sub['yrange'][0]-dct_sub['region']['yrange'][0])/dct_sub['pixel_size'][1]))
+                    gatts['global_dims'] = nc_dim
+                    print(merge_tiles)
+                    print(warp_to)
+                    stop
+            else:
+                warp_to = (dct_sub['proj4_string'], [min(dct_sub['xrange']),
+                                                     min(dct_sub['yrange'])+dct_sub['pixel_size'][1],
+                                                     max(dct_sub['xrange'])+dct_sub['pixel_size'][0],
+                                                     max(dct_sub['yrange'])],
+                                                     dct_sub['pixel_size'][0],
+                                                     dct_sub['pixel_size'][1],
+                                                     'near')
+        if warp_to is not None:
+            nc_dim = None
+            nc_off = None #(0,0)
 
         ## new file if not merging
         if (merge_tiles is False):
@@ -216,21 +242,22 @@ def l1_convert(inputfile, output=None,
         ## write geometry
         if ('VAA' in fmeta) & ('SAA' in fmeta) & ('VZA' in fmeta) & ('SZA' in fmeta):
             if verbosity > 1: print('Reading per pixel geometry')
-            sza = ac.shared.read_band(fmeta['SZA']['FILE'], sub=sub).astype(np.float32)/100
+            sza = ac.shared.read_band(fmeta['SZA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
             mus = np.cos(sza*(np.pi/180.)) ## per pixel cos sun zenith
             if (output_geometry):
-                saa = ac.shared.read_band(fmeta['SAA']['FILE'], sub=sub).astype(np.float32)/100
-                vza = ac.shared.read_band(fmeta['VZA']['FILE'], sub=sub).astype(np.float32)/100
-                vaa = ac.shared.read_band(fmeta['VAA']['FILE'], sub=sub).astype(np.float32)/100
+                saa = ac.shared.read_band(fmeta['SAA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
+                vza = ac.shared.read_band(fmeta['VZA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
+                vaa = ac.shared.read_band(fmeta['VAA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
                 vza[mask] = np.nan
                 sza[mask] = np.nan
                 #vaa[mask] = np.nan
                 #saa[mask] = np.nan
-
                 raa = (saa-vaa)
                 raa[raa>180]-=180
                 raa[mask] = np.nan
+                print(nc_dim, nc_off, raa.shape)
+
                 vaa = None
                 saa = None
                 mask = None
@@ -310,10 +337,17 @@ def l1_convert(inputfile, output=None,
 
                         else:
                             mus_pan = mus * 1
-                        data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan)
+
+                        if warp_to is not None:
+                            warp_to_pan = (warp_to[0], warp_to[1], warp_to[2]/2, warp_to[3]/2, warp_to[-1])
+                            print(warp_to_pan)
+                        else:
+                            warp_to_pan = None
+
+                        data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan, warp_to=warp_to_pan)
                         mus_pan = None
                     else:
-                        data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=mus)
+                        data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=mus, warp_to=warp_to)
 
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
@@ -326,21 +360,24 @@ def l1_convert(inputfile, output=None,
                         ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
 
                         ## add padding to pan data
-                        if data.shape[0] <  pan_dims[0]:
-                            data = np.vstack((data, np.zeros((pan_dims[0]-data.shape[0], data.shape[1]))))
-                        elif data.shape[0] >  pan_dims[0]:
-                            data = data[0:pan_dims[0], :]
-                        if data.shape[1] < pan_dims[1]:
-                            data = np.hstack((data, np.zeros((data.shape[0], pan_dims[1]-data.shape[1]))))
-                        elif data.shape[1] > pan_dims[1]:
-                            data = data[:, 0:pan_dims[1]]
+                        if warp_to_pan is None:
+                            if data.shape[0] <  pan_dims[0]:
+                                data = np.vstack((data, np.zeros((pan_dims[0]-data.shape[0], data.shape[1]))))
+                            elif data.shape[0] >  pan_dims[0]:
+                                data = data[0:pan_dims[0], :]
+                            if data.shape[1] < pan_dims[1]:
+                                data = np.hstack((data, np.zeros((data.shape[0], pan_dims[1]-data.shape[1]))))
+                            elif data.shape[1] > pan_dims[1]:
+                                data = data[:, 0:pan_dims[1]]
 
                         ## write output
                         nc_dim_pan = None
                         nc_off_pan = None
-                        if (nc_dim is not None): ## this means we are "extending" the output size
+                        if (nc_dim is not None) & (warp_to_pan is None): ## this means we are "extending" the output size
                             nc_dim_pan = nc_dim[0]*2, nc_dim[1]*2
                             nc_off_pan = nc_off[0]*2, nc_off[1]*2
+                        print('PAN')
+                        print(data.shape,nc_dim_pan,nc_off_pan)
                         ac.output.nc_write(ofile_pan, ds, data, attributes=gatts,
                                            global_dims=nc_dim_pan, offset=nc_off_pan, replace_nan=True,
                                            new=new_pan, dataset_attributes = ds_att)
@@ -371,7 +408,7 @@ def l1_convert(inputfile, output=None,
                             if percentiles_compute:
                                 ds_att['percentiles'] = percentiles
                                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
-                            data = ac.landsat.read_toa(fmeta[b], sub=sub)
+                            data = ac.landsat.read_toa(fmeta[b], sub=sub, warp_to=warp_to)
                             ac.output.nc_write(ofile, ds, data,
                                                global_dims=nc_dim, offset=nc_off, replace_nan=True,
                                                attributes=gatts, new=new, dataset_attributes=ds_att)

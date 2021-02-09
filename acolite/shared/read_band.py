@@ -30,11 +30,12 @@ def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
             data = ds.ReadAsArray(sub[0],sub[1],sub[2],sub[3])
         ds = None
     else:
-        if len(warp_to) == 2:
+        if len(warp_to) >= 2:
             dstSRS = warp_to[0] ## target projection
             outputBounds = warp_to[1] ## target bounds in projected space
+            targetAlignedPixels = True
 
-            ## if target_res is None figure out the target res from the outputBounds
+            ## if we don't know target resolution, figure out from the outputBounds
             if target_res is None:
                 xRes = None
                 yRes = None
@@ -46,13 +47,23 @@ def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
                     xRes = target_res[0]
                     yRes = target_res[1]
 
+            ## if given use target resolution
+            if len(warp_to) >= 4:
+                xRes = warp_to[2]
+                yRes = warp_to[3]
+            if (xRes is None) or (yRes is None): targetAlignedPixels = False
+
+            ## use given warp algorithm
+            if len(warp_to) >= 5:
+                warp_alg = warp_to[4]
+
             ## warp in memory and read dataset to array
             ## https://gdal.org/python/osgeo.gdal-module.html
             ds = gdal.Warp('', file,
                             xRes = xRes, yRes = yRes,
                             outputBounds = outputBounds, outputBoundsSRS=dstSRS,
                             dstSRS=dstSRS,
-                            targetAlignedPixels = True, #width=0, height=0,
+                            targetAlignedPixels = targetAlignedPixels,
                             format='VRT', resampleAlg=warp_alg)
             data = ds.ReadAsArray()
             ds = None
