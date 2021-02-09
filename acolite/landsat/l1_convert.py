@@ -3,7 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
 ## modifications: 2021-02-07 (QV) added support for tile merging and extending the size of the output file to the requested limit
-##                2021-02-09 (QV) added cross zone warping support (test) and some prelim tests for target_resolution
+##                2021-02-09 (QV) added cross zone warping support (test)
 
 def l1_convert(inputfile, output=None,
                 limit=None, sub=None,
@@ -21,7 +21,6 @@ def l1_convert(inputfile, output=None,
 
                 merge_tiles = False,
                 extend_region = False,
-                target_resolution = None,
 
                 verbosity = 0, vname = ''):
 
@@ -161,24 +160,16 @@ def l1_convert(inputfile, output=None,
         ## get scene projection and extent
         dct = ac.landsat.projection(meta)
 
-        ## get pan dimensions and subset
-        if target_resolution is not None:
-            pixel_size_output = float(target_resolution), -1.0*float(target_resolution)
-            pixel_size_output_pan = float(target_resolution)/2, -1.0*float(target_resolution)/2
-        else:
-            pixel_size_output = dct['pixel_size']
-            pixel_size_output_pan = dct['pixel_size'][0]/2, dct['pixel_size'][1]/2
-
         ## full scene
         gatts['scene_xrange'] = dct['xrange']
         gatts['scene_yrange'] = dct['yrange']
         gatts['scene_proj4_string'] = dct['proj4_string']
-        gatts['scene_pixel_size'] = pixel_size_output#dct['pixel_size']
+        gatts['scene_pixel_size'] = dct['pixel_size']
         gatts['scene_dims'] = dct['dimensions']
         if 'zone' in dct: gatts['scene_zone'] = dct['zone']
 
         if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True, target_pixel_size=pixel_size_output)
+            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 continue
@@ -231,19 +222,15 @@ def l1_convert(inputfile, output=None,
                                                                    min(dct_sub['region']['yrange']),
                                                                    max(dct_sub['region']['xrange']),
                                                                    max(dct_sub['region']['yrange'])-dct_sub['region']['pixel_size'][1]/2],
-                                                                   #dct_sub['region']['pixel_size'][0],
-                                                                   #dct_sub['region']['pixel_size'][1],
-                                                                   pixel_size_output[0],
-                                                                   pixel_size_output[1],
+                                                                   dct_sub['region']['pixel_size'][0],
+                                                                   dct_sub['region']['pixel_size'][1],
                                                                    'near')
                     warp_to_pan = (dct_sub['region']['proj4_string'], [min(dct_sub['region']['xrange'])-dct_sub['region']['pixel_size'][0],
                                                                    min(dct_sub['region']['yrange']),
                                                                    max(dct_sub['region']['xrange']),
                                                                    max(dct_sub['region']['yrange'])-dct_sub['region']['pixel_size'][1]],
-                                                                   #dct_sub['region']['pixel_size'][0]/2,
-                                                                   #dct_sub['region']['pixel_size'][1]/2,
-                                                                   pixel_size_output_pan[0],
-                                                                   pixel_size_output_pan[1],
+                                                                   dct_sub['region']['pixel_size'][0]/2,
+                                                                   dct_sub['region']['pixel_size'][1]/2,
                                                                    'near')
             else:
                 ## sub
@@ -255,44 +242,22 @@ def l1_convert(inputfile, output=None,
                                                                min(dct_sub['yrange']),
                                                                max(dct_sub['xrange']),
                                                                max(dct_sub['yrange'])-dct_sub['pixel_size'][1]/2],
-                                                               #dct_sub['pixel_size'][0],
-                                                               #dct_sub['pixel_size'][1],
-                                                               pixel_size_output[0],
-                                                               pixel_size_output[1],
+                                                               dct_sub['pixel_size'][0],
+                                                               dct_sub['pixel_size'][1],
                                                                'near')
                 warp_to_pan = (dct_sub['proj4_string'], [min(dct_sub['xrange'])-dct_sub['pixel_size'][0],
                                                                    min(dct_sub['yrange']),
                                                                    max(dct_sub['xrange']),
                                                                    max(dct_sub['yrange'])-dct_sub['pixel_size'][1]],
-                                                                   #dct_sub['pixel_size'][0]/2,
-                                                                   #dct_sub['pixel_size'][1]/2,
-                                                                   pixel_size_output_pan[0],
-                                                                   pixel_size_output_pan[1],
+                                                                   dct_sub['pixel_size'][0]/2,
+                                                                   dct_sub['pixel_size'][1]/2,
                                                                    'near')
 
-#                warp_to = (dct_sub['proj4_string'], [min(dct_sub['xrange']),
-#                                                     min(dct_sub['yrange'])+dct_sub['pixel_size'][1],
-#                                                     max(dct_sub['xrange'])+dct_sub['pixel_size'][0],
-#                                                     max(dct_sub['yrange'])],
-#                                                     dct_sub['pixel_size'][0],
-#                                                     dct_sub['pixel_size'][1],
-#                                                     'near')
-        #if warp_to is not None:
-        #    nc_dim = None
-        #    nc_off = None #(0,0)
-
-        #nc_dim = None
-        #nc_off = None
-        gatts['pixel_size'] = pixel_size_output
 
         ## new file for every bundle if not merging
         if (merge_tiles is False):
             new = True
             new_pan = True
-
-        print(sub)
-
-        print(warp_to)
 
         ## start the conversion
         ## write geometry

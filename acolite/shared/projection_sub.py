@@ -3,9 +3,8 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
 ## modifications: 2021-02-09 (QV) added one pixel to sub to correspond to gdalwarp output sizes
-##                                target_pixel_size to get x and yrange to the nearest full pixel
 
-def projection_sub(dct, limit, four_corners=True, target_pixel_size=None):
+def projection_sub(dct, limit, four_corners=True):
 
     ## input dict has pixel size (x, y)
     ## dimensions (y, x)
@@ -27,12 +26,8 @@ def projection_sub(dct, limit, four_corners=True, target_pixel_size=None):
     else:
         xrange_raw, yrange_raw = dct['p']([limit[1],limit[3]],[limit[0],limit[2]])
 
-    if target_pixel_size is None:
-        xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
-        yrange = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
-    else:
-        xrange = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
-        yrange = [yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2), yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2)]
+    xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
+    yrange = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
 
     if (xrange[1] < xscene[0]) or (xrange[0] > xscene[1]):
         #print('Limits out of scene longitude')
