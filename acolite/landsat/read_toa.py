@@ -3,14 +3,14 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
-## modifications:
+## modifications: 2021-02-09 (QV) added warp_to option
 
-def read_toa(fm, mus = 1, sub=None, usgs_reflectance = True, usgs_radiance=False, usgs_bt=True):
+def read_toa(fm, mus = 1, sub=None, warp_to=None, usgs_reflectance = True, usgs_radiance=False, usgs_bt=True):
     import numpy as np
     import acolite as ac
 
     ## read data
-    data = ac.shared.read_band(fm['FILE'], sub=sub).astype(np.float32)
+    data = ac.shared.read_band(fm['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)
 
     ## mask data
     data[data<fm['QUANTIZE_CAL_MIN']] = np.nan

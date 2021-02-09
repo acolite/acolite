@@ -31,9 +31,10 @@ def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
         ds = None
     else:
         if len(warp_to) == 2:
-            dstSRS = warp_to[0]
-            outputBounds = warp_to[1]
+            dstSRS = warp_to[0] ## target projection
+            outputBounds = warp_to[1] ## target bounds in projected space
 
+            ## if target_res is None figure out the target res from the outputBounds
             if target_res is None:
                 xRes = None
                 yRes = None
@@ -45,10 +46,14 @@ def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
                     xRes = target_res[0]
                     yRes = target_res[1]
 
+            ## warp in memory and read dataset to array
+            ## https://gdal.org/python/osgeo.gdal-module.html
             ds = gdal.Warp('', file,
                             xRes = xRes, yRes = yRes,
                             outputBounds = outputBounds, outputBoundsSRS=dstSRS,
-                            dstSRS=dstSRS, format='VRT', resampleAlg=warp_alg)
+                            dstSRS=dstSRS,
+                            targetAlignedPixels = True, #width=0, height=0,
+                            format='VRT', resampleAlg=warp_alg)
             data = ds.ReadAsArray()
             ds = None
 

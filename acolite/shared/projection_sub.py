@@ -83,10 +83,6 @@ def projection_sub(dct, limit, four_corners=True):
                'xrange': xrange, 'xpos': xpos, 'xsize': xsize, 'xsize_pix':xsize_pix,
                'yrange': yrange, 'ypos': ypos, 'ysize': ysize, 'ysize_pix':ysize_pix}
 
-    ## copy missing keys from input dict
-    for k in dct:
-        if k not in sub_dct: sub_dct[k] = dct[k]
-
     ## save extended region for merging tiles
     sub_dct['region'] = { 'p': dct['p'], 'sub': sub_region,
                          'xdim': sub_region[2], 'ydim': sub_region[3],
@@ -96,4 +92,10 @@ def projection_sub(dct, limit, four_corners=True):
                          'yrange': yrange_region,
                          'ysize_pix':ysize_region_pix,
                          'yregion': yregion, 'ysize':ysize_region}
+
+    ## copy missing keys from input dict
+    for k in dct:
+        if k not in sub_dct: sub_dct[k] = dct[k]
+        if k not in sub_dct['region']: sub_dct['region'][k] = dct[k]
+
     return(sub_dct)
