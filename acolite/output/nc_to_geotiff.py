@@ -5,6 +5,7 @@
 ## modifications:  QV 2018-06-07 fixed S2 offset bug
 ##                2018-07-18 (QV) changed acolite import name
 ##                2021-02-05 (QV) adapted for acolite-gen
+##                2021-02-09 (QV) more generic, only depends on presence of xrange, yrange, pixel_size and p4 string tags
 
 def nc_to_geotiff(f, skip_geo=True):
     import acolite as ac
@@ -12,11 +13,13 @@ def nc_to_geotiff(f, skip_geo=True):
     gatts = ac.shared.nc_gatts(f)
     datasets = ac.shared.nc_datasets(f)
     tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
-    tags += ['oname', 'ofile', 'sensor']
 
     if all([t in gatts for t in tags]):
         from osgeo import osr, gdal
-        out = gatts['ofile'].replace('.nc', '')
+        if 'ofile' in gatts:
+            out = gatts['ofile'].replace('.nc', '')
+        else:
+            out = f.replace('.nc', '')
 
         xrange = gatts['xrange']
         yrange = gatts['yrange']
