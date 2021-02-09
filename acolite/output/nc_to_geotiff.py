@@ -30,9 +30,9 @@ def nc_to_geotiff(f, skip_geo=True):
         srs.ImportFromProj4(gatts['proj4_string'])
         wkt = srs.ExportToWkt()
 
-        ## make geotransform
-        trans = (xrange[0], pixel_size[0], 0.0, \
-                 yrange[0], 0.0, pixel_size[1])
+        ## make geotransform, add half a pixel for pixel centers
+        trans = (xrange[0]+pixel_size[0]/2, pixel_size[0], 0.0, \
+                 yrange[0]+pixel_size[1]/2, 0.0, pixel_size[1])
 
         for ds in datasets:
             if (skip_geo) & (ds in ['lat', 'lon', 'x', 'y']): continue
