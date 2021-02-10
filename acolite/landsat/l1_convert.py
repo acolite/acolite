@@ -4,6 +4,7 @@
 ## 2021-02-05
 ## modifications: 2021-02-07 (QV) added support for tile merging and extending the size of the output file to the requested limit
 ##                2021-02-09 (QV) added cross zone warping support (test)
+##                2021-02-10 (QV) fixed cross zone warping and added support for full tile warping
 
 def l1_convert(inputfile, output=None,
                 limit=None, sub=None,
@@ -202,18 +203,12 @@ def l1_convert(inputfile, output=None,
                         ## need to add new dimensions
                         dct_prj['xdim'] = int((dct_prj['xrange'][1]-dct_prj['xrange'][0])/pixel_size[0])+1
                         dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
-                        print(dct_prj['xdim'], dct_prj['ydim'])
-                        print(dct_prj['dimensions'])
                         dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
-                        print(dct_prj['dimensions'])
-
-                        #return(dct_prj, dct, fmeta)
                     else:
                         ## if the projection matches just use the current scene projection
                         dct_prj = {k:dct[k] for k in dct}
             elif (warp_to is None):
                 dct_prj = {k:dct[k] for k in dct}
-            print(dct_prj)
         else:
             pan_dims = sub[3]*2, sub[2]*2
             sub_pan = [s*2 for s in sub]
@@ -227,33 +222,11 @@ def l1_convert(inputfile, output=None,
                     dct_prj = {k:dct_sub['region'][k] for k in dct_sub['region']}
                 else: ## just include roi that is covered by the scene
                     dct_prj = {k:dct_sub[k] for k in dct_sub}
-
-            if False:
-                ## make warp_to tuples
-                ## add half a pixel to UL corner
-                xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,min(dct_prj['yrange']),
-                       max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2]
-                warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1],'near')
-                xyr_pan = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0],min(dct_prj['yrange']),
-                           max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1]]
-                warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/2,dct_prj['pixel_size'][1]/2,'near')
         ## end cropped
 
         pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
         for k in pkeys:
             if k in dct_prj: gatts[k] = dct_prj[k]
-
-        ## make warp_to tuples, include FULL tile!
-        ## add half a pixel to UL corner
-        #if (sub is None) and (merge_zones):
-        #    ## if merging zone for full tile, specify the full tile bounds in the original tile's projection
-        #    xyr = [min(dct['xrange'])-dct['pixel_size'][0]/2,min(dct['yrange']),
-        #           max(dct['xrange']),max(dct['yrange'])-dct['pixel_size'][1]/2,
-        #           dct['proj4_string']]
-        #    xyr_pan = [min(dct['xrange'])-dct['pixel_size'][0],min(dct['yrange']),
-        #               max(dct['xrange']),max(dct['yrange'])-dct['pixel_size'][1],
-        #               dct['proj4_string']]
-        #else:
 
         ## else use the projection info in dct_prj
         xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,min(dct_prj['yrange']),
@@ -272,9 +245,6 @@ def l1_convert(inputfile, output=None,
         gatts['global_dims'] = dct_prj['dimensions']
         gatts['pan_dims'] =  dct_prj['dimensions'][0]*2, dct_prj['dimensions'][1]*2
 
-        print(warp_to)
-        #continue
-
         ## new file for every bundle if not merging
         if (merge_tiles is False):
             new = True
@@ -286,7 +256,6 @@ def l1_convert(inputfile, output=None,
             if verbosity > 1: print('Reading per pixel geometry')
             sza = ac.shared.read_band(fmeta['SZA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
             mus = np.cos(sza*(np.pi/180.)) ## per pixel cos sun zenith
-            print(mus.shape)
             if (output_geometry):
                 saa = ac.shared.read_band(fmeta['SAA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
                 vza = ac.shared.read_band(fmeta['VZA']['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)/100
@@ -323,7 +292,6 @@ def l1_convert(inputfile, output=None,
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj)
-                print(mus.shape,lat.shape)
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
                 if verbosity > 1: print('Wrote lon')
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
@@ -356,15 +324,11 @@ def l1_convert(inputfile, output=None,
                     if b in pan_bands: ## pan band
                         if (not output_pan) & (not output_pan_ms): continue
                         pan = True
-                        if len(np.atleast_1d(mus))>1:
-                            mus_pan = scipy.ndimage.zoom(mus, zoom=2, order=1)
-                        else:
-                            mus_pan = mus * 1
+                        mus_pan = scipy.ndimage.zoom(mus, zoom=2, order=1) if len(np.atleast_1d(mus))>1 else mus * 1
                         data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan, warp_to=warp_to_pan)
                         mus_pan = None
                     else: ## not a pan band
                         data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=mus, warp_to=warp_to)
-
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     for k in fmeta[b]: ds_att[k] = fmeta[b][k]
@@ -373,39 +337,20 @@ def l1_convert(inputfile, output=None,
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                     if output_pan & pan:
-                        ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
-                        ## add padding to pan data
-                        #if warp_to_pan is None:
-                        #    print(data.shape)
-                        #    print(gatts['pan_dims'])
-                        #    if data.shape[0] <  gatts['pan_dims'][0]:
-                        #        data = np.vstack((data, np.zeros((gatts['pan_dims'][0]-data.shape[0], data.shape[1]))))
-                        #    elif data.shape[0] >  gatts['pan_dims'][0]:
-                        #        data = data[0:gatts['pan_dims'][0], :]
-                        #    if data.shape[1] < gatts['pan_dims'][1]:
-                        #        data = np.hstack((data, np.zeros((data.shape[0], gatts['pan_dims'][1]-data.shape[1]))))
-                        #    elif data.shape[1] > gatts['pan_dims'][1]:
-                        #        data = data[:, 0:gatts['pan_dims'][1]]
-
                         ## write output
+                        ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
                         ac.output.nc_write(ofile_pan, ds, data, attributes=gatts,replace_nan=True,
                                            new=new_pan, dataset_attributes = ds_att)
                         new_pan = False
                         if verbosity > 1: print('Converting bands: Wrote {} to separate L1R_pan'.format(ds))
 
-                        if output_pan_ms:
-                            ## prepare for low res output
-                            data = scipy.ndimage.zoom(data, zoom=0.5, order=1)
-                        else:
-                            continue
+                    ## prepare for low res output
+                    if output_pan_ms & pan: data = scipy.ndimage.zoom(data, zoom=0.5, order=1)
 
-                    if True:
-                        ac.output.nc_write(ofile, ds, data, replace_nan=True,
-                                           attributes=gatts, new=new, dataset_attributes = ds_att)
-                        new = False
-                        if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
-                    else:
-                        if verbosity > 0: print('Converting bands: Error in writing {}'.format(ds))
+                    ## write to ms file
+                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+                    new = False
+                    if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
                 else:
                     if b in thermal_bands:
                         if output_thermal:
