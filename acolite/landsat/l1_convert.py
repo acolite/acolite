@@ -5,6 +5,7 @@
 ## modifications: 2021-02-07 (QV) added support for tile merging and extending the size of the output file to the requested limit
 ##                2021-02-09 (QV) added cross zone warping support (test)
 ##                2021-02-10 (QV) fixed cross zone warping and added support for full tile warping
+##                2021-02-11 (QV) added checks for merging tiles of the same sensor and close in time
 
 def l1_convert(inputfile, output=None,
                 limit=None, sub=None,
@@ -23,6 +24,10 @@ def l1_convert(inputfile, output=None,
                 merge_tiles = False,
                 merge_zones = False,
                 extend_region = False,
+
+                check_sensor = True,
+                check_time = True,
+                max_merge_time = 600, # seconds
 
                 verbosity = 0, vname = ''):
 
@@ -149,6 +154,19 @@ def l1_convert(inputfile, output=None,
             ofile = '{}/{}_L1R.nc'.format(output, oname)
             gatts['oname'] = oname
             gatts['ofile'] = ofile
+
+        ## check if we should merge these tiles
+        if (merge_tiles) & (not new) & (os.path.exists(ofile)):
+                fgatts = ac.shared.nc_gatts(ofile)
+                if (check_sensor) & (fgatts['sensor'] != gatts['sensor']):
+                    print('Sensors do not match, skipping {}'.format(bundle))
+                    continue
+                if check_time:
+                    tdiff = dateutil.parser.parse(fgatts['isodate'])-dateutil.parser.parse(gatts['isodate'])
+                    tdiff = abs(tdiff.days*86400 + tdiff.seconds)
+                    if (tdiff > max_merge_time):
+                        print('Time difference too large, skipping {}'.format(bundle))
+                        continue
 
         print(ofile)
 
