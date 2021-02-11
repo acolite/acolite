@@ -282,7 +282,9 @@ def l1_convert(inputfile, output=None,
                 vza[mask] = np.nan
                 sza[mask] = np.nan
                 raa = (saa-vaa)
-                raa[raa>180]-=180
+
+                tmp = np.where(raa>180)
+                raa[tmp]=np.abs(raa[tmp] - 360)
                 raa[mask] = np.nan
 
                 vaa = None
