@@ -6,6 +6,7 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2021-02-05 (QV) adapted for acolite-gen
 ##                2021-02-09 (QV) more generic, only depends on presence of xrange, yrange, pixel_size and p4 string tags
+##                2021-02-11 (QV) disabled half pixel offset option, need to check Landsat
 
 def nc_to_geotiff(f, skip_geo=True):
     import acolite as ac
@@ -31,8 +32,10 @@ def nc_to_geotiff(f, skip_geo=True):
         wkt = srs.ExportToWkt()
 
         ## make geotransform, add half a pixel for pixel centers
-        trans = (xrange[0]-pixel_size[0]/2, pixel_size[0], 0.0, \
-                 yrange[0]-pixel_size[1]/2, 0.0, pixel_size[1])
+        #trans = (xrange[0]-pixel_size[0]/2, pixel_size[0], 0.0, \
+        #         yrange[0]-pixel_size[1]/2, 0.0, pixel_size[1])
+        trans = (xrange[0], pixel_size[0], 0.0, \
+                 yrange[0], 0.0, pixel_size[1])
 
         for ds in datasets:
             if (skip_geo) & (ds in ['lat', 'lon', 'x', 'y']): continue

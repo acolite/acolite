@@ -235,12 +235,17 @@ def l1_convert(inputfile, output=None,
                max(dct_prj['yrange']),
                dct_prj['proj4_string']]
         ## eval -
-        xyr = [min(dct_prj['xrange']),
-               min(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
-               max(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
-               max(dct_prj['yrange']),
-               dct_prj['proj4_string']]
-
+        if False:
+            xyr = [min(dct_prj['xrange']),
+                   min(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
+                   max(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
+                   max(dct_prj['yrange']),
+                   dct_prj['proj4_string']]
+            xyr = [min(dct_prj['xrange']),
+                   min(dct_prj['yrange']),
+                   max(dct_prj['xrange']),
+                   max(dct_prj['yrange']),
+                   dct_prj['proj4_string']]
 
         ## warp settings for read_band
         res_method = 'average'
@@ -267,12 +272,10 @@ def l1_convert(inputfile, output=None,
                     ynew=ynew[sub[1]:sub[1]+sub[3]]
                 else:
                     stop
-
             sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
             saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
             vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
             vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
-
             mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
             vza[mask] = np.nan
             sza[mask] = np.nan
@@ -280,7 +283,6 @@ def l1_convert(inputfile, output=None,
             tmp = np.where(raa>180)
             raa[tmp]=np.abs(raa[tmp] - 360)
             raa[mask] = np.nan
-
             vaa = None
             saa = None
             mask = None
@@ -302,8 +304,7 @@ def l1_convert(inputfile, output=None,
                 datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct_prj)
-                print(lon.shape)
+                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
                 if verbosity > 1: print('Wrote lon')
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
@@ -316,19 +317,14 @@ def l1_convert(inputfile, output=None,
                 datasets = ac.shared.nc_datasets(ofile)
             else:
                 datasets = []
-            print(datasets)
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True)
-                print(x.shape)
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'x', x, new=new)
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)
                 if verbosity > 1: print('Wrote y')
                 new=False
-
-        print(ofile)
-        #return(meta, grmeta, band_data, gatts)
 
         ## write TOA bands
         quant = float(meta['QUANTIFICATION_VALUE'])
@@ -339,8 +335,7 @@ def l1_convert(inputfile, output=None,
             if os.path.exists(safe_files[granule][Bn]['path']):
                 if b in waves_names:
                     data = ac.shared.read_band(safe_files[granule][Bn]['path'], sub=sub, warp_to=warp_to)
-                    #data = data.astype(np.float32)/quant
-                    print(data.shape)
+                    data = data.astype(np.float32)/quant
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     #for k in band_data: ds_att[k] = band_data[k][b]
