@@ -255,8 +255,9 @@ def l1_convert(inputfile, output=None,
                    dct_prj['proj4_string']]
 
         ## warp settings for read_band
-        warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1],'near')
-        warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/2,dct_prj['pixel_size'][1]/2,'near')
+        res_method = 'average'
+        warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)
+        warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/2,dct_prj['pixel_size'][1]/2, res_method)
 
         ## store scene and output dimensions
         gatts['scene_dims'] = dct['ydim'], dct['xdim']
@@ -282,11 +283,9 @@ def l1_convert(inputfile, output=None,
                 vza[mask] = np.nan
                 sza[mask] = np.nan
                 raa = (saa-vaa)
-
                 tmp = np.where(raa>180)
                 raa[tmp]=np.abs(raa[tmp] - 360)
                 raa[mask] = np.nan
-
                 vaa = None
                 saa = None
                 mask = None
@@ -305,7 +304,7 @@ def l1_convert(inputfile, output=None,
 
         ## write lat/lon
         if (output_geolocation):
-            if os.path.exists(ofile):
+            if os.path.exists(ofile) & (not new):
                 datasets = ac.shared.nc_datasets(ofile)
             else:
                 datasets = []
@@ -320,7 +319,7 @@ def l1_convert(inputfile, output=None,
 
         ## write x/y
         if (output_xy):
-            if os.path.exists(ofile):
+            if os.path.exists(ofile) & (not new):
                 datasets = ac.shared.nc_datasets(ofile)
             else:
                 datasets = []
