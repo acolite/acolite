@@ -336,6 +336,7 @@ def l1_convert(inputfile, output=None,
                 if b in waves_names:
                     data = ac.shared.read_band(safe_files[granule][Bn]['path'], sub=sub, warp_to=warp_to)
                     data = data.astype(np.float32)/quant
+                    data[np.where(data == 0.0)] = np.nan
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     #for k in band_data: ds_att[k] = band_data[k][b]
