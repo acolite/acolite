@@ -31,7 +31,7 @@ def l1_convert(inputfile, output=None,
 
                 verbosity = 0, vname = ''):
 
-    import os, glob, dateutil, time
+    import os, glob, dateutil, time, copy
     import acolite as ac
     import scipy.ndimage
     import numpy as np
@@ -244,18 +244,30 @@ def l1_convert(inputfile, output=None,
 
         pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
         for k in pkeys:
-            if k in dct_prj: gatts[k] = dct_prj[k]
+            if k in dct_prj: gatts[k] = copy.copy(dct_prj[k])
 
         ## else use the projection info in dct_prj
-        xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,min(dct_prj['yrange']),
-               max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
+        #xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,min(dct_prj['yrange']),
+        #       max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
+        #       dct_prj['proj4_string']]
+        #xyr_pan = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0],min(dct_prj['yrange']),
+        #           max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1],
+        #           dct_prj['proj4_string']]
+
+        ## new after S2 changes
+        xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,
+               min(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
+               max(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,
+               max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
                dct_prj['proj4_string']]
-        xyr_pan = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0],min(dct_prj['yrange']),
-                   max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1],
+        xyr_pan = [min(dct_prj['xrange']),
+                   min(dct_prj['yrange']),
+                   max(dct_prj['xrange'])+dct_prj['pixel_size'][0],
+                   max(dct_prj['yrange'])-dct_prj['pixel_size'][1],
                    dct_prj['proj4_string']]
 
         ## warp settings for read_band
-        res_method = 'average'
+        res_method = 'near'
         warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)
         warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/2,dct_prj['pixel_size'][1]/2, res_method)
 
@@ -268,6 +280,9 @@ def l1_convert(inputfile, output=None,
         if (merge_tiles is False):
             new = True
             new_pan = True
+        if new: ## half pixel offset for writing geotiff
+            gatts['xrange'][0]-=gatts['pixel_size'][0]/2
+            gatts['yrange'][0]-=gatts['pixel_size'][1]/2
 
         ## start the conversion
         ## write geometry
