@@ -6,7 +6,7 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2020-10-28 (QV) fill nans in angles grids
 ##                2021-02-11 (QV) adapted for acolite-gen, renamed from granule_meta
-##                2021-02-17 (QV) added fillnan keyword
+##                2021-02-17 (QV) added fillnan keyword, added per detector grids, renamed safe_tile_grid
 
 def metadata_granule(metafile, fillnan=False):
     import dateutil.parser
@@ -14,6 +14,7 @@ def metadata_granule(metafile, fillnan=False):
 
     import acolite as ac
     import numpy as np
+    import copy
 
     try:
         xmldoc = minidom.parse(metafile)
@@ -59,22 +60,25 @@ def metadata_granule(metafile, fillnan=False):
             sun_angles={}
             for tag in ['Zenith','Azimuth']:
                 for sub in ta.getElementsByTagName('Sun_Angles_Grid')[0].getElementsByTagName(tag):
-                    sun_angles[tag] = ac.sentinel2.safe_tile_grid(sub)
+                    sun_angles[tag] = ac.sentinel2.grid_geom(sub)
 
             for sub in ta.getElementsByTagName('Mean_Sun_Angle'):
                 sun_angles['Mean_Zenith'] = float(sub.getElementsByTagName('ZENITH_ANGLE')[0].firstChild.nodeValue)
                 sun_angles['Mean_Azimuth'] = float(sub.getElementsByTagName('AZIMUTH_ANGLE')[0].firstChild.nodeValue)
 
-            ## view angles (merge detectors)
-            view_angles={}
+            ## view angles
+            view_angles={} # merged detectors
+            view_angles_det={} # separate detectors
             for sub in ta.getElementsByTagName('Viewing_Incidence_Angles_Grids'):
                 band = sub.getAttribute('bandId')
                 detector = sub.getAttribute('detectorId')
-
+                if band not in view_angles_det: view_angles_det[band]={}
+                if detector not in view_angles_det[band]: view_angles_det[band][detector]={}
                 band_view = {}
                 for tag in ['Zenith','Azimuth']:
-                    band_view[tag] = ac.sentinel2.safe_tile_grid(sub.getElementsByTagName(tag)[0])
-
+                    ret = ac.sentinel2.grid_geom(sub.getElementsByTagName(tag)[0])
+                    band_view[tag] = copy.copy(ret)
+                    view_angles_det[band][detector][tag] = copy.copy(ret)
                 if band not in view_angles.keys():
                     view_angles[band] = band_view
                 else:
@@ -103,6 +107,7 @@ def metadata_granule(metafile, fillnan=False):
 
     metadata["GRIDS"] = grids
     metadata["VIEW"] = view_angles
+    metadata["VIEW_DET"] = view_angles_det
     metadata["SUN"] = sun_angles
 
     ## some interpretation

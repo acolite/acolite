@@ -1,12 +1,12 @@
-## def safe_tile_grid
+## def geom_grid
 ## makes 2D float array from sentinel metadata angles grid
 ## written by Quinten Vanhellemont, RBINS
 ## 2017-04-18
-## modifications:
+## modifications: 2021-02-17 (QV) renamed from safe_tile_grid
 
-def safe_tile_grid(dom):
+def grid_geom(dom):
     from numpy import zeros
-    
+
     ## get column and row step
     col_step = dom.getElementsByTagName('COL_STEP')[0].firstChild.nodeValue
     row_step = dom.getElementsByTagName('ROW_STEP')[0].firstChild.nodeValue

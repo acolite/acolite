@@ -296,10 +296,14 @@ def l1_convert(inputfile, output=None,
                     saa = ac.shared.read_band(geometry_files[saai], sub=sub, warp_to=warp_to)
                     vza = ac.shared.read_band(geometry_files[vzai], sub=sub, warp_to=warp_to)
                     vaa = ac.shared.read_band(geometry_files[vaai], sub=sub, warp_to=warp_to)
-                    mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+                    mask = (vza == 0) * (vaa == 0)
             vza[mask] = np.nan
             sza[mask] = np.nan
             raa = (saa-vaa)
+            ## negative raa
+            tmp = np.where(raa<0)
+            raa[tmp]=np.abs(raa[tmp])
+            ## raa along 180 degree symmetry
             tmp = np.where(raa>180)
             raa[tmp]=np.abs(raa[tmp] - 360)
             raa[mask] = np.nan

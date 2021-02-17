@@ -8,7 +8,7 @@
 ##                2021-02-11 (QV) added smooth keyword,  default to nearest
 
 def tiles_interp(data, xnew, ynew, smooth = False, kern_size=2, method='nearest', mask=None,
-                 target_mask=None, target_mask_full=False, dtype='float32'):
+                 target_mask=None, target_mask_full=False, fill_nan = True, dtype='float32'):
 
     import numpy as np
     from scipy.interpolate import griddata
@@ -17,9 +17,12 @@ def tiles_interp(data, xnew, ynew, smooth = False, kern_size=2, method='nearest'
     if mask is not None: data[mask] = np.nan
 
     ## fill nans with closest value
-    ind = distance_transform_edt(np.isnan(data), return_distances=False, return_indices=True)
-    cur_data = data[tuple(ind)]
-
+    if fill_nan:
+        ind = distance_transform_edt(np.isnan(data), return_distances=False, return_indices=True)
+        cur_data = data[tuple(ind)]
+    else:
+        cur_data = data*1.0
+        
     ## smooth dataset
     if smooth:
         z = uniform_filter(cur_data, size=kern_size)
