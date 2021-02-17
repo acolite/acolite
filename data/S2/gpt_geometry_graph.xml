@@ -13,7 +13,7 @@
       <sourceProduct refid="Read"/>
     </sources>
     <parameters>
-      <resolution>$s2_target_res</resolution>
+      <resolution>$target_res</resolution>
       <upsampling>Bilinear</upsampling>
       <downsampling>Mean</downsampling>
       <flagDownsampling>First</flagDownsampling>

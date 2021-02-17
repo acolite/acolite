@@ -5,12 +5,12 @@
 ## 2021-02-17
 ## modifications:
 
-def gpt_geometry(bundle, output=None, s2_target_res=60, override=True, verbosity=0, format='GeoTIFF'):
+def gpt_geometry(bundle, output=None, target_res=60, override=True, verbosity=0, format='GeoTIFF'):
     import os
     import acolite as ac
     import subprocess
     files = []
-    res = '{:.0f}'.format(s2_target_res)
+    res = '{:.0f}'.format(target_res)
 
     gpt = '{}/bin/gpt'.format(ac.config['snap_directory'])
     if os.path.exists(gpt) is False:
@@ -26,6 +26,9 @@ def gpt_geometry(bundle, output=None, s2_target_res=60, override=True, verbosity
     elif format == 'NetCDF4-BEAM':
         ext = 'nc'
         parameters=[','.join(parameters)]
+    elif format == 'NetCDF4-CF':
+        ext = 'nc'
+        parameters=[','.join(parameters)]
     else:
         if verbosity>0: print('format {} not configures'.format(format))
         return(files)
@@ -37,6 +40,9 @@ def gpt_geometry(bundle, output=None, s2_target_res=60, override=True, verbosity
         elif format == 'NetCDF4-BEAM':
             geometry_file = '{}/{}'.format(output, os.path.basename(bundle).replace('.SAFE', '_geometry_{}m.{}'.format(res, ext)))
             gptfile = '{}/gpt_geometry_graph_{}m.xml'.format(output,res)
+        elif format == 'NetCDF4-CF':
+            geometry_file = '{}/{}'.format(output, os.path.basename(bundle).replace('.SAFE', '_geometry_{}m.{}'.format(res, ext)))
+            gptfile = '{}/gpt_geometry_graph_{}m.xml'.format(output,res)
 
         if not os.path.exists(geometry_file) or override:
             ## create gpt graph
@@ -46,8 +52,8 @@ def gpt_geometry(bundle, output=None, s2_target_res=60, override=True, verbosity
                 for line in fi.readlines():
                     if '$bundle' in line:
                         line = line.replace('$bundle', bundle)
-                    if '$s2_target_res' in line:
-                        line = line.replace('$s2_target_res', res)
+                    if '$target_res' in line:
+                        line = line.replace('$target_res', res)
                     if '$geometry_file' in line:
                         line = line.replace('$geometry_file', geometry_file)
                     if '$parameter' in line:
