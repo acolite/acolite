@@ -65,5 +65,5 @@ def gpt_geometry(bundle, output=None, target_res=60, override=True, verbosity=0,
             if verbosity > 0: print('Running gpt resampling to {}m'.format(res))
             sp = subprocess.run(gpt + " " + gptfile, shell=True, check=True, stdout=subprocess.PIPE)
 
-            if os.path.exists(geometry_file): files.append(geometry_file)
+        if os.path.exists(geometry_file): files.append(geometry_file)
     return(files)
