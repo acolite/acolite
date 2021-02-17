@@ -12,6 +12,11 @@ def l1_convert(inputfile, output=None,
                 output_geolocation = True,
                 output_xy = False,
 
+                geometry_type = 'gpt', ## 'gpt' or 'grids'
+                geometry_res = 60, ## for gpt geometry
+                geometry_format='GeoTIFF', ## for gpt geometry
+                geometry_override = False, ## for gpt geometry
+
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
@@ -264,19 +269,34 @@ def l1_convert(inputfile, output=None,
         ## write geometry
         if (output_geometry):
             if verbosity > 1: print('Reading per pixel geometry')
-            xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
-            ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
-            if limit is not None:
-                if (dct_prj['proj4_string'] == dct['proj4_string']):
-                    xnew=xnew[sub[0]:sub[0]+sub[2]]
-                    ynew=ynew[sub[1]:sub[1]+sub[3]]
-                else:
-                    stop
-            sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
-            saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
-            vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
-            vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
-            mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+            if geometry_type == 'grids': ## default s2 5x5 km grids
+                xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
+                ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
+                if limit is not None:
+                    if (dct_prj['proj4_string'] == dct['proj4_string']):
+                        xnew=xnew[sub[0]:sub[0]+sub[2]]
+                        ynew=ynew[sub[1]:sub[1]+sub[3]]
+                    else:
+                        stop
+                sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
+                saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
+                vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
+                vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
+                mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+            elif geometry_type == 'gpt': ## use snap gpt to get nicer angles
+                geometry_parameters = ['view_zenith_mean','view_azimuth_mean','sun_zenith','sun_azimuth']
+                geometry_files = ac.sentinel2.gpt_geometry(bundle, output=output, target_res=geometry_res,
+                                                           verbosity=verbosity, override=geometry_override)
+                if geometry_format == 'GeoTIFF':
+                    szai = [i for i, f in enumerate(geometry_files) if 'sun_zenith' in f][0]
+                    saai = [i for i, f in enumerate(geometry_files) if 'sun_azimuth' in f][0]
+                    vzai = [i for i, f in enumerate(geometry_files) if 'view_zenith_mean' in f][0]
+                    vaai = [i for i, f in enumerate(geometry_files) if 'view_azimuth_mean' in f][0]
+                    sza = ac.shared.read_band(geometry_files[szai], sub=sub, warp_to=warp_to)
+                    saa = ac.shared.read_band(geometry_files[saai], sub=sub, warp_to=warp_to)
+                    vza = ac.shared.read_band(geometry_files[vzai], sub=sub, warp_to=warp_to)
+                    vaa = ac.shared.read_band(geometry_files[vaai], sub=sub, warp_to=warp_to)
+                    mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
             vza[mask] = np.nan
             sza[mask] = np.nan
             raa = (saa-vaa)
