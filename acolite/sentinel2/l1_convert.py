@@ -269,7 +269,7 @@ def l1_convert(inputfile, output=None,
         ## write geometry
         if (output_geometry):
             if verbosity > 1: print('Reading per pixel geometry')
-            if geometry_type == 'grids': ## default s2 5x5 km grids
+            if (geometry_type == 'grids') | (geometry_type == 'grids_footprint'): ## default s2 5x5 km grids
                 xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
                 ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
                 if limit is not None:
@@ -280,9 +280,55 @@ def l1_convert(inputfile, output=None,
                         stop
                 sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
                 saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
-                vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
-                vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
+
+                if geometry_type == 'grids':
+                    vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
+                    vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
+                if geometry_type == 'grids_footprint':
+                    ## compute vza and saa
+                    gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/MSK_DETFOO*.gml'.format(bundle, granule))
+                    gml_files.sort()
+                    ## get detector footprint for 10/20/60 m band
+                    if s2_target_res == 10:
+                        target_file = safe_files[granule]['B2']['path']
+                    elif s2_target_res == 20:
+                        target_file = safe_files[granule]['B11']['path']
+                    elif s2_target_res == 60:
+                        target_file = safe_files[granule]['B1']['path']
+                    dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
+                    bands = list(grmeta['VIEW_DET'].keys())
+                    bands.sort()
+                    vza = np.zeros((int(global_dims[0]), int(global_dims[1])))+np.nan
+                    vaa = np.zeros((int(global_dims[0]), int(global_dims[1])))+np.nan
+                    #vza = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
+                    #vaa = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
+                    if verbosity>1:print('Computing per detector geometry')
+                    for nf, bv in enumerate(dval):
+                        ## compute detector average geometry
+                        if verbosity>2:print('Detector {}'.format(bv))
+                        for b in bands:
+                            bza = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Zenith']
+                            baa = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Azimuth']
+                            bza = ac.sentinel2.grid_extend(bza, iterations=1, crop=False)
+                            baa = ac.sentinel2.grid_extend(baa, iterations=1, crop=False)
+                            if b == bands[0]:
+                                ave_vza = bza
+                                ave_vaa = baa
+                            else:
+                                ave_vza = np.dstack((ave_vza, bza))
+                                ave_vaa = np.dstack((ave_vaa, baa))
+                        ave_vza = np.nanmean(ave_vza, axis=2)
+                        ave_vaa = np.nanmean(ave_vaa, axis=2)
+                        ## end compute detector average geometry
+                        ## interpolate grids to current detector
+                        det_mask = dfoo==bv
+                        ## add +1 to xnew and ynew since we are not cropping the extended grid
+                        vza[det_mask] = ac.shared.tiles_interp(ave_vza, xnew+1, ynew+1, smooth=False, fill_nan=True,
+                                                      target_mask = det_mask, target_mask_full=False, method='linear')
+                        vaa[det_mask] = ac.shared.tiles_interp(ave_vaa, xnew+1, ynew+1, smooth=False, fill_nan=True,
+                                                      target_mask = det_mask, target_mask_full=False, method='linear')
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+                print(mask.shape)
             elif geometry_type == 'gpt': ## use snap gpt to get nicer angles
                 geometry_parameters = ['view_zenith_mean','view_azimuth_mean','sun_zenith','sun_azimuth']
                 geometry_files = ac.sentinel2.gpt_geometry(bundle, output=output, target_res=geometry_res,
@@ -297,6 +343,7 @@ def l1_convert(inputfile, output=None,
                     vza = ac.shared.read_band(geometry_files[vzai], sub=sub, warp_to=warp_to)
                     vaa = ac.shared.read_band(geometry_files[vaai], sub=sub, warp_to=warp_to)
                     mask = (vza == 0) * (vaa == 0)
+
             vza[mask] = np.nan
             sza[mask] = np.nan
             raa = (saa-vaa)
@@ -329,9 +376,13 @@ def l1_convert(inputfile, output=None,
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
+                print(lon.shape)
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                lon = None
                 if verbosity > 1: print('Wrote lon')
+                print(lat.shape)
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
+                lat = None
                 if verbosity > 1: print('Wrote lat')
                 new=False
 
@@ -345,8 +396,10 @@ def l1_convert(inputfile, output=None,
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'x', x, new=new)
+                x = None
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)
+                y = None
                 if verbosity > 1: print('Wrote y')
                 new=False
 

@@ -1,5 +1,6 @@
 from .grid_geom import *
 from .grid_extend import *
+from .detector_footprint import *
 
 from .safe_test import *
 
