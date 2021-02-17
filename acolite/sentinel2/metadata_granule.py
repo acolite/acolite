@@ -6,8 +6,9 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2020-10-28 (QV) fill nans in angles grids
 ##                2021-02-11 (QV) adapted for acolite-gen, renamed from granule_meta
+##                2021-02-17 (QV) added fillnan keyword
 
-def metadata_granule(metafile):
+def metadata_granule(metafile, fillnan=False):
     import dateutil.parser
     from xml.dom import minidom
 
@@ -81,9 +82,10 @@ def metadata_granule(metafile):
                         mask = np.isfinite(band_view[tag]) & np.isnan(view_angles[band][tag])
                         view_angles[band][tag][mask] = band_view[tag][mask]
 
-            for b,band in enumerate(view_angles.keys()):
-                for tag in ['Zenith','Azimuth']:
-                    view_angles[band][tag] = ac.shared.fillnan(view_angles[band][tag])
+            if fillnan:
+                for b,band in enumerate(view_angles.keys()):
+                    for tag in ['Zenith','Azimuth']:
+                        view_angles[band][tag] = ac.shared.fillnan(view_angles[band][tag])
 
             ## average view angle grid
             ave = {}
