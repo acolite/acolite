@@ -1,0 +1,11 @@
+## Data directory
+data_dir=data
+
+## DEM SRTM HGT files
+hgt_dir=data/SRTMGL3.003
+
+## MET files
+met_dir=data/MET
+
+## SNAP directory
+snap_directory=/Applications/snap

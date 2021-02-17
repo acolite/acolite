@@ -1,0 +1,41 @@
+<graph id="Graph">
+  <version>1.0</version>
+  <node id="Read">
+    <operator>Read</operator>
+    <sources/>
+    <parameters>
+      <file>$bundle</file>
+    </parameters>
+  </node>
+  <node id="S2Resampling">
+    <operator>S2Resampling</operator>
+    <sources>
+      <sourceProduct refid="Read"/>
+    </sources>
+    <parameters>
+      <resolution>$s2_target_res</resolution>
+      <upsampling>Bilinear</upsampling>
+      <downsampling>Mean</downsampling>
+      <flagDownsampling>First</flagDownsampling>
+    </parameters>
+  </node>
+  <node id="Subset">
+    <operator>Subset</operator>
+    <sources>
+      <sourceProduct refid="S2Resampling"/>
+    </sources>
+    <parameters>
+      <sourceBands>$parameter</sourceBands>
+    </parameters>
+  </node>
+  <node id="Write">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="Subset"/>
+    </sources>
+    <parameters>
+      <file>$geometry_file</file>
+      <formatName>$format</formatName>
+    </parameters>
+  </node>
+</graph>
