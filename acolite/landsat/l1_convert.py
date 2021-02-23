@@ -7,8 +7,10 @@
 ##                2021-02-10 (QV) fixed cross zone warping and added support for full tile warping
 ##                2021-02-11 (QV) added checks for merging tiles of the same sensor and close in time
 
-def l1_convert(inputfile, output=None,
-                limit=None, sub=None,
+def l1_convert(inputfile, output = None,
+                limit = None, sub = None,
+                poly = None,
+
                 output_pan = True,
                 output_pan_ms = True,
                 output_thermal = True,
@@ -45,6 +47,14 @@ def l1_convert(inputfile, output=None,
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+
+    ## check if ROI polygon is given
+    clip, clip_mask = False, None
+    if poly is not None:
+        if os.path.exists(poly):
+            limit = ac.shared.polygon_limit(poly)
+            print('Using limit from polygon envelope: {}'.format(limit))
+            clip = True
 
     ## check if merging settings make sense
     if (limit is None) & (merge_tiles):
@@ -284,6 +294,11 @@ def l1_convert(inputfile, output=None,
             gatts['xrange'][0]-=gatts['pixel_size'][0]/2
             gatts['yrange'][0]-=gatts['pixel_size'][1]/2
 
+        ## if we are clipping to a given polygon get the clip_mask here
+        if clip:
+            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+            clip_mask = clip_mask.astype(bool) == False
+
         ## start the conversion
         ## write geometry
         if ('VAA' in fmeta) & ('SAA' in fmeta) & ('VZA' in fmeta) & ('SZA' in fmeta):
@@ -297,6 +312,13 @@ def l1_convert(inputfile, output=None,
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
                 vza[mask] = np.nan
                 sza[mask] = np.nan
+                ## clip geometry data
+                if clip:
+                    sza[clip_mask] = np.nan
+                    saa[clip_mask] = np.nan
+                    vza[clip_mask] = np.nan
+                    vaa[clip_mask] = np.nan
+
                 raa = (saa-vaa)
                 tmp = np.where(raa>180)
                 raa[tmp]=np.abs(raa[tmp] - 360)
@@ -381,6 +403,9 @@ def l1_convert(inputfile, output=None,
                     ## prepare for low res output
                     if output_pan_ms & pan: data = scipy.ndimage.zoom(data, zoom=0.5, order=1)
 
+                    ## clip data
+                    if clip: data[clip_mask] = np.nan
+
                     ## write to ms file
                     ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
                     new = False
@@ -395,6 +420,9 @@ def l1_convert(inputfile, output=None,
                                 ds_att['percentiles'] = percentiles
                                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
                             data = ac.landsat.read_toa(fmeta[b], sub=sub, warp_to=warp_to)
+                            
+                            ## clip data
+                            if clip: data[clip_mask] = np.nan
                             ac.output.nc_write(ofile, ds, data, replace_nan=True,
                                                attributes=gatts, new=new, dataset_attributes=ds_att)
                             new = False
