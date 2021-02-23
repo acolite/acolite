@@ -16,7 +16,6 @@ def warp_from_source(source, dct, data):
             ySrc = g.RasterYSize
             gt = g.GetGeoTransform()
             pr = osr.SpatialReference(wkt=g.GetProjection()).ExportToProj4()
-            print(pr)
             g = None
     elif type(source) is dict:
         xSrc = source['xdim']
