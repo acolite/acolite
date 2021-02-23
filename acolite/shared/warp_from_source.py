@@ -1,0 +1,106 @@
+## def warp_from_source
+## warps dataset given source to projection dict
+## written by Quinten Vanhellemont, RBINS
+## 2021-02-23
+## modifications:
+
+def warp_from_source(source, dct, data):
+    import os
+    from osgeo import ogr,osr,gdal
+
+    ## if target is a file copy information from there
+    if type(source) is str:
+        if os.path.exists(source):
+            g = gdal.Open(source)
+            xSrc = g.RasterXSize
+            ySrc = g.RasterYSize
+            gt = g.GetGeoTransform()
+            pr = osr.SpatialReference(wkt=g.GetProjection()).ExportToProj4()
+            print(pr)
+            g = None
+    elif type(source) is dict:
+        xSrc = source['xdim']
+        ySrc = source['ydim']
+        gt = source['xrange'][0], source['pixel_size'][0], 0.0,\
+             source['yrange'][0], 0.0, source['pixel_size'][1]
+        pr = source['proj4_string']
+
+    srs = osr.SpatialReference()
+    srs.ImportFromProj4(pr)
+    wkt = srs.ExportToWkt()
+
+    ## in memory source dataset based chosen band
+    drv = gdal.GetDriverByName('MEM')
+    source_ds = drv.Create('', xSrc, ySrc, 1,  gdal.GDT_Float32)
+    source_ds.SetGeoTransform(gt)
+    source_ds.SetProjection(wkt)
+
+    ## put data in source_ds
+    source_ds.GetRasterBand(1).WriteArray(data)
+    source_ds.FlushCache()
+
+    ## set up the warp
+    warp_to_region = (dct['proj4_string'],
+                      [dct['xrange'][0], dct['yrange'][1],
+                       dct['xrange'][1], dct['yrange'][0], dct['proj4_string']],
+                      dct['pixel_size'][0], dct['pixel_size'][1],'average')
+
+    #if 'region' in dct:
+    #    warp_to_region = (dct['region']['proj4_string'],
+    #                      [dct['region']['xrange'][0], dct['region']['yrange'][1],
+    #                       dct['region']['xrange'][1], dct['region']['yrange'][0], dct['region']['proj4_string']],
+    #                      dct['region']['pixel_size'][0],dct['region']['pixel_size'][1],'average')
+
+    ## target geotransform
+    #target_gt = dct_prj['region']['xrange'][0], dct_prj['region']['pixel_size'][0], 0.0,\
+    #            dct_prj['region']['yrange'][0], 0.0, dct_prj['region']['pixel_size'][1]
+    #
+    #target_ds = drv.Create('', dct_prj['region']['xdim'], dct_prj['region']['ydim'], 1,  gdal.GDT_Byte)
+    #target_ds.SetGeoTransform(target_gt)
+    #target_ds.SetProjection(wkt)
+
+    ## warp the data
+    if True:
+        dstSRS = warp_to_region[0] ## target projection
+        ## target bounds in projected space
+        if len(warp_to_region[1]) == 5:
+            outputBounds = warp_to_region[1][0:4]
+            outputBoundsSRS = warp_to_region[1][4]
+        else:
+            outputBounds = warp_to_region[1]
+            outputBoundsSRS = dstSRS
+        targetAlignedPixels = True
+        target_res = None
+        ## if we don't know target resolution, figure out from the outputBounds
+        if target_res is None:
+            xRes = None
+            yRes = None
+        else:
+            if type(target_res) in (int, float):
+                xRes = target_res * 1
+                yRes = target_res * 1
+            else:
+                xRes = target_res[0]
+                yRes = target_res[1]
+
+        ## if given use target resolution
+        if len(warp_to_region) >= 4:
+            xRes = warp_to_region[2]
+            yRes = warp_to_region[3]
+        if (xRes is None) or (yRes is None): targetAlignedPixels = False
+
+        ## use given warp algorithm
+        if len(warp_to_region) >= 5:
+            warp_alg = warp_to_region[4]
+
+        ## warp in memory and read dataset to array
+        ## https://gdal.org/python/osgeo.gdal-module.html
+        ds = gdal.Warp('', source_ds,
+                        xRes = xRes, yRes = yRes,
+                        outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
+                        dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
+                        format='VRT', resampleAlg=warp_alg)
+        data = ds.ReadAsArray()
+        ds = None
+    source_ds = None
+    return(data)
