@@ -40,16 +40,13 @@ def warp_from_source(source, dct, data):
     source_ds.FlushCache()
 
     ## set up the warp
-    warp_to_region = (dct['proj4_string'],
-                      [dct['xrange'][0], dct['yrange'][1],
-                       dct['xrange'][1], dct['yrange'][0], dct['proj4_string']],
+    xyr = [min(dct['xrange']),
+           min(dct['yrange'])+dct['pixel_size'][1],
+           max(dct['xrange'])+dct['pixel_size'][0],
+           max(dct['yrange']),
+           dct['proj4_string']]
+    warp_to_region = (dct['proj4_string'], xyr,
                       dct['pixel_size'][0], dct['pixel_size'][1],'average')
-
-    #if 'region' in dct:
-    #    warp_to_region = (dct['region']['proj4_string'],
-    #                      [dct['region']['xrange'][0], dct['region']['yrange'][1],
-    #                       dct['region']['xrange'][1], dct['region']['yrange'][0], dct['region']['proj4_string']],
-    #                      dct['region']['pixel_size'][0],dct['region']['pixel_size'][1],'average')
 
     ## target geotransform
     #target_gt = dct_prj['region']['xrange'][0], dct_prj['region']['pixel_size'][0], 0.0,\
