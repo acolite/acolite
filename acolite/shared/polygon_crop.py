@@ -49,6 +49,9 @@ def polygon_crop(source, poly, return_sub = False):
         return(data)
     else:
         s = np.where(data)
+        if len(s[0]) == 0:
+            print('Polygon not in target dataset.')
+            return([-1,-1,-1,-1], None)
         xmin, xmax = np.min(s[0]), np.max(s[0])
         ymin, ymax = np.min(s[1]), np.max(s[1])
         sub = [int(ymin), int(xmin), int(ymax-ymin), int(xmax-xmin)]
