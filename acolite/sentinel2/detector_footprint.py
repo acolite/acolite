@@ -14,7 +14,7 @@ def detector_footprint(target_file, gml_file):
 
     ## in memory target dataset based chosen band
     drv = gdal.GetDriverByName('MEM')
-    target_ds = drv.Create('', g.RasterXSize, g.RasterXSize, 1,  gdal.GDT_Byte)
+    target_ds = drv.Create('', g.RasterXSize, g.RasterYSize, 1,  gdal.GDT_Byte)
     target_ds.SetGeoTransform(g.GetGeoTransform())
 
     ## set up projections
