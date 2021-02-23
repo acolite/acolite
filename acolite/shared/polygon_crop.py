@@ -1,10 +1,10 @@
-## def crop_to_polygon
+## def polygon_crop
 ## crops to given polygon file (geojson or shapefile tested, other files supported my ogr may work too)
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-23
-## modifications:
+## modifications: 2021-02-23 (QV) renamed from crop_to_polygon
 
-def crop_to_polygon(source, poly, return_sub = False):
+def polygon_crop(source, poly, return_sub = False):
     import os
     import numpy as np
     from osgeo import ogr,osr,gdal
