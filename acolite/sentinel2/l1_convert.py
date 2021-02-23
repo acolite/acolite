@@ -4,8 +4,9 @@
 ## 2021-02-11
 ## modifications:
 
-def l1_convert(inputfile, output=None,
-                limit=None, sub=None,
+def l1_convert(inputfile, output = None,
+                limit = None, sub = None,
+                poly = None,
                 s2_target_res = 10,
 
                 output_geometry = True,
@@ -31,6 +32,7 @@ def l1_convert(inputfile, output=None,
                 verbosity = 0, vname = ''):
 
     import os, glob, dateutil, time
+    from osgeo import ogr,osr,gdal
     import acolite as ac
     import scipy.ndimage
     import numpy as np
@@ -44,6 +46,14 @@ def l1_convert(inputfile, output=None,
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+
+    ## check if ROI polygon is given
+    clip, clip_mask = False, None
+    if poly is not None:
+        if os.path.exists(poly):
+            limit = ac.shared.polygon_limit(poly)
+            print('Using limit from polygon envelope: {}'.format(limit))
+            clip = True
 
     ## check if merging settings make sense
     if (limit is None) & (merge_tiles):
@@ -265,30 +275,46 @@ def l1_convert(inputfile, output=None,
             new = True
             new_pan = True
 
+        ## if we are clipping to a given polygon get the clip_mask here
+        if clip:
+            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+            clip_mask = clip_mask.astype(bool) == False
+
         ## start the conversion
         ## write geometry
         if (output_geometry):
             if verbosity > 1: print('Reading per pixel geometry')
             if (geometry_type == 'grids') | (geometry_type == 'grids_footprint'):
-                if geometry_type == 'grids': ## default s2 5x5 km grids
-                    xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
-                    ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
-                    sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
-                    saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
+                ## just use 60m band for geometry, it will be interpolated later
+                if geometry_res == 10:
+                    target_file = safe_files[granule]['B2']['path']
+                elif geometry_res == 20:
+                    target_file = safe_files[granule]['B11']['path']
+                elif geometry_res == 60:
+                    target_file = safe_files[granule]['B1']['path']
+                ## open target file to get dimensions
+                g = gdal.Open(target_file)
+                xSrc = g.RasterXSize
+                ySrc = g.RasterYSize
+                g = None
+                xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(xSrc))
+                ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(ySrc))
+                sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
+                saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
+
+                ## default s2 5x5 km grids
+                if geometry_type == 'grids':
+                    #xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
+                    #ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
                     vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
                     vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
-                if geometry_type == 'grids_footprint': ## use s2 5x5 km grids with detector footprint interpolation
+
+                ## use s2 5x5 km grids with detector footprint interpolation
+                if geometry_type == 'grids_footprint':
                     ## compute vza and saa
                     gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/MSK_DETFOO*.gml'.format(bundle, granule))
                     gml_files.sort()
                     ## get detector footprint for 10/20/60 m band
-                    ## just use 60m band for geometry, it will be interpolated later
-                    if geometry_res == 10:
-                        target_file = safe_files[granule]['B2']['path']
-                    elif geometry_res == 20:
-                        target_file = safe_files[granule]['B11']['path']
-                    elif geometry_res == 60:
-                        target_file = safe_files[granule]['B1']['path']
                     dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
                     bands = list(grmeta['VIEW_DET'].keys())
                     bands.sort()
@@ -298,11 +324,10 @@ def l1_convert(inputfile, output=None,
                     vza = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
                     vaa = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
                     ## warp grids to target resolution
-                    xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(dfoo.shape[1]))
-                    ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(dfoo.shape[0]))
-                    sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
-                    saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
-                    print(vaa.shape, sza.shape)
+                    #xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(dfoo.shape[1]))
+                    #ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(dfoo.shape[0]))
+                    #sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
+                    #saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
                     if verbosity>1:print('Computing per detector geometry')
                     for nf, bv in enumerate(dval):
                         ## compute detector average geometry
@@ -328,20 +353,12 @@ def l1_convert(inputfile, output=None,
                                                       target_mask = det_mask, target_mask_full=False, method='linear')
                         vaa[det_mask] = ac.shared.tiles_interp(ave_vaa, xnew+1, ynew+1, smooth=False, fill_nan=True,
                                                       target_mask = det_mask, target_mask_full=False, method='linear')
-
-                if limit is not None:
-                    ## warp from dct to dct_prj
-                    #sza = ac.shared.warp_from_source(dct, dct_prj, sza)
-                    #saa = ac.shared.warp_from_source(dct, dct_prj, saa)
-                    #vza = ac.shared.warp_from_source(dct, dct_prj, vza)
-                    #vaa = ac.shared.warp_from_source(dct, dct_prj, vaa)
-                    ## use target band so we can just do the 60 metres geometry
-                    sza = ac.shared.warp_from_source(target_file, dct_prj, sza)
-                    saa = ac.shared.warp_from_source(target_file, dct_prj, saa)
-                    vza = ac.shared.warp_from_source(target_file, dct_prj, vza)
-                    vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa)
+                ## use target band so we can just do the 60 metres geometry
+                sza = ac.shared.warp_from_source(target_file, dct_prj, sza) # alt (dct, dct_prj, sza)
+                saa = ac.shared.warp_from_source(target_file, dct_prj, saa)
+                vza = ac.shared.warp_from_source(target_file, dct_prj, vza)
+                vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa)
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
-                print(mask.shape)
             elif geometry_type == 'gpt': ## use snap gpt to get nicer angles
                 geometry_parameters = ['view_zenith_mean','view_azimuth_mean','sun_zenith','sun_azimuth']
                 geometry_files = ac.sentinel2.gpt_geometry(bundle, output=output, target_res=geometry_res,
@@ -357,8 +374,18 @@ def l1_convert(inputfile, output=None,
                     vaa = ac.shared.read_band(geometry_files[vaai], sub=sub, warp_to=warp_to)
                     mask = (vza == 0) * (vaa == 0)
 
+            ## add out of swath masks to vza and sza
             vza[mask] = np.nan
             sza[mask] = np.nan
+
+            ## clip geometry data
+            if clip:
+                sza[clip_mask] = np.nan
+                saa[clip_mask] = np.nan
+                vza[clip_mask] = np.nan
+                vaa[clip_mask] = np.nan
+
+            ## compute relative azimuth angle
             raa = (saa-vaa)
             ## negative raa
             tmp = np.where(raa<0)
@@ -427,6 +454,7 @@ def l1_convert(inputfile, output=None,
                     data = ac.shared.read_band(safe_files[granule][Bn]['path'], sub=sub, warp_to=warp_to)
                     data = data.astype(np.float32)/quant
                     data[np.where(data == 0.0)] = np.nan
+                    if clip: data[clip_mask] = np.nan
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     #for k in band_data: ds_att[k] = band_data[k][b]
