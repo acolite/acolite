@@ -80,7 +80,7 @@ def l1_convert(inputfile, output = None,
             safe_files = ac.sentinel2.safe_test(bundle)
         except:
             print('File not recognised: {}'.format(bundle))
-            print("Error:", sys.exc_info()[0])
+            #print("Error:", sys.exc_info()[0])
             continue
 
         if 'granules' not in safe_files:
