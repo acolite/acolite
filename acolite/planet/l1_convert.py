@@ -133,12 +133,7 @@ def l1_convert(inputfile, output = None,
         ## check if we should merge these tiles
         if (merge_tiles) & (not new) & (os.path.exists(ofile)):
                 fgatts = ac.shared.nc_gatts(ofile)
-                print(fgatts['sensor'])
-                print(gatts['sensor'])
-                print(fgatts['satellite_sensor'])
-                print(gatts['satellite_sensor'])
-
-                if (check_sensor) & (fgatts['sensor'] != gatts['sensor']):
+                if (check_sensor) & (fgatts['satellite_sensor'] != gatts['satellite_sensor']):
                     print('Sensors do not match, skipping {}'.format(bundle))
                     continue
                 if check_time:
