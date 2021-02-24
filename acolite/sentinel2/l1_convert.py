@@ -31,7 +31,7 @@ def l1_convert(inputfile, output = None,
 
                 verbosity = 0, vname = ''):
 
-    import os, glob, dateutil, time
+    import sys, os, glob, dateutil, time
     from osgeo import ogr,osr,gdal
     import acolite as ac
     import scipy.ndimage
@@ -53,9 +53,10 @@ def l1_convert(inputfile, output = None,
         if os.path.exists(poly):
             try:
                 limit = ac.shared.polygon_limit(poly)
+                print('Using limit from polygon envelope: {}'.format(limit))
+                clip = True
             except:
                 print('Failed to import polygon {}'.format(poly))
-                return()
 
     ## check if merging settings make sense
     if (limit is None) & (merge_tiles):
@@ -75,9 +76,16 @@ def l1_convert(inputfile, output = None,
         if output is None: output = os.path.dirname(bundle)
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
-        safe_files = ac.sentinel2.safe_test(bundle)
+        try:
+            safe_files = ac.sentinel2.safe_test(bundle)
+        except:
+            print('File not recognised: {}'.format(bundle))
+            print("Error:", sys.exc_info()[0])
+            continue
+
         if 'granules' not in safe_files:
             print('File not recognised: {}'.format(bundle))
+
         if len(safe_files['granules']) > 1:
             print('Multi granule files are no longer supported.')
             continue

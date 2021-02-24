@@ -46,10 +46,10 @@ def l1_convert(inputfile, output = None,
         if os.path.exists(poly):
             try:
                 limit = ac.shared.polygon_limit(poly)
+                print('Using limit from polygon envelope: {}'.format(limit))
                 clip = True
             except:
                 print('Failed to import polygon {}'.format(poly))
-                return()
 
     ## check if merging settings make sense
     if (limit is None) & (merge_tiles):
@@ -247,11 +247,9 @@ def l1_convert(inputfile, output = None,
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                print(lon.shape)
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
                 lon = None
                 if verbosity > 1: print('Wrote lon')
-                print(lat.shape)
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
                 lat = None
                 if verbosity > 1: print('Wrote lat')
