@@ -52,7 +52,11 @@ def l1_convert(inputfile, output = None,
     clip, clip_mask = False, None
     if poly is not None:
         if os.path.exists(poly):
-            limit = ac.shared.polygon_limit(poly)
+            try:
+                limit = ac.shared.polygon_limit(poly)
+            except:
+                print('Failed to import polygon {}'.format(poly))
+                return()
             print('Using limit from polygon envelope: {}'.format(limit))
             clip = True
 
@@ -420,7 +424,7 @@ def l1_convert(inputfile, output = None,
                                 ds_att['percentiles'] = percentiles
                                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
                             data = ac.landsat.read_toa(fmeta[b], sub=sub, warp_to=warp_to)
-                            
+
                             ## clip data
                             if clip: data[clip_mask] = np.nan
                             ac.output.nc_write(ofile, ds, data, replace_nan=True,

@@ -51,9 +51,11 @@ def l1_convert(inputfile, output = None,
     clip, clip_mask = False, None
     if poly is not None:
         if os.path.exists(poly):
-            limit = ac.shared.polygon_limit(poly)
-            print('Using limit from polygon envelope: {}'.format(limit))
-            clip = True
+            try:
+                limit = ac.shared.polygon_limit(poly)
+            except:
+                print('Failed to import polygon {}'.format(poly))
+                return()
 
     ## check if merging settings make sense
     if (limit is None) & (merge_tiles):
