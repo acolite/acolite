@@ -1,0 +1,320 @@
+## def l1_convert
+## converts Planet data to l1r NetCDF for acolite-gen
+## written by Quinten Vanhellemont, RBINS
+## 2021-02-24
+## modifications:
+
+def l1_convert(inputfile, output = None,
+                limit = None, sub = None,
+                poly = None,
+
+                output_geolocation = True,
+                output_xy = False,
+
+                percentiles_compute = True,
+                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
+
+                merge_tiles = False,
+                merge_zones = False,
+                extend_region = False,
+
+                check_sensor = True,
+                check_time = True,
+                max_merge_time = 600, # seconds
+
+                from_radiance = False,
+
+                verbosity = 0, vname = ''):
+
+    import os, zipfile, shutil
+    import dateutil, time
+    import numpy as np
+    import acolite as ac
+
+    ## parse inputfile
+    if type(inputfile) != list:
+        if type(inputfile) == str:
+            inputfile = inputfile.split(',')
+        else:
+            inputfile = list(inputfile)
+    nscenes = len(inputfile)
+    if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+
+    ## check if ROI polygon is given
+    clip, clip_mask = False, None
+    if poly is not None:
+        if os.path.exists(poly):
+            try:
+                limit = ac.shared.polygon_limit(poly)
+                clip = True
+            except:
+                print('Failed to import polygon {}'.format(poly))
+                return()
+
+    ## check if merging settings make sense
+    if (limit is None) & (merge_tiles):
+        if verbosity > 0: print("Merging tiles not supported without ROI limit")
+        merge_tiles = False
+    if merge_tiles:
+        merge_zones = True
+        extend_region = True
+        ## start with last file in time
+        inputfile.sort()
+        inputfile.reverse()
+
+    new = True
+    warp_to = None
+
+    ofile = None
+    ofiles = []
+
+    for bundle in inputfile:
+        t0 = time.time()
+
+        ## unzip files if needed
+        zipped = False
+        if bundle[-4:] == '.zip':
+            zipped = True
+            bundle_orig = '{}'.format(bundle)
+            bundle,ext = os.path.splitext(bundle_orig)
+            zip_ref = zipfile.ZipFile(bundle_orig, 'r')
+            for z in zip_ref.infolist():
+                z.filename = os.path.basename(z.filename)
+                zip_ref.extract(z, bundle)
+            zip_ref.close()
+
+        ## test files
+        files = ac.planet.bundle_test(bundle)
+        metafile = files['metadata']['path']
+        image_file = files['analytic']['path']
+        sr_image_file = None
+        if 'sr' in files: sr_image_file = files['sr']['path']
+
+        ## read meta data
+        if verbosity > 1: print('Importing metadata from {}'.format(bundle))
+        meta = ac.planet.metadata_parse(metafile)
+        dtime = dateutil.parser.parse(meta['isotime'])
+        doy = dtime.strftime('%j')
+        se_distance = ac.shared.distance_se(doy)
+        isodate = dtime.isoformat()
+
+        ## read rsr
+        rsrf = ac.path+'/data/RSR/{}.txt'.format(meta['sensor'])
+        rsr, rsr_bands = ac.shared.rsr_read(rsrf)
+        waves = np.arange(250, 2500)/1000
+        waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
+        waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
+
+        ## get F0 - not stricty necessary if using USGS reflectance
+        f0 = ac.shared.f0_get()
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
+
+
+        gatts = {'sensor':meta['sensor'], 'satellite_sensor':meta['satellite_sensor'],
+                 'isodate':isodate, #'global_dims':global_dims,
+                 'sza':meta['sza'], 'vza':meta['vza'], 'raa':meta['raa'], 'se_distance': se_distance,
+                 'mus': np.cos(meta['sza']*(np.pi/180.))}
+
+        stime = dateutil.parser.parse(gatts['isodate'])
+        oname = '{}_{}{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
+        if vname != '': oname+='_{}'.format(vname)
+
+        ## output file information
+        if (merge_tiles is False) | (ofile is None):
+            ofile = '{}/{}_L1R.nc'.format(output, oname)
+            gatts['oname'] = oname
+            gatts['ofile'] = ofile
+        elif (merge_tiles) & (ofile is None):
+            ofile = '{}/{}_L1R.nc'.format(output, oname)
+            gatts['oname'] = oname
+            gatts['ofile'] = ofile
+
+
+        ## check if we should merge these tiles
+        if (merge_tiles) & (not new) & (os.path.exists(ofile)):
+                fgatts = ac.shared.nc_gatts(ofile)
+                print(fgatts['sensor'])
+                print(gatts['sensor'])
+                print(fgatts['satellite_sensor'])
+                print(gatts['satellite_sensor'])
+
+                if (check_sensor) & (fgatts['sensor'] != gatts['sensor']):
+                    print('Sensors do not match, skipping {}'.format(bundle))
+                    continue
+                if check_time:
+                    tdiff = dateutil.parser.parse(fgatts['isodate'])-dateutil.parser.parse(gatts['isodate'])
+                    tdiff = abs(tdiff.days*86400 + tdiff.seconds)
+                    if (tdiff > max_merge_time):
+                        print('Time difference too large, skipping {}'.format(bundle))
+                        continue
+
+        ## add band info to gatts
+        for b in rsr_bands:
+            gatts['{}_wave'.format(b)] = waves_mu[b]*1000
+            gatts['{}_name'.format(b)] = waves_names[b]
+            gatts['{}_f0'.format(b)] = f0_b[b]
+
+        dct = ac.shared.projection_read(image_file)
+        gatts['scene_xrange'] = dct['xrange']
+        gatts['scene_yrange'] = dct['yrange']
+        gatts['scene_proj4_string'] = dct['proj4_string']
+        gatts['scene_pixel_size'] = dct['pixel_size']
+        gatts['scene_dims'] = dct['dimensions']
+        if 'zone' in dct: gatts['scene_zone'] = dct['zone']
+
+        ## check crop
+        if (sub is None) & (limit is not None):
+            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+            if dct_sub['out_lon']:
+                if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
+                continue
+            if dct_sub['out_lat']:
+                if verbosity > 1: print('Latitude limits outside {}'.format(bundle))
+                continue
+            sub = dct_sub['sub']
+        else:
+            if extend_region:
+                print("Can't extend region if no ROI limits given")
+                extend_region = False
+
+        ##
+        if ((merge_tiles is False) & (merge_zones is False)): warp_to = None
+        if sub is None:
+            if ((merge_zones) & (warp_to is not None)):
+                if dct_prj != dct: ## target projection differs from this tile, need to set bounds
+                    if dct['proj4_string'] != dct_prj['proj4_string']:
+                        ## if the prj does not match, project current scene bounds to lat/lon
+                        lonr, latr = dct['p'](dct['xrange'], dct['yrange'], inverse=True)
+                        ## then to target projection
+                        xrange_raw, yrange_raw = dct_prj['p'](lonr, (latr[1], latr[0]))
+                        ## fix to nearest full pixel
+                        pixel_size = dct_prj['pixel_size']
+                        dct_prj['xrange'] = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
+                        dct_prj['yrange'] = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
+                        ## need to add new dimensions
+                        dct_prj['xdim'] = int((dct_prj['xrange'][1]-dct_prj['xrange'][0])/pixel_size[0])+1
+                        dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
+                        dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
+                    else:
+                        ## if the projection matches just use the current scene projection
+                        dct_prj = {k:dct[k] for k in dct}
+            elif (warp_to is None):
+                dct_prj = {k:dct[k] for k in dct}
+        else:
+            gatts['sub'] = sub
+            gatts['limit'] = limit
+            ## get the target NetCDF dimensions and dataset offset
+            if (warp_to is None):
+                if (extend_region): ## include part of the roi not covered by the scene
+                    dct_prj = {k:dct_sub['region'][k] for k in dct_sub['region']}
+                else: ## just include roi that is covered by the scene
+                    dct_prj = {k:dct_sub[k] for k in dct_sub}
+        ## end cropped
+
+        pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
+        for k in pkeys:
+            if k in dct_prj: gatts[k] = dct_prj[k]
+
+        ## warp settings for read_band
+        xyr = [min(dct_prj['xrange']),
+               min(dct_prj['yrange'])+dct_prj['pixel_size'][1],
+               max(dct_prj['xrange'])+dct_prj['pixel_size'][0],
+               max(dct_prj['yrange']),
+               dct_prj['proj4_string']]
+        res_method = 'average'
+        warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)
+
+        ## store scene and output dimensions
+        gatts['scene_dims'] = dct['ydim'], dct['xdim']
+        gatts['global_dims'] = dct_prj['dimensions']
+
+        ## new file for every bundle if not merging
+        if (merge_tiles is False):
+            new = True
+            new_pan = True
+
+        ## if we are clipping to a given polygon get the clip_mask here
+        if clip:
+            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+            clip_mask = clip_mask.astype(bool) == False
+
+        ## write lat/lon
+        if (output_geolocation):
+            if (os.path.exists(ofile) & (not new)):
+                datasets = ac.shared.nc_datasets(ofile)
+            else:
+                datasets = []
+            if ('lat' not in datasets) or ('lon' not in datasets):
+                if verbosity > 1: print('Writing geolocation lon/lat')
+                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
+                print(lon.shape)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                lon = None
+                if verbosity > 1: print('Wrote lon')
+                print(lat.shape)
+                ac.output.nc_write(ofile, 'lat', lat, double=True)
+                lat = None
+                if verbosity > 1: print('Wrote lat')
+                new=False
+
+        ## write x/y
+        if (output_xy):
+            if os.path.exists(ofile) & (not new):
+                datasets = ac.shared.nc_datasets(ofile)
+            else:
+                datasets = []
+            if ('x' not in datasets) or ('y' not in datasets):
+                if verbosity > 1: print('Writing geolocation x/y')
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
+                ac.output.nc_write(ofile, 'x', x, new=new)
+                x = None
+                if verbosity > 1: print('Wrote x')
+                ac.output.nc_write(ofile, 'y', y)
+                y = None
+                if verbosity > 1: print('Wrote y')
+                new=False
+
+        ## convert bands
+        for b in rsr_bands:
+            idx = int(meta['{}-band_idx'.format(b)])
+
+            ## read data
+            data = ac.shared.read_band(image_file, idx=idx, warp_to=warp_to)
+            nodata = data == np.uint16(0)
+
+            ## convert from radiance
+            if  (meta['sensor'] == 'RapidEye') | (from_radiance):
+                data = data.astype(float) * float(meta['{}-{}'.format(b,'to_radiance')])
+                f0 = gatts['{}_f0'.format(b)]/10
+                data *= (np.pi * gatts['se_distance']**2) / (f0 * gatts['mus'])
+            else:
+                data = data.astype(float) * float(meta['{}-{}'.format(b,'to_reflectance')])
+            data[nodata] = np.nan
+
+            ## clip to poly
+            if clip: data[clip_mask] = np.nan
+
+            ds = 'rhot_{}'.format(waves_names[b])
+            ds_att = {'wavelength':waves_mu[b]*1000}
+            if percentiles_compute:
+                ds_att['percentiles'] = percentiles
+                ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
+
+            ## write to netcdf file
+            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+            new = False
+            if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
+
+        if verbosity > 1:
+            print('Conversion took {:.1f} seconds'.format(time.time()-t0))
+            print('Created {}'.format(ofile))
+
+        if limit is not None: sub = None
+        if ofile not in ofiles: ofiles.append(ofile)
+
+        ## remove the extracted bundle
+        if zipped:
+             shutil.rmtree(bundle)
+             bundle = '{}'.format(bundle_orig)
+
+    return(ofiles)

@@ -6,7 +6,7 @@
 ## modifications:  2021-02-08 (QV) renamed from generic read, integrated in acolite-gen
 ##                                 added in col and row diff check from landsat reader
 
-def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
+def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
                  target_res=None, sub=None):
 
     import os, sys, fnmatch
@@ -16,6 +16,11 @@ def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
     ds = gdal.Open(file)
     nrows=ds.RasterYSize
     ncols=ds.RasterXSize
+
+    if idx is not None:
+        ds = None
+        tmp = gdal.Open(file)
+        ds = tmp.GetRasterBand(idx)
 
     if warp_to is None:
         if sub is None:
@@ -72,7 +77,12 @@ def read_band(file, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
                             outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
                             dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
                             format='VRT', resampleAlg=warp_alg)
-            data = ds.ReadAsArray()
+            if idx is not None:
+                tmp = ds.GetRasterBand(idx)
+                data = tmp.ReadAsArray()
+                tmp = None
+            else:
+                data = ds.ReadAsArray()
             ds = None
 
     return(data)
