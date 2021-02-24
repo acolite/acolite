@@ -15,29 +15,28 @@ def bundle_test(bundle_in):
     else:
         bundle = os.path.dirname(bundle_in)
 
-    if True:
-        files = os.listdir(bundle)
-        datafiles = {}
-        for i, fname in enumerate(files):
-            fn,ext = os.path.splitext(fname)
-            if ext == '.json': continue
-            if ext not in ['.tif', '.xml']: continue
-            band,clp=None,''
-            if 'clip' in fn:
-                clp='_clip'
-            if ('Analytic_metadata{}.xml'.format(clp) in fname)|\
-               ('AnalyticMS_metadata{}.xml'.format(clp) in fname):
-                band = 'metadata'
-            if ('Analytic{}.tif'.format(clp) in fname)|\
-               ('AnalyticMS{}.tif'.format(clp) in fname):
-                    band = 'analytic'
-            if ('DN_udm{}.tif'.format(clp) in fname):
-                band = 'udm'
-            if ('Analytic_SR{}.tif'.format(clp) in fname):
-                band = 'sr'
+    files = os.listdir(bundle)
+    datafiles = {}
+    for i, fname in enumerate(files):
+        fn,ext = os.path.splitext(fname)
+        if ext == '.json': continue
+        if ext not in ['.tif', '.xml']: continue
+        band,clp=None,''
+        if 'clip' in fn:
+            clp='_clip'
+        if ('Analytic_metadata{}.xml'.format(clp) in fname)|\
+           ('AnalyticMS_metadata{}.xml'.format(clp) in fname):
+            band = 'metadata'
+        if ('Analytic{}.tif'.format(clp) in fname)|\
+           ('AnalyticMS{}.tif'.format(clp) in fname):
+            band = 'analytic'
+        if ('DN_udm{}.tif'.format(clp) in fname):
+            band = 'udm'
+        if ('Analytic_SR{}.tif'.format(clp) in fname):
+            band = 'sr'
 
-            if band is None: continue
-            file = '{}/{}'.format(bundle,fname)
-            if os.path.isfile(file):
-                datafiles[band] = {"path":file, "fname":fname}
+        if band is None: continue
+        file = '{}/{}'.format(bundle,fname)
+        if os.path.isfile(file):
+            datafiles[band] = {"path":file, "fname":fname}
     return(datafiles)
