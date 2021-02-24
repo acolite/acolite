@@ -1,6 +1,8 @@
 from acolite import landsat
 from acolite import sentinel2
 
+from acolite import ac
+from acolite import aerlut
 from acolite import output
 from acolite import shared
 
