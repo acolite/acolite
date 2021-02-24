@@ -1,6 +1,7 @@
 from acolite import landsat
 from acolite import sentinel2
 from acolite import planet
+from acolite import pleiades
 
 from acolite import ac
 from acolite import aerlut
