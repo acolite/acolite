@@ -9,6 +9,8 @@ from .projection_geo import *
 from .projection_limit import *
 from .projection_read import *
 
+from .geolocation_sub import *
+
 from .nc_read import *
 from .read_band import *
 from .lutnc_import import *
