@@ -85,7 +85,8 @@ def l1_convert(inputfile, output = None,
 
         if 'granules' not in safe_files:
             print('File not recognised: {}'.format(bundle))
-
+            continue
+            
         if len(safe_files['granules']) > 1:
             print('Multi granule files are no longer supported.')
             continue
@@ -106,6 +107,7 @@ def l1_convert(inputfile, output = None,
             continue
         if meta['PROCESSING_LEVEL'] != 'Level-1C':
             print('Processing level {} not supported'.format(meta['PROCESSING_LEVEL']))
+            continue
 
         dtime = dateutil.parser.parse(grmeta['SENSING_TIME'])
         doy = dtime.strftime('%j')

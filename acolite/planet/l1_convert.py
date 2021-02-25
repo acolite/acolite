@@ -85,6 +85,10 @@ def l1_convert(inputfile, output = None,
 
         ## test files
         files = ac.planet.bundle_test(bundle)
+        if not (('metadata' in files) & ('analytic' in files)):
+            print('Bundle {} not recognised'.format(bundle))
+            continue
+
         metafile = files['metadata']['path']
         image_file = files['analytic']['path']
         sr_image_file = None
