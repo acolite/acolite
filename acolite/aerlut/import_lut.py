@@ -5,17 +5,21 @@
 ## modifications:   2020-07-14 (QV)
 ##                  2021-01-16 (QV) added support for bz2 compressed luts
 ##                  2021-02-24 (QV) removed obsolete code
+##                  2021-02-25 (QV) changed position of lut files (removed lutid directory), added removal of unzipped file
 
 def import_lut(lutid,lutdir,override=0):
     import os, sys
     import numpy as np
 
-    lutnc=lutdir+'/'+lutid+'/'+lutid+'.nc'
+    lutnc=lutdir+'/'+lutid+'.nc'
+    lut = None
 
     ## extract bz2 files
+    unzipped = False
     lutncbz2 = '{}.bz2'.format(lutnc)
     if (not os.path.isfile(lutnc)) & (os.path.isfile(lutncbz2)):
         import bz2, shutil
+        unzipped = True
         with bz2.BZ2File(lutncbz2) as fi, open(lutnc,"wb") as fo:
             shutil.copyfileobj(fi,fo)
     ## end extract bz2 files
@@ -35,6 +39,12 @@ def import_lut(lutid,lutdir,override=0):
     except:
         print(sys.exc_info()[0])
         print('Failed to open LUT data from NetCDF (id='+lutid+')')
+
+    if unzipped: os.remove(lutnc) ## clear unzipped LUT
+
+    if lut is None:
+        print('Could not import LUT {} from {}'.format(lutid, lutdir))
+        return()
 
     ## for the  and Continental and Urban models (1,3)
     ## romix nans were retrieved for wavelengths > 2 micron and aot == 0.001

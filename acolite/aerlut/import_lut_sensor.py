@@ -7,6 +7,7 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2020-07-14 (QV) cleaned up, new interpolation, and SWIR nans are set to 0
 ##                2021-02-24 (QV) cleaned up, renamed from get_sensor_lut
+##                2021-02-25 (QV) changed position of sensor luts (added sensor level to directory)
 
 def import_lut_sensor(sensor, rsr_file, lutid, override=0, lutdir=None):
     import os, sys
@@ -14,10 +15,11 @@ def import_lut_sensor(sensor, rsr_file, lutid, override=0, lutdir=None):
     import acolite as ac
 
     ## get sensor RSR
-    if lutdir is None: lutdir=ac.config['data_dir']+'/LUT/'
+    if lutdir is None: lutdir=ac.config['lut_dir']
 
     ## sensor LUT NetCDF is stored here
-    lutnc=lutdir+'/'+lutid+'/'+lutid+'_'+sensor+'.nc'
+    lutnc='{}/{}/{}_{}.nc'.format(lutdir,sensor,lutid,sensor)
+    if not os.path.exists(os.path.dirname(lutnc)): os.makedirs(os.path.dirname(lutnc))
     if (os.path.isfile(lutnc)) & (override == 1): os.remove(lutnc)
 
     ## generate sensor LUT NetCDF if needed

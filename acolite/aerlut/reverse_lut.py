@@ -6,8 +6,7 @@
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
                        base_luts = ['ACOLITE-LUT-202101-MOD1', 'ACOLITE-LUT-202101-MOD2'],
-                       rsky_base = 'ACOLITE-RSKY-202101-75W-{}ms', rsky_winds = [1,2,5,10],
-                       lutdir = None):
+                       rsky_base = 'ACOLITE-RSKY-202101-75W-{}ms', rsky_winds = [1,2,5,10]):
     import acolite as ac
     import numpy as np
     from netCDF4 import Dataset
@@ -21,9 +20,8 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
     else:
         bands = list(lutdw[lut]['rgi'].keys())
 
-    if lutdir is None:
-        lutdir = ac.config['data_dir']+'/LUT/Reverse/{}'.format(sensor)
-        if not os.path.exists(lutdir): os.makedirs(lutdir)
+    lutdir = '{}-Reverse/{}'.format(ac.config['lut_dir'], sensor)
+    if not os.path.exists(lutdir): os.makedirs(lutdir)
 
     revl = {}
     for lut in base_luts:

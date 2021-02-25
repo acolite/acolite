@@ -23,10 +23,10 @@ def import_luts(pressures = [500, 1013, 1100],
         ## run through pressures
         for ip, pr in enumerate(pressures):
             lutid = '{}-{}mb'.format(lut, '{}'.format(pr).zfill(4))
-            lutdir = '{}/{}'.format(ac.config['data_dir'], 'LUT')
+            lutdir = '{}/'.format(ac.config['lut_dir'])
             if sensor is None:
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
-                lut_data, lut_meta = ac.aerlut.import_lut(lutid,lutdir, override=0)
+                lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, override=0)
             else:
                 ## sensor specific lut
                 lut_data_dict, lut_meta = ac.aerlut.import_lut_sensor(sensor, None, lutid, override=0, lutdir=lutdir)

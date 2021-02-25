@@ -1,6 +1,9 @@
 ## Data directory
 data_dir=data
 
+## atmospheric correction LUT data directory
+lut_dir=data/LUT/ACOLITE-LUT-202101
+
 ## DEM SRTM HGT files
 hgt_dir=data/SRTMGL3.003
 
