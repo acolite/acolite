@@ -27,6 +27,7 @@ def l1_convert(inputfile, output = None,
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
+    ofiles = []
     for bundle in inputfile:
         ofile = None
 
@@ -42,7 +43,11 @@ def l1_convert(inputfile, output = None,
                     print('Failed to import polygon {}'.format(poly))
 
         ## check if we are dealing with Pléiades image bundle
-        ifiles,mfiles,pifiles,pmfiles = ac.pleiades.bundle_test(bundle, listpan=True)
+        try:
+            ifiles,mfiles,pifiles,pmfiles = ac.pleiades.bundle_test(bundle, listpan=True)
+        except:
+            print('Bundle {} not recognised.'.format(bundle))
+            continue
 
         ## read meta data
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
@@ -54,7 +59,6 @@ def l1_convert(inputfile, output = None,
         new = True
         new_pan = True
         ofile = None
-        ofiles = []
 
         t0 = time.time()
 
