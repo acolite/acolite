@@ -51,16 +51,19 @@ def l1_convert(inputfile, output = None,
             print('Multiple metadata files found')
             return()
 
-        pmeta = None
         new = True
-        warp_to = None
+        new_pan = True
         ofile = None
         ofiles = []
 
         t0 = time.time()
+
         ## read metadata only once
+        pmeta = None
         for mfile in mfiles_set: meta = ac.pleiades.metadata_parse(mfile)
-        for pmfile in set(pmfiles): pmeta = ac.pleiades.metadata_parse(pmfile, pan=True)
+        for pmfile in set(pmfiles):
+            if pmfile == '': continue
+            pmeta = ac.pleiades.metadata_parse(pmfile, pan=True)
 
         if limit is not None:
             out_scene = ac.pleiades.geo.test_coverage(meta, limit, verbose=verbosity>2)
@@ -135,12 +138,10 @@ def l1_convert(inputfile, output = None,
 
         if sub is None:
             dims = int(meta['NROWS']), int(meta['NCOLS'])
+            gatts['global_dims'] = dims
         else:
             dims = sub[3], sub[2]
-        gatts['global_dims'] = sub[3], sub[2]
-
-        new = True
-        new_pan = True
+            gatts['global_dims'] = sub[3], sub[2]
 
         ## write lat/lon
         if (output_geolocation):
@@ -157,7 +158,7 @@ def l1_convert(inputfile, output = None,
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
                 lat = None
                 if verbosity > 1: print('Wrote lat')
-                new=False
+                new = False
 
         ## run through image tiles
         t = time.process_time()
