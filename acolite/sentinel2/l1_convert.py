@@ -13,7 +13,7 @@ def l1_convert(inputfile, output = None,
                 output_geolocation = True,
                 output_xy = False,
 
-                geometry_type = 'gpt', ## 'gpt' or 'grids'
+                geometry_type = 'grids_footprint', ## 'gpt' or 'grids'
                 geometry_res = 60, ## for gpt geometry
                 geometry_format='GeoTIFF', ## for gpt geometry
                 geometry_override = False, ## for gpt geometry
@@ -86,7 +86,7 @@ def l1_convert(inputfile, output = None,
         if 'granules' not in safe_files:
             print('File not recognised: {}'.format(bundle))
             continue
-            
+
         if len(safe_files['granules']) > 1:
             print('Multi granule files are no longer supported.')
             continue
