@@ -14,20 +14,21 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202101-75W-2ms', sensor=None, o
     from netCDF4 import Dataset
     import acolite as ac
 
-    lutdir = '{}/LUT/RSKY/'.format(ac.config['data_dir'])
-    lutnc = '{}/{}-MOD{}.nc'.format(lutdir, lutbase, model)
-
-    ## extract bz2 files
-    lutncbz2 = '{}.bz2'.format(lutnc)
-    if (not os.path.isfile(lutnc)) & (os.path.isfile(lutncbz2)):
-        import bz2, shutil
-        with bz2.BZ2File(lutncbz2) as fi, open(lutnc,"wb") as fo:
-            shutil.copyfileobj(fi,fo)
-    ## end extract bz2 files
-
-    if os.path.isfile(lutnc):
+    if True:
+            lutdir = '{}/LUT/RSKY-202101/'.format(ac.config['data_dir'])
+            lutnc = '{}/{}-MOD{}.nc'.format(lutdir, lutbase, model)
+            
             ## base lut
             if sensor is None:
+                ## extract bz2 files
+                unzipped = False
+                lutncbz2 = '{}.bz2'.format(lutnc)
+                if (not os.path.isfile(lutnc)) & (os.path.isfile(lutncbz2)):
+                    import bz2, shutil
+                    with bz2.BZ2File(lutncbz2) as fi, open(lutnc,"wb") as fo:
+                        shutil.copyfileobj(fi,fo)
+                    unzipped = True
+                ## end extract bz2 files
                 nc = Dataset(lutnc)
                 meta = {}
                 for attr in nc.ncattrs():
@@ -37,6 +38,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202101-75W-2ms', sensor=None, o
                 lut = nc.variables['lut'][:]
                 lut = np.flip(lut, axis=1) ## flip raa
                 nc.close()
+                if unzipped: os.remove(lutnc) ## clear unzipped LUT
 
                 dim = [meta['wave'], meta['azi'], meta['thv'], meta['ths'], meta['tau']]
                 if 'press' in meta:
@@ -44,10 +46,9 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202101-75W-2ms', sensor=None, o
                         dim = [meta['press'], meta['wave'], meta['azi'], meta['thv'], meta['ths'], meta['tau']]
                 rgi = scipy.interpolate.RegularGridInterpolator(dim, lut, bounds_error=False, fill_value=np.nan)
                 return(lut, meta, dim, rgi)
-
             ## sensor specific lut
             else:
-                lutnc_s = '{}/{}-MOD{}_{}.nc'.format(lutdir, lutbase, model, sensor)
+                lutnc_s = '{}/{}/{}-MOD{}_{}.nc'.format(lutdir, sensor, lutbase, model, sensor)
 
                 ## get sensor RSR
                 pp_path = ac.config['data_dir']
@@ -60,15 +61,13 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202101-75W-2ms', sensor=None, o
 
                 if not os.path.isfile(lutnc_s):
                     print('Resampling {} to {}'.format(model, sensor))
-
+                    if not os.path.exists(os.path.dirname(lutnc_s)): os.makedirs(os.path.dirname(lutnc_s))
                     ## read lut
                     lut, meta, dim, rgi = ac.aerlut.import_rsky_lut(model, lutbase=lutbase)
-
                     ## resample to bands
                     lut_sensor = {}
                     for band in rsr_bands:
                         lut_sensor[band] = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=0)
-
                     #return(lut_sensor, meta, dim)
                     ## save to new file
                     from netCDF4 import Dataset
@@ -79,8 +78,6 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202101-75W-2ms', sensor=None, o
                             if isinstance(attdata[0],str):
                                 attdata=','.join(attdata)
                         setattr(nc, i, attdata)
-
-                    #return(dim[1])
                     nc.createDimension('azi', len(dim[1]))
                     nc.createDimension('thv', len(dim[2]))
                     nc.createDimension('ths', len(dim[3]))
@@ -101,7 +98,6 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202101-75W-2ms', sensor=None, o
                         attdata = getattr(nc,attr)
                         if isinstance(attdata,str): attdata = attdata.split(',')
                         meta[attr]=attdata
-
                     lut_sensor = {}
                     for band in rsr_bands:
                         lut_sensor[band] = nc.variables[band][:]

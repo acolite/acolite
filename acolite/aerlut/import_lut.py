@@ -19,9 +19,9 @@ def import_lut(lutid,lutdir,override=0):
     lutncbz2 = '{}.bz2'.format(lutnc)
     if (not os.path.isfile(lutnc)) & (os.path.isfile(lutncbz2)):
         import bz2, shutil
-        unzipped = True
         with bz2.BZ2File(lutncbz2) as fi, open(lutnc,"wb") as fo:
             shutil.copyfileobj(fi,fo)
+        unzipped = True
     ## end extract bz2 files
 
     ## read dataset from NetCDF
