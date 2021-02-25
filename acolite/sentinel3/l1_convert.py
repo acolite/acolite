@@ -245,7 +245,7 @@ def l1_convert(inputfile, output = None,
 
         ## take wavelengths and band names from external table
         ## the smile correction should bring things in line with these
-        waves_names = ['{:.0f}'.format(bands_data[b]['wavelength']) for b in bands_data]
+        #waves_names = ['{:.0f}'.format(bands_data[b]['wavelength']) for b in bands_data]
         dnames = ['{}_radiance'.format(b) for b in bands_data]
         bnames = [b for b in bands_data]
 
@@ -269,7 +269,7 @@ def l1_convert(inputfile, output = None,
         ## add band info to gatts
         for bi, b in enumerate(rsr_bands):
             gatts['{}_wave'.format(b)] = waves_mu[b]*1000
-            gatts['{}_name'.format(b)] = waves_names[bi]
+            gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         ## output lat/lon
@@ -300,7 +300,8 @@ def l1_convert(inputfile, output = None,
 
         ## read TOA
         if verbosity > 1: print('Writing TOA reflectance')
-        for iw, wave in enumerate(waves_names):
+        for iw, band in enumerate(rsr_bands):
+            wave = waves_names[band]
             ds = 'rhot_{}'.format(wave)
             if verbosity > 2: print('{} - Reading TOA data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
             # per pixel wavelength
