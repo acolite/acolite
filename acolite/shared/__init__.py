@@ -15,6 +15,7 @@ from .nc_read import *
 from .read_band import *
 from .lutnc_import import *
 from .datascl import *
+from .closest_idx import *
 
 from .distance_se import *
 from .fillnan import *
