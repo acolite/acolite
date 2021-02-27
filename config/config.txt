@@ -12,3 +12,9 @@ met_dir=data/MET
 
 ## SNAP directory
 snap_directory=/Applications/snap
+
+## TACT support
+grid_dir=data/TACT/grid
+
+## libRadtran directory
+libradtran_dir=/Users/quinten/Documents/Software/LibRadtran/libRadtran-2.0.2
