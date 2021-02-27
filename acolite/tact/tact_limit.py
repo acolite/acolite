@@ -1,7 +1,9 @@
 ## QV 2019-10-02
 ##         2019-12-17 renamed, added tact config, and removed dependencies
+##         2021-02-27 (QV) integrated in acolite, added interpolation for target lat lon
 
-def tact_limit(isodate, limit, c_time,
+def tact_limit(isotime, limit=None,
+                  lat = None, lon = None,
                   url_base = 'https://rda.ucar.edu/thredds/dodsC/files/g/ds633.0/e5.oper.an.pl',
                   geo_step = 0.25,
                   satsens=['L8_TIRS', 'L5_TM', 'L7_ETM'],
@@ -14,6 +16,17 @@ def tact_limit(isodate, limit, c_time,
     from functools import partial
     import multiprocessing
     import acolite as ac
+    import datetime, dateutil
+
+    dt = dateutil.parser.parse(isotime)
+    isodate = dt.isoformat()[0:10]
+    c_time = dt.hour + dt.minute/60 + dt.second/3600
+
+    if limit is None:
+        if (lat is None) and (lon is None):
+            return()
+        limit = [np.nanmin(lat), np.nanmin(lon),
+                 np.nanmax(lat), np.nanmax(lon)]
 
     ## read thermal band RSR
     rsr_data = {}
@@ -206,4 +219,18 @@ def tact_limit(isodate, limit, c_time,
     w = np.interp(c_time, time_cells, (0,1))
     simst = {s: sims[s][:,:, 1] * w + sims[s][:,:,0] * (1.-w) for s in sims}
 
-    return(simst, lon_cells, lat_cells)
+    ## return lons between -180 and 180
+    for il, lonv in enumerate(lon_cells):
+        if lonv > 180: lon_cells[il]-=360
+
+    ## interpolate to given lat lon
+    if (lat is not None) & (lon is not None):
+        ## interpolate simulation data
+        x,y = np.meshgrid(lon_cells,lat_cells)
+        xr = list(x.ravel())
+        yr = list(y.ravel())
+        thd = {k: scipy.interpolate.griddata((xr,yr), list(simst[k].ravel()),
+                                             (lon, lat), method='linear') for k in simst.keys()}
+        return(thd, simst, lon_cells, lat_cells)
+    else:
+        return(simst, lon_cells, lat_cells)
