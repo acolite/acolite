@@ -297,6 +297,14 @@ def l1_convert(inputfile, output = None,
             gatts['xrange'][0]-=gatts['pixel_size'][0]/2
             gatts['yrange'][0]-=gatts['pixel_size'][1]/2
 
+        ## copy thermal constants to metadata
+        mts = ['LEVEL1_THERMAL_CONSTANTS', 'TIRS_THERMAL_CONSTANTS', 'THERMAL_CONSTANTS'] ## Coll2, Coll1 L8, Coll1 L5/7
+        for mt in mts:
+            if mt in meta:
+                for k in meta[mt]:
+                    if k not in gatts: gatts[k] = float(meta[mt][k])
+
+
         ## if we are clipping to a given polygon get the clip_mask here
         if clip:
             clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
