@@ -1,7 +1,10 @@
-## get gem from GEE
-## QV 2021-02-26
+## def get gem from GEE
+##
+## written by Quinten Vanhellemont, RBINS
+## 2021-02-26
+## modifications: 2021-02-28 (QV) added to acolite, new default naming of gems
 
-def extract(st_lon, st_lat, sdate,
+def extract(st_lon, st_lat, sdate, use_pid_name=False,
                            edate = None, st_name = None,
                            check_dates = None, max_diff_h = 3,
                            return_scene_list = False,
@@ -106,6 +109,7 @@ def extract(st_lon, st_lat, sdate,
             target_res_default = 10
             tar_band = 'B2'
             dtime = [k for k in meta['GRANULE_ID'].split('_') if len(k) == 15][0]
+            tile_name = '{}'.format(meta['MGRS_TILE'])
 
         elif 'LANDSAT_PRODUCT_ID' in meta: ## Landsat image
             fkey = 'LANDSAT_PRODUCT_ID'
@@ -129,16 +133,26 @@ def extract(st_lon, st_lat, sdate,
             tar_band = 'B1'
             dtime = meta['DATE_ACQUIRED']+'T'+meta['SCENE_CENTER_TIME']
 
+            row = '{}'.format(meta['WRS_ROW']).zfill(3)
+            path = '{}'.format(meta['WRS_PATH']).zfill(3)
+            tile_name = '{}{}'.format(path, row)
+
+        ## parse date time
+        dt = dateutil.parser.parse(dtime)
+        if use_pid_name:
+            bname = '{}'.format(pid)
+        else:
+            bname = '{}_{}_{}'.format(sensor, dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name)
+
         ## preferably use NetCDF gems as they can be processed with acolite
         if gem_type == 'json':
-            gemfile = '{}/{}_gem.bz2'.format(obase, pid)
+            gemfile = '{}/{}_GEM.bz2'.format(obase, bname)
         elif gem_type == 'nc':
-            gemfile = '{}/{}_gem_L1R.nc'.format(obase, pid)
+            gemfile = '{}/{}_GEM_L1R.nc'.format(obase, bname)
 
         ## check time difference
         ## dates is a list of fractional years
         ## only keep scenes within max_diff_h of an element of dates
-        dt = dateutil.parser.parse(dtime)
         if check_dates is not None:
             yf = ac.shared.isodate_to_yday(dt, return_yf=True)
             ylen = (datetime.datetime(dt.year+1, 1, 1) - datetime.datetime(dt.year, 1, 1)).days
