@@ -315,7 +315,8 @@ def extract(st_lon, st_lat, sdate,
             zone = -999
             m = re.search('\+zone=(.+?) ', proj4_string)
             if m: zone = int(m.group(1))
-            dct = {'p': p, 'epsg':  p.crs.to_epsg(),
+            dct = {'p': p,
+                   #'epsg':  p.crs.to_epsg(),
                    'xrange': xrange, 'yrange': yrange,
                    'proj4_string':proj4_string,
                    'xdim':xdim, 'ydim':ydim,
