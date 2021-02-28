@@ -1,6 +1,7 @@
 from .f0_get import *
 
 from .rsr_read import *
+from .rsr_dict import *
 from .rsr_convolute_dict import *
 from .rsr_convolute_nd import *
 
@@ -16,6 +17,7 @@ from .read_band import *
 from .lutnc_import import *
 from .datascl import *
 from .closest_idx import *
+from .isodate_to_yday import *
 
 from .distance_se import *
 from .fillnan import *
