@@ -4,9 +4,12 @@
 ## 2021-02-26
 ## modifications: 2021-02-28 (QV) added to acolite, new default naming of gems
 
-def extract(st_lon, st_lat, sdate, use_pid_name=False,
-                           edate = None, st_name = None,
-                           check_dates = None, max_diff_h = 3,
+def extract(st_lon, st_lat, sdate,
+                           use_pid_name=False,
+                           edate = None, # end date - if None sdate + 1 day will be used
+                           st_name = None,
+                           check_dates = None, # list of fyears to compare found images to
+                           max_diff_h = 3, # max difference between image time and fyear in check_dates
                            return_scene_list = False,
                            output = None,
                            gem_type = 'nc', # json
@@ -47,7 +50,6 @@ def extract(st_lon, st_lat, sdate, use_pid_name=False,
     width = min(width, 511) ## max allowed pixels is 512x512, since the box is centred on a pixel, the max we can ask is 511
     ## half box width
     hwidth = (width-1)/2
-
 
     ## set bounding dates
     ee_sdate=ee.Date(sdate)
@@ -246,6 +248,7 @@ def extract(st_lon, st_lat, sdate, use_pid_name=False,
                 mask = np.where(data[b] == 0)
                 if convert_counts: ## convert from DN if needed
                     data[b] = (data[b]*scale_factor)+add_factor
+                data[b] = data[b].astype(np.float32)
                 data[b][mask] = np.nan
 
             ## get lon and lat
@@ -312,7 +315,7 @@ def extract(st_lon, st_lat, sdate, use_pid_name=False,
             zone = -999
             m = re.search('\+zone=(.+?) ', proj4_string)
             if m: zone = int(m.group(1))
-            dct = {'p': p, #'epsg':  p.crs.to_epsg(),
+            dct = {'p': p, 'epsg':  p.crs.to_epsg(),
                    'xrange': xrange, 'yrange': yrange,
                    'proj4_string':proj4_string,
                    'xdim':xdim, 'ydim':ydim,
@@ -320,19 +323,10 @@ def extract(st_lon, st_lat, sdate, use_pid_name=False,
                    'pixel_size': pixel_size, 'zone':zone}
 
             ## store matchup data
-            gem = {#'pix':pdata,
-                     'box':data,
-                     'meta':meta,
-                     'dct':dct,
-                     #'scale_factor': scale_factor, 'add_factor':add_factor,
-                     #'datetime': dt,
-                     'isodate':isodate, 'fyear': fyear,
-                     #'im_lon':im_lon, 'im_lat': im_lat,
-                     #'im_x': im_x, 'im_y': im_y,
-                     'pid':pid, 'sensor':sensor,
-                     'vza':vza, 'sza':sza, 'raa':raa}
-
-            #return(gem)
+            gem = {'data':data, 'meta':meta, 'dct':dct,
+                   'isodate':isodate, 'fyear': fyear,
+                   'pid':pid, 'sensor':sensor,
+                   'vza':vza, 'sza':sza, 'raa':raa}
 
             if gem_type == 'json':
                 gem_json_write(gemfile, gem)

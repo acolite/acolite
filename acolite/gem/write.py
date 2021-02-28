@@ -39,8 +39,8 @@ def write(gemfile, gem, verbosity=0):
         if k in gem['dct']: gatts[k] = gem['dct'][k]
 
     ## write lon and lat
-    ac.output.nc_write(ofile, 'lon', gem['box']['lon'], attributes=gatts, new=True)
-    ac.output.nc_write(ofile, 'lat', gem['box']['lat'])
+    ac.output.nc_write(ofile, 'lon', gem['data']['lon'], attributes=gatts, new=True)
+    ac.output.nc_write(ofile, 'lat', gem['data']['lat'])
 
     ## get band info
     rsrd = ac.shared.rsr_dict(sensor=gatts['sensor'])
@@ -50,7 +50,7 @@ def write(gemfile, gem, verbosity=0):
         btag = 'B{}'.format(b)
         ds = 'rhot_{}'.format(rsrd[gatts['sensor']]['waves_name'][b])
         ds_att  = {'wavelength':rsrd[gatts['sensor']]['waves_nm'][b]}
-        ac.output.nc_write(ofile, ds, gem['box'][btag], attributes=gatts, dataset_attributes=ds_att)
+        ac.output.nc_write(ofile, ds, gem['data'][btag], attributes=gatts, dataset_attributes=ds_att)
 
     ## write thermal bands
     if gem['sensor'] in ['L5_TM', 'L7_ETM', 'L8_OLI']:
@@ -61,11 +61,11 @@ def write(gemfile, gem, verbosity=0):
         if  gem['sensor'] == 'L8_OLI':
             thermal_bands = ['B10', 'B11']
         for btag in thermal_bands:
-            if btag in gem['box']:
+            if btag in gem['data']:
                 ds = 'bt{}'.format(btag[1:].lower())
                 ds_att  = {'K1': gem['meta']['K1_CONSTANT_BAND_{}'.format(btag[1:])],
                            'K2': gem['meta']['K2_CONSTANT_BAND_{}'.format(btag[1:])]}
-                ac.output.nc_write(ofile, ds, gem['box'][btag])
+                ac.output.nc_write(ofile, ds, gem['data'][btag])
 
     if verbosity > 1: print('Wrote {}'.format(gemfile))
     return(ofile)
