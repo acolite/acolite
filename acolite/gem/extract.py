@@ -73,23 +73,13 @@ def extract(st_lon, st_lat, sdate, use_pid_name=False,
             imColl = imColl.merge(imC)
 
     nimages = len(imColl.getInfo()['features'])
-    if verbosity>0: print('Found {} images{}'.format(nimages, '' if st_name is None else ' for {}'.format(st_name)))
+    if verbosity>0: print('Found {} image{}{}'.format(nimages, 's' if nimages !=1 else '', '' if st_name is None else ' for {}'.format(st_name)))
     if nimages == 0: return([])
 
     iml = imColl.toList(nimages).getInfo()
 
     ## track scenes
     scene_list = []
-    ## just return the scene list
-    #if return_scene_list:
-    #    scene_list = []
-    #    for ii in range(nimages):
-    #        meta = iml[ii]['properties']
-    #        if 'PRODUCT_ID' in meta: fkey = 'PRODUCT_ID'
-    #        elif 'LANDSAT_PRODUCT_ID' in meta: fkey = 'LANDSAT_PRODUCT_ID'
-    #        else: continue
-    #        scene_list.append(meta[fkey])
-    #    return(scene_list)
 
     ## run extraction
     gemfiles = []
