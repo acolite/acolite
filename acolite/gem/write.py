@@ -25,12 +25,15 @@ def write(gemfile, gem, verbosity=0):
     gatts['oname'] = oname
     gatts['ofile'] = ofile
 
-    for k in gem['meta']:
+    metakeys = list(gem['meta'].keys())
+    metakeys.sort()
+    for k in metakeys:
         if k in ['system:footprint']:
             continue
         else:
             gatts[k] = gem['meta'][k]
 
+    ## add projection information
     pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
     for k in pkeys:
         if k in gem['dct']: gatts[k] = gem['dct'][k]
