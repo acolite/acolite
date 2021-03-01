@@ -5,8 +5,8 @@
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
-                       base_luts = ['ACOLITE-LUT-202101-MOD1', 'ACOLITE-LUT-202101-MOD2'],
-                       rsky_base = 'ACOLITE-RSKY-202101-75W-{}ms', rsky_winds = [1,2,5,10]):
+                       base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
+                       rsky_lut = 'ACOLITE-RSKY-202102-82W'):
     import acolite as ac
     import numpy as np
     from netCDF4 import Dataset
@@ -20,11 +20,11 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
     else:
         bands = list(lutdw[lut]['rgi'].keys())
 
-    lutdir = '{}-Reverse/{}'.format(ac.config['lut_dir'], sensor)
-    if not os.path.exists(lutdir): os.makedirs(lutdir)
-
     revl = {}
     for lut in base_luts:
+        lutdir = '{}/{}-Reverse/{}'.format(ac.config['lut_dir'], '-'.join(lut.split('-')[0:3]), sensor)
+        if not os.path.exists(lutdir): os.makedirs(lutdir)
+
         rgi = {}
         for b in bands:
             slut = '{}-reverse-{}-{}-{}'.format(lut, sensor, par, b)
@@ -34,8 +34,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                 if lutdw is None:
                     print('Importing source LUTs')
                     lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
-                                                    add_rsky=True, add_rsky_winds=True,
-                                                    rsky_base = rsky_base, rsky_winds = rsky_winds)
+                                                    add_rsky=True, rsky_lut = rsky_lut)
                     pid = lutdw[lut]['ipd'][par]
                     pressures, pids, raas, vzas, szas, winds, aots = lutdw[lut]['dim']
 

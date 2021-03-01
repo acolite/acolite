@@ -7,11 +7,11 @@
 ##                     2021-01-19 (QV) update to new LUTs
 ##                     2021-02-01 (QV) added wind speed for rsky lut, removed temp fixes for old luts
 ##                     2021-02-03 (QV) added down*up total transmittances
+##                     2021-03-01 (QV) added new rsky luts with integrated wind speed
 
 def import_luts(pressures = [500, 1013, 1100],
-                base_luts = ['ACOLITE-LUT-202101-MOD1', 'ACOLITE-LUT-202101-MOD2'],
-                rsky_lut = 'ACOLITE-RSKY-202101-75W-2ms',
-                rsky_base = 'ACOLITE-RSKY-202101-75W-{}ms', rsky_winds = [1,2,5,10], add_rsky_winds = False,
+                base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
+                rsky_lut = 'ACOLITE-RSKY-202102-82W',
                 sensor=None, add_rsky=False, add_dutott = True):
     import scipy.interpolate
     import numpy as np
@@ -23,7 +23,7 @@ def import_luts(pressures = [500, 1013, 1100],
         ## run through pressures
         for ip, pr in enumerate(pressures):
             lutid = '{}-{}mb'.format(lut, '{}'.format(pr).zfill(4))
-            lutdir = '{}/'.format(ac.config['lut_dir'])
+            lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
             if sensor is None:
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
                 lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, override=0)
@@ -65,27 +65,13 @@ def import_luts(pressures = [500, 1013, 1100],
 
             if add_rsky:
                 tlut = lut_dict[lut]['lut']
-                if add_rsky_winds:
-                    if True:
-                        rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_base, winds=rsky_winds)
-                        rlut = rskyd[int(lut[-1])]['lut']
-                        rskyd = None
-                    else:
-                        rlut = None
-                        for iw, wind in enumerate(rsky_winds):
-                            ret = ac.aerlut.import_rsky_lut(int(lut[-1]), lutbase=rsky_base.format(wind))
-                            ret = {'lut':ret[0], 'meta':ret[1], 'dims':ret[2], 'rgi':ret[3]}
-                            tmp = ret['lut']
-                            rlut = tmp[:, :, :, :, None, :] if rlut is None else np.insert(rlut,(iw),tmp,axis=4)
-                            ret = None
-                            tmp = None
-                    ## repeat 6sv lut for winds
-                    tlut = np.repeat(tlut, len(rsky_winds), axis=-2)
-                else:
-                    ## import rsky lut
-                    rlut, rmeta, rdim, rrgi = ac.aerlut.import_rsky_lut(int(lut[-1]), lutbase=rsky_lut)
-                    ## add empty axis (wind placeholder)
-                    rlut = rlut[:,:,:,:,None, :]
+                rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut)
+                rlut = rskyd[int(lut[-1])]['lut']
+                rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
+                rskyd = None
+
+                ## repeat 6sv lut for winds
+                tlut = np.repeat(tlut, len(rsky_winds), axis=-2)
 
                 ## repeat for pressures
                 rlut = np.repeat(rlut[np.newaxis,:], len(pressures), axis=0)
@@ -117,17 +103,16 @@ def import_luts(pressures = [500, 1013, 1100],
                 lut_dict[lut]['dim'][1]+= [22, 23, 24]
                 ## end add rsky
 
-                if add_rsky_winds:
-                    ## create new dim with winds
-                    dim = [np.asarray(pressures),
-                           np.asarray(lut_dict[lut]['dim'][1]),
-                           lut_dict[lut]['meta']['wave'],
-                           lut_dict[lut]['meta']['azi'],
-                           lut_dict[lut]['meta']['thv'],
-                           lut_dict[lut]['meta']['ths'],
-                           np.asarray(rsky_winds),
-                           lut_dict[lut]['meta']['tau']]
-                    lut_dict[lut]['dim'] = dim
+                ## create new dim with winds
+                dim = [np.asarray(pressures),
+                       np.asarray(lut_dict[lut]['dim'][1]),
+                       lut_dict[lut]['meta']['wave'],
+                       lut_dict[lut]['meta']['azi'],
+                       lut_dict[lut]['meta']['thv'],
+                       lut_dict[lut]['meta']['ths'],
+                       np.asarray(rsky_winds),
+                       lut_dict[lut]['meta']['tau']]
+                lut_dict[lut]['dim'] = dim
                 ## end add rsky
 
             ## add product of transmittances
@@ -142,7 +127,7 @@ def import_luts(pressures = [500, 1013, 1100],
                 lut_dict[lut]['lut'] = np.insert(lut_dict[lut]['lut'], (ax), tmp, axis=1)
 
             ## set up LUT interpolator
-            if add_rsky & add_rsky_winds:
+            if add_rsky:
                 lut_dict[lut]['rgi'] = scipy.interpolate.RegularGridInterpolator(lut_dict[lut]['dim'],
                                                                              lut_dict[lut]['lut'][:,:,:,:,:,:,:,:],
                                                                              bounds_error=False, fill_value=np.nan)
@@ -157,28 +142,20 @@ def import_luts(pressures = [500, 1013, 1100],
 
             ## add rsky if requested
             if add_rsky:
-                if add_rsky_winds:
-                    rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_base, winds=rsky_winds, sensor=sensor)
-                    rlut = rskyd[int(lut[-1])]['lut']
-                    rskyd = None
-                else:
-                    rlut, rmeta, rdim, rrgi = ac.aerlut.import_rsky_lut(int(lut[-1]), sensor=sensor, lutbase=rsky_lut)
+                rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, sensor=sensor)
+                rlut = rskyd[int(lut[-1])]['lut']
+                rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
+                rskyd = None
 
                 ## current pars
                 ipd = {p:i for i,p in enumerate(lut_dict[lut]['meta']['par'])}
 
                 ## run through bands
                 for band in rlut:
-                    #if rsky_lut[0:23] == 'ACOLITE-RSKY-202101-75W':
-                    #    tmp = rlut[band] * 1.0
                     tmp = rlut[band] * 1.0
                     tlut = lut_dict[lut]['lut'][band]
-                    if add_rsky_winds:
-                        tmp = rlut[band] * 1.0
-                        tlut = np.repeat(tlut, len(rsky_winds), axis=-2)
-                    else:
-                        ## add empty axis (wind placeholder)
-                        tmp = tmp[:,:,:,None, :]
+                    tmp = rlut[band] * 1.0
+                    tlut = np.repeat(tlut, len(rsky_winds), axis=-2)
 
                     ## add to the LUT
                     ## model rsky at surface
@@ -206,16 +183,16 @@ def import_luts(pressures = [500, 1013, 1100],
                 ## add new pars
                 lut_dict[lut]['meta']['par'] += ['rsky_s', 'rsky_t', 'romix+rsky_t']
                 lut_dict[lut]['dim'][1]+= [22, 23, 24]
-                if add_rsky_winds:
-                    ## create new dim with winds
-                    dim = [np.asarray(pressures),
-                           np.asarray(lut_dict[lut]['dim'][1]),
-                           lut_dict[lut]['meta']['azi'],
-                           lut_dict[lut]['meta']['thv'],
-                           lut_dict[lut]['meta']['ths'],
-                           np.asarray(rsky_winds),
-                           lut_dict[lut]['meta']['tau']]
-                    lut_dict[lut]['dim'] = dim
+
+                ## create new dim with winds
+                dim = [np.asarray(pressures),
+                       np.asarray(lut_dict[lut]['dim'][1]),
+                       lut_dict[lut]['meta']['azi'],
+                       lut_dict[lut]['meta']['thv'],
+                       lut_dict[lut]['meta']['ths'],
+                       np.asarray(rsky_winds),
+                       lut_dict[lut]['meta']['tau']]
+                lut_dict[lut]['dim'] = dim
                 ## end add rsky
 
             ## add product of transmittances
@@ -233,7 +210,7 @@ def import_luts(pressures = [500, 1013, 1100],
             lut_dict[lut]['ipd'] = {p:i for i,p in enumerate(lut_dict[lut]['meta']['par'])}
             for band in rsr_bands:
                 ## set up LUT interpolator per band
-                if add_rsky & add_rsky_winds:
+                if add_rsky:
                     lut_dict[lut]['rgi'][band] = scipy.interpolate.RegularGridInterpolator(lut_dict[lut]['dim'],
                                                                                        lut_dict[lut]['lut'][band][:,:,:,:,:,:,:],
                                                                                        bounds_error=False, fill_value=np.nan)
