@@ -24,13 +24,13 @@ def tact_gem(gem, output_file = True,
     import numpy as np
     import acolite as ac
 
-    if verbosity > 0: print('Running tact for {}'.format(ncf))
-
     ## read gem file if NetCDF
     if type(gem) is str:
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub)
     gemf = gem['gatts']['gemfile']
+
+    if verbosity > 0: print('Running tact for {}'.format(gemf))
 
     ## detect sensor
     if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
