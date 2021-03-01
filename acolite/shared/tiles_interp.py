@@ -13,16 +13,18 @@ def tiles_interp(data, xnew, ynew, smooth = False, kern_size=2, method='nearest'
     import numpy as np
     from scipy.interpolate import griddata
     from scipy.ndimage import uniform_filter,percentile_filter, distance_transform_edt
-
+    import acolite as ac
+    
     if mask is not None: data[mask] = np.nan
 
     ## fill nans with closest value
     if fill_nan:
-        ind = distance_transform_edt(np.isnan(data), return_distances=False, return_indices=True)
-        cur_data = data[tuple(ind)]
+        #ind = distance_transform_edt(np.isnan(data), return_distances=False, return_indices=True)
+        #cur_data = data[tuple(ind)]
+        cur_data = ac.shared.fillnan(data)
     else:
         cur_data = data*1.0
-        
+
     ## smooth dataset
     if smooth:
         z = uniform_filter(cur_data, size=kern_size)

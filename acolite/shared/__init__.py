@@ -23,9 +23,12 @@ from .download_file import *
 from .distance_se import *
 from .fillnan import *
 from .tiles_interp import *
+from .intercept import *
 
 from .import_config import *
 
 from .warp_from_source import *
 from .polygon_crop import *
 from .polygon_limit import *
+
+from .regression import *
