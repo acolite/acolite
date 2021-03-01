@@ -113,29 +113,29 @@ def acolite_gem(gem,
     ## end bands dataset
 
     ## determine use of reverse lut rhot->aot
-    ## no need to use reverse lut if fixed geometry is used
     use_revlut = False
-    if setu['dsf_path_reflectance'] != 'fixed': use_revlut = True
-    if setu['resolved_geometry']:
-        ## we want to use the reverse lut to derive aot if the geometry data is resolved
-        for ds in geom_ds:
-            if ds not in gem['data']:
-                gem['data'][ds] = geom_mean[ds]
-            if len(np.atleast_1d(gem['data'][ds]))>1:
-                use_revlut=True ## if any dataset more than 1 dimension use revlut
-            gem['data']['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem['data'][ds])) ## also store tile mean
-            gem['data']['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
-        ## for ease of subsetting later, repeat single element datasets to the tile shape
-        #if use_revlut:
-        #    for ds in geom_ds:
-        #        if len(np.atleast_1d(gem['data'][ds]))!=1: continue
-        #        gem['data'][ds] = np.repeat(gem['data'][ds], gem['gatts']['data_elements']).reshape(gem['gatts']['data_dimensions'])
-        #if use_revlut:
+    ## if path reflectance is tiled or resolved, use reverse lut
+    #if setu['dsf_path_reflectance'] != 'fixed': use_revlut = True
+    ## no need to use reverse lut if fixed geometry is used
+    #if setu['resolved_geometry']:
+    ## we want to use the reverse lut to derive aot if the geometry data is resolved
+    for ds in geom_ds:
+        if ds not in gem['data']:
+            gem['data'][ds] = geom_mean[ds]
+        if len(np.atleast_1d(gem['data'][ds]))>1:
+            use_revlut=True ## if any dataset more than 1 dimension use revlut
+        gem['data']['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem['data'][ds])) ## also store tile mean
+        gem['data']['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
+
+    ## for ease of subsetting later, repeat single element datasets to the tile shape
+    if use_revlut:
         for ds in geom_ds:
             if len(np.atleast_1d(gem['data'][ds]))!=1: continue
             gem['data'][ds] = np.repeat(gem['data'][ds], gem['gatts']['data_elements']).reshape(gem['gatts']['data_dimensions'])
-
-    #if setu['dsf_path_reflectance'] != 'fixed': use_revlut = True
+    else:
+        ## if use revlut is False at this point, we don't have resolved geometry
+        setu['resolved_geometry'] = False
+    #print(use_revlut, setu['dsf_path_reflectance'], setu['resolved_geometry'])
     ## end determine revlut
 
     ## for tiled processing track tile positions and average geometry
@@ -143,29 +143,32 @@ def acolite_gem(gem,
     if (setu['dsf_path_reflectance'] == 'tiled') & (setu['dsf_tile_dimensions'] is not None):
         ni = np.ceil(gem['gatts']['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem['gatts']['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
-        ntiles = ni*nj
+        if (ni <= 1) & (nj <= 1):
+            print('Scene too small for tiling, using fixed processing')
+            setu['dsf_path_reflectance'] = 'fixed'
+        else:
+            ntiles = ni*nj
 
-        ## compute tile dimensions
-        for ti in range(ni):
-            for tj in range(nj):
-                subti = [setu['dsf_tile_dimensions'][0]*ti, setu['dsf_tile_dimensions'][0]*(ti+1)]
-                subti[1] = np.min((subti[1], gem['gatts']['data_dimensions'][0]))
-                subtj = [setu['dsf_tile_dimensions'][1]*tj, setu['dsf_tile_dimensions'][1]*(tj+1)]
-                subtj[1] = np.min((subtj[1], gem['gatts']['data_dimensions'][1]))
-                tiles.append((ti, tj, subti, subtj))
+            ## compute tile dimensions
+            for ti in range(ni):
+                for tj in range(nj):
+                    subti = [setu['dsf_tile_dimensions'][0]*ti, setu['dsf_tile_dimensions'][0]*(ti+1)]
+                    subti[1] = np.min((subti[1], gem['gatts']['data_dimensions'][0]))
+                    subtj = [setu['dsf_tile_dimensions'][1]*tj, setu['dsf_tile_dimensions'][1]*(tj+1)]
+                    subtj[1] = np.min((subtj[1], gem['gatts']['data_dimensions'][1]))
+                    tiles.append((ti, tj, subti, subtj))
 
-        ## create tile geometry datasets
-        for ds in geom_ds:
-            if len(np.atleast_1d(gem['data'][ds]))>1: ## if not fixed geometry
-                gem['data']['{}_tiled'.format(ds)] = np.zeros((ni,nj))+np.nan
-                for t in range(ntiles):
-                    ti, tj, subti, subtj = tiles[t]
-                    gem['data']['{}_tiled'.format(ds)][ti, tj] = \
-                        np.nanmean(gem['data'][ds][subti[0]:subti[1],subtj[0]:subtj[1]])
-            else: ## if fixed geometry
-                gem['data']['{}_tiled'.format(ds)] = gem['data'][ds]
-    ##
-    #return(setu, gem, tiles)
+            ## create tile geometry datasets
+            for ds in geom_ds:
+                if len(np.atleast_1d(gem['data'][ds]))>1: ## if not fixed geometry
+                    gem['data']['{}_tiled'.format(ds)] = np.zeros((ni,nj))+np.nan
+                    for t in range(ntiles):
+                        ti, tj, subti, subtj = tiles[t]
+                        gem['data']['{}_tiled'.format(ds)][ti, tj] = \
+                            np.nanmean(gem['data'][ds][subti[0]:subti[1],subtj[0]:subtj[1]])
+                else: ## if fixed geometry
+                    gem['data']['{}_tiled'.format(ds)] = gem['data'][ds]
+    ## end tiling
 
     ## read LUTs
     if setu['sky_correction']:
@@ -173,10 +176,9 @@ def acolite_gem(gem,
     else:
         par = 'romix'
 
-    ## load luts
-    if use_revlut:
-        revl = ac.aerlut.reverse_lut(gem['gatts']['sensor'], par=par)
-
+    ## load reverse lut romix -> aot
+    if use_revlut: revl = ac.aerlut.reverse_lut(gem['gatts']['sensor'], par=par)
+    ## load aot -> atmospheric parameters lut
     lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=gem['gatts']['sensor'])
     luts = list(lutdw.keys())
 
@@ -242,9 +244,6 @@ def acolite_gem(gem,
             ## fill nan tiles with closest values
             ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
             band_data = tile_data[tuple(ind)]
-
-            #band_data = 1.0*tile_data
-            #print(band_data.shape)
 
         ## resolved per pixel dsf
         elif setu['dsf_path_reflectance'] == 'resolved':
@@ -382,20 +381,37 @@ def acolite_gem(gem,
             #print('Computing rho path B{} {}'.format(b, lut))
             aot_sub = np.where(aot_stack[lut]['b1']==bi)
             if len(aot_sub[0]) > 0:
-                rhop_f[aot_sub[0], aot_sub[1], 0] = lutdw[lut]['rgi'][b]((gem['data']['pressure'+gk][aot_sub],
-                                                        lutdw[lut]['ipd'][par],
-                                                        gem['data']['raa'+gk][aot_sub],
-                                                        gem['data']['vza'+gk][aot_sub],
-                                                        gem['data']['sza'+gk][aot_sub],
-                                                        gem['data']['wind'+gk][aot_sub], aot_stack[lut]['min'][aot_sub]))
+                if (use_revlut):
+                    xi = [gem['data']['pressure'+gk][aot_sub],
+                                      gem['data']['raa'+gk][aot_sub],
+                                      gem['data']['vza'+gk][aot_sub],
+                                      gem['data']['sza'+gk][aot_sub],
+                                      gem['data']['wind'+gk][aot_sub]]
+                else:
+                    xi = [gem['data']['pressure'+gk],
+                                      gem['data']['raa'+gk],
+                                      gem['data']['vza'+gk],
+                                      gem['data']['sza'+gk],
+                                      gem['data']['wind'+gk]]
+                rhop_f[aot_sub[0], aot_sub[1], 0] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+
             aot_sub = np.where(aot_stack[lut]['b2']==bi)
             if len(aot_sub[0]) > 0:
-                rhop_f[aot_sub[0], aot_sub[1], 1] = lutdw[lut]['rgi'][b]((gem['data']['pressure'+gk][aot_sub],
-                                                        lutdw[lut]['ipd'][par],
-                                                        gem['data']['raa'+gk][aot_sub],
-                                                        gem['data']['vza'+gk][aot_sub],
-                                                        gem['data']['sza'+gk][aot_sub],
-                                                        gem['data']['wind'+gk][aot_sub], aot_stack[lut]['min'][aot_sub]))
+                if (use_revlut):
+                    xi = [gem['data']['pressure'+gk][aot_sub],
+                                      gem['data']['raa'+gk][aot_sub],
+                                      gem['data']['vza'+gk][aot_sub],
+                                      gem['data']['sza'+gk][aot_sub],
+                                      gem['data']['wind'+gk][aot_sub]]
+                else:
+                    xi = [gem['data']['pressure'+gk],
+                                      gem['data']['raa'+gk],
+                                      gem['data']['vza'+gk],
+                                      gem['data']['sza'+gk],
+                                      gem['data']['wind'+gk]]
+                rhop_f[aot_sub[0], aot_sub[1], 1] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
 
         ## rmsd for current bands
         rmsd_cur = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
