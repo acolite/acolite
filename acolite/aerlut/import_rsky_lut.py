@@ -91,8 +91,8 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                     nc.createDimension('tau', len(dim[5]))
                     ## write LUT
                     for band in rsr_bands:
-                        var = nc.createVariable(band,float,('azi','thv','ths','wind', 'tau'))
-                        nc.variables[band][:] = lut_sensor[band]
+                        var = nc.createVariable(band,np.float32,('azi','thv','ths','wind', 'tau'))
+                        nc.variables[band][:] = lut_sensor[band].astype(np.float32)
                     nc.close()
                 ## end resample lut
 

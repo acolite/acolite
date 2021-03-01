@@ -78,8 +78,8 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     ## create dimensions
                     nc.createDimension(dn, len(dim[di]))
                 ## write lut
-                var = nc.createVariable('lut',float,lut_dimensions)
-                var[:] = luta
+                var = nc.createVariable('lut',np.float32,lut_dimensions)
+                var[:] = luta.astype(np.float32)
                 nc.close()
 
             ## read LUT and make rgi

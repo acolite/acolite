@@ -59,8 +59,8 @@ def import_lut_sensor(sensor, rsr_file, lutid, override=0, lutdir=None):
                 nc.createDimension('tau', lut_dims[6])
                 ## write LUT
                 for band in lut_sensor.keys():
-                    var = nc.createVariable(band,float,('par','azi','thv','ths','wnd','tau'))
-                    nc.variables[band][:] = lut_sensor[band]
+                    var = nc.createVariable(band,np.float32,('par','azi','thv','ths','wnd','tau'))
+                    nc.variables[band][:] = lut_sensor[band].astype(np.float32)
                 nc.close()
                 nc = None
                 arr = None
