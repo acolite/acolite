@@ -18,6 +18,7 @@ from .lutnc_import import *
 from .datascl import *
 from .closest_idx import *
 from .isodate_to_yday import *
+from .download_file import *
 
 from .distance_se import *
 from .fillnan import *
