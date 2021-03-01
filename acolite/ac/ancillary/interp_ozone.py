@@ -34,7 +34,7 @@ def interp_ozone(file, lon, lat, dataset='ozone', kind='linear'):
         uoz = data[yi,xi]/1000.
     else:
         interp = interpolate.interp2d(lons, lats, data, kind=kind)
-        uoz = (interp(lon, lat))[0]/1000.
+        uoz = (interp(lon, lat))[0]
 
     anc_ozone = {'ozone':{'interp':uoz}}
     return(anc_ozone)
