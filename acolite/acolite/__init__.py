@@ -1,3 +1,5 @@
+from .acolite_gem import *
+
 from . import settings
 
 import os
