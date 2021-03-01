@@ -1,0 +1,174 @@
+## ACOLITE default settings
+
+## test cropped scenes for blackfill coverage
+blackfill_skip=True
+blackfill_max=1.0
+blackfill_wave=1600
+
+## output l2w parameters
+l2w_parameters=
+l2w_mask=True
+l2w_mask_wave=1600
+l2w_mask_threshold=0.0215
+l2w_mask_water_parameters=True
+l2w_mask_negative_rhow=True
+l2w_mask_cirrus=True
+l2w_mask_cirrus_threshold=0.005
+
+## atmospheric correction settings
+aerosol_correction=dark_spectrum
+## minimum gas transmittance to allow aot retrieval in that band
+min_tgas_aot=0.85
+## minimum gas transmittance to allow surface reflectance retrieval in that band
+min_tgas_rho=0.85
+
+## generic options
+ancillary_data=True
+gas_transmittance=True
+uoz_default=0.3
+uwv_default=1.5
+pressure=None
+elevation=None
+lut_pressure=True
+dem_pressure=False
+dem_pressure_percentile=25
+
+## correction for sky reflectance on water surface
+sky_correction=True
+sky_correction_option=default
+sky_correction_lut=RSKY-202102
+wind=2
+
+## glint correction
+glint_correction=False
+glint_force_band=None
+glint_mask_rhos_band=1600
+glint_mask_rhos_threshold=0.05
+glint_write_rhog_ref=False
+glint_write_rhog_all=False
+
+## dark spectrum fitting options
+dsf_path_reflectance=tiled
+
+## options darkest, percentile, intercept
+dsf_spectrum_option=intercept
+dsf_percentile=1
+dsf_intercept_pixels=1000
+
+## apply median filter to TOA data
+dsf_filter_toa=False
+dsf_filter_percentile=5
+dsf_filter_box=5,5
+dsf_filter_aot=False
+
+# smooth retrieved aot
+dsf_smooth_aot=False
+dsf_smooth_box=20,20
+
+#
+dsf_full_scene=False
+dsf_model_selection=min_drmsd
+#dsf_list_selection=intercept
+dsf_tile_dims=None
+dsf_min_tile_cover=0.10
+dsf_min_tile_aot=0.01
+dsf_plot_retrieved_tiles=True
+dsf_plot_dark_spectrum=True
+dsf_write_tiled_parameters=False
+dsf_wave_range=400,2500
+dsf_exclude_bands=,
+extra_ac_parameters=False
+
+## fixed aot option
+dsf_fixed_aot=None
+dsf_fixed_lut=ACOLITE-LUT-202102-MOD2
+
+## exponential options
+exp_swir_threshold=0.0215
+exp_fixed_epsilon=True
+exp_fixed_epsilon_percentile=50
+exp_fixed_aerosol_reflectance=True
+exp_fixed_aerosol_reflectance_percentile=5
+exp_wave1=1600
+exp_wave2=2200
+exp_alpha=None
+exp_alpha_weighted=True
+exp_epsilon=None
+exp_gamma=None
+
+##
+s2_target_res=10
+l8_output_bt=False
+l8_output_lt_tirs=False
+resolved_geometry=False
+resolved_geometry_write=False
+
+## output of xy easting and northing
+xy_output=False
+
+## gain settings
+gains=False
+gains_l5_tm=1,1,1,1,1,1
+gains_l7_etm=1,1,1,1,1,1
+gains_l8_oli=1,1,1,1,1,1,1
+gains_s2a_msi=1,1,1,1,1,1,1,1,1,1,1,1,1
+gains_s2b_msi=1,1,1,1,1,1,1,1,1,1,1,1,1
+
+## processing settings
+merge_tiles=False
+
+# output RGB / L2W maps
+rgb_rhot=True
+rgb_rhos=True
+map_l2w=False
+
+# mapping options
+map_title=True
+map_colorbar=True
+map_colorbar_orientation=vertical
+map_auto_range=False
+map_fillcolor=LightGrey
+
+# RGB options
+rgb_red_wl=660
+rgb_green_wl=560
+rgb_blue_wl=480
+rgb_min=0.0,0.0,0.0
+rgb_max=0.15,0.15,0.15
+rgb_pan_sharpen=False
+
+# more mapping options for 'projected image'
+map_projected=False
+map_raster=False
+map_scalebar=True
+map_scalepos=UL
+map_scalecolor=White
+map_scalecolor_rgb=White
+map_scalelen=None
+map_colorbar_edge=True
+map_max_dim=1000
+map_points=None
+
+# NetCDF output options
+l1r_nc_compression=True
+l2r_nc_compression=True
+l2w_nc_compression=True
+
+# NetCDF deletion options
+l1r_nc_delete=False
+l2r_nc_delete=False
+l2w_nc_delete=False
+
+# Convert reflectance floats to scaled integers
+l2w_nc_scaled=False
+l2w_nc_scaled_offset=0.02
+l2w_nc_scaled_factor=0.0001
+
+# GeoTIFF export options
+l2r_export_geotiff=False
+l2w_export_geotiff=False
+export_geotiff_coordinates=False
+
+# LUTs
+luts=ACOLITE-LUT-202102-MOD1, ACOLITE-LUT-202102-MOD2
+slicing=False

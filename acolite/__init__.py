@@ -11,6 +11,7 @@ from acolite import output
 from acolite import shared
 
 from acolite import tact
+from acolite import acolite
 
 from acolite import gem
 
