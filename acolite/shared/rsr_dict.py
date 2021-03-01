@@ -26,8 +26,8 @@ def rsr_dict(sensor=None):
         rsrd[fsensor] = {'rsr':rsr, 'rsr_bands':rsr_bands}
 
         ## compute band weighted wavelengths and band names
-        rsrd[fsensor]['waves_mu'] = ac.shared.rsr_convolute_dict(waves, waves, rsrd[fsensor]['rsr'])
-        rsrd[fsensor]['waves_nm'] = {b:rsrd[fsensor]['waves_mu'][b]*1000 for b in rsrd[fsensor]['waves_mu']}
-        rsrd[fsensor]['waves_name'] = {b:'{:.0f}'.format(rsrd[fsensor]['waves_nm'][b]) for b in rsrd[fsensor]['waves_nm']}
+        rsrd[fsensor]['wave_mu'] = ac.shared.rsr_convolute_dict(waves, waves, rsrd[fsensor]['rsr'])
+        rsrd[fsensor]['wave_nm'] = {b:rsrd[fsensor]['wave_mu'][b]*1000 for b in rsrd[fsensor]['wave_mu']}
+        rsrd[fsensor]['wave_name'] = {b:'{:.0f}'.format(rsrd[fsensor]['wave_nm'][b]) for b in rsrd[fsensor]['wave_nm']}
 
     return(rsrd)
