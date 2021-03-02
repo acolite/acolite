@@ -120,7 +120,7 @@ def l1_convert(inputfile, output = None,
                  'mus': np.cos(meta['sza']*(np.pi/180.))}
 
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
+        oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
         if vname != '': oname+='_{}'.format(vname)
 
         ## output file information
