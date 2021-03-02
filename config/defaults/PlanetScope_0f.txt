@@ -1,0 +1,6 @@
+## ACOLITE default settings for PS_22
+
+## dark spectrum fitting options
+dsf_path_reflectance=fixed
+dsf_wave_range=400,2500
+gains_toa=1,1,1,1

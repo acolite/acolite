@@ -288,6 +288,9 @@ def acolite_gem(gem,
                                             gem['data']['sza'+gk],
                                             gem['data']['wind'+gk], lutdw[lut]['meta']['tau']))
                 tmp = tmp.flatten()
+                #if setu['dsf_path_reflectance'] == 'fixed':
+                #    print(gem['data']['pressure'+gk],gem['data']['raa'+gk],
+                #                gem['data']['vza'+gk], gem['data']['sza'+gk],gem['data']['wind'+gk])
 
                 ## interpolate rho path to observation
                 aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
@@ -295,6 +298,7 @@ def acolite_gem(gem,
                                                    left=np.nan, right=np.nan)
 
             tel = time.time()-t0
+
             if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem['gatts']['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
         ###
@@ -522,12 +526,14 @@ def acolite_gem(gem,
         new_nc = True
         if target_file is None:
             ofile = gemf.replace('_L1R.nc', '_L2R.nc')
+            if ('output' in setu) & (output is None): output = setu['output']
             if output is not None: ofile = '{}/{}'.format(output, os.path.basename(ofile))
         else:
             ofile = '{}'.format(target_file)
 
         ## add settings to gatts
         for k in setu:
+            if k in gem['gatts']: continue
             if setu[k] in [True, False]:
                 gem['gatts'][k] = str(setu[k])
             else:

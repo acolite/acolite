@@ -24,12 +24,12 @@ def load(settings):
                 setu = ac.acolite.settings.read(setf)
             else:
                 print('Settings file {} not found.'.format(settings))
-                return(1)
+                setu = setd
         elif type(settings) is dict:
             setu = settings
         else:
             print('Settings not recognised.')
-            return(1)
+            setu = setd
     else: setu={}
 
     ## set defaults for options not specified
