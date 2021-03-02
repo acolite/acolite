@@ -66,7 +66,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                 if (override) & (os.path.isfile(lutnc_s)): os.remove(lutnc_s)
 
                 if not os.path.isfile(lutnc_s):
-                    print('Resampling {} to {}'.format(model, sensor))
+                    print('Resampling RSKY LUT {} to {}'.format(os.path.basename(lutnc), sensor))
                     if not os.path.exists(os.path.dirname(lutnc_s)): os.makedirs(os.path.dirname(lutnc_s))
                     ## read lut
                     lut, meta, dim, rgi = ac.aerlut.import_rsky_lut(model, lutbase=lutbase)

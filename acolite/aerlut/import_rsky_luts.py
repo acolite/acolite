@@ -18,14 +18,14 @@ def import_rsky_luts(models=[1,2], lutbase='ACOLITE-RSKY-202102-82W', sensor=Non
         ret = ac.aerlut.import_rsky_lut(mod, lutbase=lutbase, sensor=sensor)
         rskyd[mod] = {'lut':ret[0], 'meta':ret[1], 'dims':ret[2], 'rgi':ret[3]}
 
-        if sensor is None:
+        if sensor is None: ## generic model
             rskyd[mod]['dim'] = [rskyd[mod]['meta']['wave'], rskyd[mod]['meta']['azi'], rskyd[mod]['meta']['thv'],
                                  rskyd[mod]['meta']['ths'], rskyd[mod]['meta']['wind'], rskyd[mod]['meta']['tau']]
             rskyd[mod]['rgi'] = scipy.interpolate.RegularGridInterpolator(rskyd[mod]['dim'],
                                                                           rskyd[mod]['lut'],
                                                                           bounds_error=False,
                                                                           fill_value=np.nan)
-        else:
+        else: ## sensor specific model
             rskyd[mod]['dim'] = [rskyd[mod]['meta']['azi'], rskyd[mod]['meta']['thv'],
                                  rskyd[mod]['meta']['ths'], rskyd[mod]['meta']['wind'], rskyd[mod]['meta']['tau']]
 

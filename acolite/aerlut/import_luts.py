@@ -26,10 +26,11 @@ def import_luts(pressures = [500, 1013, 1100],
             lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
             if sensor is None:
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
-                lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, override=0)
+                lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor=sensor)
             else:
                 ## sensor specific lut
-                lut_data_dict, lut_meta = ac.aerlut.import_lut_sensor(sensor, None, lutid, override=0, lutdir=lutdir)
+                #lut_data_dict, lut_meta = ac.aerlut.import_lut_sensor(sensor, None, lutid, override=0, lutdir=lutdir)
+                lut_data_dict, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor=sensor)
 
                 #bands = list(lut_data_dict.keys())
                 # get bands from rsr_file as different systems may not keep dict keys in the same order

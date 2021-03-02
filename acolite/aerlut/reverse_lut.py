@@ -31,6 +31,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
             lutnc = '{}/{}.nc'.format(lutdir, slut)
 
             if (not os.path.exists(lutnc)) or (override):
+                print('Creating reverse LUTs for {}'.format(sensor))
                 if lutdw is None:
                     print('Importing source LUTs')
                     lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
