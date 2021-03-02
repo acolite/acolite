@@ -14,6 +14,7 @@ def extract(st_lon, st_lat, sdate,
                            output = None,
                            gem_type = 'nc', # json
                            width = 100, override = False,
+                           return_gem = False,
                            sources = ['Landsat 5', 'Landsat 7','Landsat 8','Sentinel-2'],
                            verbosity=0):
 
@@ -196,6 +197,20 @@ def extract(st_lon, st_lat, sdate,
                 saa = meta['SUN_AZIMUTH']#im.get('SUN_AZIMUTH').getInfo()
                 sza = 90 - meta['SUN_ELEVATION']#im.get('SUN_ELEVATION').getInfo()
                 vaa = 0
+
+                ## get scene bounding box
+                x = [i[0] for i in meta['system:footprint']['coordinates']]
+                y = [i[1] for i in meta['system:footprint']['coordinates']]
+
+                ## extract corners
+                wi = x.index(min(x)) ## west corner
+                ei = x.index(max(x)) ## east corner
+                ni = y.index(max(y)) ## north corner
+                si = y.index(min(y)) ## south corner
+
+                ## compute scene azimuth
+                vaa = (ac.shared.azimuth_two_points(x[ni], y[ni], x[ei], y[ei]) +
+                       ac.shared.azimuth_two_points(x[wi], y[wi], x[si], y[si]))/2
                 vza = 0
 
             raa = saa-vaa
@@ -327,7 +342,8 @@ def extract(st_lon, st_lat, sdate,
             gem = {'data':data, 'meta':meta, 'dct':dct,
                    'isodate':isodate, 'fyear': fyear,
                    'pid':pid, 'sensor':sensor,
-                   'vza':vza, 'sza':sza, 'raa':raa}
+                   'vza':vza, 'sza':sza, 'raa':raa, 'saa':saa, 'vaa': vaa}
+            if return_gem: return(gem)
 
             if gem_type == 'json':
                 gem_json_write(gemfile, gem)
