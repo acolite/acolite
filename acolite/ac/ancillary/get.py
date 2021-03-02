@@ -11,12 +11,19 @@
 
 def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     import acolite as ac
-    import dateutil
+    import dateutil, datetime
 
     if type(date) == str:
         dt = dateutil.parser.parse(date)
     else:
         dt = date
+
+    diff = (dateutil.parser.parse(datetime.datetime.now().strftime('%Y-%m-%d')) -\
+            dateutil.parser.parse(dt.strftime('%Y-%m-%d'))).days
+    if diff < 7:
+        print('Scene too recent to get ancillary data')
+        return({})
+
     isodate = dt.isoformat()[0:10]
     ftime = dt.hour + dt.minute/60 + dt.second/3600
 
