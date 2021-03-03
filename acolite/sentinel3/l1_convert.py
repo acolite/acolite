@@ -283,8 +283,12 @@ def l1_convert(inputfile, output = None,
         if output_geometry:
             if verbosity > 1: print('Writing geometry')
             for k in tpg:
-                if k in ['SZA', 'VZA', 'RAA']:
-                    ac.output.nc_write(ofile, k.lower(), tpg[k], new=new, attributes=gatts)
+                if k in ['SZA', 'OZA', 'RAA']:
+                    if k == 'OZA':
+                        ko = 'vza'
+                    else:
+                        ko = k.lower()
+                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts)
                     new = False
                 elif k in ['sea_level_pressure']:
                     ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts)
