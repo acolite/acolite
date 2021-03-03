@@ -35,5 +35,3 @@ from .import_config import *
 from .warp_from_source import *
 from .polygon_crop import *
 from .polygon_limit import *
-
-from .regression import *
