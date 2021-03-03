@@ -39,7 +39,8 @@ def metadata_parse(metafile):
         if metadata['satellite_id'] == '11': metadata['satellite_id'] = "0f"
         if metadata['satellite_id'] == '0d': metadata['satellite_id'] = "0c"
 
-        ## assume 24XX doves use the same RSR as the 22XX
+        ## assume 23/24XX doves use the same RSR as the 22XX
+        if metadata['satellite_id'] == '23': metadata['satellite_id'] = "22"
         if metadata['satellite_id'] == '24': metadata['satellite_id'] = "22"
 
         metadata['satellite_sensor'] = '{}_{}'.format(metadata['platform'], metadata['platform_id'])
