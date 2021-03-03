@@ -96,6 +96,10 @@ def acolite_gem(gem,
     geom_ds = ['sza', 'vza', 'raa', 'pressure', 'wind']
     geom_mean = {k: np.nanmean(gem['data'][k]) if k in gem['data'] else gem['gatts'][k] for k in geom_ds}
 
+    ## set wind to wind range
+    gem['gatts']['wind'] = max(0.1, gem['gatts']['wind'])
+    gem['gatts']['wind'] = min(15, gem['gatts']['wind'])
+
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
                                       uoz=gem['gatts']['uoz'], uwv=gem['gatts']['uwv'],
