@@ -14,7 +14,6 @@ def acolite_gem(gem,
                 target_file = None,
 
                 return_gem = False,
-                copy_datasets = ['lon', 'lat'],
 
                 verbosity=0):
 
@@ -566,9 +565,16 @@ def acolite_gem(gem,
         ac.output.nc_write(ofile, 'aot_550', gem['data']['aot_550'], attributes = gem['gatts'], new=new_nc)
 
         ## copy datasets from inputfile
+        copy_datasets = setu['copy_datasets']
         if copy_datasets is not None:
+            ## copy rhot all from L1R
+            if 'rhot_*' in copy_datasets:
+                copy_datasets.remove('rhot_*')
+                copy_datasets += [ds for ds in gem['datasets'] if ('rhot_' in ds) & (ds not in copy_datasets)]
+            ## copy datasets to L2R
             for ds in copy_datasets:
                 if (ds not in gem['datasets']): continue
+                if verbosity > 1: print('Writing {}'.format(ds))
                 if ds not in gem['data']:
                     d, da = ac.shared.nc_data(gemf, ds, attributes=True)
                     ac.output.nc_write(ofile, ds, d.data, attributes = gem['gatts'], new=new_nc)
