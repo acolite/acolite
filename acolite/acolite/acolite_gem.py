@@ -152,7 +152,7 @@ def acolite_gem(gem,
             setu['dsf_path_reflectance'] = 'fixed'
         else:
             ntiles = ni*nj
-            if verbosity > 1: print('Processing with {} tiles'.format(ntiles))
+            if verbosity > 1: print('Processing with {} tiles ({}x{})'.format(ntiles, ni, nj))
 
             ## compute tile dimensions
             for ti in range(ni):
@@ -589,9 +589,13 @@ def acolite_gem(gem,
                 if verbosity > 1: print('Writing {}'.format(ds))
                 if ds not in gem['data']:
                     d, da = ac.shared.nc_data(gemf, ds, attributes=True)
-                    ac.output.nc_write(ofile, ds, d.data, attributes = gem['gatts'], new=new_nc)
+                    ac.output.nc_write(ofile, ds, d.data,
+                                                dataset_attributes = da,
+                                                attributes = gem['gatts'], new=new_nc)
                 else:
-                    ac.output.nc_write(ofile, ds, gem['data'][ds], attributes = gem['gatts'], new=new_nc)
+                    ac.output.nc_write(ofile, ds, gem['data'][ds],
+                                                dataset_attributes = gem['atts'][ds],
+                                                attributes = gem['gatts'], new=new_nc)
 
         if verbosity>0: print('Wrote {}'.format(ofile))
 
