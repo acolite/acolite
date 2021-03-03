@@ -68,6 +68,7 @@ def acolite_gem(gem,
     setu['dsf_intercept_pixels'] = int(setu['dsf_intercept_pixels'])
     setu['dsf_smooth_box'] = [int(i) for i in setu['dsf_smooth_box']]
     setu['dsf_min_tile_aot'] = float(setu['dsf_min_tile_aot'])
+    setu['dsf_wave_range'] = [float(i) for i in setu['dsf_wave_range']]
 
     ## set defaults
     gem['gatts']['uoz'] = float(setu['uoz_default'])
@@ -147,10 +148,11 @@ def acolite_gem(gem,
         ni = np.ceil(gem['gatts']['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem['gatts']['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
         if (ni <= 1) & (nj <= 1):
-            print('Scene too small for tiling, using fixed processing')
+            if verbosity > 1: print('Scene too small for tiling, using fixed processing')
             setu['dsf_path_reflectance'] = 'fixed'
         else:
             ntiles = ni*nj
+            if verbosity > 1: print('Processing with {} tiles'.format(ntiles))
 
             ## compute tile dimensions
             for ti in range(ni):
@@ -191,8 +193,15 @@ def acolite_gem(gem,
     for bi, b in enumerate(gem['bands']):
         if (b in setu['dsf_exclude_bands']): continue
         if ('rhot_ds' not in gem['bands'][b]) or ('tt_gas' not in gem['bands'][b]): continue
-        if gem['bands'][b]['tt_gas'] < setu['min_tgas_aot']: continue
         if gem['bands'][b]['rhot_ds'] not in gem['data']: continue
+
+        ## skip band for aot computation
+        if gem['bands'][b]['tt_gas'] < setu['min_tgas_aot']: continue
+
+        ## skip bands according to configuration
+        if (gem['bands'][b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
+        if (gem['bands'][b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
+        if (b in setu['dsf_exclude_bands']): continue
 
         if verbosity > 1: print(b, gem['bands'][b]['rhot_ds'])
 
@@ -435,6 +444,9 @@ def acolite_gem(gem,
             aot_lut[aot_sub] = li
             aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
             aot_rmsd[aot_sub] = rmsd_cur[aot_sub] * 1.0
+
+    rhod_f = None
+    rhod_p = None
 
     gem['data']['aot_550'] = aot_sel
 
