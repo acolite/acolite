@@ -1,9 +1,9 @@
 ## read L1R.nc gem file
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-28
-## modifications:
+## modifications: 2021-03-09 (QV) made reading data optional
 
-def read(ncf, sub = None, skip_datasets = []):
+def read(ncf, sub = None, skip_datasets = [], load_data=True):
     import os
     import numpy as np
     import acolite as ac
@@ -29,12 +29,13 @@ def read(ncf, sub = None, skip_datasets = []):
         gem['gatts']['thermal_sensor'] = 'L7_ETM'
         gem['gatts']['thermal_bands'] = ['6_vcid_1', '6_vcid_2']
 
-    ## read all datasets
-    for ds in gem['datasets']:
-        if ds in skip_datasets: continue
-        d_, a_ = ac.shared.nc_data(ncf, ds, sub=sub, attributes=True)
-        gem['data'][ds] = d_.data
-        gem['data'][ds][d_.mask] = np.nan
-        gem['atts'][ds] = a_
+    if load_data:
+        ## read all datasets
+        for ds in gem['datasets']:
+            if ds in skip_datasets: continue
+            d_, a_ = ac.shared.nc_data(ncf, ds, sub=sub, attributes=True)
+            gem['data'][ds] = d_.data
+            gem['data'][ds][d_.mask] = np.nan
+            gem['atts'][ds] = a_
 
     return(gem)
