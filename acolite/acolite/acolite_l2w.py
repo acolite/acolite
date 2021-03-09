@@ -46,6 +46,9 @@ def acolite_l2w(gem,
     rhos_waves = [int(ds.split('_')[1]) for ds in rhos_ds]
     if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file.'.format(gemf))
 
+    ## read rsr
+    rsrd = ac.shared.rsr_dict(sensor=gem['gatts']['sensor'])
+
     ## compute flag value to mask for water products
     flag_value = 0
     if setu['l2w_mask']:
@@ -81,7 +84,7 @@ def acolite_l2w(gem,
         l2_flags += cirrus_mask.astype(np.int32)*(2**setu['flag_exponent_cirrus'])
         cirrus_mask = None
     else:
-        if verbosity > 1: print('No suitable band found for cirrus masking.')
+        if verbosity > 2: print('No suitable band found for cirrus masking.')
     ## TOA out of limit
     toa_mask = None
     for ci, cur_par in enumerate(rhot_ds):
@@ -154,6 +157,7 @@ def acolite_l2w(gem,
 
     ## write l2 flags
     ac.output.nc_write(ofile, 'l2_flags', l2_flags, attributes=gem['gatts'], new=new)
+    if return_gem: gem['data']['l2_flags'] = l2_flags
     new = False
 
     ## parameter loop
@@ -167,18 +171,80 @@ def acolite_l2w(gem,
         par_data = {}
         par_atts = {}
 
-        ## nechad turbidity/spm
+        #############################
+        ## Nechad turbidity/spm
         if 'nechad' in cur_par:
+            mask = True ## water parameter so apply mask
+            nechad_parameter = 'centre'
+            if '2016' in cur_par: nechad_parameter = '2016'
+            if 'ave' in cur_par: nechad_parameter = 'resampled'
+
             ## turbidity
             if cur_par[0] == 't':
-                npar = 'turbidity'
-                nechad_dict = ac.parameters.nechad.coef_hyper('TUR')
+                nechad_par = 'TUR'
             elif cur_par[0] == 's':
-                npar = 'spm'
-                nechad_dict = ac.parameters.nechad.coef_hyper('SPM')
+                nechad_par = 'SPM'
             else:
                 continue
+
+            ## find out which band to use
+            nechad_band = None
+            nechad_wave = 665
+            sp = cur_par.split('_')
+            if 'ave' not in cur_par:
+                if len(sp) > 2: nechad_wave = sp[2]
+            else:
+                if len(sp) > 3: nechad_wave = sp[3]
+
+            ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
+            for b in rsrd[gem['gatts']['sensor']]['rsr_bands']:
+                if (rsrd[gem['gatts']['sensor']]['wave_name'][b] == str(cw)): nechad_band = b
+            print(nechad_wave, nechad_band)
+
+            A_Nechad, C_Nechad = None, None
+
+            ## band center
+            if nechad_parameter == 'centre':
+                par_name = '{}_Nechad_{}'.format(nechad_par, cw)
+                nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
+                didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], nechad_wave)
+                A_Nechad = nechad_dict['A'][didx]
+                C_Nechad = nechad_dict['C'][didx]
+
+            ## resampled to band
+            if nechad_parameter == 'resampled':
+                par_name = '{}_Nechad_{}_ave'.format(nechad_par, cw)
+                nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
+                ## resample parameters to band
+                cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem['gatts']['sensor']]['rsr'])
+                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['A'], rsrd[gem['gatts']['sensor']]['rsr'])
+                A_Nechad = adct[nechad_band]
+                C_Nechad = cdct[nechad_band]
+
+            ## resampled to band by Nechad 2016
+            if nechad_parameter == '2016':
+                par_name = '{}_Nechad2016_{}'.format(nechad_par, cw)
+                nechad_dict = ac.shared.coef_nechad_2016()
+                for k in nechad_dict:
+                    if k['sensor'] != gem['gatts']['sensor']: continue
+                    if k['band'] != 'B{}'.format(nechad_band): continue
+                    if k['par'] != nechad_par: continue
+                    A_Nechad = k['A']
+                    C_Nechad = k['C']
+
+            ## if we have A and C we can continue
+            if (A_Nechad is not None) & (C_Nechad is not None):
+                cur_ds = 'rhos_{}'.format(cw)
+                if cur_ds in gem['data']:
+                    cur_data = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                ## compute parameter
+                cur_data = (A_Nechad * cur_data) / (1.-(cur_data/C_Nechad))
+                par_data[par_name] = cur_data
+                par_atts[par_name] = {'ds_name':par_name, 'A_{}'.format(nechad_par): A_Nechad, 'C_{}'.format(nechad_par): C_Nechad}
         ## end nechad turbidity/spm
+        #############################
 
         #############################
         ## Pitarch 3 band QAA
