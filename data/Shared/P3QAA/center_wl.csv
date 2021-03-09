@@ -1,0 +1,23 @@
+## Center wavelengths
+## From Jaime Pitarch 4 Feb 2021
+## retabulated to csv QV 2021-02-15
+## changed sensor names to fit ACOLITE names
+sensor,B,G,R
+L4_TM,486,571,660
+L5_TM,486,570,660
+L7_ETM,479,561,661
+L8_OLI,483,561,655
+S2A_MSI,492,559,665
+S2B_MSI,492,559,665
+PHR1A,501,561,650
+PHR1B,505,558,663
+PlanetScope_0c,493,542,621
+PlanetScope_0d05,493,542,621
+PlanetScope_0d06,493,542,621
+PlanetScope_0e,517,552,633
+PlanetScope_0f,506,546,625
+PlanetScope_22,492,566,666
+RapidEye,477,556,658
+WorldView2,479,548,659
+WorldView3,482,547,660
+VENµS_VSSC,492,555,666
