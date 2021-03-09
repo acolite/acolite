@@ -9,14 +9,28 @@ blackfill_wave=1600
 copy_datasets=lon,lat
 
 ## output l2w parameters
-l2w_parameters=
+l2w_parameters=None
 l2w_mask=True
 l2w_mask_wave=1600
 l2w_mask_threshold=0.0215
 l2w_mask_water_parameters=True
 l2w_mask_negative_rhow=True
+l2w_mask_negative_wave_range=400,900
 l2w_mask_cirrus=True
 l2w_mask_cirrus_threshold=0.005
+l2w_mask_cirrus_wave=1373
+l2w_mask_high_toa=True
+l2w_mask_high_toa_threshold=0.3
+
+## smooth datasets before masking (get rid of some speckle in the masks)
+l2w_mask_smooth=True
+l2w_mask_smooth_sigma=3
+
+## flag settings
+flag_exponent_swir=0
+flag_exponent_cirrus=1
+flag_exponent_toa=2
+flag_exponent_negative=3
 
 ## atmospheric correction settings
 aerosol_correction=dark_spectrum
@@ -45,7 +59,7 @@ wind=2
 ## glint correction
 glint_correction=False
 glint_force_band=None
-glint_mask_rhos_band=1600
+glint_mask_rhos_wave=1600
 glint_mask_rhos_threshold=0.05
 glint_write_rhog_ref=False
 glint_write_rhog_all=False
@@ -111,11 +125,7 @@ xy_output=False
 
 ## gain settings
 gains=False
-gains_l5_tm=1,1,1,1,1,1
-gains_l7_etm=1,1,1,1,1,1
-gains_l8_oli=1,1,1,1,1,1,1
-gains_s2a_msi=1,1,1,1,1,1,1,1,1,1,1,1,1
-gains_s2b_msi=1,1,1,1,1,1,1,1,1,1,1,1,1
+gains_toa=None
 
 ## processing settings
 merge_tiles=False
