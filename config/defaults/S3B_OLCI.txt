@@ -10,3 +10,4 @@ gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 dsf_intercept_pixels=200
 dsf_tile_dimensions=120,120
 dsf_exclude_bands=Oa01,Oa02
+dsf_smooth_box=10,10

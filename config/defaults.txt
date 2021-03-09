@@ -64,8 +64,8 @@ dsf_filter_percentile=5
 dsf_filter_box=5,5
 dsf_filter_aot=False
 
-# smooth retrieved aot
-dsf_smooth_aot=False
+# smooth retrieved aot for resolved processing
+dsf_smooth_aot=True
 dsf_smooth_box=20,20
 
 #
