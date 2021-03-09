@@ -180,6 +180,7 @@ def acolite_l2w(gem,
                 continue
         ## end nechad turbidity/spm
 
+        #############################
         ## Pitarch 3 band QAA
         if cur_par[0:5] == 'p3qaa':
             mask = True ## water parameter so apply mask
@@ -217,7 +218,7 @@ def acolite_l2w(gem,
             p3_pars = []
             for k in ret:
                 if len(ret[k].shape) == 3:
-                    p3_pars += ['p3qaa_{}_{}'.format(k, Bwave), '{}_{}'.format(k, Gwave), '{}_{}'.format(k, Rwave)]
+                    p3_pars += ['p3qaa_{}_{}'.format(k, Bwave), 'p3qaa_{}_{}'.format(k, Gwave), 'p3qaa_{}_{}'.format(k, Rwave)]
                 else:
                     p3_pars += ['p3qaa_{}'.format(k)]
             ## check which parameters are wanted
@@ -240,6 +241,7 @@ def acolite_l2w(gem,
                     par_data[p] = ret[p[6:]]
                     par_atts[p] = {'ds_name':p}
         ## end Pitarch 3 band QAA
+        #############################
 
 
         ## continue if parameter not computed
