@@ -33,7 +33,7 @@ def l1_convert(inputfile, output = None,
         else:
             inputfile = list(inputfile)
     nscenes = len(inputfile)
-    if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+    if verbosity > 1: print('Starting conversion of {} scene{}'.format(nscenes, 's' if nscenes==1 else ''))
 
     ## check if ROI polygon is given
     clip, clip_mask = False, None
