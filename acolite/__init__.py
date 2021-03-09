@@ -14,6 +14,7 @@ from acolite import tact
 from acolite import acolite
 
 from acolite import gem
+from acolite import parameters
 
 import os
 code_path = os.path.dirname(os.path.abspath(__file__))
