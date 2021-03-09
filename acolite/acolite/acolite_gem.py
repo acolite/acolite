@@ -130,6 +130,7 @@ def acolite_gem(gem,
             use_revlut=True ## if any dataset more than 1 dimension use revlut
         gem['data']['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem['data'][ds])) ## also store tile mean
         gem['data']['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
+    if not setu['resolved_geometry']: use_revlut = False
 
     ## for ease of subsetting later, repeat single element datasets to the tile shape
     if use_revlut:
@@ -147,8 +148,8 @@ def acolite_gem(gem,
     if (setu['dsf_path_reflectance'] == 'tiled') & (setu['dsf_tile_dimensions'] is not None):
         ni = np.ceil(gem['gatts']['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem['gatts']['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
-        if (ni <= 1) & (nj <= 1):
-            if verbosity > 1: print('Scene too small for tiling, using fixed processing')
+        if (ni <= 1) | (nj <= 1):
+            if verbosity > 1: print('Scene too small for tiling ({}x{} tiles), using fixed processing'.format(ni,nj))
             setu['dsf_path_reflectance'] = 'fixed'
         else:
             ntiles = ni*nj
