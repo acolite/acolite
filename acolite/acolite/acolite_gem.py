@@ -48,36 +48,14 @@ def acolite_gem(gem,
         rsrd = None
         stop
 
-    ## read default settings for sensor
-    setu = ac.acolite.settings.load(gem['gatts']['sensor'])
-    if settings is not None:
-        if type(settings) is str:
-            sets = ac.acolite.settings.read(settings)
-            for k in sets: setu[k] = sets[k]
-        elif type(settings) is dict:
-            for k in settings: setu[k] = settings[k]
-
-    ## get values from settings file
-    setu['min_tgas_aot'] = float(setu['min_tgas_aot'])
-    setu['min_tgas_rho'] = float(setu['min_tgas_rho'])
-    setu['dsf_filter_box'] = [int(i) for i in setu['dsf_filter_box']]
-    setu['dsf_filter_percentile'] = int(setu['dsf_filter_percentile'])
-    setu['dsf_percentile'] = float(setu['dsf_percentile'])
-    if setu['dsf_tile_dimensions'] is not None:
-        setu['dsf_tile_dimensions'] = [int(i) for i in setu['dsf_tile_dimensions']]
-    setu['dsf_intercept_pixels'] = int(setu['dsf_intercept_pixels'])
-    setu['dsf_smooth_box'] = [int(i) for i in setu['dsf_smooth_box']]
-    setu['dsf_min_tile_aot'] = float(setu['dsf_min_tile_aot'])
-    setu['dsf_wave_range'] = [float(i) for i in setu['dsf_wave_range']]
+    ## combine default and user defined settings
+    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
 
     ## set defaults
-    gem['gatts']['uoz'] = float(setu['uoz_default'])
-    gem['gatts']['uwv'] = float(setu['uwv_default'])
-    gem['gatts']['wind'] = float(setu['wind'])
-    if setu['pressure'] is None:
-        gem['gatts']['pressure'] = 1013.25
-    else:
-        gem['gatts']['pressure'] = float(setu['pressure'])
+    gem['gatts']['uoz'] = setu['uoz_default']
+    gem['gatts']['uwv'] = setu['uwv_default']
+    gem['gatts']['wind'] = setu['wind']
+    gem['gatts']['pressure'] = setu['pressure']
 
     ## read ancillary data
     if setu['ancillary_data']:
@@ -368,83 +346,97 @@ def acolite_gem(gem,
         aot_stack[lut]['b2'] = tmp[:,:,1].astype(int)#.astype(float)
         #aot_stack[lut]['b2'][aot_stack[lut]['mask']] = np.nan
         aot_stack[lut]['b2'][aot_stack[lut]['mask']] = -1
+
+        if setu['dsf_model_selection'] == 'min_dtau':
+            ## array idices
+            aid = np.indices(aot_stack[lut]['all'].shape[0:2])
+            ## abs difference between first and second band tau
+            aot_stack[lut]['dtau'] = np.abs(aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,0]]-\
+                                            aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,1]])
+            #return(aot_stack)
+            #aot_stack[lut]['dtau'] =
         tmp = None
 
     ## select model based on min rmsd for 2 bands
-    if verbosity > 1: print('Computing RMSD per model')
-    ## get rhod for two lowest bands
-    rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
-    for bi, b in enumerate(aot_bands):
-        aot_sub = np.where(aot_stack[lut]['b1']==bi)
-        if (setu['dsf_path_reflectance'] == 'resolved'):
-            rhod_f[aot_sub[0], aot_sub[1], 0] = gem['data'][gem['bands'][b]['rhot_ds']][aot_sub]
-        else:
-            rhod_f[aot_sub[0], aot_sub[1], 0] = dsf_rhod[b][aot_sub]
+    if verbosity > 1: print('Choosing best fitting model: {}'.format(setu['dsf_model_selection']))
 
-        aot_sub = np.where(aot_stack[lut]['b2']==bi)
-        if (setu['dsf_path_reflectance'] == 'resolved'):
-            rhod_f[aot_sub[0], aot_sub[1], 1] = gem['data'][gem['bands'][b]['rhot_ds']][aot_sub]
-        else:
-            rhod_f[aot_sub[0], aot_sub[1], 1] = dsf_rhod[b][aot_sub]
-
-
-    ## run through model results
+    ## run through model results, get rhod and rhop for two lowest bands
     for li, lut in enumerate(luts):
-        ## get rho path for two lowest bands
-        rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
 
-        ## run through bands and find pixels corresponding to each band
-        for bi, b in enumerate(aot_bands):
-            #print('Computing rho path B{} {}'.format(b, lut))
-            aot_sub = np.where(aot_stack[lut]['b1']==bi)
-            if len(aot_sub[0]) > 0:
-                if (use_revlut):
-                    xi = [gem['data']['pressure'+gk][aot_sub],
-                                      gem['data']['raa'+gk][aot_sub],
-                                      gem['data']['vza'+gk][aot_sub],
-                                      gem['data']['sza'+gk][aot_sub],
-                                      gem['data']['wind'+gk][aot_sub]]
+        ## select model based on minimum rmsd between two best fitting bands
+        if setu['dsf_model_selection'] == 'min_drmsd':
+            if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
+
+            rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
+            rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
+            for bi, b in enumerate(aot_bands):
+                aot_sub = np.where(aot_stack[lut]['b1']==bi)
+                ## get rhod for b1
+                if (setu['dsf_path_reflectance'] == 'resolved'):
+                    rhod_f[aot_sub[0], aot_sub[1], 0] = gem['data'][gem['bands'][b]['rhot_ds']][aot_sub]
                 else:
-                    xi = [gem['data']['pressure'+gk],
-                                      gem['data']['raa'+gk],
-                                      gem['data']['vza'+gk],
-                                      gem['data']['sza'+gk],
-                                      gem['data']['wind'+gk]]
-                rhop_f[aot_sub[0], aot_sub[1], 0] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                    rhod_f[aot_sub[0], aot_sub[1], 0] = dsf_rhod[b][aot_sub]
+                ## get rho path for b1
+                if len(aot_sub[0]) > 0:
+                    if (use_revlut):
+                        xi = [gem['data']['pressure'+gk][aot_sub],
+                                          gem['data']['raa'+gk][aot_sub],
+                                          gem['data']['vza'+gk][aot_sub],
+                                          gem['data']['sza'+gk][aot_sub],
+                                          gem['data']['wind'+gk][aot_sub]]
+                    else:
+                        xi = [gem['data']['pressure'+gk],
+                                          gem['data']['raa'+gk],
+                                          gem['data']['vza'+gk],
+                                          gem['data']['sza'+gk],
+                                          gem['data']['wind'+gk]]
+                    rhop_f[aot_sub[0], aot_sub[1], 0] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
 
-            aot_sub = np.where(aot_stack[lut]['b2']==bi)
-            if len(aot_sub[0]) > 0:
-                if (use_revlut):
-                    xi = [gem['data']['pressure'+gk][aot_sub],
-                                      gem['data']['raa'+gk][aot_sub],
-                                      gem['data']['vza'+gk][aot_sub],
-                                      gem['data']['sza'+gk][aot_sub],
-                                      gem['data']['wind'+gk][aot_sub]]
+                ## get rhod for b1
+                aot_sub = np.where(aot_stack[lut]['b2']==bi)
+                if (setu['dsf_path_reflectance'] == 'resolved'):
+                    rhod_f[aot_sub[0], aot_sub[1], 1] = gem['data'][gem['bands'][b]['rhot_ds']][aot_sub]
                 else:
-                    xi = [gem['data']['pressure'+gk],
-                                      gem['data']['raa'+gk],
-                                      gem['data']['vza'+gk],
-                                      gem['data']['sza'+gk],
-                                      gem['data']['wind'+gk]]
-                rhop_f[aot_sub[0], aot_sub[1], 1] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                    rhod_f[aot_sub[0], aot_sub[1], 1] = dsf_rhod[b][aot_sub]
+                ## get rhop for b1
+                if len(aot_sub[0]) > 0:
+                    if (use_revlut):
+                        xi = [gem['data']['pressure'+gk][aot_sub],
+                                          gem['data']['raa'+gk][aot_sub],
+                                          gem['data']['vza'+gk][aot_sub],
+                                          gem['data']['sza'+gk][aot_sub],
+                                          gem['data']['wind'+gk][aot_sub]]
+                    else:
+                        xi = [gem['data']['pressure'+gk],
+                                          gem['data']['raa'+gk],
+                                          gem['data']['vza'+gk],
+                                          gem['data']['sza'+gk],
+                                          gem['data']['wind'+gk]]
+                    rhop_f[aot_sub[0], aot_sub[1], 1] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
 
-        ## rmsd for current bands
-        rmsd_cur = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
+            ## rmsd for current bands
+            cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
+        ## end select with min RMSD
+
+        ## select model based on minimum delta tau between two lowest aot bands
+        if setu['dsf_model_selection'] == 'min_dtau':
+            cur_sel_par = aot_stack[lut]['dtau']
+        ## end select with min delta tau
 
         ## store minimum info
         if li == 0:
             aot_lut = np.zeros(aot_stack[lut]['min'].shape).astype(int)
             aot_lut[aot_stack[lut]['mask']] = -1
             aot_sel = aot_stack[lut]['min'] * 1.0
-            aot_rmsd = rmsd_cur * 1.0
+            aot_sel_par = cur_sel_par * 1.0
         else:
-            aot_sub = np.where(rmsd_cur<aot_rmsd)
+            aot_sub = np.where(cur_sel_par<aot_sel_par)
             if len(aot_sub[0]) == 0: continue
             aot_lut[aot_sub] = li
             aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
-            aot_rmsd[aot_sub] = rmsd_cur[aot_sub] * 1.0
+            aot_sel_par[aot_sub] = cur_sel_par[aot_sub] * 1.0
 
     rhod_f = None
     rhod_p = None
@@ -584,9 +576,13 @@ def acolite_gem(gem,
             if 'rhot_*' in copy_datasets:
                 copy_datasets.remove('rhot_*')
                 copy_datasets += [ds for ds in gem['datasets'] if ('rhot_' in ds) & (ds not in copy_datasets)]
+                print(copy_datasets)
+                print()
             ## copy datasets to L2R
             for ds in copy_datasets:
-                if (ds not in gem['datasets']): continue
+                if (ds not in gem['datasets']):
+                    if verbosity > 2: print('{} not found in {}'.format(ds, gemf))
+                    continue
                 if verbosity > 1: print('Writing {}'.format(ds))
                 if ds not in gem['data']:
                     d, da = ac.shared.nc_data(gemf, ds, attributes=True)
