@@ -5,7 +5,7 @@
 ## modifications:
 ##
 
-def region_box(site, site_lon, site_lat, box_size = 3, add_box_name = True, sub_dir = None):
+def region_box(site, site_lon, site_lat, box_size = 3, add_box_name = True, sub_dir = None, override=True):
     import acolite as ac
     import os, json
 
