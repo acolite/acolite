@@ -25,6 +25,10 @@ use_tpg=True
 ## WorldView only (optional)
 inputfile_swir=None
 
+## TACT settings
+tact_output_atmosphere=False
+tact_output_intermediate=False
+
 ## printout verbosity
 verbosity=0
 
@@ -34,7 +38,7 @@ blackfill_max=1.0
 blackfill_wave=1600
 
 ## copy datasets from L1R to L2R
-copy_datasets=lon,lat
+copy_datasets=lon,lat,rhot_*
 
 ## output l2w parameters
 l2w_parameters=None
@@ -114,7 +118,7 @@ dsf_smooth_box=20,20
 dsf_full_scene=False
 dsf_model_selection=min_drmsd
 #dsf_list_selection=intercept
-dsf_tile_dimensions=None
+#dsf_tile_dimensions=None
 dsf_min_tile_cover=0.10
 dsf_min_tile_aot=0.01
 dsf_plot_retrieved_tiles=True
