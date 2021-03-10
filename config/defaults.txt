@@ -1,10 +1,12 @@
 ## ACOLITE default settings
 
 ## settings for cropping
+region_name=
 limit=None
 polygon=None
 merge_tiles=False
 merge_zones=True
+extend_region=False
 
 ## new output settings
 output=None
@@ -15,6 +17,13 @@ output_geometry=True
 ## Sentinel-2 per pixel geometry
 geometry_type=grids_footprint
 geometry_res=60
+
+## Sentinel-3 options
+smile_correction=True
+use_tpg=True
+
+## WorldView only (optional)
+inputfile_swir=None
 
 ## printout verbosity
 verbosity=0
