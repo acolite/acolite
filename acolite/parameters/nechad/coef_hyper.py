@@ -12,10 +12,10 @@ def coef_hyper(par):
     import numpy as np
 
     if par.upper() in ['SPM', 'TSM']:
-        file = ac.config['data_dir']+'/Shared/Algorithms/Nechad//SPM_N2010_Published.txt'
+        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//SPM_N2010_Published.txt'
 
     if par.upper() in ['T', 'TUR', 'TURBIDITY']:
-        file = ac.config['data_dir']+'/Shared/Algorithms/Nechad//Turbidity_N2009_Published.txt'
+        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//Turbidity_N2009_Published.txt'
 
     keys = ['wave','A','B','Rsq','C']
     data = {k:[] for k in keys}

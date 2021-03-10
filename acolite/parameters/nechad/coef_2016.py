@@ -8,7 +8,7 @@
 def coef_2016():
     import os,sys
     import acolite as ac
-    nfile = ac.config['data_dir']+'/Shared/Algorithms/Nechad/Nechad_calibration_201609.txt'
+    nfile = ac.config['data_dir']+'/Shared/algorithms/Nechad/Nechad_calibration_201609.txt'
 
     data = []
     with open(nfile, 'r') as f:
