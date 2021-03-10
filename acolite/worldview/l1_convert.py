@@ -47,6 +47,7 @@ def l1_convert(inputfile,
             try:
                 limit = ac.shared.polygon_limit(poly)
                 print('Using limit from polygon envelope: {}'.format(limit))
+                print('Not yet implemented for WorldView')
                 clip = True
             except:
                 print('Failed to import polygon {}'.format(poly))
