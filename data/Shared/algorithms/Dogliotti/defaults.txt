@@ -1,0 +1,10 @@
+## default coefficients for Dogliotti 2015 turbidity
+## moved to separate file QV 2021-03-10
+algo_wave_red=645
+algo_wave_nir=859
+A_T_red=228.1
+C_T_red=0.1641
+A_T_nir=3078.9
+C_T_nir=0.2112
+lower_lim=0.05
+upper_lim=0.07
