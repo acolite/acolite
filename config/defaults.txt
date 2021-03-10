@@ -1,5 +1,24 @@
 ## ACOLITE default settings
 
+## settings for cropping
+limit=None
+polygon=None
+merge_tiles=False
+merge_zones=True
+
+## new output settings
+output=None
+output_geolocation=True
+output_xy=False
+output_geometry=True
+
+## Sentinel-2 per pixel geometry
+geometry_type=grids_footprint
+geometry_res=60
+
+## printout verbosity
+verbosity=0
+
 ## test cropped scenes for blackfill coverage
 blackfill_skip=True
 blackfill_max=1.0
@@ -126,9 +145,6 @@ xy_output=False
 ## gain settings
 gains=False
 gains_toa=None
-
-## processing settings
-merge_tiles=False
 
 # output RGB / L2W maps
 rgb_rhot=True

@@ -30,6 +30,7 @@ def parse(sensor, settings=None):
               'l2w_mask_smooth_sigma',
               'flag_exponent_swir', 'flag_exponent_cirrus','flag_exponent_toa','flag_exponent_negative',
               'rgb_red_wl','rgb_green_wl', 'rgb_blue_wl',
+              'geometry_res', 'verbosity',
               'dsf_wave_range', 'l2w_mask_negative_wave_range']
 
     float_list = ['min_tgas_aot', 'min_tgas_rho',
