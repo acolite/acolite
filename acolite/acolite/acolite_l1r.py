@@ -30,7 +30,7 @@ def acolite_l1r(bundle, output, setu, input_type=None):
     ## ACOLITE
     if input_type == 'ACOLITE':
         ## return bundle if ACOLITE type
-        l1r_files = [bundle]
+        l1r_files = bundle
     ## end ACOLITE
     ################
 
