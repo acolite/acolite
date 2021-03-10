@@ -42,9 +42,11 @@ def acolite_l2w(gem,
     ## get rhot and rhos wavelengths
     rhot_ds = [ds for ds in gem['datasets'] if 'rhot_' in ds]
     rhot_waves = [int(ds.split('_')[1]) for ds in rhot_ds]
+    if len(rhot_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhot datasets.'.format(gemf, len(rhot_ds)))
+
     rhos_ds = [ds for ds in gem['datasets'] if 'rhos_' in ds]
     rhos_waves = [int(ds.split('_')[1]) for ds in rhos_ds]
-    if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file.'.format(gemf))
+    if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhos datasets.'.format(gemf, len(rhos_ds)))
 
     ## read rsr
     rsrd = ac.shared.rsr_dict(sensor=gem['gatts']['sensor'])
@@ -65,7 +67,9 @@ def acolite_l2w(gem,
         cur_data = 1.0 * gem['data'][cur_par]
     else:
         cur_data = ac.shared.nc_data(gemf, cur_par, sub=sub).data
-    if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
+    if setu['l2w_mask_smooth']:
+        cur_data = ac.shared.fillnan(cur_data)
+        cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
     cur_mask = cur_data > setu['l2w_mask_threshold']
     cur_data = None
     l2_flags = cur_mask.astype(np.int32)*(2**setu['flag_exponent_swir'])
@@ -78,7 +82,9 @@ def acolite_l2w(gem,
             cur_data = 1.0 * gem['data'][cur_par]
         else:
             cur_data = ac.shared.nc_data(gemf, cur_par, sub=sub).data
-        if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
+        if setu['l2w_mask_smooth']:
+            cur_data = ac.shared.fillnan(cur_data)
+            cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
         cirrus_mask = cur_data > setu['l2w_mask_cirrus_threshold']
         cirrus = None
         l2_flags += cirrus_mask.astype(np.int32)*(2**setu['flag_exponent_cirrus'])
@@ -92,7 +98,9 @@ def acolite_l2w(gem,
             cur_data = 1.0 * gem['data'][cur_par]
         else:
             cur_data = ac.shared.nc_data(gemf, cur_par, sub=sub).data
-        if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
+        if setu['l2w_mask_smooth']:
+            cur_data = ac.shared.fillnan(cur_data)
+            cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
         if toa_mask is None: toa_mask = np.zeros(cur_data.shape).astype(bool)
         toa_mask = (toa_mask) | (cur_data > setu['l2w_mask_high_toa_threshold'])
     l2_flags = (l2_flags) | (toa_mask.astype(np.int32)*(2**setu['flag_exponent_toa']))
@@ -126,6 +134,7 @@ def acolite_l2w(gem,
             copy_datasets.append(cur_par.replace('rhos_', 'Rrs_'))
 
     ## copy datasets
+    print(copy_datasets)
     for ci, cur_par in enumerate(copy_datasets):
         factor = 1.0
         cur_tag = '{}'.format(cur_par)
@@ -166,6 +175,9 @@ def acolite_l2w(gem,
         if cur_par.lower() in ['rhot_*', 'rhos_*', 'rrs_*', 'rhow_*']: continue ## we have copied these above
         if cur_par.lower() in [ds.lower() for ds in ac.shared.nc_datasets(ofile)]: continue ## parameter already in output dataset (would not work if we are appending subsets to the ncdf)
 
+        ## split on underscores
+        sp = cur_par.split('_')
+
         ## default mask and empty dicts for current parameter
         mask = False
         par_data = {}
@@ -175,6 +187,7 @@ def acolite_l2w(gem,
         ## Nechad turbidity/spm
         if 'nechad' in cur_par:
             mask = True ## water parameter so apply mask
+
             nechad_parameter = 'centre'
             if '2016' in cur_par: nechad_parameter = '2016'
             if 'ave' in cur_par: nechad_parameter = 'resampled'
@@ -182,8 +195,20 @@ def acolite_l2w(gem,
             ## turbidity
             if cur_par[0] == 't':
                 nechad_par = 'TUR'
+                par_attributes = {'algorithm':'Nechad et al. 2009', 'title':'Nechad Turbidity'}
+                par_attributes['standard_name']='turbidity'
+                par_attributes['long_name']='Water turbidity'
+                par_attributes['units']='FNU'
+                par_attributes['reference']='Nechad et al. 2009'
+                par_attributes['algorithm']='2009 calibration'
             elif cur_par[0] == 's':
                 nechad_par = 'SPM'
+                par_attributes = {'algorithm':'Nechad et al. 2010', 'title':'Nechad SPM'}
+                par_attributes['standard_name']='spm'
+                par_attributes['long_name']='Suspended Particulate Matter'
+                par_attributes['units']='g m^-3'
+                par_attributes['reference']='Nechad et al. 2010'
+                par_attributes['algorithm']='2010 calibration'
             else:
                 continue
 
@@ -224,6 +249,7 @@ def acolite_l2w(gem,
             ## resampled to band by Nechad 2016
             if nechad_parameter == '2016':
                 par_name = '{}_Nechad2016_{}'.format(nechad_par, cw)
+                par_attributes['algorithm']='2016 calibration'
                 nechad_dict = ac.shared.coef_nechad_2016()
                 for k in nechad_dict:
                     if k['sensor'] != gem['gatts']['sensor']: continue
@@ -242,8 +268,86 @@ def acolite_l2w(gem,
                 ## compute parameter
                 cur_data = (A_Nechad * cur_data) / (1.-(cur_data/C_Nechad))
                 par_data[par_name] = cur_data
-                par_atts[par_name] = {'ds_name':par_name, 'A_{}'.format(nechad_par): A_Nechad, 'C_{}'.format(nechad_par): C_Nechad}
+                par_atts[par_name] = par_attributes
+                par_atts[par_name]['ds_name'] = par_name
+                par_atts[par_name]['A_{}'.format(nechad_par)] = A_Nechad
+                par_atts[par_name]['C_{}'.format(nechad_par)] = C_Nechad
         ## end nechad turbidity/spm
+        #############################
+
+        #############################
+        ## start Dogliotti turbidity
+        if 'dogliotti' in cur_par:
+            mask = True ## water parameter so apply mask
+
+            par_attributes = {'algorithm':'Dogliotti et al. 2015', 'title':'Dogliotti Turbidity'}
+            par_attributes['standard_name']='turbidity'
+            par_attributes['long_name']='Water turbidity'
+            par_attributes['units']='FNU'
+            par_attributes['reference']='Dogliotti et al. 2015'
+            par_attributes['algorithm']=''
+
+            ## get config
+            par_name = 'TUR_Dogliotti'
+            dcfg = 'defaults'
+            dogliotti_par = 'blended'
+            if len(sp) > 2:
+                if sp[2] not in ['red', 'nir']:
+                    dcfg = sp[2]
+                else:
+                    dogliotti_par = sp[2]
+                par_name+='_{}'.format(dogliotti_par)
+            par_attributes['ds_name'] = par_name
+            cfg = ac.parameters.dogliotti.coef(config=dcfg)
+
+            ## identify bands
+            ri, rw = ac.shared.closest_idx(rhos_waves, int(cfg['algo_wave_red']))
+            ni, nw = ac.shared.closest_idx(rhos_waves, int(cfg['algo_wave_nir']))
+            for b in rsrd[gem['gatts']['sensor']]['rsr_bands']:
+                if (rsrd[gem['gatts']['sensor']]['wave_name'][b] == str(rw)): red_band = b
+                if (rsrd[gem['gatts']['sensor']]['wave_name'][b] == str(nw)): nir_band = b
+
+            ## store settings in atts
+            for k in cfg: par_attributes[k] = cfg[k]
+            par_attributes['wave_red'] = rw
+            par_attributes['wave_nir'] = nw
+
+            ## read red data
+            cur_ds = 'rhos_{}'.format(rw)
+            if cur_ds in gem['data']:
+                red = 1.0 * gem['data'][cur_ds]
+            else:
+                red = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+            tur = (par_attributes['A_T_red'] * red) / (1.-red/par_attributes['C_T_red'])
+
+            ## read nir data
+            cur_ds = 'rhos_{}'.format(nw)
+            if cur_ds in gem['data']:
+                nir = 1.0 * gem['data'][cur_ds]
+            else:
+                nir = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+            nir_tur = (par_attributes['A_T_nir'] * nir) / (1.-nir/par_attributes['C_T_nir'])
+
+            if dogliotti_par == 'blended':
+                ## replace most turbid with nir band
+                dsub = np.where(red >= par_attributes['upper_lim'])
+                if len(dsub[0]) > 0: tur[dsub] = nir_tur[dsub]
+                ## blend in between
+                dsub = np.where((red < par_attributes['upper_lim']) & (red >= par_attributes['lower_lim']))
+                if len(dsub[0]) > 0:
+                    w=(red[dsub]  - par_attributes['lower_lim']) / (par_attributes['upper_lim']-par_attributes['lower_lim'])
+                    tur[dsub] = ((1.-w) * tur[dsub]) + (w*nir_tur[dsub])
+                par_data[par_name] = tur
+                par_atts[par_name] = par_attributes
+            elif dogliotti_par == 'red':
+                par_data[par_name] = tur
+                par_atts[par_name] = par_attributes
+            elif dogliotti_par == 'nir':
+                par_data[par_name] = nir_tur
+                par_atts[par_name] = par_attributes
+            red = None
+            nir = None
+        ## end Dogliotti turbidity
         #############################
 
         #############################
@@ -255,6 +359,8 @@ def acolite_l2w(gem,
             if gem['gatts']['sensor'] not in cfg:
                 print('P3QAA not configured for {}'.format(gem['gatts']['sensor']))
                 continue
+
+            par_attributes = {'algorithm':'Pitarch et al. in prep.'}
 
             ## read Blue Green Red data, convert to Rrs
             for k in ['B', 'G', 'R']:
@@ -278,6 +384,7 @@ def acolite_l2w(gem,
 
             ## compute 3 band QAA
             print('Computing Pitarch 3 band QAA')
+            print('R{} G{} B{}'.format(Rwave, Gwave, Bwave))
             ret = ac.parameters.pitarch.p3qaa_compute(gem['gatts']['sensor'], B, G, R)
 
             ## list possible output parameters
@@ -302,10 +409,12 @@ def acolite_l2w(gem,
                     if w == Gwave: wi = 1
                     if w == Rwave: wi = 2
                     par_data[p] = ret[k][:,:,wi]
-                    par_atts[p] = {'ds_name':p}
+                    par_atts[p] = par_attributes
+                    par_atts[p]['ds_name'] = p
                 else:
                     par_data[p] = ret[p[6:]]
-                    par_atts[p] = {'ds_name':p}
+                    par_atts[p] = par_attributes
+                    par_atts[p]['ds_name'] = p
         ## end Pitarch 3 band QAA
         #############################
 
