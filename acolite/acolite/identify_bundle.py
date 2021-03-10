@@ -14,6 +14,20 @@ def identify_bundle(bundle, input_type = None):
         if not os.path.exists(bundle): break ## exit loop if path does not exist
 
         ################
+        ## ACOLITE
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            datasets = ac.shared.nc_datasets(bundle)
+            rhot_ds = [ds for ds in datasets if 'rhot_' in ds]
+            if (gatts['generated_by'] == 'ACOLITE') & (len(rhot_ds) != 0):
+                input_type = 'ACOLITE'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end ACOLITE
+        ################
+
+        ################
         ## Landsat
         try:
             mtl = glob.glob('{}/{}'.format(bundle, '*MTL.txt'))
