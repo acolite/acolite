@@ -1,0 +1,10 @@
+;; Coefficients for Red Edge CHL algorithms
+;;
+;; coefficients provided by various authors, tabulated by QV 201803
+;;
+;; algorithm	red_band	rededge_band	nir_band	astar_chl	chl_coef	validity	reference
+chl_re_gons	664	704	782	0.015	1.61,0.082,0.6,0.7,0.40,1.05	0.005,0.63	Gons et al. 1999/2005
+chl_re_gons740	664	704	740	0.015	1.61,0.082,0.6,0.7,0.40,1.05	0.005,0.63	Gons et al. 1999/2005
+
+
+

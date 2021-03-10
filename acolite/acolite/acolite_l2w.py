@@ -351,6 +351,72 @@ def acolite_l2w(gem,
         #############################
 
         #############################
+        ## CHL_OC
+        if 'chl_oc' in cur_par:
+            mask = True ## water parameter so apply mask
+            ## load config
+            chl_oc_wl_diff = 20
+            cfg = ac.parameters.chl_oc.coef()
+            if gem['gatts']['sensor'] not in cfg:
+                print('{} not configured for {}'.format(cur_par, gem['gatts']['sensor']))
+                continue
+
+            par_attributes = {'algorithm':'Chlorophyll a blue/green ratio', 'dataset':'rhos'}
+            par_attributes['standard_name']='chlorophyll_concentration'
+            par_attributes['long_name']='Chlorophyll a concentration derived from blue green ratio'
+            par_attributes['units']='mg m^-3'
+            par_attributes['reference']='Franz et al. 2015'
+            par_attributes['algorithm']=''
+
+            if (cur_par == 'chl_oc') | (cur_par == 'chl_oc2'):
+                par_name = 'chl_oc2'
+            elif (cur_par == 'chl_oc3'):
+                par_name = 'chl_oc3'
+            else:
+                par_name = cur_par
+
+            if par_name not in cfg[gem['gatts']['sensor']]:
+                print('{} not configured for {}'.format(par_name, gem['gatts']['sensor']))
+                continue
+            par_attributes['ds_name']=par_name
+            chl_dct = cfg[gem['gatts']['sensor']][par_name]
+
+            ## get bands
+            blue, green = None, None
+            for w in chl_dct['blue'] + chl_dct['green']:
+                ci, cw = ac.shared.closest_idx(rhos_waves, int(w))
+                if np.abs(cw-w) > chl_oc_wl_diff: continue
+                cur_ds = 'rhos_{}'.format(cw)
+                if cur_ds in gem['data']:
+                    cur_data = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                if w in chl_dct['blue']:
+                    if blue is None:
+                        par_attributes['blue_wave_sel'] = [cw]
+                        blue = 1.0 * cur_data
+                    else:
+                        par_attributes['blue_wave_sel'] += [cw]
+                        blue = np.nanmax((blue, cur_data), axis=0)
+                if w in chl_dct['green']:
+                    if green is None:
+                        par_attributes['green_wave_sel'] = [cw]
+                        green = 1.0 * cur_data
+            if (blue is None) | (green is None): continue
+
+            ## compute CHL
+            ratio = np.log10(blue/green)
+            blue, green = None, None
+            par_data[par_name] = chl_coef[0] + chl_coef[1] * ratio + \
+                                                     chl_coef[2] * ratio * ratio + \
+                                                     chl_coef[3] * ratio * ratio * ratio + \
+                                                     chl_coef[4] * ratio * ratio * ratio * ratio
+            par_data[par_name] = np.power(10, par_data[par_name])
+            par_atts[par_name] = par_attributes
+        ## end CHL_OC
+        #############################
+
+        #############################
         ## Pitarch 3 band QAA
         if cur_par[0:5] == 'p3qaa':
             mask = True ## water parameter so apply mask
