@@ -40,11 +40,10 @@ def acolite_gem(gem,
         rhot_ds = [ds for ds in gem['datasets'] if 'rhot_' in ds]
         rhot_wv = [int(ds.split('_')[1]) for ds in rhot_ds]
         bi, bw = ac.shared.closest_idx(rhot_wv, setu['blackfill_wave'])
-        band_data = 1.0*gem['data'][rhot_ds[bi]]
-        npx = band_data.shape[0] * band_data.shape[1]
-        #nbf = npx - len(np.where(np.isfinite(band_data))[0])
-        nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
-        band_data = None
+        #band_data = 1.0*gem['data'][rhot_ds[bi]]
+        npx = gem['data'][rhot_ds[bi]].shape[0] * gem['data'][rhot_ds[bi]].shape[1]
+        nbf = npx - len(np.where(np.isfinite(gem['data'][rhot_ds[bi]])*(gem['data'][rhot_ds[bi]]>0))[0])
+        #band_data = None
         if (nbf/npx) >= float(setu['blackfill_max']):
             if verbosity>1: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
             return()
@@ -90,7 +89,7 @@ def acolite_gem(gem,
 
     ## set wind to wind range
     gem['gatts']['wind'] = max(0.1, gem['gatts']['wind'])
-    gem['gatts']['wind'] = min(15, gem['gatts']['wind'])
+    gem['gatts']['wind'] = min(20, gem['gatts']['wind'])
 
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
@@ -280,8 +279,8 @@ def acolite_gem(gem,
                                                                gem['data']['wind'+gk][band_sub],
                                                                band_data[band_sub]))
                 # mask out of range aot
-                aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=np.nan
-                aot_band[lut][aot_band[lut]>=revl[lut]['maxaot']]=np.nan
+                aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=revl[lut]['minaot']#np.nan
+                aot_band[lut][aot_band[lut]>=revl[lut]['maxaot']]=revl[lut]['maxaot']#np.nan
 
             ## standard lut interpolates rhot to results for different aot values
             else:
@@ -300,7 +299,8 @@ def acolite_gem(gem,
                 ## interpolate rho path to observation
                 aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
                                                    lutdw[lut]['meta']['tau'],
-                                                   left=np.nan, right=np.nan)
+                                                   left=lutdw[lut]['meta']['tau'][0],
+                                                   right=lutdw[lut]['meta']['tau'][-1])#left=np.nan, right=np.nan)
 
             tel = time.time()-t0
 
