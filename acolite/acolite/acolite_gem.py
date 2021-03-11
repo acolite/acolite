@@ -29,7 +29,7 @@ def acolite_gem(gem,
     ## read gem file if NetCDF
     if type(gem) is str:
         gemf = '{}'.format(gem)
-        gem = ac.gem.read(gem, sub=sub)
+        gem = ac.gem.read(gemf, sub=sub)
     gemf = gem['gatts']['gemfile']
 
     ## combine default and user defined settings
@@ -42,7 +42,8 @@ def acolite_gem(gem,
         bi, bw = ac.shared.closest_idx(rhot_wv, setu['blackfill_wave'])
         #band_data = 1.0*gem['data'][rhot_ds[bi]]
         npx = gem['data'][rhot_ds[bi]].shape[0] * gem['data'][rhot_ds[bi]].shape[1]
-        nbf = npx - len(np.where(np.isfinite(gem['data'][rhot_ds[bi]])*(gem['data'][rhot_ds[bi]]>0))[0])
+        #nbf = npx - len(np.where(np.isfinite(gem['data'][rhot_ds[bi]])*(gem['data'][rhot_ds[bi]]>0))[0])
+        nbf = npx - len(np.where(np.isfinite(gem['data'][rhot_ds[bi]]))[0])
         #band_data = None
         if (nbf/npx) >= float(setu['blackfill_max']):
             if verbosity>1: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
