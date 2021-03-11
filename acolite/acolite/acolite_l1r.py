@@ -25,7 +25,6 @@ def acolite_l1r(bundle, output, setu, input_type=None):
     else:
         output_ = output
 
-    print(output_)
     ################
     ## ACOLITE
     if input_type == 'ACOLITE':
