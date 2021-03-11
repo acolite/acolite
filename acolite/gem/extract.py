@@ -14,7 +14,7 @@ def extract(st_lon, st_lat, sdate,
                            output = None,
                            gem_type = 'nc', # json
                            width = 100, override = False,
-                           return_gem = False,
+                           return_gem = False, return_iml = False,
                            sources = ['Landsat 5', 'Landsat 7','Landsat 8','Sentinel-2'],
                            verbosity=0):
 
@@ -80,7 +80,8 @@ def extract(st_lon, st_lat, sdate,
     if nimages == 0: return([])
 
     iml = imColl.toList(nimages).getInfo()
-
+    if return_iml: return(iml)
+    
     ## track scenes
     scene_list = []
 
