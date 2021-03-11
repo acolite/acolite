@@ -32,6 +32,23 @@ def acolite_gem(gem,
         gem = ac.gem.read(gem, sub=sub)
     gemf = gem['gatts']['gemfile']
 
+    ## combine default and user defined settings
+    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
+
+    ## check blackfill
+    if setu['blackfill_skip']:
+        rhot_ds = [ds for ds in gem['datasets'] if 'rhot_' in ds]
+        rhot_wv = [int(ds.split('_')[1]) for ds in rhot_ds]
+        bi, bw = ac.shared.closest_idx(rhot_wv, setu['blackfill_wave'])
+        band_data = 1.0*gem['data'][rhot_ds[bi]]
+        npx = band_data.shape[0] * band_data.shape[1]
+        #nbf = npx - len(np.where(np.isfinite(band_data))[0])
+        nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
+        band_data = None
+        if (nbf/npx) >= float(setu['blackfill_max']):
+            if verbosity>1: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
+            return()
+
     if verbosity > 0: print('Running acolite for {}'.format(gemf))
 
     output_name = gem['gatts']['output_name'] if 'output_name' in gem['gatts'] else os.path.basename(gemf).replace('.nc', '')
@@ -47,9 +64,6 @@ def acolite_gem(gem,
     else:
         rsrd = None
         stop
-
-    ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
 
     ## set defaults
     gem['gatts']['uoz'] = setu['uoz_default']
