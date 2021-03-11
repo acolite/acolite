@@ -1,8 +1,10 @@
 from .acolite_gem import *
-from .acolite_l2w import *
 
 from .acolite_l1r import *
+from .acolite_l2w import *
+
 from .identify_bundle import *
+from .acolite_map import *
 
 from . import settings
 
