@@ -257,6 +257,8 @@ def l1_convert(inputfile, output = None,
                      'isodate':isodate, 'global_dims':data_shape,
                      'se_distance': se_distance}
 
+        if limit is not None: gatts['limit'] = limit
+
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if vname != '': oname+='_{}'.format(vname)
