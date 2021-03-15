@@ -30,7 +30,7 @@ def parse(sensor, settings=None):
               'l2w_mask_smooth_sigma',
               'flag_exponent_swir', 'flag_exponent_cirrus','flag_exponent_toa','flag_exponent_negative',
               'rgb_red_wl','rgb_green_wl', 'rgb_blue_wl',
-              'geometry_res', 'verbosity',
+              'geometry_res', 'verbosity', 'map_dpi',
               'dsf_wave_range', 'l2w_mask_negative_wave_range']
 
     float_list = ['min_tgas_aot', 'min_tgas_rho',
@@ -44,6 +44,7 @@ def parse(sensor, settings=None):
 
                   'blackfill_max', 'glint_mask_rhos_threshold',
                   'l2w_mask_threshold', 'l2w_mask_cirrus_threshold','l2w_mask_high_toa_threshold',
+                  'map_auto_range_percentiles',
                   'rgb_min', 'rgb_max', 'gains_toa']
 
     ## convert values to numbers

@@ -3,39 +3,195 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-11
 ## modifications: 2021-03-11 (QV) RGB outputs
+##                2021-03-15 (QV) large update, including other parameters and mapping with pcolormesh
 ##
 
 def acolite_map(ncf, output=None,
-                dpi = 300, ext = 'png',
-                map_save = True, map_show = False, map_title = True,
-                map_projected = False, map_inches = 4,
-                rgb_wave = [666, 560, 490],
-                rgb_min = [0.0]*3, rgb_max = [0.15]*3,
-                rgb_rhot=True, rgb_rhos=True):
+                settings=None,
+                map_save = True,
+                map_show = False ):
 
-    import os
+    import os, copy
     import numpy as np
     import acolite as ac
+
     import pyproj
     from osgeo import ogr, osr
     import cartopy.crs as ccrs
 
-    def get_imratio(im):
-        imratio = im.shape[0]/im.shape[1]
-        if imratio > 1:
-            figsize = map_inches, int(map_inches / imratio)
-        else:
-            figsize = int(map_inches / imratio), map_inches
-        return(imratio, figsize)
-
+    import matplotlib as mpl
+    import matplotlib.cm as cm
     import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from PIL import Image
 
+    ## get image x/y ratio
+    #def get_imratio(im):
+    #    imratio = im.shape[0]/im.shape[1]
+    #    map_inches = (setu['map_max_dim']/setu['map_dpi'])
+    #    if imratio > 1:
+    #        figsize = map_inches, int(map_inches / imratio)
+    #    else:
+    #        figsize = int(map_inches / imratio), map_inches
+    #    return(imratio, figsize)
+
+    ## output map to file
+    def output_map(im, par):
+        rgb = len(im.shape) > 2
+        norm, cmap = None, None
+
+        ## find out parameter scaling to use
+        if not rgb:
+            ## get parameter config
+            cparl = par.lower()
+            sp = cparl.split('_')
+            wave = None
+            if ('{}_*'.format(sp[0]) in pscale) & (cparl not in pscale):
+                pard = {k:pscale['{}_*'.format(sp[0])][k] for k in pscale['{}_*'.format(sp[0])]}
+                wave = sp[1]
+            elif cparl in pscale:
+                pard = {k:pscale[cparl][k] for k in pscale[cparl]}
+            else:
+                pard = {'log':False, 'name':cpar, 'unit': ''}
+            pard['cmap'] = 'Planck_Parchment_RGB'
+            ## do auto ranging
+            if setu['map_auto_range'] | ('min' not in pard) | ('max' not in pard):
+                drange = np.nanpercentile(im, setu['map_auto_range_percentiles'])
+                pard['min'] = drange[0]
+                pard['max'] = drange[1]
+
+            ## parameter name and title
+            part = '{}{} [{}]'.format(pard['name'], '' if wave is None else ' {}'.format(wave), pard['unit'])
+
+            if pard['cmap'] == 'default': pard['cmap']=setu['map_default_colormap']
+            ctfile = "{}/{}/{}.txt".format(ac.config['data_dir'], 'Shared/ColourTables', pard['cmap'])
+            if os.path.exists(ctfile):
+                pard['cmap'] = mpl.colors.ListedColormap(np.loadtxt(ctfile)/255.)
+            else:
+                pard['cmap'] = setu['map_default_colormap']
+
+            ## copy colour map to not set bad/under globally
+            cmap = copy.copy(mpl.cm.get_cmap(pard['cmap']))
+            if setu['map_fill_outrange']:
+                cmap.set_bad(setu['map_fill_color'])
+                cmap.set_under(setu['map_fill_color'])
+
+            ## do log scaling
+            if pard['log']:
+                im = np.log10(im)
+                pard['min'] = np.log10(pard['min'])
+                pard['max'] = np.log10(pard['max'])
+                part = 'log10 {}'.format(part)
+
+            ## normalisation
+            norm=mpl.colors.Normalize(vmin=pard['min'], vmax=pard['max'])#, clip=setu['map_fill_outrange'])
+        else:
+            part = r'$\rho_{}$ RGB'.format(par[-1])
+
+        ## title and outputfile
+        title = '{} {}'.format(title_base, part)
+        ofile = '{}/{}_{}.{}'.format(odir, fn, par, setu['map_ext'])
+
+        ## raster 1:1 pixel outputs
+        if setu['map_raster']:
+            if not rgb:
+                ## scale to 255 int
+                im = ac.shared.datascl(im, dmin=pard['min'], dmax=pard['max'])
+                ## look up in colormap and convert to uint
+                im = cmap.__call__(im)[:,:,0:3]*255
+                im = im.astype(np.uint8)
+            img = Image.fromarray(im)
+            img.save(ofile)
+
+        ## matplotlib outputs
+        else:
+            #imratio, figsize = get_imratio(im)
+            figsize = None
+            fig = plt.figure(figsize=figsize)
+            ax = fig.add_subplot(1, 1, 1, projection=crs)
+            plt.sca(ax)
+            if crs is None:
+                if setu['map_pcolormesh']:
+                    if rgb: ## convert rgb values to color tuple before mapping
+                        mesh_rgb = im[:, :-1, :]/255
+                        colorTuple = mesh_rgb.reshape((mesh_rgb.shape[0] * mesh_rgb.shape[1]), 3)
+                        colorTuple = np.insert(colorTuple,3,1.0,axis=1)
+                        axim = plt.pcolormesh(lon, lat, im[:,:,0], color=colorTuple, shading='flat') #latlon=False,
+                    else:
+                        axim = plt.pcolormesh(lon, lat, im, norm=norm, cmap=cmap, shading='auto')
+                    plt.xlabel('Longitude (°E)')
+                    plt.ylabel('Latitude (°N)')
+                    if limit is not None:
+                        plt.xlim(limit[1],limit[3])
+                        plt.ylim(limit[0],limit[2])
+                else:
+                    axim = plt.imshow(im, norm=norm, cmap=cmap)
+                    plt.axis('off')
+            else: ## cartopy
+                axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs)
+                gl = ax.gridlines(draw_labels=True)
+                gl.xlabels_top = False
+                gl.ylabels_left = True
+                gl.xlabels_bottom = True
+                gl.ylabels_right = False
+
+            if setu['map_title']:
+                plt.title(title)
+
+            ## color bars
+            cbar = None
+            if setu['map_colorbar']:
+                if setu['map_colorbar_orientation'] == 'vertical':
+                    divider = make_axes_locatable(ax)
+                    cax = divider.append_axes('right', size='5%', pad=0.05)
+                    cbar = fig.colorbar(axim, cax=cax, orientation='vertical')
+                    cbar.ax.set_ylabel(part)
+                else:
+                    divider = make_axes_locatable(ax)
+                    cax = divider.append_axes('bottom', size='5%', pad=0.05)
+                    cbar = fig.colorbar(axim, cax=cax, orientation='horizontal')
+                    cbar.ax.set_xlabel(part)
+
+            #plt.tight_layout()
+
+            ## we also make a colorbar for RGB, to keep map extents the same
+            ## delete it here
+            if rgb:
+                if cbar is not None:
+                    #cbar.solids.set_edgecolor("w")
+                    #cbar.outline.set_visible(False)
+                    #cbar.set_ticks([])
+                    cbar.ax._visible = False
+
+            if map_save:
+                plt.savefig(ofile, dpi=setu['map_dpi'], bbox_inches='tight')
+                if setu['verbosity']>1: print('Wrote {}'.format(ofile))
+            if map_show:
+                plt.show()
+            plt.close()
+
+    ## get info from netcdf file
     datasets = ac.shared.nc_datasets(ncf)
+    datasets_lower = [ds.lower() for ds in datasets]
     gatts = ac.shared.nc_gatts(ncf)
     imratio = None
 
+    ## combine default and user defined settings
+    setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+
+    ## get output limit
+    limit = None
+    if setu['map_limit'] is not None:
+        if type(setu['map_limit']) is list:
+            limit = [float(l) for l in setu['map_limit']]
+        else:
+            limit = setu['limit']
+
+    ## load parameter configuration
+    pscale = ac.acolite.parameter_scaling()
+
     crs = None
-    if map_projected:
+    if setu['map_projected']:
         try:
             proj4_string = gatts['proj4_string']
             p = pyproj.Proj(proj4_string)
@@ -49,62 +205,73 @@ def acolite_map(ncf, output=None,
         except:
             print('Could not determine projection for cartopy')
             crs = None
+            if ('lon' in datasets) & ('lat' in datasets):
+                setu['map_pcolormesh'] = True
 
     rhos_ds = [ds for ds in datasets if 'rhos_' in ds]
     rhos_wv = [int(ds.split('_')[1]) for ds in rhos_ds]
 
     bn = os.path.basename(ncf)
-    odir = os.path.dirname(ncf) if output is None else output
     fn = bn.replace('.nc', '')
+    odir = os.path.dirname(ncf) if output is None else output
+    if not os.path.exists(odir):
+        os.makedirs(odir)
 
-    title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' '))
-    if (rgb_rhot) | (rgb_rhos):
-        for ds_base in ['rhot_', 'rhos_']:
-            if (ds_base == 'rhot_') & (not rgb_rhot): continue
-            if (ds_base == 'rhos_') & (not rgb_rhos): continue
+    title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' ')[0:19])
 
+    ## parameters to plot
+    plot_parameters = []
+    if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
+    if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
+    if setu['l2w_parameters'] is not None:
+        if type(setu['l2w_parameters']) is list:
+            plot_parameters+=setu['l2w_parameters']
+        else:
+            plot_parameters+=[setu['l2w_parameters']]
+    ## handle wildcards
+    for par in plot_parameters:
+        if '*' in par:
+            plot_parameters.remove(par)
+            plot_parameters += [ds for ds in datasets if ds[0:par.find('*')] == par[0:par.find('*')]]
+    if len(plot_parameters) == 0: return
+
+    if setu['map_pcolormesh']:
+        lon = ac.shared.nc_data(ncf, 'lon').data
+        lat = ac.shared.nc_data(ncf, 'lat').data
+
+    ## make plots
+    for cpar in plot_parameters:
+        cparl = cpar.lower()
+        ## RGB
+        if (cpar == 'rgb_rhot') | (cpar == 'rgb_rhos'):
+            ## find datasets for RGB compositing
+            rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
+            if cpar == 'rgb_rhot': ds_base = 'rhot_'
+            if cpar == 'rgb_rhos': ds_base = 'rhos_'
             rho_ds = [ds for ds in datasets if ds_base in ds]
             rho_wv = [int(ds.split('_')[1]) for ds in rho_ds]
             if len(rho_wv) < 3: continue
-
             ## read and stack rgb
             for iw, w in enumerate(rgb_wave):
                 wi, ww = ac.shared.closest_idx(rho_wv, w)
                 data = ac.shared.nc_data(ncf, '{}{}'.format(ds_base,ww))
-
-                tmp = ac.shared.datascl(data.data, dmin=rgb_min[iw], dmax=rgb_max[iw])
+                tmp = ac.shared.datascl(data.data, dmin=setu['rgb_min'][iw], dmax=setu['rgb_max'][iw])
                 tmp[data.mask] = 255
                 if iw == 0:
-                    rgb = tmp
+                    im = tmp
                 else:
-                    rgb = np.dstack((rgb, tmp))
+                    im = np.dstack((im, tmp))
+        ## other parameters
+        else:
+            if cparl not in datasets_lower:
+                print('{} not in {}'.format(cpar, ncf))
+                continue
+            ds = [ds for ds in datasets_lower if cparl==ds][0]
+            ## read data
+            tmp = ac.shared.nc_data(ncf, ds)
+            im = tmp.data
+            im[tmp.mask] = np.nan
+            tmp = None
 
-            if imratio is None:  imratio, figsize = get_imratio(rgb)
-
-            ## plot figure
-            par = '{}rgb'.format(ds_base)
-            ofile = '{}/{}_{}.{}'.format(odir, fn, par, ext)
-
-            fig = plt.figure(figsize=figsize)
-            ax = fig.add_subplot(1, 1, 1, projection=crs)
-            plt.sca(ax)
-            if crs is None:
-                plt.imshow(rgb)
-                plt.axis('off')
-            else:
-                ax.imshow(rgb, origin='upper', extent=img_extent, transform=image_crs)
-                gl = ax.gridlines(draw_labels=True)
-                gl.xlabels_top = False
-                gl.ylabels_left = True
-                gl.xlabels_bottom = True
-                gl.ylabels_right = False
-
-            if map_title:
-                plt.title('{} {}'.format(title_base, r'$\rho_{}$ RGB'.format(ds_base[-2])))
-
-            plt.tight_layout()
-            if map_save:
-                plt.savefig(ofile, dpi=dpi)#, bbox_inches='tight')
-            if map_show:
-                plt.show()
-            plt.close()
+        ## plot figure
+        output_map(im, cpar)
