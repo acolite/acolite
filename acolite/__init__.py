@@ -36,6 +36,13 @@ config = shared.import_config(cfile)
 
 ## test whether we can find the relative paths
 for t in config:
+    if t in ['EARTHDATA_u', 'EARTHDATA_p']: continue
     if os.path.exists(config[t]): continue
     tmp = path + os.path.sep + config[t]
-    config[t] = os.path.abspath(tmp)
+    if os.path.exists(tmp):
+        config[t] = os.path.abspath(tmp)
+
+## set up earthdata login
+if ('EARTHDATA_u' in config) & ('EARTHDATA_p' in config):
+    if len(config['EARTHDATA_u']) > 0: os.environ['EARTHDATA_u'] = config['EARTHDATA_u']
+    if len(config['EARTHDATA_p']) > 0: os.environ['EARTHDATA_p'] = config['EARTHDATA_p']

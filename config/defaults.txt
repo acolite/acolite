@@ -167,10 +167,18 @@ map_l2w=False
 
 # mapping options
 map_title=True
+map_dpi=300
+map_ext=png
+map_limit=None
+
+## map colour bar options
 map_colorbar=True
 map_colorbar_orientation=vertical
 map_auto_range=False
-map_fillcolor=LightGrey
+map_auto_range_percentiles=1,99
+map_fill_outrange=False
+map_fill_color=LightGrey
+map_default_colormap=viridis
 
 # RGB options
 rgb_red_wl=660
@@ -183,6 +191,7 @@ rgb_pan_sharpen=False
 # more mapping options for 'projected image'
 map_projected=False
 map_raster=False
+map_pcolormesh=False
 map_scalebar=True
 map_scalepos=UL
 map_scalecolor=White

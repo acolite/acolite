@@ -1,3 +1,11 @@
+## ACOLITE
+defaults=config/defaults.txt
+parameter_labels=config/parameter_labels.txt
+
+## EarthData
+EARTHDATA_u=
+EARTHDATA_p=
+
 ## Data directory
 data_dir=data
 
