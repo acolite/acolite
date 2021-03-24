@@ -6,19 +6,27 @@ It allows simple and fast processing of imagery from various satellites, includi
 Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of rectangular regions of interest (defined by bounding coordinates or a polygon file). Level 2 outputs are surface reflectance (ρs=Rrs⋅π) and derived products that are saved as geolocated datasets in a NetCDF file, and can be exported as PNG maps. The atmospheric correction is image based and needs no external inputs.
 
 The Dark Spectrum Fitting (DSF) algorithm was presented in:
+
 Vanhellemont and Ruddick 2018, [Atmospheric correction of metre-scale optical satellite data for inland and coastal water applications](https://www.sciencedirect.com/science/article/pii/S0034425718303481)
-Vanhellemont 2019a, [Adaptation of the dark spectrum fitting atmospheric correction for aquatic applications of the Landsat and Sentinel-2 archives](https://doi.org/10.1016/j.rse.2019.03.010).
-Vanhellemont 2019b, [Daily metre-scale mapping of water turbidity using CubeSat imagery.](https://doi.org/10.1364/OE.27.0A1372).
+
+Vanhellemont 2019a, [Adaptation of the dark spectrum fitting atmospheric correction for aquatic applications of the Landsat and Sentinel-2 archives](https://doi.org/10.1016/j.rse.2019.03.010)
+
+Vanhellemont 2019b, [Daily metre-scale mapping of water turbidity using CubeSat imagery.](https://doi.org/10.1364/OE.27.0A1372)
 
 New settings were suggested in:
+
 Vanhellemont 2020c, [Sensitivity analysis of the dark spectrum fitting atmospheric correction for metre- and decametre-scale satellite imagery using autonomous hyperspectral radiometry](https://doi.org/10.1364/OE.397456)
 
 The adaptation to Sentinel-3/OLCI was presented in:
+
 Vanhellemont and Ruddick 2021, [Atmospheric correction of Sentinel-3/OLCI data for mapping of suspended particulate matter and chlorophyll-a concentration in Belgian turbid coastal waters](https://doi.org/10.1016/j.rse.2021.112284)
 
 The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and allows for processing of Landsat thermal band data to surface temperatures. TACT was presented in:
+
 Vanhellemont 2020a, [Automated water surface temperature retrieval from Landsat 8/TIRS](https://doi.org/10.1016/j.rse.2019.111518)
+
 Vanhellemont 2020b, [Combined land surface emissivity and temperature estimation from Landsat 8 OLI and TIRS](https://doi.org/10.1016/j.isprsjprs.2020.06.007)
+
 
 ACOLITE development was funded under various projects, a.o. by the Belgian Science Policy Office STEREO program under contracts SR/37/135 (JELLYFOR project) and SR/00/325 (PONDER project), and by the European Community's Seventh Framework Programme (FP7/2007-2013) under grant agreement n° 606797 (HIGHROC project). TACT development was funded by the Belgian Science Policy Office BRAIN-be program under contract BR/165/A1/MICROBIAN.
 
@@ -54,7 +62,7 @@ TACT needs the user to have an account at the Research Data Archive (RDA) at the
 
             machine rda.ucar.edu
             login $l
-            password $l
+            password $p
 
 * Edit your .dodsrc file to point to your .netrc file: `nano $HOME/.dodsrc`. Write the full path explicitly:
             HTTP.NETRC=/path/to/.netrc
