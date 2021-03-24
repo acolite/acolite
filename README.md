@@ -1,7 +1,9 @@
 ## About ACOLITE
 ACOLITE combines the atmospheric correction algorithms for aquatic applications of Landsat and Sentinel-2 developed at RBINS. This repository hosts the (more) generic version of ACOLITE with the aim of bringing together the processing of all different sensors. This new generic version was started 4 February 2021.
 
-It allows simple and fast processing of Landsat (5/7/8) and Sentinel-2 (A/B) images for coastal and inland water applications. Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of rectangular regions of interest (defined by bounding coordinates). Level 2 outputs are surface reflectance (ρs=Rrs⋅π) and derived products that can be saved as PNG maps and geolocated datasets in a NCDF (NetCDF) file. The atmospheric correction is image based and needs no external inputs.
+It allows simple and fast processing of imagery from various satellites, including Landsat (5/7/8) and Sentinel-2/MSI (A/B), PlanetScope and RapidEye, SPOT and Pléiades, WorldView-2 and -3, and Sentinel-3/OLCI (A/B) for coastal and inland water applications. The Dark Spectrum Fitting atmospheric correction algorithm works especially well for turbid and productive waters, but can also be applied over clear waters and land with reasonable success.
+
+Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of rectangular regions of interest (defined by bounding coordinates or a polygon file). Level 2 outputs are surface reflectance (ρs=Rrs⋅π) and derived products that are saved as geolocated datasets in a NetCDF file, and can be exported as PNG maps. The atmospheric correction is image based and needs no external inputs.
 
 The Dark Spectrum Fitting (DSF) algorithm was presented in:
 Vanhellemont and Ruddick 2018, [Atmospheric correction of metre-scale optical satellite data for inland and coastal water applications](https://www.sciencedirect.com/science/article/pii/S0034425718303481)
@@ -9,10 +11,17 @@ Vanhellemont 2019a, [Adaptation of the dark spectrum fitting atmospheric correct
 Vanhellemont 2019b, [Daily metre-scale mapping of water turbidity using CubeSat imagery.](https://doi.org/10.1364/OE.27.0A1372).
 
 New settings were suggested in:
-Vanhellemont 2020, [Sensitivity analysis of the dark spectrum fitting atmospheric correction for metre- and decametre-scale satellite imagery using autonomous hyperspectral radiometry](https://doi.org/10.1364/OE.397456)
+Vanhellemont 2020c, [Sensitivity analysis of the dark spectrum fitting atmospheric correction for metre- and decametre-scale satellite imagery using autonomous hyperspectral radiometry](https://doi.org/10.1364/OE.397456)
 
+The adaptation to Sentinel-3/OLCI was presented in:
+Vanhellemont and Ruddick 2021, [Atmospheric correction of Sentinel-3/OLCI data for mapping of suspended particulate matter and chlorophyll-a concentration in Belgian turbid coastal waters](https://doi.org/10.1016/j.rse.2021.112284)
 
-ACOLITE development was funded under various projects, a.o. by the Belgian Science Policy Office STEREO program under contracts SR/37/135 (JELLYFOR project) and SR/00/325 (PONDER project), and by the European Community's Seventh Framework Programme (FP7/2007-2013) under grant agreement n° 606797 (HIGHROC project).
+The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and allows for processing of Landsat thermal band data to surface temperatures. TACT was presented in:
+Vanhellemont 2020a, [Automated water surface temperature retrieval from Landsat 8/TIRS](https://doi.org/10.1016/j.rse.2019.111518)
+Vanhellemont 2020b, [Combined land surface emissivity and temperature estimation from Landsat 8 OLI and TIRS](https://doi.org/10.1016/j.isprsjprs.2020.06.007)
+
+ACOLITE development was funded under various projects, a.o. by the Belgian Science Policy Office STEREO program under contracts SR/37/135 (JELLYFOR project) and SR/00/325 (PONDER project), and by the European Community's Seventh Framework Programme (FP7/2007-2013) under grant agreement n° 606797 (HIGHROC project). TACT development was funded by the Belgian Science Policy Office BRAIN-be program under contract BR/165/A1/MICROBIAN.
+
 
 **ACOLITE is provided by RBINS as an experimental tool, without explicit or implied warranty. Use of the program is at your own discretion and risk.**
 
@@ -32,3 +41,20 @@ A suitable Python environment can for example be set up using conda and the pack
 * cd into a suitable directory and clone the git repository: `git clone https://github.com/acolite/acolite`
 * cd into the new acolite directory `cd acolite`
 * run `python launch_acolite.py`
+
+
+## TACT installation
+TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
+
+TACT needs the user to have an account at the Research Data Archive (RDA) at the University Corporation for Atmospheric Research (UCAR) to retrieve atmospheric profile data: https://rda.ucar.edu/
+
+## TACT configuration
+* Edit the configuration file `nano config/config.txt` and add the full path to the libRadtran directory on your system to the libradtran_dir= setting
+* Edit your .netrc file to add your RDA UCAR credentials: `nano $HOME/.netrc`, with $l and $p your login and password respectively for the RDA:
+
+            machine rda.ucar.edu
+            login $l
+            password $l
+
+* Edit your .dodsrc file to point to your .netrc file: `nano $HOME/.dodsrc`. Write the full path explicitly:
+            HTTP.NETRC=/path/to/.netrc
