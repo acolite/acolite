@@ -139,15 +139,28 @@ def acolite_l2w(gem,
         factor = 1.0
         cur_tag = '{}'.format(cur_par)
         mask = False
+        att_add = {}
         ## copy Rrs/rhow
         if 'Rrs_' in cur_par:
             factor = 1.0/np.pi
             cur_tag = cur_par.replace('Rrs_','rhos_')
             mask = True
+            att_add = {'algorithm':'Remote sensing reflectance', 'dataset':'rhos'}
+            att_add['standard_name']='Rrs'
+            att_add['long_name']='Remote sensing reflectance'
+            att_add['units']='sr^-1'
+            att_add['reference']=''
+            att_add['algorithm']=''
         if 'rhow_' in cur_par:
             factor = 1.0
             cur_tag = cur_par.replace('rhow_','rhos_')
             mask = True
+            att_add = {'algorithm':'Water reflectance', 'dataset':'rhos'}
+            att_add['standard_name']='rhow'
+            att_add['long_name']='Water leaving radiance reflectance'
+            att_add['units']="1"
+            att_add['reference']=''
+            att_add['algorithm']=''
         ## if data already read copy here
         if cur_tag in gem['data']:
             cur_data = factor * gem['data'][cur_tag]
@@ -160,6 +173,8 @@ def acolite_l2w(gem,
         ## apply mask to Rrs and rhow
         if mask: cur_data[(l2_flags & flag_value)!=0] = np.nan
         if verbosity > 1: print('Writing {}'.format(cur_par))
+        ## add attributes
+        for k in att_add: cur_att[k] = att_add[k]
         ac.output.nc_write(ofile, cur_par, cur_data, dataset_attributes=cur_att, attributes=gem['gatts'], new=new)
         cur_data = None
         new = False
