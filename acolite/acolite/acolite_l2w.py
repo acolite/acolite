@@ -546,6 +546,7 @@ def acolite_l2w(gem,
                 ###########
                 ## compute GONS
                 if chl_re_algorithm == 'gons':
+                    for k in gons[gons_name]: par_attributes[k] = gons[gons_name][k]
                     gc = gons[gons_name]['chl_coef']
                     bb = (gc[0] * tmp_data[2]) / (gc[1] - gc[2] * tmp_data[2])
                     rm = tmp_data[1]/tmp_data[0]
