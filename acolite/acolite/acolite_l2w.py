@@ -747,6 +747,89 @@ def acolite_l2w(gem,
             tmp_data = None
         ## end NDVI
 
+        #############################
+        ## NDCI
+        if (cur_par == 'ndci'):
+            par_name = cur_par
+            mask = True ## apply non water mask
+            par_attributes = {'algorithm':'Mishra et al. 2014, NDCI', 'dataset':'rhos'}
+            par_attributes['standard_name']='ndci'
+            par_attributes['long_name']='Normalised Difference Chlorophyll Index'
+            par_attributes['units']="1"
+            par_attributes['reference']='Mishra et al. 2014'
+            par_attributes['algorithm']=''
+
+            required_datasets,req_waves_selected = [],[]
+            ds_waves = [w for w in rhos_waves]
+
+            ### get required datasets
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI']:
+                print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                continue
+
+            req_waves = [670,705]
+            for i, reqw in enumerate(req_waves):
+                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                if abs(float(selwave)-float(reqw)) > 10: continue
+                selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                required_datasets.append(selds)
+                req_waves_selected.append(selwave)
+            par_attributes['waves']=req_waves_selected
+            if len(required_datasets) != len(req_waves): continue
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                if di == 0: tmp_data = []
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                tmp_data.append(cur_data)
+            ## compute ndci
+            par_data[par_name] = (tmp_data[1]-tmp_data[0])/\
+                                   (tmp_data[1]+tmp_data[0])
+            par_atts[par_name] = par_attributes
+            tmp_data = None
+        ## end NDCI
+        #############################
+
+        #############################
+        ## OLH
+        if (cur_par == 'olh'):
+            par_name = cur_par
+            mask = True ## apply non water mask
+
+            par_attributes = {'algorithm':'Castagna et al. 2020'}
+            par_attributes['standard_name']='olh'
+            par_attributes['long_name']='Orange Line Height'
+            par_attributes['units']="1"
+            par_attributes['reference']='Castagna et al. 2020'
+            par_attributes['algorithm']=''
+
+            ### get required datasets
+            if gem['gatts']['sensor'] != 'L8_OLI':
+                print('Parameter {} not configured for {}.'.format(cur_par,gem['gatts']['sensor']))
+                continue
+
+            req_waves = [561,613,655]
+            required_datasets = ['rhos_{}'.format(w) for w in req_waves]
+
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                if di == 0: tmp_data = []
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                tmp_data.append(cur_data)
+
+            ## compute parameter
+            ow = (float(req_waves[2])-req_waves[1])/(float(req_waves[2])-float(req_waves[0]))
+            par_data[par_name] = tmp_data[0]*ow + tmp_data[2]*(1-ow)
+            par_data[par_name] = tmp_data[1]-par_data[par_name]
+            tmp_data = None
+            par_atts[par_name] = par_attributes
+        ## end OLH
+        #############################
 
         ## continue if parameter not computed
         if len(par_data) == 0:
