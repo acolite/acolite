@@ -8,6 +8,8 @@
 
 def acolite_map(ncf, output=None,
                 settings=None,
+                plot_all = True,
+                plot_skip = ['lon', 'lat', 'l2_flags'],
                 map_save = True,
                 map_show = False ):
 
@@ -221,6 +223,7 @@ def acolite_map(ncf, output=None,
 
     ## parameters to plot
     plot_parameters = []
+    if plot_all: plot_parameters = [k for k in datasets if k not in plot_skip]
     if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
     if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
     if setu['l2w_parameters'] is not None:
@@ -266,7 +269,7 @@ def acolite_map(ncf, output=None,
             if cparl not in datasets_lower:
                 print('{} not in {}'.format(cpar, ncf))
                 continue
-            ds = [ds for ds in datasets_lower if cparl==ds][0]
+            ds = [ds for di, ds in enumerate(datasets) if cparl==datasets_lower[di]][0]
             ## read data
             tmp = ac.shared.nc_data(ncf, ds)
             im = tmp.data
