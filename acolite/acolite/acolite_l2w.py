@@ -134,7 +134,6 @@ def acolite_l2w(gem,
             copy_datasets.append(cur_par.replace('rhos_', 'Rrs_'))
 
     ## copy datasets
-    print(copy_datasets)
     for ci, cur_par in enumerate(copy_datasets):
         factor = 1.0
         cur_tag = '{}'.format(cur_par)
@@ -417,6 +416,71 @@ def acolite_l2w(gem,
         #############################
 
         #############################
+        ## QAA
+        if (cur_par == 'qaa') | (cur_par == 'qaa5') | (cur_par == 'qaa6') | (cur_par == 'qaaw') |\
+           ('_qaa5' in cur_par) | ('_qaa6' in cur_par) | ('_qaaw' in cur_par):
+            print('QAA')
+            mask = True ## water parameter so apply mask
+            sensor = gem['gatts']['sensor']
+            if sensor not in ['L8_OLI', 'S2A_MSI', 'S2B_MSI']:
+                print('QAA not configured for {}'.format(gem['gatts']['sensor']))
+                continue
+
+            qaa_coef = ac.parameters.qaa.qaa_coef()
+            qaa_wave = [443, 490, 560, 665]
+            sen_wave = []
+
+            for ki, k in enumerate(qaa_wave):
+                ci, cw = ac.shared.closest_idx(rhos_waves, k)
+                cur_ds = 'rhos_{}'.format(cw)
+                sen_wave.append(cw)
+                if ki == 0: qaa_in = {}
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                ## mask data
+                if mask: cur_data[(l2_flags & flag_value)!=0] = np.nan
+                ## convert to Rrs
+                qaa_in[k] = cur_data/np.pi
+
+            ## get sun zenith angle
+            if 'sza' in gem['data']:
+                sza = gem['data']['sza']
+            else:
+                sza = gem['gatts']['sza']
+
+            ## run qaa
+            ret = ac.parameters.qaa.qaa_compute(qaa_in, qaa_coef = qaa_coef,
+                                        sza=sza, satellite=sensor[0:2])
+            ## list possible output parameters
+            qaa_pars = list(ret.keys())
+            cur_par_out = []
+            ## check which parameters are wanted
+            if ('qaa5' in setu['l2w_parameters']) or ('qaa' in setu['l2w_parameters']):
+                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if ('_v' not in k) and ('qaa_{}'.format(k) not in cur_par_out)]
+                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'v5')]
+                print(cur_par_out)
+            if ('qaa6' in setu['l2w_parameters']) or ('qaa' in setu['l2w_parameters']):
+                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if ('_v' not in k) and ('qaa_{}'.format(k) not in cur_par_out)]
+                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'v6')]
+            if ('qaaw' in setu['l2w_parameters']) or ('qaa' in setu['l2w_parameters']):
+                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if ('_v' not in k) and ('qaa_{}'.format(k) not in cur_par_out)]
+                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'vw')]
+            cur_par_out += [k for k in setu['l2w_parameters'] if (k[4:] in qaa_pars) and (k not in cur_par_out)]
+            cur_par_out.sort()
+            
+            ## reformat for output
+            for p in cur_par_out:
+                par_data[p] = ret[p[4:]] * 1.0
+                ret[p[4:]] = None
+                par_atts[p] = par_attributes
+                par_atts[p]['ds_name'] = p
+            ret = None
+        ## end QAA
+        #############################
+
+        #############################
         ## Pitarch 3 band QAA
         if cur_par[0:5] == 'p3qaa':
             mask = True ## water parameter so apply mask
@@ -481,6 +545,7 @@ def acolite_l2w(gem,
                     par_data[p] = ret[p[6:]]
                     par_atts[p] = par_attributes
                     par_atts[p]['ds_name'] = p
+            ret = None
         ## end Pitarch 3 band QAA
         #############################
 
