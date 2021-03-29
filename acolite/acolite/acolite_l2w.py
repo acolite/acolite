@@ -435,9 +435,12 @@ def acolite_l2w(gem,
 
             ## find algorithms
             if len(par_split) >= 3:
+                chl_re_algorithm = None
+
                 ###########
                 ## GONS
                 if par_split[2][0:4] == 'gons':
+                    chl_re_algorithm = 'gons'
                     par_attributes['algorithm']='Gons et al. 3 band'
                     par_attributes['reference']='Gons et al. 2005'
                     gons = ac.parameters.chl_re.coef_gons()
@@ -451,51 +454,17 @@ def acolite_l2w(gem,
                     else:
                         print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                         continue
-
                     req_waves = [gons[gons_name][tag] for tag in ['red_band', 'rededge_band', 'nir_band']]
-                    required_datasets,req_waves_selected = [],[]
-                    ds_waves = [w for w in rhos_waves]
-                    for i, reqw in enumerate(req_waves):
-                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
-                        if abs(float(selwave)-float(reqw)) > 10: continue
-                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                        required_datasets.append(selds)
-                        req_waves_selected.append(selwave)
-                    par_attributes['waves']=req_waves_selected
-                    if len(required_datasets) != len(req_waves): continue
-
-                    ## get data
-                    for di, cur_ds in enumerate(required_datasets):
-                        if di == 0: tmp_data = []
-                        if cur_ds in gem['data']:
-                            cur_data  = 1.0 * gem['data'][cur_ds]
-                        else:
-                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
-                        tmp_data.append(cur_data)
-
-                    ## compute gons
-                    gc = gons[gons_name]['chl_coef']
-                    bb = (gc[0] * tmp_data[2]) / (gc[1] - gc[2] * tmp_data[2])
-                    rm = tmp_data[1]/tmp_data[0]
-                    par_data[par_name] = ((rm * (gc[3] + bb)) - gc[4] - np.power(bb,gc[5]))
-                    par_data[par_name] /= gons[gons_name]['astar_chl']
-
-                    par_data[par_name][par_data[par_name]<0]=np.nan
-
-                    gm = gons[gons_name]['validity']
-                    par_data[par_name][((tmp_data[0] <= gm[0]) | (tmp_data[1]/tmp_data[0] <= gm[1]))]=np.nan
-                    par_atts[par_name] = par_attributes
-                    tmp_data = None
                 ## end GONS
                 ###########
 
                 ###########
                 ## MOSES
                 if par_split[2][0:5] == 'moses':
+                    chl_re_algorithm = 'moses'
                     par_attributes['reference']='Moses et al. 2012'
                     par_attributes['algorithm']='Moses et al. 3 band'
                     par_attributes['a']=(232.29,23.173) ## put coefficients in external file
-
                     ### get required datasets
                     if par_split[2] == 'moses3b':
                         req_waves = [670,705,780]
@@ -504,46 +473,35 @@ def acolite_l2w(gem,
                     else:
                         print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                         continue
-
-                    required_datasets,req_waves_selected = [],[]
-                    ds_waves = [w for w in rhos_waves]
-                    for i, reqw in enumerate(req_waves):
-                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
-                        if abs(float(selwave)-float(reqw)) > 10: continue
-                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                        required_datasets.append(selds)
-                        req_waves_selected.append(selwave)
-                    par_attributes['waves']=req_waves_selected
-                    if len(required_datasets) != len(req_waves): continue
-
-                    ## get data
-                    for di, cur_ds in enumerate(required_datasets):
-                        if di == 0: tmp_data = []
-                        if cur_ds in gem['data']:
-                            cur_data  = 1.0 * gem['data'][cur_ds]
-                        else:
-                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
-                        tmp_data.append(cur_data)
-
-                    ## compute parameter
-                    par_data[par_name] = par_attributes['a'][0]* \
-                                        ((np.power(tmp_data[0],-1)-np.power(tmp_data[1],-1)) * \
-                                        tmp_data[2]) + par_attributes['a'][1]
-                    par_data[par_name][par_data[par_name]<0]=np.nan
-                    par_atts[par_name] = par_attributes
-                    tmp_data = None
                 ## end MOSES
                 ###########
 
                 ###########
                 ## MISHRA
                 if par_split[2][0:6] == 'mishra':
+                    chl_re_algorithm = 'mishra'
                     par_attributes['reference']='Mishra et al. 2014'
                     par_attributes['algorithm']='Mishra et al. 2014, NDCI'
                     par_attributes['a']=(14.039, 86.115, 194.325) ## put coefficients in external file
-
                     ### get required datasets
                     req_waves = [670,705]
+                ## end MISHRA
+                ###########
+
+                ###########
+                ## BRAMICH
+                if par_split[2][0:7] == 'bramich':
+                    chl_re_algorithm = 'bramich'
+                    par_attributes['reference']='Bramich et al. 2021'
+                    par_attributes['algorithm']='Bramich et al. 2021'
+                    ### get required datasets
+                    req_waves = [670,705,780]
+                ## end BRAMICH
+                ###########
+
+                ###########
+                ## read data
+                if chl_re_algorithm is not None:
                     required_datasets,req_waves_selected = [],[]
                     ds_waves = [w for w in rhos_waves]
                     for i, reqw in enumerate(req_waves):
@@ -553,8 +511,9 @@ def acolite_l2w(gem,
                         required_datasets.append(selds)
                         req_waves_selected.append(selwave)
                     par_attributes['waves']=req_waves_selected
-                    if len(required_datasets) != len(req_waves): continue
-
+                    if len(required_datasets) != len(req_waves):
+                        print('Required datasets not found for {}.'.format(par_name))
+                        continue
                     ## get data
                     for di, cur_ds in enumerate(required_datasets):
                         if di == 0: tmp_data = []
@@ -563,46 +522,55 @@ def acolite_l2w(gem,
                         else:
                             cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
                         tmp_data.append(cur_data)
+                else:
+                    print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                    continue
+                ## end read data
+                ###########
 
+                ###########
+                ## compute GONS
+                if chl_re_algorithm == 'gons':
+                    gc = gons[gons_name]['chl_coef']
+                    bb = (gc[0] * tmp_data[2]) / (gc[1] - gc[2] * tmp_data[2])
+                    rm = tmp_data[1]/tmp_data[0]
+                    par_data[par_name] = ((rm * (gc[3] + bb)) - gc[4] - np.power(bb,gc[5]))
+                    par_data[par_name] /= gons[gons_name]['astar_chl']
+                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    gm = gons[gons_name]['validity']
+                    par_data[par_name][((tmp_data[0] <= gm[0]) | (tmp_data[1]/tmp_data[0] <= gm[1]))]=np.nan
+                    par_atts[par_name] = par_attributes
+                    tmp_data = None
+                ## end compute GONS
+                ###########
+
+                ###########
+                ## compute MOSES
+                if chl_re_algorithm == 'moses':
+                    par_data[par_name] = par_attributes['a'][0]* \
+                                        ((np.power(tmp_data[0],-1)-np.power(tmp_data[1],-1)) * \
+                                        tmp_data[2]) + par_attributes['a'][1]
+                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    par_atts[par_name] = par_attributes
+                    tmp_data = None
+                ## end compute MOSES
+                ###########
+
+                ###########
+                ## compute MISHRA
+                if chl_re_algorithm == 'mishra':
                     ndci = (tmp_data[1]-tmp_data[0]) / (tmp_data[1]+tmp_data[0])
                     par_data[par_name] = par_attributes['a'][0] + par_attributes['a'][1]*ndci + par_attributes['a'][2]*ndci*ndci
                     ndci = None
                     par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
-                ## end MISHRA
+                ## end compute MISHRA
                 ###########
 
-
                 ###########
-                ## BRAMICH
-                if par_split[2][0:7] == 'bramich':
-                    par_attributes['reference']='Bramich et al. 2021'
-                    par_attributes['algorithm']='Bramich et al. 2021'
-
-                    ### get required datasets
-                    req_waves = [670,705,780]
-                    required_datasets,req_waves_selected = [],[]
-                    ds_waves = [w for w in rhos_waves]
-                    for i, reqw in enumerate(req_waves):
-                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
-                        if abs(float(selwave)-float(reqw)) > 10: continue
-                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                        required_datasets.append(selds)
-                        req_waves_selected.append(selwave)
-                    par_attributes['waves']=req_waves_selected
-                    if len(required_datasets) != len(req_waves): continue
-
-                    ## get data
-                    for di, cur_ds in enumerate(required_datasets):
-                        if di == 0: tmp_data = []
-                        if cur_ds in gem['data']:
-                            cur_data  = 1.0 * gem['data'][cur_ds]
-                        else:
-                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
-                        tmp_data.append(cur_data)
-
-                    ## compute parameter
+                ## compute BRAMICH
+                if chl_re_algorithm == 'bramich':
                     ## same as gons
                     bb = (1.61 * tmp_data[2]) / (0.082 - 0.6 * tmp_data[2])
                     rm = tmp_data[1]/tmp_data[0]
@@ -614,8 +582,8 @@ def acolite_l2w(gem,
                     par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
-                ## end BRAMICH
-
+                ## end compute BRAMICH
+                ###########
         ## end CHL_RE
         #############################
 
