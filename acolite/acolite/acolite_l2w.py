@@ -20,6 +20,7 @@ def acolite_l2w(gem,
     import numpy as np
     import acolite as ac
     import scipy.ndimage
+    import skimage.color
 
     ## read gem file if NetCDF
     if type(gem) is str:
@@ -603,6 +604,100 @@ def acolite_l2w(gem,
             par_atts[par_name] = par_attributes
             tmp_data = None
         ## end FAI
+        #############################
+
+        #############################
+        ## FAIT
+        if (cur_par == 'fait'):
+            par_name = cur_par
+            mask = False ## no water mask
+            par_split = par_name.split('_')
+            par_attributes = {'algorithm':'Floating Algal Index Turbid Waters, Dogliotti et al. 2018', 'dataset':'rhos'}
+            par_attributes['standard_name']='fait'
+            par_attributes['long_name']='Floating Algal Index for Turbid Waters'
+            par_attributes['units']="1"
+            par_attributes['reference']='Dogliotti et al. 2018'
+            par_attributes['algorithm']=''
+
+            ## read config
+            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.cfg'.format(ac.config['data_dir']))
+            fait_fai_threshold = float(fait_cfg['fait_fai_threshold'])
+            fait_red_threshold = float(fait_cfg['fait_red_threshold'])
+            fait_rgb_limit = float(fait_cfg['fait_rgb_limit'])
+            fait_L_limit = float(fait_cfg['fait_L_limit'])
+
+            if gem['gatts']['sensor'] == 'L8_OLI':
+                fait_a_threshold = float(fait_cfg['fait_a_threshold_OLI'])
+            elif gem['gatts']['sensor'] in ['S2A_MSI', 'S2B_MSI']:
+                fait_a_threshold = float(fait_cfg['fait_a_threshold_MSI'])
+            else:
+                print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                continue
+
+            ## add to parameter attributes
+            par_attributes['fai_threshold'] = fait_fai_threshold
+            par_attributes['red_threshold'] = fait_red_threshold
+            par_attributes['rgb_limit'] = fait_rgb_limit
+            par_attributes['L_limit'] = fait_L_limit
+            par_attributes['a_threshold'] = fait_a_threshold
+
+            ## select bands
+            required_datasets,req_waves_selected = [],[]
+            ds_waves = [w for w in rhos_waves]
+
+            ## wavelengths and max wavelength difference
+            fai_diff = [10, 10, 10, 30, 80]
+            req_waves = [490, 560, 660, 865, 1610]
+            for i, reqw in enumerate(req_waves):
+                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                if abs(float(selwave)-float(reqw)) > fai_diff[i]: continue
+                selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                required_datasets.append(selds)
+                req_waves_selected.append(selwave)
+            par_attributes['waves']=req_waves_selected
+            if len(required_datasets) != len(req_waves): continue
+
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                if di == 0: tmp_data = []
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                tmp_data.append(cur_data)
+
+            ## compute fait
+            fai_sc = (float(par_attributes['waves'][3])-float(par_attributes['waves'][2]))/\
+                     (float(par_attributes['waves'][4])-float(par_attributes['waves'][2]))
+            nir_prime = tmp_data[2] + \
+                        (tmp_data[4]-tmp_data[2]) * fai_sc
+            par_data[par_name] = tmp_data[3] - nir_prime
+            par_atts[par_name] = par_attributes
+            nir_prime = None
+
+            ## make lab coordinates
+            for i in range(3):
+                data = ac.shared.datascl(tmp_data[i], dmin=0, dmax=fait_rgb_limit)
+                if i == 0:
+                    rgb = data
+                else:
+                    rgb = np.dstack((rgb,data))
+                data = None
+            lab = skimage.color.rgb2lab(rgb)
+            rgb = None
+
+            ## check FAI > 0
+            par_data[par_name][par_data[par_name] >= fait_fai_threshold] = 1.0
+            par_data[par_name][par_data[par_name] < fait_fai_threshold] = 0.0
+
+            ## check turbidity based on red threshold
+            par_data[par_name][tmp_data[2] > fait_red_threshold] = 0.0
+
+            ## check L and a
+            par_data[par_name][lab[:,:,0] >= fait_L_limit] = 0.0
+            par_data[par_name][lab[:,:,1] >= fait_a_threshold] = 0.0
+            lab = None
+        ## end FAIT
         #############################
 
         #############################
