@@ -39,11 +39,12 @@ chl_oc3,0.03,30,True,Calgae255,CHL OC3,mgm$^{-3}$
 #
 ## CHL_RE
 #
-chl_re_gons,1,100,True,Calgae255,CHL Gons,mgm$^{-3}$
-chl_re_gons740,1,100,True,Calgae255,CHL Gons740,mgm$^{-3}$
-chl_re_moses3b,1,100,True,Calgae255,CHL Moses,mgm$^{-3}$
-chl_re_moses3b740,1,100,True,Calgae255,CHL Moses740,mgm$^{-3}$
-chl_re_mishra,1,100,True,Calgae255,CHL Mishra,mgm$^{-3}$
+chl_re_gons,1,100,True,Calgae255,CHL Gons,mg m$^{-3}$
+chl_re_gons740,1,100,True,Calgae255,CHL Gons740,mg m$^{-3}$
+chl_re_moses3b,1,100,True,Calgae255,CHL Moses,mg m$^{-3}$
+chl_re_moses3b740,1,100,True,Calgae255,CHL Moses740,mg m$^{-3}$
+chl_re_mishra,1,100,True,Calgae255,CHL Mishra,mg m$^{-3}$
+chl_re_bramich,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
 #
 ## indices
 #

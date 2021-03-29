@@ -417,6 +417,209 @@ def acolite_l2w(gem,
         #############################
 
         #############################
+        ## CHL_RE
+        if (cur_par[0:6] == 'chl_re'):
+            par_name = cur_par
+            mask = True ## apply non water mask
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI']:
+                print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                continue
+
+            par_split = par_name.split('_')
+            par_attributes = {'algorithm':'Red-edge chlorophyll', 'dataset':'rhos'}
+            par_attributes['standard_name']='chlorophyll_concentration'
+            par_attributes['long_name']='Chlorophyll a concentration derived from red edge'
+            par_attributes['units']='mg m^-3'
+            par_attributes['reference']=''
+            par_attributes['algorithm']=''
+
+            ## find algorithms
+            if len(par_split) >= 3:
+                ###########
+                ## GONS
+                if par_split[2][0:4] == 'gons':
+                    par_attributes['algorithm']='Gons et al. 3 band'
+                    par_attributes['reference']='Gons et al. 2005'
+                    gons = ac.parameters.chl_re.coef_gons()
+
+                    if par_split[2] == 'gons':
+                        req_waves = [670,705,780]
+                        gons_name = 'chl_re_gons'
+                    elif par_split[2] == 'gons740':
+                        req_waves = [670,705,740]
+                        gons_name = 'chl_re_gons740'
+                    else:
+                        print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                        continue
+
+                    req_waves = [gons[gons_name][tag] for tag in ['red_band', 'rededge_band', 'nir_band']]
+                    required_datasets,req_waves_selected = [],[]
+                    ds_waves = [w for w in rhos_waves]
+                    for i, reqw in enumerate(req_waves):
+                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                        if abs(float(selwave)-float(reqw)) > 10: continue
+                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                        required_datasets.append(selds)
+                        req_waves_selected.append(selwave)
+                    par_attributes['waves']=req_waves_selected
+                    if len(required_datasets) != len(req_waves): continue
+
+                    ## get data
+                    for di, cur_ds in enumerate(required_datasets):
+                        if di == 0: tmp_data = []
+                        if cur_ds in gem['data']:
+                            cur_data  = 1.0 * gem['data'][cur_ds]
+                        else:
+                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                        tmp_data.append(cur_data)
+
+                    ## compute gons
+                    gc = gons[gons_name]['chl_coef']
+                    bb = (gc[0] * tmp_data[2]) / (gc[1] - gc[2] * tmp_data[2])
+                    rm = tmp_data[1]/tmp_data[0]
+                    par_data[par_name] = ((rm * (gc[3] + bb)) - gc[4] - np.power(bb,gc[5]))
+                    par_data[par_name] /= gons[gons_name]['astar_chl']
+
+                    par_data[par_name][par_data[par_name]<0]=np.nan
+
+                    gm = gons[gons_name]['validity']
+                    par_data[par_name][((tmp_data[0] <= gm[0]) | (tmp_data[1]/tmp_data[0] <= gm[1]))]=np.nan
+                    par_atts[par_name] = par_attributes
+                    tmp_data = None
+                ## end GONS
+                ###########
+
+                ###########
+                ## MOSES
+                if par_split[2][0:5] == 'moses':
+                    par_attributes['reference']='Moses et al. 2012'
+                    par_attributes['algorithm']='Moses et al. 3 band'
+                    par_attributes['a']=(232.29,23.173) ## put coefficients in external file
+
+                    ### get required datasets
+                    if par_split[2] == 'moses3b':
+                        req_waves = [670,705,780]
+                    elif par_split[2] == 'moses3b740':
+                        req_waves = [670,705,740]
+                    else:
+                        print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                        continue
+
+                    required_datasets,req_waves_selected = [],[]
+                    ds_waves = [w for w in rhos_waves]
+                    for i, reqw in enumerate(req_waves):
+                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                        if abs(float(selwave)-float(reqw)) > 10: continue
+                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                        required_datasets.append(selds)
+                        req_waves_selected.append(selwave)
+                    par_attributes['waves']=req_waves_selected
+                    if len(required_datasets) != len(req_waves): continue
+
+                    ## get data
+                    for di, cur_ds in enumerate(required_datasets):
+                        if di == 0: tmp_data = []
+                        if cur_ds in gem['data']:
+                            cur_data  = 1.0 * gem['data'][cur_ds]
+                        else:
+                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                        tmp_data.append(cur_data)
+
+                    ## compute parameter
+                    par_data[par_name] = par_attributes['a'][0]* \
+                                        ((np.power(tmp_data[0],-1)-np.power(tmp_data[1],-1)) * \
+                                        tmp_data[2]) + par_attributes['a'][1]
+                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    par_atts[par_name] = par_attributes
+                    tmp_data = None
+                ## end MOSES
+                ###########
+
+                ###########
+                ## MISHRA
+                if par_split[2][0:6] == 'mishra':
+                    par_attributes['reference']='Mishra et al. 2014'
+                    par_attributes['algorithm']='Mishra et al. 2014, NDCI'
+                    par_attributes['a']=(14.039, 86.115, 194.325) ## put coefficients in external file
+
+                    ### get required datasets
+                    req_waves = [670,705]
+                    required_datasets,req_waves_selected = [],[]
+                    ds_waves = [w for w in rhos_waves]
+                    for i, reqw in enumerate(req_waves):
+                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                        if abs(float(selwave)-float(reqw)) > 10: continue
+                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                        required_datasets.append(selds)
+                        req_waves_selected.append(selwave)
+                    par_attributes['waves']=req_waves_selected
+                    if len(required_datasets) != len(req_waves): continue
+
+                    ## get data
+                    for di, cur_ds in enumerate(required_datasets):
+                        if di == 0: tmp_data = []
+                        if cur_ds in gem['data']:
+                            cur_data  = 1.0 * gem['data'][cur_ds]
+                        else:
+                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                        tmp_data.append(cur_data)
+
+                    ndci = (tmp_data[1]-tmp_data[0]) / (tmp_data[1]+tmp_data[0])
+                    par_data[par_name] = par_attributes['a'][0] + par_attributes['a'][1]*ndci + par_attributes['a'][2]*ndci*ndci
+                    ndci = None
+                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    par_atts[par_name] = par_attributes
+                    tmp_data = None
+                ## end MISHRA
+                ###########
+
+
+                ###########
+                ## BRAMICH
+                if par_split[2][0:7] == 'bramich':
+                    par_attributes['reference']='Bramich et al. 2021'
+                    par_attributes['algorithm']='Bramich et al. 2021'
+
+                    ### get required datasets
+                    req_waves = [670,705,780]
+                    required_datasets,req_waves_selected = [],[]
+                    ds_waves = [w for w in rhos_waves]
+                    for i, reqw in enumerate(req_waves):
+                        widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                        if abs(float(selwave)-float(reqw)) > 10: continue
+                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                        required_datasets.append(selds)
+                        req_waves_selected.append(selwave)
+                    par_attributes['waves']=req_waves_selected
+                    if len(required_datasets) != len(req_waves): continue
+
+                    ## get data
+                    for di, cur_ds in enumerate(required_datasets):
+                        if di == 0: tmp_data = []
+                        if cur_ds in gem['data']:
+                            cur_data  = 1.0 * gem['data'][cur_ds]
+                        else:
+                            cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                        tmp_data.append(cur_data)
+
+                    ## compute parameter
+                    ## same as gons
+                    bb = (1.61 * tmp_data[2]) / (0.082 - 0.6 * tmp_data[2])
+                    rm = tmp_data[1]/tmp_data[0]
+                    par_data[par_name] = ((rm * (0.7 + bb)) - 0.40 - np.power(bb,1.05))
+                    ## from eq 12 in Bramich 2021
+                    #par_data[par_name] = np.power(par_data[par_name]/0.022,1.201)
+                    ## from Bramich via RG
+                    par_data[par_name] = np.power(par_data[par_name],1.1675)/0.0109
+                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    par_atts[par_name] = par_attributes
+                    tmp_data = None
+                ## end BRAMICH
+
+        ## end CHL_RE
+        #############################
+
+        #############################
         ## QAA
         if (cur_par == 'qaa') | (cur_par == 'qaa5') | (cur_par == 'qaa6') | (cur_par == 'qaaw') |\
            ('_qaa5' in cur_par) | ('_qaa6' in cur_par) | ('_qaaw' in cur_par):
