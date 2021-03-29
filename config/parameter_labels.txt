@@ -66,7 +66,7 @@ lt11,0,12,False,default,LT11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
 ##
 #
 ## Hue Angle
-hue_angle,40,60,False,Calgae255,Hue Angle,°
+hue_angle,40,240,False,Calgae255,Hue Angle,°
 #
 ## OLH
 olh,0,0.04,False,Calgae255,OLH,-

@@ -803,7 +803,6 @@ def acolite_l2w(gem,
             par_attributes['units']="1"
             par_attributes['reference']='Kudela et al. 2015'
             par_attributes['algorithm']=''
-
             required_datasets,req_waves_selected = [],[]
             ds_waves = [w for w in rhos_waves]
 
@@ -821,6 +820,7 @@ def acolite_l2w(gem,
                 req_waves_selected.append(selwave)
             par_attributes['waves']=req_waves_selected
             if len(required_datasets) != len(req_waves): continue
+
             ## get data
             for di, cur_ds in enumerate(required_datasets):
                 if di == 0: tmp_data = []
@@ -875,6 +875,88 @@ def acolite_l2w(gem,
             tmp_data = None
             par_atts[par_name] = par_attributes
         ## end OLH
+        #############################
+
+        #############################
+        ## Hue Angle
+        if (cur_par == 'hue_angle'):
+            hue_coeff = ac.parameters.vanderwoerd.coef_hue_angle()
+            if gem['gatts']['sensor'] not in hue_coeff:
+                print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                continue
+
+            par_name = cur_par
+            mask = True ## apply non water mask
+
+            par_attributes = {'algorithm':'Hue Angle', 'dataset':'rhos'}
+            par_attributes['standard_name']='hue_angle'
+            par_attributes['long_name']='Hue Angle'
+            par_attributes['units']='degrees'
+            par_attributes['reference']='Van der Woerd et al., 2018'
+            par_attributes['algorithm']=''
+
+
+            req_waves = hue_coeff[gem['gatts']['sensor']]['req_waves']
+            hac = hue_coeff[gem['gatts']['sensor']]
+
+            required_datasets,req_waves_selected = [],[]
+            ds_waves = [w for w in rhos_waves]
+            for i, reqw in enumerate(req_waves):
+                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                if abs(float(selwave)-float(reqw)) > 10: continue
+                selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                required_datasets.append(selds)
+                req_waves_selected.append(selwave)
+            par_attributes['waves']=req_waves_selected
+            if len(required_datasets) != len(req_waves): continue
+
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                if di == 0: tmp_data = []
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                tmp_data.append(cur_data)
+
+            ## compute hue angle
+            yw = 1/3.
+            xw = 1/3.
+            for iw, w in enumerate(req_waves_selected):
+                idx, w_ = ac.shared.closest_idx(hac['lambda'], req_waves_selected[iw])
+                if iw == 0:
+                    X = tmp_data[iw] * hac['X'][idx]
+                    Y = tmp_data[iw] * hac['Y'][idx]
+                    Z = tmp_data[iw] * hac['Z'][idx]
+                else:
+                    X += tmp_data[iw] * hac['X'][idx]
+                    Y += tmp_data[iw] * hac['Y'][idx]
+                    Z += tmp_data[iw] * hac['Z'][idx]
+                X[np.where(mask)] = np.nan
+                Y[np.where(mask)] = np.nan
+                Z[np.where(mask)] = np.nan
+                den = (X+Y+Z)
+                x = X/den
+                y = Y/den
+                den = None
+
+                ## calculate alpha
+                alpha = np.mod(np.arctan2(y-yw, x-xw),2*np.pi)
+                x,y = None, None
+                alpha*=(180/np.pi)
+                hues_100 = alpha/100.
+                corr = (hac['coef'][0] * np.power(hues_100,5)) + \
+                       (hac['coef'][1] * np.power(hues_100,4)) + \
+                       (hac['coef'][2] * np.power(hues_100,3)) + \
+                       (hac['coef'][3] * np.power(hues_100,2)) + \
+                       (hac['coef'][4] * hues_100) + hac['coef'][5]
+                hues_100 = None
+                alpha += corr
+                corr = None
+                par_data[par_name] = alpha
+                par_atts[par_name] = par_attributes
+                alpha = None
+        ## end Hue Angle
         #############################
 
         ## continue if parameter not computed
