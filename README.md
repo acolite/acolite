@@ -1,7 +1,7 @@
 ## About ACOLITE
 ACOLITE combines the atmospheric correction algorithms for aquatic applications of Landsat and Sentinel-2 developed at RBINS. This repository hosts the (more) generic version of ACOLITE with the aim of bringing together the processing of all different sensors. This new generic version was started 4 February 2021.
 
-It allows simple and fast processing of imagery from various satellites, including Landsat (5/7/8) and Sentinel-2/MSI (A/B), PlanetScope and RapidEye, SPOT and Pléiades, WorldView-2 and -3, and Sentinel-3/OLCI (A/B) for coastal and inland water applications. The Dark Spectrum Fitting atmospheric correction algorithm works especially well for turbid and productive waters, but can also be applied over clear waters and land with reasonable success.
+ACOLITE allows simple and fast processing of imagery from various satellites, including Landsat (5/7/8) and Sentinel-2/MSI (A/B), PlanetScope and RapidEye, SPOT and Pléiades, WorldView-2 and -3, and Sentinel-3/OLCI (A/B) for coastal and inland water applications. The Dark Spectrum Fitting atmospheric correction algorithm works especially well for turbid and productive waters, but can also be applied over clear waters and land with reasonable success.
 
 Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of rectangular regions of interest (defined by bounding coordinates or a polygon file). Level 2 outputs are surface reflectance (ρs=Rrs⋅π) and derived products that are saved as geolocated datasets in a NetCDF file, and can be exported as PNG maps. The atmospheric correction is image based and needs no external inputs.
 
@@ -48,7 +48,6 @@ A suitable Python environment can for example be set up using conda and the pack
 * cd into a suitable directory and clone the git repository: `git clone https://github.com/acolite/acolite`
 * cd into the new acolite directory `cd acolite`
 * run `python launch_acolite.py`
-
 
 ## TACT installation
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
