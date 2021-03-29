@@ -184,6 +184,7 @@ def acolite_l2w(gem,
     if return_gem: gem['data']['l2_flags'] = l2_flags
     new = False
 
+    qaa_computed = False
     ## parameter loop
     ## compute other parameters
     for cur_par in setu['l2w_parameters']:
@@ -606,7 +607,8 @@ def acolite_l2w(gem,
         #############################
         ## QAA
         if (cur_par == 'qaa') | (cur_par == 'qaa5') | (cur_par == 'qaa6') | (cur_par == 'qaaw') |\
-           ('_qaa5' in cur_par) | ('_qaa6' in cur_par) | ('_qaaw' in cur_par):
+           ((cur_par[0:3] == 'qaa') & (('_v5' in cur_par) | ('_v6' in cur_par) | ('_vw' in cur_par))):
+            if qaa_computed: continue
             print('QAA')
             mask = True ## water parameter so apply mask
             sensor = gem['gatts']['sensor']
@@ -672,6 +674,7 @@ def acolite_l2w(gem,
                 par_atts[p] = par_attributes
                 par_atts[p]['ds_name'] = p
             ret = None
+            qaa_computed = True
         ## end QAA
         #############################
 
