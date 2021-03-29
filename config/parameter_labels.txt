@@ -47,12 +47,13 @@ chl_re_mishra,1,100,True,Calgae255,CHL Mishra,mgm$^{-3}$
 #
 ## indices
 #
-fai,-0.04,0.06,False,default,FAI (Hu et al. 2009),-
+fai,-0.04,0.06,False,default,FAI $\rho_s$ (Hu et al. 2009),-
+fai_rhot,-0.04,0.06,False,default,FAI $\rho_t$ (Hu et al. 2009),-
 fait,0,1,False,default,FAIT (Dogliotti et al. 2018),-
 #
 ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),-
-ndvi,-0.5,0.5,False,default,NDVI,-
-ndvi_rhot,-0.5,0.5,False,default,NDVI (TOA),-
+ndvi,-0.5,0.5,False,default,NDVI $\rho_s$,-
+ndvi_rhot,-0.5,0.5,False,default,NDVI $\rho_t$,-
 #
 slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),-
 #

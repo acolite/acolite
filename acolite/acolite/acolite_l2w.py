@@ -426,6 +426,13 @@ def acolite_l2w(gem,
                 print('QAA not configured for {}'.format(gem['gatts']['sensor']))
                 continue
 
+            par_attributes = {'algorithm':'QAA', 'dataset':'rhos'}
+            par_attributes['standard_name']='qaa'
+            par_attributes['long_name']='Quasi Analytical Algorithm outputs'
+            par_attributes['units']='various'
+            par_attributes['reference']='Lee et al. 2002'
+            par_attributes['algorithm']=''
+
             qaa_coef = ac.parameters.qaa.qaa_coef()
             qaa_wave = [443, 490, 560, 665]
             sen_wave = []
@@ -469,7 +476,7 @@ def acolite_l2w(gem,
                 cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'vw')]
             cur_par_out += [k for k in setu['l2w_parameters'] if (k[4:] in qaa_pars) and (k not in cur_par_out)]
             cur_par_out.sort()
-            
+
             ## reformat for output
             for p in cur_par_out:
                 par_data[p] = ret[p[4:]] * 1.0
@@ -548,6 +555,102 @@ def acolite_l2w(gem,
             ret = None
         ## end Pitarch 3 band QAA
         #############################
+
+        #############################
+        ## FAI
+        if (cur_par == 'fai') | (cur_par == 'fai_rhot'):
+            par_name = cur_par
+            mask = False ## no water mask
+            par_split = cur_par.split('_')
+            par_attributes = {'algorithm':'Floating Algal Index, Hu et al. 2009', 'dataset':'rhos'}
+            par_attributes['standard_name']='fai'
+            par_attributes['long_name']='Floating Algal Index'
+            par_attributes['units']="1"
+            par_attributes['reference']='Hu et al. 2009'
+            par_attributes['algorithm']=''
+
+            ## select bands
+            required_datasets,req_waves_selected = [],[]
+            ds_waves = [w for w in rhos_waves]
+            if cur_par=='fai_rhot':
+                par_attributes['dataset']='rhot'
+                ds_waves = [w for w in rhot_waves]
+            ## wavelengths and max wavelength difference
+            fai_diff = [10, 30, 80]
+            req_waves = [660,865,1610]
+            for i, reqw in enumerate(req_waves):
+                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                if abs(float(selwave)-float(reqw)) > fai_diff[i]: continue
+                selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                required_datasets.append(selds)
+                req_waves_selected.append(selwave)
+            par_attributes['waves']=req_waves_selected
+            if len(required_datasets) != len(req_waves): continue
+
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                if di == 0: tmp_data = []
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                tmp_data.append(cur_data)
+            ## compute fai
+            fai_sc = (float(par_attributes['waves'][1])-float(par_attributes['waves'][0]))/\
+                     (float(par_attributes['waves'][2])-float(par_attributes['waves'][0]))
+            nir_prime = tmp_data[0] + (tmp_data[2]-tmp_data[0]) * fai_sc
+            par_data[par_name] = tmp_data[1] - nir_prime
+            par_atts[par_name] = par_attributes
+            tmp_data = None
+        ## end FAI
+        #############################
+
+        #############################
+        ## NDVI
+        if (cur_par == 'ndvi') | (cur_par == 'ndvi_rhot'):
+            par_name = cur_par
+            mask = False ## no water mask
+            par_split = cur_par.split('_')
+            par_attributes = {'algorithm':'NDVI', 'dataset':'rhos'}
+            par_attributes['standard_name']='ndvi'
+            par_attributes['long_name']='Normalised Difference Vegetation Index'
+            par_attributes['units']="1"
+            par_attributes['reference']=''
+            par_attributes['algorithm']=''
+
+            ## select bands
+            required_datasets,req_waves_selected = [],[]
+            ds_waves = [w for w in rhos_waves]
+            if cur_par=='ndvi_rhot':
+                par_attributes['dataset']='rhot'
+                ds_waves = [w for w in rhot_waves]
+
+            ## wavelengths and max wavelength difference
+            ndvi_diff = [25, 45]
+            req_waves = [660,865]
+            for i, reqw in enumerate(req_waves):
+                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
+                if abs(float(selwave)-float(reqw)) > fai_diff[i]: continue
+                selds='{}_{}'.format(par_attributes['dataset'],selwave)
+                required_datasets.append(selds)
+                req_waves_selected.append(selwave)
+            par_attributes['waves']=req_waves_selected
+            if len(required_datasets) != len(req_waves): continue
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                if di == 0: tmp_data = []
+                if cur_ds in gem['data']:
+                    cur_data  = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                tmp_data.append(cur_data)
+
+            ## compute ndvi
+            par_data[par_name] = (tmp_data[1]-tmp_data[0])/\
+                                   (tmp_data[1]+tmp_data[0])
+            par_atts[par_name] = par_attributes
+            tmp_data = None
+        ## end NDVI
 
 
         ## continue if parameter not computed
