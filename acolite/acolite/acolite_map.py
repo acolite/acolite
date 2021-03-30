@@ -48,9 +48,9 @@ def acolite_map(ncf, output=None,
             cparl = par.lower()
             sp = cparl.split('_')
             wave = None
-            if ('{}_*'.format(sp[0]) in pscale) & (cparl not in pscale):
-                pard = {k:pscale['{}_*'.format(sp[0])][k] for k in pscale['{}_*'.format(sp[0])]}
-                wave = sp[1]
+            if ('{}_*'.format('_'.join(sp[0:-1])) in pscale) & (cparl not in pscale):
+                pard = {k:pscale['{}_*'.format('_'.join(sp[0:-1]))][k] for k in pscale['{}_*'.format('_'.join(sp[0:-1]))]}
+                wave = sp[-1]
             elif cparl in pscale:
                 pard = {k:pscale[cparl][k] for k in pscale[cparl]}
             else:
@@ -63,14 +63,17 @@ def acolite_map(ncf, output=None,
                 pard['max'] = drange[1]
 
             ## parameter name and title
-            part = '{}{} [{}]'.format(pard['name'], '' if wave is None else ' {}'.format(wave), pard['unit'])
+            part = '{}{} [{}]'.format(pard['name'], '' if wave is None else ' {} nm'.format(wave), pard['unit'])
 
             if pard['cmap'] == 'default': pard['cmap']=setu['map_default_colormap']
             ctfile = "{}/{}/{}.txt".format(ac.config['data_dir'], 'Shared/ColourTables', pard['cmap'])
             if os.path.exists(ctfile):
                 pard['cmap'] = mpl.colors.ListedColormap(np.loadtxt(ctfile)/255.)
             else:
-                pard['cmap'] = setu['map_default_colormap']
+                try:
+                    cmap = copy.copy(mpl.cm.get_cmap(pard['cmap']))
+                except:
+                    pard['cmap'] = setu['map_default_colormap']
 
             ## copy colour map to not set bad/under globally
             cmap = copy.copy(mpl.cm.get_cmap(pard['cmap']))
@@ -91,7 +94,7 @@ def acolite_map(ncf, output=None,
             part = r'$\rho_{}$ RGB'.format(par[-1])
 
         ## title and outputfile
-        title = '{} {}'.format(title_base, part)
+        title = '{}\n{}'.format(title_base, part)
         ofile = '{}/{}_{}.{}'.format(odir, fn, par, setu['map_ext'])
 
         ## raster 1:1 pixel outputs
