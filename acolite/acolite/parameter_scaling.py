@@ -15,6 +15,7 @@ def parameter_scaling():
     with open(ac.config['parameter_labels'], 'r', encoding="utf-8") as f:
         for line in f.readlines():
             line = line.strip()
+            if len(line) == 0: continue
             if line[0] in ['#',';']: continue
             split = line.split('=')
             if split[0] == 'header':
