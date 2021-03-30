@@ -3,7 +3,7 @@
 
 def qaa_compute(qaa_in, sza = 0, satellite = None,
                 qaa_wave = [443, 490, 560, 665],qaa_coef = None,
-                compute_zeu_lee = False, k_atag = 'a490_vw',k_bbptag = 'bbp490_vw'):
+                compute_zeu_lee = False, k_atag = 'a490_v6',k_bbptag = 'bbp490_v6'):
 
     import time
     import numpy as np
@@ -77,19 +77,19 @@ def qaa_compute(qaa_in, sza = 0, satellite = None,
             v=qaa_coef['m'][1]*(1.-qaa_coef['m'][2]*np.exp(-qaa_coef['m'][3]*qaa_data[atag]))
             qaa_data[kdtag]=qaa_coef['m'][0]*qaa_data[atag]+v*qaa_data[bbptag]
 
-
-
     ## get switched datasets
     for iw,wave in enumerate(qaa_wave):
         for qaapar in ['a','bbp','Kd']:
             t5 = '{}{}_v5'.format(qaapar,wave)
             t6 = '{}{}_v6'.format(qaapar,wave)
-            tsw = '{}{}_vw'.format(qaapar,wave)
-            qaa_data[tsw] = qaa_data[t6]
-            if len(v5_idx[0]>0): qaa_data[tsw][v5_idx]=qaa_data[t5][v5_idx]
+            #tsw = '{}{}_vw'.format(qaapar,wave)
+            #qaa_data[tsw] = qaa_data[t6]
+            #if len(v5_idx[0]>0): qaa_data[tsw][v5_idx]=qaa_data[t5][v5_idx]
+            if len(v5_idx[0]>0): qaa_data[t6][v5_idx]=qaa_data[t5][v5_idx]
 
     ## parameters for KdPAR 0-1m Nechad KdPARv2
-    qaa_data['KdPAR_vw']=1.2529*np.log(1.+qaa_data['Kd490_vw'])+0.1127
+    qaa_data['KdPAR_Nechad_v5']=1.2529*np.log(1.+qaa_data['Kd490_v5'])+0.1127
+    qaa_data['KdPAR_Nechad_v6']=1.2529*np.log(1.+qaa_data['Kd490_v6'])+0.1127
 
     ## get Zeu
     c1=[-0.057,0.482,4.221]
@@ -105,8 +105,8 @@ def qaa_compute(qaa_in, sza = 0, satellite = None,
 
     # Kpar, Lee et al. 2007
     z = 1.
-    qaa_data['KdPAR_vw_Lee'] = k1+(k2)/np.sqrt(z+1.)
-    qaa_data['Zeu_vw_Lee'] = 4.6/qaa_data['KdPAR_vw_Lee']
+    qaa_data['KdPAR_Lee_v6'] = k1+(k2)/np.sqrt(z+1.)
+    qaa_data['Zeu_Lee_v6'] = 4.6/qaa_data['KdPAR_Lee_v6']
 
     ## slow (root solving)
     if compute_zeu_lee:
@@ -121,7 +121,7 @@ def qaa_compute(qaa_in, sza = 0, satellite = None,
             i2=val[1][i]
             zeu[i1,i2] = np.real(np.roots((y1[i1,i2],y2[i1,i2],y3[i1,i2])))[1]
         zeu[zeu<0]=np.nan
-        qaa_data['Zeu_QAA_Lee'] = zeu
+        qaa_data['Zeu_Lee_v6_roots'] = zeu
 
     t1 = time.time()
     print('Finished QAA computations in {:.1f} seconds'.format(t1-t0))
