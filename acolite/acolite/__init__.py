@@ -1,6 +1,7 @@
 from .acolite_gem import *
 
 from .acolite_l1r import *
+from .acolite_l2r import *
 from .acolite_l2w import *
 
 from .identify_bundle import *
