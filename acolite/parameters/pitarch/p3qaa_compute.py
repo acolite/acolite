@@ -107,4 +107,4 @@ def p3qaa_compute(sensor, b, g, r, cfg=None):
 
     z_SD = wscaled(z_SD_biased)
 
-    return({'a':a,'bb':bb,'Kd':Kd,'z_SD':z_SD,'z_SD_biased':z_SD_biased, 'eta':eta})
+    return({'a':a,'bb':bb,'Kd':Kd,'zSD':z_SD,'zSD_biased':z_SD_biased, 'eta':eta})
