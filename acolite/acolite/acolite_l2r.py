@@ -461,6 +461,9 @@ def acolite_l2r(gem,
         xnew = np.linspace(0, tiles[-1][1], gem['gatts']['data_dimensions'][1])
         ynew = np.linspace(0, tiles[-1][0], gem['gatts']['data_dimensions'][0])
 
+    ## store ttot for glint correction
+    ttot_all = {}
+
     ## compute surface reflectances
     for bi, b in enumerate(gem['bands']):
         if ('rhot_ds' not in gem['bands'][b]) or ('tt_gas' not in gem['bands'][b]): continue
@@ -477,6 +480,8 @@ def acolite_l2r(gem,
         romix = np.zeros(gem['data']['aot_550'].shape)+np.nan
         astot = np.zeros(gem['data']['aot_550'].shape)+np.nan
         dutott = np.zeros(gem['data']['aot_550'].shape)+np.nan
+        if setu['glint_correction']:
+            ttot_all[b] = np.zeros(gem['data']['aot_550'].shape)+np.nan
 
         for li, lut in enumerate(luts):
             ls = np.where(aot_lut == li)
@@ -504,6 +509,9 @@ def acolite_l2r(gem,
             ## transmittance and spherical albedo
             astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
             dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
+            ## total transmittance
+            if setu['glint_correction']:
+                ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
 
         ## interpolate tiled processing to full scene
         if setu['dsf_path_reflectance'] == 'tiled':
@@ -511,6 +519,8 @@ def acolite_l2r(gem,
             romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
             astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
             dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
+            if setu['glint_correction']:
+                ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
 
         rhot_noatm = (gem['data'][dsi]/ gem['bands'][b]['tt_gas']) - romix
         romix = None
@@ -519,6 +529,170 @@ def acolite_l2r(gem,
         dutott=None
         rhot_noatm = None
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem['gatts']['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+
+    ## glint correction
+    if (setu['aerosol_correction'] == 'dark_spectrum') & setu['glint_correction']:
+        ## find bands for glint correction
+        gc_swir1, gc_swir2 = None, None
+        gc_swir1_b, gc_swir2_b = None, None
+        swir1d, swir2d = 1000, 1000
+        gc_user, gc_mask = None, None
+        gc_user_b, gc_mask_b = None, None
+        userd, maskd = 1000, 1000
+        for b in gem['bands']:
+            ## swir1
+            sd = np.abs(gem['bands'][b]['wave_nm'] - 1600)
+            if sd < 100:
+                if sd < swir1d:
+                    gc_swir1 = gem['bands'][b]['rhos_ds']
+                    swir1d = sd
+                    gc_swir1_b = b
+            ## swir2
+            sd = np.abs(gem['bands'][b]['wave_nm'] - 2200)
+            if sd < 100:
+                if sd < swir2d:
+                    gc_swir2 = gem['bands'][b]['rhos_ds']
+                    swir2d = sd
+                    gc_swir2_b = b
+            ## mask band
+            sd = np.abs(gem['bands'][b]['wave_nm'] - setu['glint_mask_rhos_wave'])
+            if sd < 100:
+                if sd < maskd:
+                    gc_mask = gem['bands'][b]['rhos_ds']
+                    maskd = sd
+                    gc_mask_b = b
+            ## user band
+            if setu['glint_force_band'] is not None:
+                sd = np.abs(gem['bands'][b]['wave_nm'] - setu['glint_force_band'])
+                if sd < 100:
+                    if sd < userd:
+                        gc_user = gem['bands'][b]['rhos_ds']
+                        userd = sd
+                        gc_user_b = b
+
+        ## use user selected  band
+        if gc_user is not None:
+            gc_swir1, gc_swir1_b = None, None
+            gc_swir2, gc_swir2_b= None, None
+
+        ## start glint correction
+        if ((gc_swir1 is not None) and (gc_swir2 is not None)) | (gc_user is not None):
+            t0 = time.time()
+            print('Starting glint correction')
+
+            ## compute scattering angle
+            dtor = np.pi / 180.
+            if ('sza' in gem['data']) & ('vza' in gem['data']) & ('raa' in gem['data']):
+                sza = gem['data']['sza'] * dtor
+                vza = gem['data']['vza'] * dtor
+                raa = gem['data']['raa'] * dtor
+            else:
+                sza = gem['gatts']['sza'] * dtor
+                vza = gem['gatts']['vza'] * dtor
+                raa = gem['gatts']['raa'] * dtor
+            muv = np.cos(vza)
+            mus = np.cos(sza)
+            cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
+            omega = np.arccos(np.sqrt(cos2omega))
+            omega = np.arccos(cos2omega)/2
+
+            ## read and resample refractive index
+            refri = ac.ac.refri()
+            refri_sen = ac.shared.rsr_convolute_dict(refri['wave']/1000, refri['n'], rsrd['rsr'])
+
+            ## compute fresnel reflectance for each n
+            Rf_sen = {b: ac.ac.sky_refl(omega, n_w=refri_sen[b]) for b in refri_sen}
+
+            ## compute where to apply the glint correction
+            ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
+            sub_gc = np.where(np.isfinite(gem['data'][gc_mask]) & \
+                              (gem['data'][gc_mask]<=setu['glint_mask_rhos_threshold']))
+
+            ## get reference bands transmittance
+            for ib, b in enumerate(gem['bands']):
+                rhos_ds = gem['bands'][b]['rhos_ds']
+                if rhos_ds not in [gc_swir1, gc_swir2, gc_user]: continue
+                if rhos_ds not in gem['data']: continue
+                ## two way direct transmittance
+                T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
+                if rhos_ds == gc_user:
+                    T_USER = T_cur[sub_gc]
+                else:
+                    if rhos_ds == gc_swir1:
+                        T_SWIR1 = T_cur[sub_gc]
+                    if rhos_ds == gc_swir2:
+                        T_SWIR2 = T_cur[sub_gc]
+                T_cur = None
+        ## swir band choice is made for first band
+        gc_choice = False
+        ## glint correction per band
+        for ib, b in enumerate(gem['bands']):
+            rhos_ds = gem['bands'][b]['rhos_ds']
+            if rhos_ds not in gem['data']: continue
+            if b not in ttot_all: continue
+            print('Performing glint correction for band {} ({} nm)'.format(b, gem['bands'][b]['wave_name']))
+
+            ## two way direct transmittance
+            T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
+
+            ## get gc factors for this band
+            if gc_user is None:
+                gc_SWIR1 = (T_cur[sub_gc]/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
+                gc_SWIR2 = (T_cur[sub_gc]/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+            else:
+                gc_USER = (T_cur[sub_gc]/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
+
+            ## choose glint correction band (based on first band results)
+            if gc_choice is False:
+                gc_choice = True
+                if gc_user is None:
+                    swir1_rhos = gem['data'][gc_swir1][sub_gc]
+                    swir2_rhos = gem['data'][gc_swir2][sub_gc]
+                    ## set negatives to 0
+                    swir1_rhos[swir1_rhos<0] = 0
+                    swir2_rhos[swir2_rhos<0] = 0
+                    ## estimate glint correction in the blue band
+                    g1_blue = gc_SWIR1 * swir1_rhos
+                    g2_blue = gc_SWIR2 * swir2_rhos
+                    ## use SWIR1 or SWIR2 based glint correction
+                    use_swir1 = np.where(g1_blue<g2_blue)
+                    g1_blue, g2_blue = None, None
+                    rhog_ref = swir2_rhos
+                    rhog_ref[use_swir1] = swir1_rhos[use_swir1]
+                    swir1_rhos, swir2_rhos = None, None
+                    use_swir1 = None
+                else:
+                    rhog_ref = gem['data'][gc_user][sub_gc]
+                    ## set negatives to 0
+                    rhog_ref[rhog_ref<0] = 0
+                ## store reference glint
+                if setu['glint_write_rhog_ref']:
+                    ds_tag = 'rhog_ref'
+                    gem['data'][ds_tag] = np.zeros(gem['gatts']['data_dimensions'], dtype=np.float32) + np.nan
+                    gem['data'][ds_tag][sub_gc] = rhog_ref
+            ## end select glint correction band
+
+            ## calculate glint in this band
+            if gc_user is None:
+                cur_rhog = gc_SWIR2 * rhog_ref
+                try:
+                    cur_rhog[use_swir1] = gc_SWIR1[use_swir1] * rhog_ref[use_swir1]
+                except:
+                    cur_rhog[use_swir1] = gc_SWIR1 * rhog_ref[use_swir1]
+            else:
+                cur_rhog = gc_USER * rhog_ref
+
+            ## remove glint from rhos
+            gem['data'][rhos_ds][sub_gc]-=cur_rhog
+            ## store band glint
+            if setu['glint_write_rhog_all']:
+                ds_tag = 'rhog_{}'.format(gem['bands'][b]['wave_name'])
+                gem['data'][ds_tag] = np.zeros(gem['gatts']['data_dimensions'], dtype=np.float32) + np.nan
+                gem['data'][ds_tag][sub_gc] = cur_rhog
+            cur_rhog = None
+        Rf_sen = None
+        rhog_ref = None
+    ## end glint correction
 
     ## compute l8 orange band
     l8_orange_band = True
@@ -581,6 +755,20 @@ def acolite_l2r(gem,
             gem['data']['aot_550'] = ac.shared.tiles_interp(gem['data']['aot_550'], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
         ## write aot
         ac.output.nc_write(ofile, 'aot_550', gem['data']['aot_550'], attributes = gem['gatts'], new=new_nc)
+
+        if setu['glint_correction']:
+            if setu['glint_write_rhog_ref']:
+                ds_tag = 'rhog_ref'
+                if ds_tag in gem['data']:
+                    ac.output.nc_write(ofile, ds_tag, gem['data'][ds_tag],\
+                        attributes = gem['gatts'], new=new_nc)
+
+            if setu['glint_write_rhog_all']:
+                for b in gem['bands']:
+                    ds_tag = 'rhog_{}'.format(gem['bands'][b]['wave_name'])
+                    if ds_tag in gem['data']:
+                        ac.output.nc_write(ofile, ds_tag, gem['data'][ds_tag],\
+                            attributes = gem['gatts'], new=new_nc)
 
         ## copy datasets from inputfile
         copy_datasets = setu['copy_datasets']
