@@ -77,8 +77,8 @@ def acolite_map(ncf, output=None,
 
             ## copy colour map to not set bad/under globally
             cmap = copy.copy(mpl.cm.get_cmap(pard['cmap']))
+            cmap.set_bad(setu['map_fill_color'])
             if setu['map_fill_outrange']:
-                cmap.set_bad(setu['map_fill_color'])
                 cmap.set_under(setu['map_fill_color'])
 
             ## do log scaling
