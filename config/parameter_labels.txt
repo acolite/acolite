@@ -5,7 +5,7 @@ header=parameter,min,max,log,cmap,name,unit
 ## generic reflectances
 #
 rhot_*,0,0.15,False,Greys_r,$\rho_{t}$,-
-rhos_*,0,0.05,False,Greys_r,$\rho_{s}$,-
+rhos_*,0,0.1,False,Greys_r,$\rho_{s}$,-
 rhow_*,0,0.1,False,Greys_r,$\rho_{w}$,-
 Rrs_*,0,0.03,False,Greys_r,$Rrs$,$sr^{-1}$
 rhog_*,0,0.05,False,Greys_r,$\rho_{g}$,-
@@ -89,9 +89,9 @@ qaa_v6_zeu_lee,0.5,4.0,False,YlGnBu,QAA $z_{eu}$,$m$
 #
 ## P3QAA
 p3qaa_a_*,0.0,0.8,False,default,P3QAA $a$,$m^{-1}$
-p3qaa_bb_*,0.0,0.3,False,default,P3QAA $b_b$,$m^{-1}$
-p3qaa_kd_*,0.2,2.0,False,default,P3QAA $K_d$,$m^{-1}$
-p3qaa_zsd,0.4,2.0,False,YlGnBu,P3QAA $z_{SD}$,$m$
-p3qaa_zsd_biased,0.4,2.0,False,YlGnBu,P3QAA $z_{SD}$ biased,$m$
+p3qaa_bb_*,0.0,0.4,False,default,P3QAA $b_b$,$m^{-1}$
+p3qaa_kd_*,0.2,4.0,False,default,P3QAA $K_d$,$m^{-1}$
+p3qaa_zsd,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$,$m$
+p3qaa_zsd_biased,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$ biased,$m$
 p3qaa_eta,0.5,0.7,False,default,P3QAA $\eta$,-
 #
