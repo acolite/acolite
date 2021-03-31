@@ -7,3 +7,5 @@ resolved_geometry=True
 gains_toa=1,1,1,1,1,1,1
 dsf_intercept_pixels=200
 dsf_tile_dimensions=200,200
+l2w_mask_smooth=True
+l2w_mask_smooth_sigma=12
