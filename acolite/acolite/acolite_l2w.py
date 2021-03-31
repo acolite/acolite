@@ -161,11 +161,13 @@ def acolite_l2w(gem,
             att_add['units']="1"
             att_add['reference']=''
             att_add['algorithm']=''
+
         ## if data already read copy here
         if cur_tag in gem['data']:
             cur_data = factor * gem['data'][cur_tag]
             cur_att = gem['atts'][cur_tag]
         else:
+            if cur_tag not in ac.shared.nc_datasets(gemf): continue
             cur_d, cur_att = ac.shared.nc_data(gemf, cur_tag, sub=sub, attributes=True)
             cur_data = factor * cur_d.data
             cur_data[cur_d.mask] = np.nan
