@@ -26,21 +26,24 @@ def acolite_l2r(gem,
     from astropy.convolution import convolve
 
     ## read gem file if NetCDF
+    #if type(gem) is str:
+    #    gemf = '{}'.format(gem)
+    #    gem = ac.gem.read(gem, sub=sub)
+    #gemf = gem.gatts['gemfile']
     if type(gem) is str:
-        gemf = '{}'.format(gem)
-        gem = ac.gem.read(gem, sub=sub)
-    gemf = gem['gatts']['gemfile']
+        gem = ac.gem.gem(gem)
+    gemf = gem.file
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
+    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=settings)
     if 'verbosity' in setu: verbosity = setu['verbosity']
 
     ## check blackfill
     if setu['blackfill_skip']:
-        rhot_ds = [ds for ds in gem['datasets'] if 'rhot_' in ds]
+        rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
         rhot_wv = [int(ds.split('_')[1]) for ds in rhot_ds]
         bi, bw = ac.shared.closest_idx(rhot_wv, setu['blackfill_wave'])
-        band_data = 1.0*gem['data'][rhot_ds[bi]]
+        band_data = 1.0*gem.data(rhot_ds[bi])
         npx = band_data.shape[0] * band_data.shape[1]
         #nbf = npx - len(np.where(np.isfinite(band_data))[0])
         nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
@@ -51,61 +54,63 @@ def acolite_l2r(gem,
 
     if verbosity > 0: print('Running acolite for {}'.format(gemf))
 
-    output_name = gem['gatts']['output_name'] if 'output_name' in gem['gatts'] else os.path.basename(gemf).replace('.nc', '')
+    output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
 
     ## get dimensions and number of elements
-    gem['gatts']['data_dimensions'] = gem['data']['lon'].shape
-    gem['gatts']['data_elements'] = gem['gatts']['data_dimensions'][0]*gem['gatts']['data_dimensions'][1]
+    gem.gatts['data_dimensions'] = gem.data('lon').shape
+    gem.gatts['data_elements'] = gem.gatts['data_dimensions'][0]*gem.gatts['data_dimensions'][1]
 
     ## read rsrd and get band wavelengths
-    rsrd = ac.shared.rsr_dict(gem['gatts']['sensor'])
-    if gem['gatts']['sensor'] in rsrd:
-        rsrd = rsrd[gem['gatts']['sensor']]
+    rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
+    if gem.gatts['sensor'] in rsrd:
+        rsrd = rsrd[gem.gatts['sensor']]
     else:
         rsrd = None
         stop
 
     ## set defaults
-    gem['gatts']['uoz'] = setu['uoz_default']
-    gem['gatts']['uwv'] = setu['uwv_default']
-    gem['gatts']['wind'] = setu['wind']
-    gem['gatts']['pressure'] = setu['pressure']
+    gem.gatts['uoz'] = setu['uoz_default']
+    gem.gatts['uwv'] = setu['uwv_default']
+    gem.gatts['wind'] = setu['wind']
+    gem.gatts['pressure'] = setu['pressure']
 
     ## read ancillary data
     if setu['ancillary_data']:
-        clon = np.nanmedian(gem['data']['lon'])
-        clat = np.nanmedian(gem['data']['lat'])
-        anc = ac.ac.ancillary.get(gem['gatts']['isodate'], clon, clat)
+        clon = np.nanmedian(gem.data('lon'))
+        clat = np.nanmedian(gem.data('lat'))
+        anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat)
 
         ## overwrite the defaults
-        if ('ozone' in anc): gem['gatts']['uoz'] = anc['ozone']['interp']/1000. ## convert from MET data
-        if ('p_water' in anc): gem['gatts']['uwv'] = anc['p_water']['interp']/10. ## convert from MET data
+        if ('ozone' in anc): gem.gatts['uoz'] = anc['ozone']['interp']/1000. ## convert from MET data
+        if ('p_water' in anc): gem.gatts['uwv'] = anc['p_water']['interp']/10. ## convert from MET data
         if ('z_wind' in anc) & ('m_wind' in anc):
-            gem['gatts']['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-        if ('press' in anc): gem['gatts']['pressure'] = anc['press']['interp']
+            gem.gatts['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
+        if ('press' in anc): gem.gatts['pressure'] = anc['press']['interp']
 
     ## get mean average geometry
     geom_ds = ['sza', 'vza', 'raa', 'pressure', 'wind']
-    geom_mean = {k: np.nanmean(gem['data'][k]) if k in gem['data'] else gem['gatts'][k] for k in geom_ds}
+    for ds in geom_ds: gem.data(ds, store=True, return_data=False)
+    geom_mean = {k: np.nanmean(gem.data(k)) if k in gem.datasets else gem.gatts[k] for k in geom_ds}
 
     ## set wind to wind range
-    gem['gatts']['wind'] = max(0.1, gem['gatts']['wind'])
-    gem['gatts']['wind'] = min(15, gem['gatts']['wind'])
+    gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
+    gem.gatts['wind'] = min(15, gem.gatts['wind'])
 
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
-                                      uoz=gem['gatts']['uoz'], uwv=gem['gatts']['uwv'],
-                                      sensor=gem['gatts']['sensor'])
+                                      uoz=gem.gatts['uoz'], uwv=gem.gatts['uwv'],
+                                      sensor=gem.gatts['sensor'])
 
     ## make bands dataset
-    gem['bands'] = {}
+    gem.bands = {}
     for bi, b in enumerate(rsrd['rsr_bands']):
-        if b not in gem['bands']:
-            gem['bands'][b] = {k:rsrd[k][b] for k in ['wave_mu', 'wave_nm', 'wave_name'] if b in rsrd[k]}
-            gem['bands'][b]['rhot_ds'] = 'rhot_{}'.format(gem['bands'][b]['wave_name'])
-            gem['bands'][b]['rhos_ds'] = 'rhos_{}'.format(gem['bands'][b]['wave_name'])
+        if b not in gem.bands:
+            gem.bands[b] = {k:rsrd[k][b] for k in ['wave_mu', 'wave_nm', 'wave_name'] if b in rsrd[k]}
+            gem.bands[b]['rhot_ds'] = 'rhot_{}'.format(gem.bands[b]['wave_name'])
+            gem.bands[b]['rhos_ds'] = 'rhos_{}'.format(gem.bands[b]['wave_name'])
             for k in tg_dict:
-                if k not in ['wave']: gem['bands'][b][k] = tg_dict[k][b]
+                if k not in ['wave']: gem.bands[b][k] = tg_dict[k][b]
+            gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
     ## end bands dataset
 
     ## determine use of reverse lut rhot->aot
@@ -116,19 +121,21 @@ def acolite_l2r(gem,
     #if setu['resolved_geometry']:
     ## we want to use the reverse lut to derive aot if the geometry data is resolved
     for ds in geom_ds:
-        if ds not in gem['data']:
-            gem['data'][ds] = geom_mean[ds]
-        if len(np.atleast_1d(gem['data'][ds]))>1:
+        if ds not in gem.datasets:
+            gem.data_mem[ds] = geom_mean[ds]
+        else:
+            tmp = gem.data(ds, store=True)
+        if len(np.atleast_1d(gem.data(ds)))>1:
             use_revlut=True ## if any dataset more than 1 dimension use revlut
-        gem['data']['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem['data'][ds])) ## also store tile mean
-        gem['data']['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
+        gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
+        gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
     if not setu['resolved_geometry']: use_revlut = False
 
     ## for ease of subsetting later, repeat single element datasets to the tile shape
     if use_revlut:
         for ds in geom_ds:
-            if len(np.atleast_1d(gem['data'][ds]))!=1: continue
-            gem['data'][ds] = np.repeat(gem['data'][ds], gem['gatts']['data_elements']).reshape(gem['gatts']['data_dimensions'])
+            if len(np.atleast_1d(gem.data(ds)))!=1: continue
+            gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
     else:
         ## if use revlut is False at this point, we don't have resolved geometry
         setu['resolved_geometry'] = False
@@ -138,8 +145,8 @@ def acolite_l2r(gem,
     ## for tiled processing track tile positions and average geometry
     tiles = []
     if (setu['dsf_path_reflectance'] == 'tiled') & (setu['dsf_tile_dimensions'] is not None):
-        ni = np.ceil(gem['gatts']['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
-        nj = np.ceil(gem['gatts']['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
+        ni = np.ceil(gem.gatts['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
+        nj = np.ceil(gem.gatts['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
         if (ni <= 1) | (nj <= 1):
             if verbosity > 1: print('Scene too small for tiling ({}x{} tiles), using fixed processing'.format(ni,nj))
             setu['dsf_path_reflectance'] = 'fixed'
@@ -151,21 +158,21 @@ def acolite_l2r(gem,
             for ti in range(ni):
                 for tj in range(nj):
                     subti = [setu['dsf_tile_dimensions'][0]*ti, setu['dsf_tile_dimensions'][0]*(ti+1)]
-                    subti[1] = np.min((subti[1], gem['gatts']['data_dimensions'][0]))
+                    subti[1] = np.min((subti[1], gem.gatts['data_dimensions'][0]))
                     subtj = [setu['dsf_tile_dimensions'][1]*tj, setu['dsf_tile_dimensions'][1]*(tj+1)]
-                    subtj[1] = np.min((subtj[1], gem['gatts']['data_dimensions'][1]))
+                    subtj[1] = np.min((subtj[1], gem.gatts['data_dimensions'][1]))
                     tiles.append((ti, tj, subti, subtj))
 
             ## create tile geometry datasets
             for ds in geom_ds:
-                if len(np.atleast_1d(gem['data'][ds]))>1: ## if not fixed geometry
-                    gem['data']['{}_tiled'.format(ds)] = np.zeros((ni,nj))+np.nan
+                if len(np.atleast_1d(gem.data(ds)))>1: ## if not fixed geometry
+                    gem.data_mem['{}_tiled'.format(ds)] = np.zeros((ni,nj))+np.nan
                     for t in range(ntiles):
                         ti, tj, subti, subtj = tiles[t]
-                        gem['data']['{}_tiled'.format(ds)][ti, tj] = \
-                            np.nanmean(gem['data'][ds][subti[0]:subti[1],subtj[0]:subtj[1]])
+                        gem.data_mem['{}_tiled'.format(ds)][ti, tj] = \
+                            np.nanmean(gem.data(ds)[subti[0]:subti[1],subtj[0]:subtj[1]])
                 else: ## if fixed geometry
-                    gem['data']['{}_tiled'.format(ds)] = gem['data'][ds]
+                    gem.data_mem['{}_tiled'.format(ds)] = gem.data(ds)
     ## end tiling
 
     ## read LUTs
@@ -174,35 +181,84 @@ def acolite_l2r(gem,
     else:
         par = 'romix'
 
+    ## set output directory
+    if setu['output'] is not None:
+        output_ = setu['output']
+    else:
+        output_ = os.path.dirname(gemf)
+
     ## write settings
-    settings_file = '{}/acolite_run_{}_l2r_settings.txt'.format(setu['output'],setu['runid'])
+    settings_file = '{}/acolite_run_{}_l2r_settings.txt'.format(output_,setu['runid'])
     ac.acolite.settings.write(settings_file, setu)
+    print(settings_file)
+
+    ## setup output file
+    ofile = None
+    if output_file:
+        new_nc = True
+        if target_file is None:
+            ofile = gemf.replace('_L1R.nc', '_L2R.nc')
+            #if ('output' in setu) & (output is None): output = setu['output']
+            if output is None: output = output_
+            ofile = '{}/{}'.format(output, os.path.basename(ofile))
+        else:
+            ofile = '{}'.format(target_file)
+
+        gemo = ac.gem.gem(ofile, new=True)
+        gemo.bands = gem.bands
+        gemo.verbosity = setu['verbosity']
+        gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
+        ## add settings to gatts
+        for k in setu:
+            if k in gem.gatts: continue
+            if setu[k] in [True, False]:
+                gemo.gatts[k] = str(setu[k])
+            else:
+                gemo.gatts[k] = setu[k]
+
+        ## copy datasets from inputfile
+        copy_rhot = False
+        copy_datasets = setu['copy_datasets']
+        if copy_datasets is not None:
+            ## copy rhot all from L1R
+            if 'rhot_*' in copy_datasets:
+                copy_datasets.remove('rhot_*')
+                copy_rhot = True
+                #copy_datasets += [ds for ds in gem.datasets if ('rhot_' in ds) & (ds not in copy_datasets)]
+            ## copy datasets to L2R
+            for ds in copy_datasets:
+                if (ds not in gem.datasets):
+                    if verbosity > 2: print('{} not found in {}'.format(ds, gemf))
+                    continue
+                if verbosity > 1: print('Writing {}'.format(ds))
+                cdata, catts = gem.data(ds, attributes=True)
+                gemo.write(ds, cdata, ds_att=catts)
 
     ## load reverse lut romix -> aot
-    if use_revlut: revl = ac.aerlut.reverse_lut(gem['gatts']['sensor'], par=par)
+    if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par)
     ## load aot -> atmospheric parameters lut
-    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=gem['gatts']['sensor'])
+    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=gem.gatts['sensor'])
     luts = list(lutdw.keys())
 
     ## run through bands to get aot
     aot_dict = {}
     dsf_rhod = {}
-    for bi, b in enumerate(gem['bands']):
+    for bi, b in enumerate(gem.bands):
         if (b in setu['dsf_exclude_bands']): continue
-        if ('rhot_ds' not in gem['bands'][b]) or ('tt_gas' not in gem['bands'][b]): continue
-        if gem['bands'][b]['rhot_ds'] not in gem['data']: continue
+        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
+        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
 
         ## skip band for aot computation
-        if gem['bands'][b]['tt_gas'] < setu['min_tgas_aot']: continue
+        if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']: continue
 
         ## skip bands according to configuration
-        if (gem['bands'][b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
-        if (gem['bands'][b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
+        if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
+        if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
         if (b in setu['dsf_exclude_bands']): continue
 
-        if verbosity > 1: print(b, gem['bands'][b]['rhot_ds'])
+        if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
 
-        band_data = gem['data'][gem['bands'][b]['rhot_ds']]*1.0
+        band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
         valid = np.isfinite(band_data)*(band_data>0)
         mask = valid is False
 
@@ -263,7 +319,7 @@ def acolite_l2r(gem,
 
         ## do gas correction
         band_sub = np.where(np.isfinite(band_data))
-        band_data[band_sub] /= gem['bands'][b]['tt_gas']
+        band_data[band_sub] /= gem.bands[b]['tt_gas']
 
         ## store rhod
         if setu['dsf_path_reflectance'] in ['fixed', 'tiled']:
@@ -277,11 +333,11 @@ def acolite_l2r(gem,
 
             ## reverse lut interpolates rhot directly to aot
             if use_revlut:
-                aot_band[lut][band_sub] = revl[lut]['rgi'][b]((gem['data']['pressure'+gk][band_sub],
-                                                               gem['data']['raa'+gk][band_sub],
-                                                               gem['data']['vza'+gk][band_sub],
-                                                               gem['data']['sza'+gk][band_sub],
-                                                               gem['data']['wind'+gk][band_sub],
+                aot_band[lut][band_sub] = revl[lut]['rgi'][b]((gem.data_mem['pressure'+gk][band_sub],
+                                                               gem.data_mem['raa'+gk][band_sub],
+                                                               gem.data_mem['vza'+gk][band_sub],
+                                                               gem.data_mem['sza'+gk][band_sub],
+                                                               gem.data_mem['wind'+gk][band_sub],
                                                                band_data[band_sub]))
                 # mask out of range aot
                 aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=np.nan
@@ -290,16 +346,13 @@ def acolite_l2r(gem,
             ## standard lut interpolates rhot to results for different aot values
             else:
                 ## get rho path for lut steps in aot
-                tmp = lutdw[lut]['rgi'][b]((gem['data']['pressure'+gk],
+                tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
                                             lutdw[lut]['ipd'][par],
-                                            gem['data']['raa'+gk],
-                                            gem['data']['vza'+gk],
-                                            gem['data']['sza'+gk],
-                                            gem['data']['wind'+gk], lutdw[lut]['meta']['tau']))
+                                            gem.data_mem['raa'+gk],
+                                            gem.data_mem['vza'+gk],
+                                            gem.data_mem['sza'+gk],
+                                            gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
                 tmp = tmp.flatten()
-                #if setu['dsf_path_reflectance'] == 'fixed':
-                #    print(gem['data']['pressure'+gk],gem['data']['raa'+gk],
-                #                gem['data']['vza'+gk], gem['data']['sza'+gk],gem['data']['wind'+gk])
 
                 ## interpolate rho path to observation
                 aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
@@ -308,7 +361,7 @@ def acolite_l2r(gem,
 
             tel = time.time()-t0
 
-            if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem['gatts']['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
+            if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
         ###
         aot_dict[b] = aot_band
@@ -391,46 +444,46 @@ def acolite_l2r(gem,
                 aot_sub = np.where(aot_stack[lut]['b1']==bi)
                 ## get rhod for b1
                 if (setu['dsf_path_reflectance'] == 'resolved'):
-                    rhod_f[aot_sub[0], aot_sub[1], 0] = gem['data'][gem['bands'][b]['rhot_ds']][aot_sub]
+                    rhod_f[aot_sub[0], aot_sub[1], 0] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
                 else:
                     rhod_f[aot_sub[0], aot_sub[1], 0] = dsf_rhod[b][aot_sub]
                 ## get rho path for b1
                 if len(aot_sub[0]) > 0:
                     if (use_revlut):
-                        xi = [gem['data']['pressure'+gk][aot_sub],
-                                          gem['data']['raa'+gk][aot_sub],
-                                          gem['data']['vza'+gk][aot_sub],
-                                          gem['data']['sza'+gk][aot_sub],
-                                          gem['data']['wind'+gk][aot_sub]]
+                        xi = [gem.data_mem['pressure'+gk][aot_sub],
+                                          gem.data_mem['raa'+gk][aot_sub],
+                                          gem.data_mem['vza'+gk][aot_sub],
+                                          gem.data_mem['sza'+gk][aot_sub],
+                                          gem.data_mem['wind'+gk][aot_sub]]
                     else:
-                        xi = [gem['data']['pressure'+gk],
-                                          gem['data']['raa'+gk],
-                                          gem['data']['vza'+gk],
-                                          gem['data']['sza'+gk],
-                                          gem['data']['wind'+gk]]
+                        xi = [gem.data_mem['pressure'+gk],
+                                          gem.data_mem['raa'+gk],
+                                          gem.data_mem['vza'+gk],
+                                          gem.data_mem['sza'+gk],
+                                          gem.data_mem['wind'+gk]]
                     rhop_f[aot_sub[0], aot_sub[1], 0] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
                                                                 xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
 
                 ## get rhod for b1
                 aot_sub = np.where(aot_stack[lut]['b2']==bi)
                 if (setu['dsf_path_reflectance'] == 'resolved'):
-                    rhod_f[aot_sub[0], aot_sub[1], 1] = gem['data'][gem['bands'][b]['rhot_ds']][aot_sub]
+                    rhod_f[aot_sub[0], aot_sub[1], 1] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
                 else:
                     rhod_f[aot_sub[0], aot_sub[1], 1] = dsf_rhod[b][aot_sub]
                 ## get rhop for b1
                 if len(aot_sub[0]) > 0:
                     if (use_revlut):
-                        xi = [gem['data']['pressure'+gk][aot_sub],
-                                          gem['data']['raa'+gk][aot_sub],
-                                          gem['data']['vza'+gk][aot_sub],
-                                          gem['data']['sza'+gk][aot_sub],
-                                          gem['data']['wind'+gk][aot_sub]]
+                        xi = [gem.data_mem['pressure'+gk][aot_sub],
+                                          gem.data_mem['raa'+gk][aot_sub],
+                                          gem.data_mem['vza'+gk][aot_sub],
+                                          gem.data_mem['sza'+gk][aot_sub],
+                                          gem.data_mem['wind'+gk][aot_sub]]
                     else:
-                        xi = [gem['data']['pressure'+gk],
-                                          gem['data']['raa'+gk],
-                                          gem['data']['vza'+gk],
-                                          gem['data']['sza'+gk],
-                                          gem['data']['wind'+gk]]
+                        xi = [gem.data_mem['pressure'+gk],
+                                          gem.data_mem['raa'+gk],
+                                          gem.data_mem['vza'+gk],
+                                          gem.data_mem['sza'+gk],
+                                          gem.data_mem['wind'+gk]]
                     rhop_f[aot_sub[0], aot_sub[1], 1] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
                                                                 xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
 
@@ -459,34 +512,40 @@ def acolite_l2r(gem,
     rhod_f = None
     rhod_p = None
 
-    gem['data']['aot_550'] = aot_sel
+    gem.data_mem['aot_550'] = aot_sel
 
     ## set up interpolator for tiled processing
     if setu['dsf_path_reflectance'] == 'tiled':
-        xnew = np.linspace(0, tiles[-1][1], gem['gatts']['data_dimensions'][1])
-        ynew = np.linspace(0, tiles[-1][0], gem['gatts']['data_dimensions'][0])
+        xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1])
+        ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0])
 
     ## store ttot for glint correction
     ttot_all = {}
 
     ## compute surface reflectances
-    for bi, b in enumerate(gem['bands']):
-        if ('rhot_ds' not in gem['bands'][b]) or ('tt_gas' not in gem['bands'][b]): continue
-        if gem['bands'][b]['tt_gas'] < setu['min_tgas_rho']: continue
-        if gem['bands'][b]['rhot_ds'] not in gem['data']: continue
+    for bi, b in enumerate(gem.bands):
+        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
+        dsi = gem.bands[b]['rhot_ds']
+        dso = gem.bands[b]['rhos_ds']
+        cur_data, cur_att = gem.data(dsi, attributes=True)
 
-        dsi = gem['bands'][b]['rhot_ds']
-        dso = gem['bands'][b]['rhos_ds']
+        ## story rhot in output file
+        if copy_rhot:
+            gemo.write(dsi, cur_data, ds_att = cur_att)
+
+        if gem.bands[b]['tt_gas'] < setu['min_tgas_rho']: continue
+        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
 
         t0 = time.time()
-        if verbosity > 1: print('Computing surface reflectance', b, gem['bands'][b]['wave_name'], '{:.3f}'.format(gem['bands'][b]['tt_gas']))
-        gem['data'][dso] = np.zeros(gem['data'][dsi].shape)+np.nan
+        if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
-        romix = np.zeros(gem['data']['aot_550'].shape)+np.nan
-        astot = np.zeros(gem['data']['aot_550'].shape)+np.nan
-        dutott = np.zeros(gem['data']['aot_550'].shape)+np.nan
+        gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
+        romix = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
+        astot = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
+        dutott = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
+
         if setu['glint_correction']:
-            ttot_all[b] = np.zeros(gem['data']['aot_550'].shape)+np.nan
+            ttot_all[b] = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
 
         for li, lut in enumerate(luts):
             ls = np.where(aot_lut == li)
@@ -497,17 +556,17 @@ def acolite_l2r(gem,
             #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
 
             if (use_revlut):
-                xi = [gem['data']['pressure'+gk][ls],
-                      gem['data']['raa'+gk][ls],
-                      gem['data']['vza'+gk][ls],
-                      gem['data']['sza'+gk][ls],
-                      gem['data']['wind'+gk][ls]]
+                xi = [gem.data_mem['pressure'+gk][ls],
+                      gem.data_mem['raa'+gk][ls],
+                      gem.data_mem['vza'+gk][ls],
+                      gem.data_mem['sza'+gk][ls],
+                      gem.data_mem['wind'+gk][ls]]
             else:
-                xi = [gem['data']['pressure'+gk],
-                      gem['data']['raa'+gk],
-                      gem['data']['vza'+gk],
-                      gem['data']['sza'+gk],
-                      gem['data']['wind'+gk]]
+                xi = [gem.data_mem['pressure'+gk],
+                      gem.data_mem['raa'+gk],
+                      gem.data_mem['vza'+gk],
+                      gem.data_mem['sza'+gk],
+                      gem.data_mem['wind'+gk]]
 
             ## path reflectance
             romix[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], ai))
@@ -527,16 +586,34 @@ def acolite_l2r(gem,
             if setu['glint_correction']:
                 ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
 
-        rhot_noatm = (gem['data'][dsi]/ gem['bands'][b]['tt_gas']) - romix
+        ## write ac parameters
+        if setu['dsf_write_tiled_parameters']:
+            if np.len(np.atleast_1d(romix)>1):
+                gemo.write('romix_{}'.format(gem.bands[b]['wave_nm']), romix)
+            if np.len(np.atleast_1d(astot)>1):
+                gemo.write('astot_{}'.format(gem.bands[b]['wave_nm']), astot)
+            if np.len(np.atleast_1d(dutott)>1):
+                gemo.write('dutott_{}'.format(gem.bands[b]['wave_nm']), dutott)
+
+        rhot_noatm = (cur_data/ gem.bands[b]['tt_gas']) - romix
         romix = None
-        gem['data'][dso] = (rhot_noatm) / (dutott + astot*rhot_noatm)
+        cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
+        #gem.data_mem[dso] = cur_data
         astot=None
         dutott=None
         rhot_noatm = None
-        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem['gatts']['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+        ## write rhos
+        ds_att = gem.bands[b]
+        ds_att['wavelength']=ds_att['wave_nm']
+        gemo.write(dso, cur_data, ds_att = ds_att)
+        cur_data = None
+        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
 
     ## glint correction
     if (setu['aerosol_correction'] == 'dark_spectrum') & setu['glint_correction']:
+        ## update output gem datasets
+        gemo.datasets_read()
+
         ## find bands for glint correction
         gc_swir1, gc_swir2 = None, None
         gc_swir1_b, gc_swir2_b = None, None
@@ -544,57 +621,61 @@ def acolite_l2r(gem,
         gc_user, gc_mask = None, None
         gc_user_b, gc_mask_b = None, None
         userd, maskd = 1000, 1000
-        for b in gem['bands']:
+        for b in gemo.bands:
             ## swir1
-            sd = np.abs(gem['bands'][b]['wave_nm'] - 1600)
+            sd = np.abs(gemo.bands[b]['wave_nm'] - 1600)
             if sd < 100:
                 if sd < swir1d:
-                    gc_swir1 = gem['bands'][b]['rhos_ds']
+                    gc_swir1 = gemo.bands[b]['rhos_ds']
                     swir1d = sd
                     gc_swir1_b = b
             ## swir2
-            sd = np.abs(gem['bands'][b]['wave_nm'] - 2200)
+            sd = np.abs(gemo.bands[b]['wave_nm'] - 2200)
             if sd < 100:
                 if sd < swir2d:
-                    gc_swir2 = gem['bands'][b]['rhos_ds']
+                    gc_swir2 = gemo.bands[b]['rhos_ds']
                     swir2d = sd
                     gc_swir2_b = b
             ## mask band
-            sd = np.abs(gem['bands'][b]['wave_nm'] - setu['glint_mask_rhos_wave'])
+            sd = np.abs(gemo.bands[b]['wave_nm'] - setu['glint_mask_rhos_wave'])
             if sd < 100:
                 if sd < maskd:
-                    gc_mask = gem['bands'][b]['rhos_ds']
+                    gc_mask = gemo.bands[b]['rhos_ds']
                     maskd = sd
                     gc_mask_b = b
             ## user band
             if setu['glint_force_band'] is not None:
-                sd = np.abs(gem['bands'][b]['wave_nm'] - setu['glint_force_band'])
+                sd = np.abs(gemo.bands[b]['wave_nm'] - setu['glint_force_band'])
                 if sd < 100:
                     if sd < userd:
-                        gc_user = gem['bands'][b]['rhos_ds']
+                        gc_user = gemo.bands[b]['rhos_ds']
                         userd = sd
                         gc_user_b = b
 
         ## use user selected  band
         if gc_user is not None:
             gc_swir1, gc_swir1_b = None, None
-            gc_swir2, gc_swir2_b= None, None
+            gc_swir2, gc_swir2_b = None, None
 
         ## start glint correction
-        if ((gc_swir1 is not None) and (gc_swir2 is not None)) and (gc_user is not None):
+        if ((gc_swir1 is not None) and (gc_swir2 is not None)) or (gc_user is not None):
             t0 = time.time()
             print('Starting glint correction')
 
             ## compute scattering angle
             dtor = np.pi / 180.
-            if ('sza' in gem['data']) & ('vza' in gem['data']) & ('raa' in gem['data']):
-                sza = gem['data']['sza'] * dtor
-                vza = gem['data']['vza'] * dtor
-                raa = gem['data']['raa'] * dtor
-            else:
-                sza = gem['gatts']['sza'] * dtor
-                vza = gem['gatts']['vza'] * dtor
-                raa = gem['gatts']['raa'] * dtor
+            sza = gem.data_mem['sza'] * dtor
+            vza = gem.data_mem['vza'] * dtor
+            raa = gem.data_mem['raa'] * dtor
+
+            #if ('sza' in gem['data']) & ('vza' in gem['data']) & ('raa' in gem['data']):
+            #    sza = gem.data_mem['sza'] * dtor
+            #    vza = gem.data_mem['vza'] * dtor
+            #    raa = gem.data_mem['raa'] * dtor
+            #else:
+            #    sza = gem.gatts['sza'] * dtor
+            #    vza = gem.gatts['vza'] * dtor
+            #    raa = gem.gatts['raa'] * dtor
             muv = np.cos(vza)
             mus = np.cos(sza)
             cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
@@ -610,14 +691,17 @@ def acolite_l2r(gem,
 
             ## compute where to apply the glint correction
             ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
-            sub_gc = np.where(np.isfinite(gem['data'][gc_mask]) & \
-                              (gem['data'][gc_mask]<=setu['glint_mask_rhos_threshold']))
+            gc_mask_data = gem.data(gc_mask)
+            sub_gc = np.where(np.isfinite(gc_mask_data) & \
+                              (gc_mask_data<=setu['glint_mask_rhos_threshold']))
+            gc_mask_data = None
 
             ## get reference bands transmittance
-            for ib, b in enumerate(gem['bands']):
-                rhos_ds = gem['bands'][b]['rhos_ds']
+            for ib, b in enumerate(gemo.bands):
+                rhos_ds = gemo.bands[b]['rhos_ds']
                 if rhos_ds not in [gc_swir1, gc_swir2, gc_user]: continue
-                if rhos_ds not in gem['data']: continue
+                if rhos_ds not in gemo.datasets: continue
+
                 ## two way direct transmittance
                 T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
                 if rhos_ds == gc_user:
@@ -632,11 +716,11 @@ def acolite_l2r(gem,
             ## swir band choice is made for first band
             gc_choice = False
             ## glint correction per band
-            for ib, b in enumerate(gem['bands']):
-                rhos_ds = gem['bands'][b]['rhos_ds']
-                if rhos_ds not in gem['data']: continue
+            for ib, b in enumerate(gemo.bands):
+                rhos_ds = gemo.bands[b]['rhos_ds']
+                if rhos_ds not in gemo.datasets: continue
                 if b not in ttot_all: continue
-                print('Performing glint correction for band {} ({} nm)'.format(b, gem['bands'][b]['wave_name']))
+                print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
 
                 ## two way direct transmittance
                 T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
@@ -652,8 +736,8 @@ def acolite_l2r(gem,
                 if gc_choice is False:
                     gc_choice = True
                     if gc_user is None:
-                        swir1_rhos = gem['data'][gc_swir1][sub_gc]
-                        swir2_rhos = gem['data'][gc_swir2][sub_gc]
+                        swir1_rhos = gemo.data(gc_swir1)[sub_gc]
+                        swir2_rhos = gemo.data(gc_swir2)[sub_gc]
                         ## set negatives to 0
                         swir1_rhos[swir1_rhos<0] = 0
                         swir2_rhos[swir2_rhos<0] = 0
@@ -668,14 +752,15 @@ def acolite_l2r(gem,
                         swir1_rhos, swir2_rhos = None, None
                         use_swir1 = None
                     else:
-                        rhog_ref = gem['data'][gc_user][sub_gc]
+                        rhog_ref = gemo.data(gc_user)[sub_gc]
                         ## set negatives to 0
                         rhog_ref[rhog_ref<0] = 0
-                    ## store reference glint
+                    ## write reference glint
                     if setu['glint_write_rhog_ref']:
-                        ds_tag = 'rhog_ref'
-                        gem['data'][ds_tag] = np.zeros(gem['gatts']['data_dimensions'], dtype=np.float32) + np.nan
-                        gem['data'][ds_tag][sub_gc] = rhog_ref
+                        tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
+                        tmp[sub_gc] = rhog_ref
+                        gemo.write('rhog_ref', tmp)
+                        tmp = None
                 ## end select glint correction band
 
                 ## calculate glint in this band
@@ -689,12 +774,16 @@ def acolite_l2r(gem,
                     cur_rhog = gc_USER * rhog_ref
 
                 ## remove glint from rhos
-                gem['data'][rhos_ds][sub_gc]-=cur_rhog
-                ## store band glint
+                cur_data = gemo.data(rhos_ds)
+                #gem.data_mem[rhos_ds][sub_gc]-=cur_rhog
+                cur_data[sub_gc]-=cur_rhog
+                gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
+                ## write band glint
                 if setu['glint_write_rhog_all']:
-                    ds_tag = 'rhog_{}'.format(gem['bands'][b]['wave_name'])
-                    gem['data'][ds_tag] = np.zeros(gem['gatts']['data_dimensions'], dtype=np.float32) + np.nan
-                    gem['data'][ds_tag][sub_gc] = cur_rhog
+                    tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
+                    tmp[sub_gc] = cur_rhog
+                    gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
+                    tmp = None
                 cur_rhog = None
             Rf_sen = None
             rhog_ref = None
@@ -702,7 +791,7 @@ def acolite_l2r(gem,
 
     ## compute l8 orange band
     l8_orange_band = True
-    if (gem['gatts']['sensor'] == 'L8_OLI') & (l8_orange_band):
+    if (gemo.gatts['sensor'] == 'L8_OLI') & (l8_orange_band):
         if verbosity > 1: print('Computing orange band')
         ## load orange band configuration
         ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
@@ -712,94 +801,35 @@ def acolite_l2r(gem,
         rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
         ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
         ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])
-        gem['bands']['O'] = ob
+        ob['wavelength']=ds_att['wave_nm']
+        gemo.bands['O'] = ob
 
         ## compute orange band
-        ob_data = gem['data'][gem['bands']['8']['rhos_ds']]*float(ob_cfg['pf'])
-        ob_data += gem['data'][gem['bands']['3']['rhos_ds']]*float(ob_cfg['gf'])
-        ob_data += gem['data'][gem['bands']['4']['rhos_ds']]*float(ob_cfg['rf'])
-        gem['data'][ob['rhos_ds']] = ob_data
+        ob_data = gemo.data(gemo.bands['8']['rhos_ds'])*float(ob_cfg['pf'])
+        ob_data += gemo.data(gemo.bands['3']['rhos_ds'])*float(ob_cfg['gf'])
+        ob_data += gemo.data(gemo.bands['4']['rhos_ds'])*float(ob_cfg['rf'])
+        #gem.data_mem[ob['rhos_ds']] = ob_data
+        gemo.write(ob['rhos_ds'], ob_data, ds_att = ob)
         ob_data = None
         ob = None
 
-    ofile = None
     if output_file:
-        new_nc = True
-        if target_file is None:
-            ofile = gemf.replace('_L1R.nc', '_L2R.nc')
-            if ('output' in setu) & (output is None): output = setu['output']
-            if output is not None: ofile = '{}/{}'.format(output, os.path.basename(ofile))
-        else:
-            ofile = '{}'.format(target_file)
-
-        ## add settings to gatts
-        for k in setu:
-            if k in gem['gatts']: continue
-            if setu[k] in [True, False]:
-                gem['gatts'][k] = str(setu[k])
-            else:
-                gem['gatts'][k] = setu[k]
-
-        ## write output data
-        for bi, b in enumerate(gem['bands']):
-            dso = gem['bands'][b]['rhos_ds']
-            if dso not in gem['data']: continue
-            if verbosity > 1: print('Writing B{} {}'.format(b, dso))
-            ds_att = gem['bands'][b]
-            ds_att['wavelength']=ds_att['wave_nm']
-            ac.output.nc_write(ofile,
-                               dso,
-                               gem['data'][dso],
-                               attributes = gem['gatts'],
-                               dataset_attributes = ds_att, new=new_nc)
-            new_nc = False
+        ### write output data
+        #for bi, b in enumerate(gem.bands):
+        #    dso = gem.bands[b]['rhos_ds']
+        #    if dso not in gem.data_mem: continue
+        #    if verbosity > 1: print('Writing B{} {}'.format(b, dso))
+        #    ds_att = gem.bands[b]
+        #    ds_att['wavelength']=ds_att['wave_nm']
+        #    gemo.write(dso, gem.data_mem[dso], ds_att = ds_att)
 
         ## reformat & save aot
         if setu['dsf_path_reflectance'] == 'fixed':
-            gem['data']['aot_550'] = np.repeat(gem['data']['aot_550'], gem['gatts']['data_elements']).reshape(gem['gatts']['data_dimensions'])
+            gem.data_mem['aot_550'] = np.repeat(gem.data_mem['aot_550'], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
         if setu['dsf_path_reflectance'] == 'tiled':
-            gem['data']['aot_550'] = ac.shared.tiles_interp(gem['data']['aot_550'], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
+            gem.data_mem['aot_550'] = ac.shared.tiles_interp(gem.data_mem['aot_550'], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
         ## write aot
-        ac.output.nc_write(ofile, 'aot_550', gem['data']['aot_550'], attributes = gem['gatts'], new=new_nc)
-
-        if setu['glint_correction']:
-            if setu['glint_write_rhog_ref']:
-                ds_tag = 'rhog_ref'
-                if ds_tag in gem['data']:
-                    ac.output.nc_write(ofile, ds_tag, gem['data'][ds_tag],\
-                        attributes = gem['gatts'], new=new_nc)
-
-            if setu['glint_write_rhog_all']:
-                for b in gem['bands']:
-                    ds_tag = 'rhog_{}'.format(gem['bands'][b]['wave_name'])
-                    if ds_tag in gem['data']:
-                        ac.output.nc_write(ofile, ds_tag, gem['data'][ds_tag],\
-                            attributes = gem['gatts'], new=new_nc)
-
-        ## copy datasets from inputfile
-        copy_datasets = setu['copy_datasets']
-        if copy_datasets is not None:
-            ## copy rhot all from L1R
-            if 'rhot_*' in copy_datasets:
-                copy_datasets.remove('rhot_*')
-                copy_datasets += [ds for ds in gem['datasets'] if ('rhot_' in ds) & (ds not in copy_datasets)]
-                print(copy_datasets)
-                print()
-            ## copy datasets to L2R
-            for ds in copy_datasets:
-                if (ds not in gem['datasets']):
-                    if verbosity > 2: print('{} not found in {}'.format(ds, gemf))
-                    continue
-                if verbosity > 1: print('Writing {}'.format(ds))
-                if ds not in gem['data']:
-                    d, da = ac.shared.nc_data(gemf, ds, attributes=True)
-                    ac.output.nc_write(ofile, ds, d.data,
-                                                dataset_attributes = da,
-                                                attributes = gem['gatts'], new=new_nc)
-                else:
-                    ac.output.nc_write(ofile, ds, gem['data'][ds],
-                                                dataset_attributes = gem['atts'][ds],
-                                                attributes = gem['gatts'], new=new_nc)
+        gemo.write('aot_550', gem.data_mem['aot_550'])
 
         if verbosity>0: print('Wrote {}'.format(ofile))
 
