@@ -5,7 +5,7 @@
 ## modifications:
 ##
 
-def acolite_l1r(bundle, output, settings, input_type=None):
+def acolite_l1r(bundle, settings, input_type=None):
     import acolite as ac
     import os
 
@@ -23,10 +23,10 @@ def acolite_l1r(bundle, output, settings, input_type=None):
         if setu['verbosity'] > 0: print('{} not recognized.'.format(bundle[0]))
 
     ## set output directory
-    if output is None:
-        output_ = setu['output'] if setu['output'] is not None else os.path.dirname(bundle[0])
+    if setu['output'] is not None:
+        output_ = setu['output']
     else:
-        output_ = output
+        output_ = os.path.dirname(bundle[0])
 
     setu['inputfile'] = bundle
     setu['output'] = output_
