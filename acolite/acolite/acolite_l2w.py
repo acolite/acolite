@@ -99,6 +99,10 @@ def acolite_l2w(gem,
             cur_data = 1.0 * gem['data'][cur_par]
         else:
             cur_data = ac.shared.nc_data(gemf, cur_par, sub=sub).data
+        if ci == 0:
+            outmask = np.isnan(cur_data)
+        else:
+            outmask = (outmask) | (np.isnan(cur_data))
         if setu['l2w_mask_smooth']:
             cur_data = ac.shared.fillnan(cur_data)
             cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
@@ -106,6 +110,9 @@ def acolite_l2w(gem,
         toa_mask = (toa_mask) | (cur_data > setu['l2w_mask_high_toa_threshold'])
     l2_flags = (l2_flags) | (toa_mask.astype(np.int32)*(2**setu['flag_exponent_toa']))
     toa_mask = None
+    l2_flags = (l2_flags) | (outmask.astype(np.int32)*(2**setu['flag_exponent_outofscene']))
+    outmask = None
+
     ## negative rhos
     neg_mask = None
     for ci, cur_par in enumerate(rhos_ds):

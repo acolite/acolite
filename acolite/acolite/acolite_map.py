@@ -124,6 +124,9 @@ def acolite_map(ncf, output=None,
                         axim = plt.pcolormesh(lon, lat, im[:,:,0], color=colorTuple, shading='flat') #latlon=False,
                     else:
                         axim = plt.pcolormesh(lon, lat, im, norm=norm, cmap=cmap, shading='auto')
+                        if scene_mask is not None:
+                            plt.pcolormesh(lon, lat, scene_mask, cmap='gray', vmin=0, vmax=1)
+
                     plt.xlabel('Longitude (°E)')
                     plt.ylabel('Latitude (°N)')
                     if limit is not None:
@@ -131,6 +134,9 @@ def acolite_map(ncf, output=None,
                         plt.ylim(limit[0],limit[2])
                 else:
                     axim = plt.imshow(im, norm=norm, cmap=cmap)
+                    if scene_mask is not None:
+                        plt.imshow(scene_mask,cmap='gray', vmin=0, vmax=1)
+
                     plt.axis('off')
             else: ## cartopy
                 axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs)
@@ -183,6 +189,12 @@ def acolite_map(ncf, output=None,
 
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+
+    scene_mask = None
+    if 'l2_flags' in datasets:
+        scene_mask = (ac.shared.nc_data(ncf, 'l2_flags') & (2**setu['flag_exponent_outofscene'])).astype(np.float32)
+        scene_mask[scene_mask != (2**setu['flag_exponent_outofscene'])] = np.nan
+        scene_mask[scene_mask == (2**setu['flag_exponent_outofscene'])] = 1
 
     ## get output limit
     limit = None

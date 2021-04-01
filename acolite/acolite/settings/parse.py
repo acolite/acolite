@@ -36,7 +36,8 @@ def parse(sensor, settings=None, merge=True):
               'dsf_filter_box', 'dsf_tile_dimensions', 'dsf_intercept_pixels', 'dsf_smooth_box',
               'blackfill_wave', 'l2w_mask_wave', 'l2w_mask_cirrus_wave', 'glint_mask_rhos_wave', 'exp_wave1',  'exp_wave2',
               'l2w_mask_smooth_sigma',
-              'flag_exponent_swir', 'flag_exponent_cirrus','flag_exponent_toa','flag_exponent_negative',
+              'flag_exponent_swir', 'flag_exponent_cirrus','flag_exponent_toa',
+              'flag_exponent_negative', 'flag_exponent_outofscene',
               'rgb_red_wl','rgb_green_wl', 'rgb_blue_wl',
               'geometry_res', 'verbosity', 'map_dpi',
               'dsf_wave_range', 'l2w_mask_negative_wave_range']

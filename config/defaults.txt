@@ -64,6 +64,7 @@ flag_exponent_swir=0
 flag_exponent_cirrus=1
 flag_exponent_toa=2
 flag_exponent_negative=3
+flag_exponent_outofscene=4
 
 ## atmospheric correction settings
 aerosol_correction=dark_spectrum
