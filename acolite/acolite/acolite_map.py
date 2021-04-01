@@ -226,16 +226,9 @@ def acolite_map(ncf, output=None,
 
     ## parameters to plot
     plot_parameters = []
+    if plot_all: plot_parameters = [k for k in datasets if k not in plot_skip]
     if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
     if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
-
-    if plot_all:
-        plot_parameters = [k for k in datasets if k not in plot_skip]
-        if setu['l2w_parameters'] is not None:
-            if type(setu['l2w_parameters']) is list:
-                plot_parameters+=setu['l2w_parameters']
-            else:
-                plot_parameters+=[setu['l2w_parameters']]
 
     ## handle wildcards
     for par in plot_parameters:
