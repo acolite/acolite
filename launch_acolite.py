@@ -43,15 +43,17 @@ def launch_acolite():
     if '--cli' in sys.argv:
         time_start = datetime.datetime.now() ## time of processing start
         ## parse settings here to add runid
-        setu = ac.acolite.settings.parse(None, settings=args.settings, merge=False)
-        if 'runid' not in setu: setu['runid']=time_start.strftime('%Y%m%d_%H%M%S')
+        #if args.settings is not None:
+        #setu = ac.acolite.settings.parse(None, settings=args.settings, merge=False)
+        #if 'runid' not in setu: setu['runid']=time_start.strftime('%Y%m%d_%H%M%S')
 
         ## add input/output if changed
-        if args.inputfile is not None: setu['inputfile'] = args.inputfile
-        if args.output is not None: setu['output'] = args.output
+        inputfile, output = None, None
+        if args.inputfile is not None: inputfile = args.inputfile.split(',')
+        if args.output is not None: output = args.output
 
         ## run processing
-        ac.acolite.acolite_run(setu)
+        ac.acolite.acolite_run(args.settings, inputfile=inputfile, output=output)
     else:
         print('ACOLITE GUI not yet implemented')
         return()
