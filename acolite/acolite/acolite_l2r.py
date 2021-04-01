@@ -33,6 +33,7 @@ def acolite_l2r(gem,
 
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
+    if 'verbosity' in setu: verbosity = setu['verbosity']
 
     ## check blackfill
     if setu['blackfill_skip']:
@@ -172,6 +173,10 @@ def acolite_l2r(gem,
         par = 'romix+rsky_t'
     else:
         par = 'romix'
+
+    ## write settings
+    settings_file = '{}/acolite_run_{}_l2r_settings.txt'.format(setu['output'],setu['runid'])
+    ac.acolite.settings.write(settings_file, setu)
 
     ## load reverse lut romix -> aot
     if use_revlut: revl = ac.aerlut.reverse_lut(gem['gatts']['sensor'], par=par)
@@ -799,6 +804,6 @@ def acolite_l2r(gem,
         if verbosity>0: print('Wrote {}'.format(ofile))
 
     if return_gem:
-        return(gem)
+        return(gem, setu)
     else:
-        return(ofile)
+        return(ofile, setu)

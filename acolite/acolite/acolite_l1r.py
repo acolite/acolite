@@ -5,9 +5,12 @@
 ## modifications:
 ##
 
-def acolite_l1r(bundle, output, setu, input_type=None):
+def acolite_l1r(bundle, output, settings, input_type=None):
     import acolite as ac
     import os
+
+    ## combine settings, get defaults
+    setu = ac.acolite.settings.parse(None, settings=settings)
 
     ## set up l1r_files list
     l1r_files = []
@@ -24,6 +27,12 @@ def acolite_l1r(bundle, output, setu, input_type=None):
         output_ = setu['output'] if setu['output'] is not None else os.path.dirname(bundle[0])
     else:
         output_ = output
+
+    setu['inputfile'] = bundle
+    setu['output'] = output_
+    settings_file = '{}/acolite_run_{}_l1r_settings.txt'.format(setu['output'],setu['runid'])
+    ac.acolite.settings.write(settings_file, setu)
+    print(settings_file)
 
     ################
     ## ACOLITE
@@ -120,4 +129,4 @@ def acolite_l1r(bundle, output, setu, input_type=None):
     ## end Planet
     ################
 
-    return(l1r_files)
+    return(l1r_files, setu)
