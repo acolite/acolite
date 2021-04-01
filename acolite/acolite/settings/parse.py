@@ -6,14 +6,16 @@
 
 
 def parse(sensor, settings=None, merge=True):
-
     import os, time
     import numpy as np
     import scipy.ndimage
     import acolite as ac
 
     ## read default settings for sensor
-    setu = ac.acolite.settings.load(sensor)
+    if (sensor is not None) | (merge):
+        setu = ac.acolite.settings.load(sensor)
+    else:
+        setu = {}
 
     ## add user settings
     if settings is not None:
@@ -68,5 +70,5 @@ def parse(sensor, settings=None, merge=True):
     ## default pressure
     if 'pressure' in setu:
         setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
-        
+
     return(setu)
