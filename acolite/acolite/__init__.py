@@ -4,6 +4,8 @@ from .acolite_l1r import *
 from .acolite_l2r import *
 from .acolite_l2w import *
 
+from .acolite_run import *
+
 from .identify_bundle import *
 from .acolite_map import *
 from .parameter_scaling import *
