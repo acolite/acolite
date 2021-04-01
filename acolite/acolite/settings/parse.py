@@ -5,7 +5,7 @@
 ## modifications:
 
 
-def parse(sensor, settings=None):
+def parse(sensor, settings=None, merge=True):
 
     import os, time
     import numpy as np
@@ -19,9 +19,15 @@ def parse(sensor, settings=None):
     if settings is not None:
         if type(settings) is str:
             sets = ac.acolite.settings.read(settings)
-            for k in sets: setu[k] = sets[k]
+            if merge:
+                for k in sets: setu[k] = sets[k]
+            else:
+                setu = {k:sets[k] for k in sets}
         elif type(settings) is dict:
-            for k in settings: setu[k] = settings[k]
+            if merge:
+                for k in settings: setu[k] = settings[k]
+            else:
+                setu = {k:settings[k] for k in settings}
 
     ## convert values from settings file into numbers
     int_list = ['s2_target_res', 'map_max_dim',
@@ -60,6 +66,7 @@ def parse(sensor, settings=None):
             if k in float_list: setu[k] = float(setu[k])
 
     ## default pressure
-    setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
-
+    if 'pressure' in setu:
+        setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
+        
     return(setu)
