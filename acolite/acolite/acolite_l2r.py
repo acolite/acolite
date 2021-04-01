@@ -437,56 +437,33 @@ def acolite_l2r(gem,
         ## select model based on minimum rmsd between two best fitting bands
         if setu['dsf_model_selection'] == 'min_drmsd':
             if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
-
             rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
             rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
             for bi, b in enumerate(aot_bands):
-                aot_sub = np.where(aot_stack[lut]['b1']==bi)
-                ## get rhod for b1
-                if (setu['dsf_path_reflectance'] == 'resolved'):
-                    rhod_f[aot_sub[0], aot_sub[1], 0] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
-                else:
-                    rhod_f[aot_sub[0], aot_sub[1], 0] = dsf_rhod[b][aot_sub]
-                ## get rho path for b1
-                if len(aot_sub[0]) > 0:
-                    if (use_revlut):
-                        xi = [gem.data_mem['pressure'+gk][aot_sub],
-                                          gem.data_mem['raa'+gk][aot_sub],
-                                          gem.data_mem['vza'+gk][aot_sub],
-                                          gem.data_mem['sza'+gk][aot_sub],
-                                          gem.data_mem['wind'+gk][aot_sub]]
+                ## run through two best fitting bands
+                for ai, ab in enumerate(['b1', 'b2']):
+                    aot_sub = np.where(aot_stack[lut][ab]==bi)
+                    ## get rhod for current band
+                    if (setu['dsf_path_reflectance'] == 'resolved'):
+                        rhod_f[aot_sub[0], aot_sub[1], ai] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
                     else:
-                        xi = [gem.data_mem['pressure'+gk],
-                                          gem.data_mem['raa'+gk],
-                                          gem.data_mem['vza'+gk],
-                                          gem.data_mem['sza'+gk],
-                                          gem.data_mem['wind'+gk]]
-                    rhop_f[aot_sub[0], aot_sub[1], 0] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
-
-                ## get rhod for b1
-                aot_sub = np.where(aot_stack[lut]['b2']==bi)
-                if (setu['dsf_path_reflectance'] == 'resolved'):
-                    rhod_f[aot_sub[0], aot_sub[1], 1] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
-                else:
-                    rhod_f[aot_sub[0], aot_sub[1], 1] = dsf_rhod[b][aot_sub]
-                ## get rhop for b1
-                if len(aot_sub[0]) > 0:
-                    if (use_revlut):
-                        xi = [gem.data_mem['pressure'+gk][aot_sub],
-                                          gem.data_mem['raa'+gk][aot_sub],
-                                          gem.data_mem['vza'+gk][aot_sub],
-                                          gem.data_mem['sza'+gk][aot_sub],
-                                          gem.data_mem['wind'+gk][aot_sub]]
-                    else:
-                        xi = [gem.data_mem['pressure'+gk],
-                                          gem.data_mem['raa'+gk],
-                                          gem.data_mem['vza'+gk],
-                                          gem.data_mem['sza'+gk],
-                                          gem.data_mem['wind'+gk]]
-                    rhop_f[aot_sub[0], aot_sub[1], 1] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
-
+                        rhod_f[aot_sub[0], aot_sub[1], ai] = dsf_rhod[b][aot_sub]
+                    ## get rho path for current band
+                    if len(aot_sub[0]) > 0:
+                        if (use_revlut):
+                            xi = [gem.data_mem['pressure'+gk][aot_sub],
+                                              gem.data_mem['raa'+gk][aot_sub],
+                                              gem.data_mem['vza'+gk][aot_sub],
+                                              gem.data_mem['sza'+gk][aot_sub],
+                                              gem.data_mem['wind'+gk][aot_sub]]
+                        else:
+                            xi = [gem.data_mem['pressure'+gk],
+                                              gem.data_mem['raa'+gk],
+                                              gem.data_mem['vza'+gk],
+                                              gem.data_mem['sza'+gk],
+                                              gem.data_mem['wind'+gk]]
+                        rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                                    xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
             ## rmsd for current bands
             cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
         ## end select with min RMSD
@@ -508,16 +485,26 @@ def acolite_l2r(gem,
             aot_lut[aot_sub] = li
             aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
             aot_sel_par[aot_sub] = cur_sel_par[aot_sub] * 1.0
-
     rhod_f = None
     rhod_p = None
-
-    gem.data_mem['aot_550'] = aot_sel
 
     ## set up interpolator for tiled processing
     if setu['dsf_path_reflectance'] == 'tiled':
         xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1])
         ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0])
+
+    ## write aot to outputfile
+    if output_file:
+        ## reformat & save aot
+        if setu['dsf_path_reflectance'] == 'fixed':
+            aot_out = np.repeat(aot_sel, gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+        elif setu['dsf_path_reflectance'] == 'tiled':
+            aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
+        else:
+            aot_out = aot_sel * 1.0
+        ## write aot
+        gemo.write('aot_550', aot_out)
+        aot_out = None
 
     ## store ttot for glint correction
     ttot_all = {}
@@ -540,12 +527,12 @@ def acolite_l2r(gem,
         if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
         gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
-        romix = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
-        astot = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
-        dutott = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
+        romix = np.zeros(aot_sel.shape)+np.nan
+        astot = np.zeros(aot_sel.shape)+np.nan
+        dutott = np.zeros(aot_sel.shape)+np.nan
 
         if setu['glint_correction']:
-            ttot_all[b] = np.zeros(gem.data_mem['aot_550'].shape)+np.nan
+            ttot_all[b] = np.zeros(aot_sel.shape)+np.nan
 
         for li, lut in enumerate(luts):
             ls = np.where(aot_lut == li)
@@ -595,23 +582,25 @@ def acolite_l2r(gem,
             if np.len(np.atleast_1d(dutott)>1):
                 gemo.write('dutott_{}'.format(gem.bands[b]['wave_nm']), dutott)
 
+        ## do atmospheric correction
         rhot_noatm = (cur_data/ gem.bands[b]['tt_gas']) - romix
         romix = None
         cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
-        #gem.data_mem[dso] = cur_data
         astot=None
         dutott=None
         rhot_noatm = None
+
         ## write rhos
         ds_att = gem.bands[b]
         ds_att['wavelength']=ds_att['wave_nm']
         gemo.write(dso, cur_data, ds_att = ds_att)
         cur_data = None
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+    aot_lut, aot_sel = None, None
 
     ## glint correction
     if (setu['aerosol_correction'] == 'dark_spectrum') & setu['glint_correction']:
-        ## update output gem datasets
+        ## update output gem datasets to get rhos
         gemo.datasets_read()
 
         ## find bands for glint correction
@@ -668,14 +657,6 @@ def acolite_l2r(gem,
             vza = gem.data_mem['vza'] * dtor
             raa = gem.data_mem['raa'] * dtor
 
-            #if ('sza' in gem['data']) & ('vza' in gem['data']) & ('raa' in gem['data']):
-            #    sza = gem.data_mem['sza'] * dtor
-            #    vza = gem.data_mem['vza'] * dtor
-            #    raa = gem.data_mem['raa'] * dtor
-            #else:
-            #    sza = gem.gatts['sza'] * dtor
-            #    vza = gem.gatts['vza'] * dtor
-            #    raa = gem.gatts['raa'] * dtor
             muv = np.cos(vza)
             mus = np.cos(sza)
             cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
@@ -775,9 +756,9 @@ def acolite_l2r(gem,
 
                 ## remove glint from rhos
                 cur_data = gemo.data(rhos_ds)
-                #gem.data_mem[rhos_ds][sub_gc]-=cur_rhog
                 cur_data[sub_gc]-=cur_rhog
                 gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
+
                 ## write band glint
                 if setu['glint_write_rhog_all']:
                     tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
@@ -808,30 +789,12 @@ def acolite_l2r(gem,
         ob_data = gemo.data(gemo.bands['8']['rhos_ds'])*float(ob_cfg['pf'])
         ob_data += gemo.data(gemo.bands['3']['rhos_ds'])*float(ob_cfg['gf'])
         ob_data += gemo.data(gemo.bands['4']['rhos_ds'])*float(ob_cfg['rf'])
-        #gem.data_mem[ob['rhos_ds']] = ob_data
         gemo.write(ob['rhos_ds'], ob_data, ds_att = ob)
         ob_data = None
         ob = None
+    ## end orange band
 
-    if output_file:
-        ### write output data
-        #for bi, b in enumerate(gem.bands):
-        #    dso = gem.bands[b]['rhos_ds']
-        #    if dso not in gem.data_mem: continue
-        #    if verbosity > 1: print('Writing B{} {}'.format(b, dso))
-        #    ds_att = gem.bands[b]
-        #    ds_att['wavelength']=ds_att['wave_nm']
-        #    gemo.write(dso, gem.data_mem[dso], ds_att = ds_att)
-
-        ## reformat & save aot
-        if setu['dsf_path_reflectance'] == 'fixed':
-            gem.data_mem['aot_550'] = np.repeat(gem.data_mem['aot_550'], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
-        if setu['dsf_path_reflectance'] == 'tiled':
-            gem.data_mem['aot_550'] = ac.shared.tiles_interp(gem.data_mem['aot_550'], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
-        ## write aot
-        gemo.write('aot_550', gem.data_mem['aot_550'])
-
-        if verbosity>0: print('Wrote {}'.format(ofile))
+    if verbosity>0: print('Wrote {}'.format(ofile))
 
     if return_gem:
         return(gem, setu)
