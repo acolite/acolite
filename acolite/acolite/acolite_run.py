@@ -13,11 +13,10 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     ## time of processing start
     time_start = datetime.datetime.now()
 
-    ## get general settings
+    ## get user settings
     ## these are updated with sensor specific settings in acolite_l2r
-    #setu = ac.acolite.settings.parse(None, settings=settings)
     setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
-    if 'runid' not in setu: setu['runid']=time_start.strftime('%Y%m%d_%H%M%S')
+    if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
     print('Run ID - {}'.format(setu['runid']))
 
     ## parse inputfile
@@ -30,13 +29,18 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         setu['inputfile'] = inputfile
     nscenes = len(setu['inputfile'])
 
+    ## parse output
+    if output is not None: setu['output'] = output
+
+    ## get defaults settings for l1r processing
+    setu_l1r = ac.acolite.settings.parse(None, settings=setu, merge=True)
+
     ## make list of lists to process, one list if merging tiles
-    inputfile_list = [setu['inputfile']] if setu['merge_tiles'] else setu['inputfile']
+    inputfile_list = [setu_l1r['inputfile']] if setu_l1r['merge_tiles'] else setu_l1r['inputfile']
     nruns = len(inputfile_list)
 
     ## track processed scenes
     processed = {}
-
     ## run through bundles to process
     for ni in range(nruns):
         ## bundle to process
@@ -44,7 +48,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         processed[ni] = {'input': bundle}
 
         ## run l1 convert
-        ret = ac.acolite.acolite_l1r(bundle, output, setu)
+        ret = ac.acolite.acolite_l1r(bundle, setu_l1r)
         if len(ret) == 0: continue
         l1r_files, l1r_setu = ret
         processed[ni]['l1r'] = l1r_files
