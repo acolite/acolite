@@ -4,7 +4,7 @@
 ## 2021-03-11
 ## modifications: 2021-03-11 (QV) RGB outputs
 ##                2021-03-15 (QV) large update, including other parameters and mapping with pcolormesh
-##
+##                2021-04-01 (QV) changed plot_all option
 
 def acolite_map(ncf, output=None,
                 settings=None,
@@ -226,14 +226,17 @@ def acolite_map(ncf, output=None,
 
     ## parameters to plot
     plot_parameters = []
-    if plot_all: plot_parameters = [k for k in datasets if k not in plot_skip]
     if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
     if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
-    if setu['l2w_parameters'] is not None:
-        if type(setu['l2w_parameters']) is list:
-            plot_parameters+=setu['l2w_parameters']
-        else:
-            plot_parameters+=[setu['l2w_parameters']]
+
+    if plot_all:
+        plot_parameters = [k for k in datasets if k not in plot_skip]
+        if setu['l2w_parameters'] is not None:
+            if type(setu['l2w_parameters']) is list:
+                plot_parameters+=setu['l2w_parameters']
+            else:
+                plot_parameters+=[setu['l2w_parameters']]
+
     ## handle wildcards
     for par in plot_parameters:
         if '*' in par:
