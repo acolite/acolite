@@ -16,7 +16,7 @@ def acolite_l2r(gem,
 
                 verbosity=0):
 
-    import os, time
+    import os, time, datetime
     import numpy as np
     import scipy.ndimage
     import acolite as ac
@@ -25,18 +25,16 @@ def acolite_l2r(gem,
     from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
     from astropy.convolution import convolve
 
+    time_start = datetime.datetime.now()
+
     ## read gem file if NetCDF
-    #if type(gem) is str:
-    #    gemf = '{}'.format(gem)
-    #    gem = ac.gem.read(gem, sub=sub)
-    #gemf = gem.gatts['gemfile']
-    if type(gem) is str:
-        gem = ac.gem.gem(gem)
+    if type(gem) is str: gem = ac.gem.gem(gem)
     gemf = gem.file
 
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=settings)
     if 'verbosity' in setu: verbosity = setu['verbosity']
+    if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
 
     ## check blackfill
     if setu['blackfill_skip']:
@@ -86,6 +84,23 @@ def acolite_l2r(gem,
         if ('z_wind' in anc) & ('m_wind' in anc):
             gem.gatts['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
         if ('press' in anc): gem.gatts['pressure'] = anc['press']['interp']
+
+    ## dem pressure
+    if setu['dem_pressure']:
+        print('Extracting SRTM DEM data')
+        dem = ac.dem.hgt_lonlat(gem.data('lon'), gem.data('lat'))
+        dem_pressure = ac.ac.pressure_elevation(dem)
+        if setu['dem_pressure_resolved']:
+            gem.data_mem['pressure'] = dem_pressure
+        else:
+            gem.data_mem['pressure'] = np.nanpercentile(dem_pressure, setu['dem_pressure_percentile'])
+        gem.datasets.append('pressure')
+
+        if setu['dem_pressure_write']:
+            gem.data_mem['dem'] = dem.astype(np.float32)
+            gem.data_mem['dem_pressure'] = dem_pressure
+        dem = None
+        dem_pressure = None
 
     ## get mean average geometry
     geom_ds = ['sza', 'vza', 'raa', 'pressure', 'wind']
@@ -234,6 +249,13 @@ def acolite_l2r(gem,
                 cdata, catts = gem.data(ds, attributes=True)
                 gemo.write(ds, cdata, ds_att=catts)
 
+        ## write dem
+        if setu['dem_pressure_write']:
+            for k in ['dem', 'dem_pressure']:
+                if k in gem.data_mem:
+                    gemo.write(k, gem.data_mem[k])
+                    gem.data_mem[k] = None
+
     ## load reverse lut romix -> aot
     if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par)
     ## load aot -> atmospheric parameters lut
@@ -259,6 +281,7 @@ def acolite_l2r(gem,
         if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
 
         band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
+        band_shape = band_data.shape
         valid = np.isfinite(band_data)*(band_data>0)
         mask = valid is False
 
@@ -282,8 +305,12 @@ def acolite_l2r(gem,
             if setu['dsf_spectrum_option'] == 'intercept':
                 band_data = ac.shared.intercept(band_data[band_sub], setu['dsf_intercept_pixels'])
             band_data.shape+=(1,1) ## make 1,1 dimensions
-            if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(band_data[0,0]))
             gk='_mean'
+            #if not use_revlut:
+            #    gk='_mean'
+            #else:
+            #    band_data = np.tile(band_data, band_shape)
+            if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(band_data[0,0]))
 
         ## tiled path reflectance
         elif setu['dsf_path_reflectance'] == 'tiled':
@@ -509,6 +536,10 @@ def acolite_l2r(gem,
     ## store ttot for glint correction
     ttot_all = {}
 
+    ### store scene mask
+    #scene_mask = np.zeros(gemo.gatts['data_dimensions'], dtype=np.uint8)
+
+    print('use_revlut', use_revlut)
     ## compute surface reflectances
     for bi, b in enumerate(gem.bands):
         if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
@@ -527,17 +558,27 @@ def acolite_l2r(gem,
         if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
         gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
-        romix = np.zeros(aot_sel.shape)+np.nan
-        astot = np.zeros(aot_sel.shape)+np.nan
-        dutott = np.zeros(aot_sel.shape)+np.nan
 
+        ## shape of atmospheric datasets
+        atm_shape = aot_sel.shape
+        ## if path reflectance is resolved, but resolved geometry available
+        if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
+            atm_shape = cur_data.shape
+            gk = ''
+        romix = np.zeros(atm_shape)+np.nan
+        astot = np.zeros(atm_shape)+np.nan
+        dutott = np.zeros(atm_shape)+np.nan
         if setu['glint_correction']:
-            ttot_all[b] = np.zeros(aot_sel.shape)+np.nan
+            ttot_all[b] = np.zeros(atm_shape)+np.nan
 
         for li, lut in enumerate(luts):
             ls = np.where(aot_lut == li)
             if len(ls[0]) == 0: continue
             ai = aot_sel[ls]
+
+            ## resolved geometry with fixed path reflectance
+            if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
+                ls = np.where(cur_data)
 
             ## take all pixels if using fixed processing
             #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
@@ -575,12 +616,19 @@ def acolite_l2r(gem,
 
         ## write ac parameters
         if setu['dsf_write_tiled_parameters']:
-            if np.len(np.atleast_1d(romix)>1):
-                gemo.write('romix_{}'.format(gem.bands[b]['wave_nm']), romix)
-            if np.len(np.atleast_1d(astot)>1):
-                gemo.write('astot_{}'.format(gem.bands[b]['wave_nm']), astot)
-            if np.len(np.atleast_1d(dutott)>1):
-                gemo.write('dutott_{}'.format(gem.bands[b]['wave_nm']), dutott)
+            if len(np.atleast_1d(romix)>1):
+                if romix.shape == cur_data.shape:
+                    gemo.write('romix_{}'.format(gem.bands[b]['wave_name']), romix)
+            if len(np.atleast_1d(astot)>1):
+                if astot.shape == cur_data.shape:
+                    gemo.write('astot_{}'.format(gem.bands[b]['wave_name']), astot)
+            if len(np.atleast_1d(dutott)>1):
+                if dutott.shape == cur_data.shape:
+                    gemo.write('dutott_{}'.format(gem.bands[b]['wave_name']), dutott)
+            if setu['glint_correction']:
+                if len(np.atleast_1d(ttot_all[b])>1):
+                    if ttot_all[b].shape == cur_data.shape:
+                        gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
 
         ## do atmospheric correction
         rhot_noatm = (cur_data/ gem.bands[b]['tt_gas']) - romix
@@ -672,7 +720,7 @@ def acolite_l2r(gem,
 
             ## compute where to apply the glint correction
             ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
-            gc_mask_data = gem.data(gc_mask)
+            gc_mask_data = gemo.data(gc_mask)
             sub_gc = np.where(np.isfinite(gc_mask_data) & \
                               (gc_mask_data<=setu['glint_mask_rhos_threshold']))
             gc_mask_data = None

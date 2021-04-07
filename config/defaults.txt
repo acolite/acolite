@@ -81,8 +81,12 @@ uwv_default=1.5
 pressure=None
 elevation=None
 lut_pressure=True
+
+## DEM options
 dem_pressure=False
+dem_pressure_resolved=True
 dem_pressure_percentile=25
+dem_pressure_write=False
 
 ## correction for sky reflectance on water surface
 sky_correction=True

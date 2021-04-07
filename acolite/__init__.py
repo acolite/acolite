@@ -1,3 +1,5 @@
+version = 'Public Beta'
+
 from acolite import landsat
 from acolite import sentinel2
 from acolite import sentinel3
@@ -9,6 +11,7 @@ from acolite import ac
 from acolite import aerlut
 from acolite import output
 from acolite import shared
+from acolite import dem
 
 from acolite import tact
 from acolite import acolite
