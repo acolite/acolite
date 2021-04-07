@@ -12,7 +12,8 @@
 def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     import acolite as ac
     import dateutil, datetime
-
+    import os
+    
     if type(date) == str:
         dt = dateutil.parser.parse(date)
     else:
@@ -45,12 +46,15 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     if ozone_file is None:
         if verbosity > 0: print('No ozone file found for {}'.format(date))
     else:
-        if verbosity > 1: print('Reading ozone from {}'.format(ozone_file))
-        anc_ozone = ac.ac.ancillary.interp_ozone(ozone_file, lon, lat, kind=kind)
-        for k in anc_ozone.keys(): anc[k] = anc_ozone[k]
+        if os.path.exists(ozone_file):
+            if verbosity > 1: print('Reading ozone from {}'.format(ozone_file))
+            anc_ozone = ac.ac.ancillary.interp_ozone(ozone_file, lon, lat, kind=kind)
+            for k in anc_ozone.keys(): anc[k] = anc_ozone[k]
 
     ## get ncep MET files
     ncep_files = [anc_local[i] for i, j in enumerate(anc_local) if "NCEPR2" in j]
+    ncep_files = [f for f in ncep_files if os.path.exists(f)]
+
     ## interpolate MET
     if len(ncep_files) == 0:
         if verbosity > 0: print('No NCEP files found for {}'.format(date))
