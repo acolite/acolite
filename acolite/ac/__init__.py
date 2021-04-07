@@ -5,5 +5,6 @@ from .wvlut_interp import *
 
 from .rayleigh import *
 from .refri import *
+from .pressure_elevation import *
 
 from . import ancillary
