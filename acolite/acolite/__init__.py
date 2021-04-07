@@ -5,12 +5,13 @@ from .acolite_l2r import *
 from .acolite_l2w import *
 
 from .acolite_run import *
+from .acolite_map import *
 
 from .identify_bundle import *
-from .acolite_map import *
 from .parameter_scaling import *
 
 from . import settings
+from . import logging
 
 import os
 path=os.path.dirname(os.path.abspath(__file__))

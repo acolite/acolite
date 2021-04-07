@@ -17,6 +17,8 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     ## these are updated with sensor specific settings in acolite_l2r
     setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
+    log_file = '{}/acolite_run_{}_log_file.txt'.format(setu['output'],setu['runid'])
+    log = ac.acolite.logging.LogTee(log_file)
     print('Run ID - {}'.format(setu['runid']))
 
     ## parse inputfile
@@ -89,5 +91,6 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         if len(l2t_files) > 0: processed[ni]['l2t'] = l2t_files
         if len(l2w_files) > 0: processed[ni]['l2w'] = l2w_files
     ## end processing loop
+    log.__del__()
 
     return(processed)
