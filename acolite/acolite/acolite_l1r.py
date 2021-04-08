@@ -103,6 +103,21 @@ def acolite_l1r(bundle, settings, input_type=None):
     ################
 
     ################
+    ## VENUS
+    if input_type == 'VENUS':
+        l1r_files = ac.venus.l1_convert(bundle, output=output_,
+                                         limit=setu['limit'], poly=setu['polygon'],
+                                         #merge_tiles = setu['merge_tiles'],
+                                         #merge_zones = setu['merge_zones'],
+                                         extend_region = setu['extend_region'],
+                                         output_geolocation=setu['output_geolocation'],
+                                         output_xy=setu['output_xy'],
+                                         vname = setu['region_name'],
+                                         verbosity=setu['verbosity'])
+    ## end VENUS
+    ################
+
+    ################
     ## WorldView
     if input_type == 'WorldView':
         l1r_files = ac.worldview.l1_convert(bundle, output=output_,

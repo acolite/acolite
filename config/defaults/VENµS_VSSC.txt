@@ -1,0 +1,10 @@
+## ACOLITE default settings for VENUS
+
+## dark spectrum fitting options
+dsf_path_reflectance=fixed
+dsf_wave_range=400,900
+gains_toa=1,1,1,1,1,1,1,1,1,1,1,1
+l2w_mask_wave=860
+l2w_mask_threshold=0.17
+dsf_intercept_pixels=200
+dsf_tile_dimensions=1200,1200

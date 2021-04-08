@@ -2,7 +2,7 @@
 ## function to identify image that needs to be processed
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-10
-## modifications:
+## modifications: 2021-04-08 (QV) added VENUS
 
 def identify_bundle(bundle, input_type = None):
     import os, glob, shutil, zipfile
@@ -90,6 +90,17 @@ def identify_bundle(bundle, input_type = None):
         ## end Pléiades/SPOT
         ################
 
+        ################
+        ## VENUS
+        try:
+            meta = ac.venus.metadata_parse(bundle)
+            if meta['PLATFORM'] == 'VENUS':
+                input_type = 'VENUS'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end VENUS
+        ################
 
         ################
         ## WorldView
