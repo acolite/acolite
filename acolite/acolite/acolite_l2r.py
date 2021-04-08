@@ -102,14 +102,14 @@ def acolite_l2r(gem,
         dem = None
         dem_pressure = None
 
+    ## set wind to wind range
+    gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
+    gem.gatts['wind'] = min(20, gem.gatts['wind'])
+
     ## get mean average geometry
     geom_ds = ['sza', 'vza', 'raa', 'pressure', 'wind']
     for ds in geom_ds: gem.data(ds, store=True, return_data=False)
     geom_mean = {k: np.nanmean(gem.data(k)) if k in gem.datasets else gem.gatts[k] for k in geom_ds}
-
-    ## set wind to wind range
-    gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
-    gem.gatts['wind'] = min(15, gem.gatts['wind'])
 
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
@@ -127,6 +127,16 @@ def acolite_l2r(gem,
                 if k not in ['wave']: gem.bands[b][k] = tg_dict[k][b]
             gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
     ## end bands dataset
+
+    ## atmospheric correction
+    if setu['aerosol_correction'] == 'dark_spectrum':
+        ac_opt = 'dsf'
+    elif  setu['aerosol_correction'] == 'exponential':
+        ac_opt = 'exp'
+    else:
+        print('Option {} {} not configured'.format('aerosol_correction', setu['aerosol_correction']))
+        ac_opt = 'dsf'
+    print('Using {} atmospheric correction'.format(ac_opt.upper()))
 
     ## determine use of reverse lut rhot->aot
     use_revlut = False
@@ -385,7 +395,7 @@ def acolite_l2r(gem,
                 aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
                                                    lutdw[lut]['meta']['tau'],
                                                    left=np.nan, right=np.nan)
-
+                #print(aot_band[lut][band_sub])
             tel = time.time()-t0
 
             if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
@@ -410,8 +420,13 @@ def acolite_l2r(gem,
                                                    aot_dict[b][lut]))
         ## get minimum and mask of aot
         aot_stack[lut]['min'] = np.nanmin(aot_stack[lut]['all'], axis=2)
-        aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['min'])
 
+        ## if minimum for fixed retrieval is nan, set it to 0.01
+        if setu['dsf_path_reflectance'] == 'fixed':
+            if np.isnan(aot_stack[lut]['min']):
+                aot_stack[lut]['min'][0][0] = 0.01
+
+        aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['min'])
 
         ## apply percentile filter
         if (setu['dsf_filter_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
@@ -579,7 +594,6 @@ def acolite_l2r(gem,
             ## resolved geometry with fixed path reflectance
             if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
                 ls = np.where(cur_data)
-
             ## take all pixels if using fixed processing
             #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
 
