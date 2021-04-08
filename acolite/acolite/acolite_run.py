@@ -38,6 +38,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     setu_l1r = ac.acolite.settings.parse(None, settings=setu, merge=True)
 
     ## make list of lists to process, one list if merging tiles
+    if type(setu_l1r['inputfile']) is not list: setu_l1r['inputfile'] = [setu_l1r['inputfile']]
     inputfile_list = [setu_l1r['inputfile']] if setu_l1r['merge_tiles'] else setu_l1r['inputfile']
     nruns = len(inputfile_list)
 
