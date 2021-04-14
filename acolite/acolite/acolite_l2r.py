@@ -347,7 +347,6 @@ def acolite_l2r(gem,
             ## fill nan tiles with closest values
             ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
             band_data = tile_data[tuple(ind)]
-
         ## resolved per pixel dsf
         elif setu['dsf_path_reflectance'] == 'resolved':
             if not setu['resolved_geometry']: gk = '_mean'
@@ -576,6 +575,7 @@ def acolite_l2r(gem,
         if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
         gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
+        if setu['slicing']: valid_mask = np.isfinite(cur_data)
 
         ## shape of atmospheric datasets
         atm_shape = aot_sel.shape
@@ -625,11 +625,15 @@ def acolite_l2r(gem,
         ## interpolate tiled processing to full scene
         if setu['dsf_path_reflectance'] == 'tiled':
             if verbosity > 1: print('Interpolating tiles')
-            romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
-            astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
-            dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
+            romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+            target_mask_full=True, smooth=True, kern_size=3, method='linear')
+            astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+            target_mask_full=True, smooth=True, kern_size=3, method='linear')
+            dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+            target_mask_full=True, smooth=True, kern_size=3, method='linear')
             if setu['glint_correction']:
-                ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
+                ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                target_mask_full=True, smooth=True, kern_size=3, method='linear')
 
         ## write ac parameters
         if setu['dsf_write_tiled_parameters']:
