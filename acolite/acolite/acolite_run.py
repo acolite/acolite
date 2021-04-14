@@ -2,11 +2,11 @@
 ## runs acolite processing for given settings file/dict, new version
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-04-01
-## modifications:
+## modifications: 2021-04-14 (QV) added output to settings if not configured
 
 
 def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
-    import datetime
+    import datetime, os
     import acolite as ac
 
     print('Running generic ACOLITE processing - {}'.format(ac.version))
@@ -17,6 +17,11 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     ## these are updated with sensor specific settings in acolite_l2r
     setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
+    if 'output' not in setu:
+        if output is None:
+            setu['output'] = os.cwd()
+        else:
+            setu['output'] = output
     log_file = '{}/acolite_run_{}_log_file.txt'.format(setu['output'],setu['runid'])
     log = ac.acolite.logging.LogTee(log_file)
     print('Run ID - {}'.format(setu['runid']))
