@@ -663,6 +663,9 @@ def acolite_l2r(gem,
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
     aot_lut, aot_sel = None, None
 
+    ## update outputfile dataset info
+    gemo.datasets_read()
+
     ## glint correction
     if (setu['aerosol_correction'] == 'dark_spectrum') & setu['glint_correction']:
         ## update output gem datasets to get rhos
