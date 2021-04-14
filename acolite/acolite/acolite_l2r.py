@@ -169,6 +169,7 @@ def acolite_l2r(gem,
 
     ## for tiled processing track tile positions and average geometry
     tiles = []
+    if 'dsf_tile_dimensions' not in setu: setu['dsf_tile_dimensions'] = None
     if (setu['dsf_path_reflectance'] == 'tiled') & (setu['dsf_tile_dimensions'] is not None):
         ni = np.ceil(gem.gatts['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem.gatts['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
@@ -558,11 +559,13 @@ def acolite_l2r(gem,
     ## compute surface reflectances
     for bi, b in enumerate(gem.bands):
         if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
+        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue ## skip if we don't have rhot for a band that is in the RSR file
+
         dsi = gem.bands[b]['rhot_ds']
         dso = gem.bands[b]['rhos_ds']
         cur_data, cur_att = gem.data(dsi, attributes=True)
 
-        ## story rhot in output file
+        ## store rhot in output file
         if copy_rhot:
             gemo.write(dsi, cur_data, ds_att = cur_att)
 
