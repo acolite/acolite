@@ -55,10 +55,8 @@ def launch_acolite():
         ## run processing
         ac.acolite.acolite_run(args.settings, inputfile=inputfile, output=output)
     else:
-        print('ACOLITE GUI not yet implemented')
+        ret = ac.acolite.acolite_gui(sys.argv, version=ac.version)
         return()
-
-        #ret = ac.acolite.acolite_gui(sys.argv, version=ac.acolite.config['version'])
 
 if __name__ == '__main__':
     launch_acolite()
