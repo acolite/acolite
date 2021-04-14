@@ -31,7 +31,7 @@ tact_output_atmosphere=False
 tact_output_intermediate=False
 
 ## printout verbosity
-verbosity=0
+verbosity=5
 
 ## test cropped scenes for blackfill coverage
 blackfill_skip=True
