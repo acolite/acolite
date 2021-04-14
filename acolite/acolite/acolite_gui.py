@@ -9,6 +9,7 @@
 ##                2020-10-28 (QV) fixed some issues with restoring settings files, removed multiprocessing for darwin
 ##                2020-10-29 (QV) moved multiprocessing Process out of def so it can be pickled, multiprocessing enabled for linux,darwin and win32
 ##                2021-01-05 (QV) added text colour to Buttons so the labels are visible in Mac OS Dark Mode
+##                2021-04-14 (QV) changed for acolite-generic
 
 ## Process class that returns exceptions
 import multiprocessing as mp
@@ -104,7 +105,6 @@ def acolite_gui(*args, version=None):
             optframe=tk.Frame(self, width=600, height=100, pady=3)
             saveframe=tk.Frame(self, width=600, height=100, pady=3)
             runframe=tk.Frame(self, width=600, height=100, pady=3)
-            #polyframe=tk.Frame(self, width=600, height=100, pady=3)
 
             self.grid_columnconfigure(0, weight=1)
 
@@ -113,10 +113,6 @@ def acolite_gui(*args, version=None):
             optframe.grid(row=2, sticky='ew')
             saveframe.grid(row=3, sticky='ew')
             runframe.grid(row=4, sticky='ew')
-            #polyframe.grid(row=2, sticky='ew')
-            #optframe.grid(row=3, sticky='ew')
-            #saveframe.grid(row=4, sticky='ew')
-            #runframe.grid(row=5, sticky='ew')
 
             ### input and output
             l = tk.Label(inputframe, text='Input and output')
@@ -381,17 +377,9 @@ def acolite_gui(*args, version=None):
                 settings_file = filedialog.askopenfilename(title='Select settings file to restore.', initialdir=initial_dir, initialfile=initial_file)
             if len(settings_file) > 0:
                 self.settings_file = settings_file
-                ##print(settings_file)
                 try:
-                    #print(ac.acolite.settings.read(self.settings_file))
-                    #self.setimport = ac.acolite.settings.read(self.settings_file)
                     self.setimport = ac.acolite.settings.parse(None, settings=self.settings_file, merge=False)
-                    #print(self.setimport)
                     for k in self.setimport.keys():
-                        #if k not in self.acolite_settings:
-                        #    #print(k)
-                        #    continue
-                        #print(k, self.acolite_settings[k])
                         self.acolite_settings[k] = self.setimport[k]
                 except:
                     print('Could not restore settings from {}'.format(settings_file))
@@ -583,28 +571,6 @@ def acolite_gui(*args, version=None):
             self.widget.insert(END, data) #, (self.tag,)
             self.widget.configure(state="disabled") ## lock writing
             self.widget.see(END)
-        def flush(self):
-            pass
-
-    ## object for logging stdout to log file when processing
-    class LogTee(object):
-        def __init__(self, name):
-            self.name=name
-            ## make new file
-            self.file = open(self.name, 'w')
-            self.file.close()
-            self.mode='a'
-            self.stdout = sys.stdout
-            sys.stdout = self
-        def __del__(self):
-            sys.stdout = self.stdout
-        def write(self, data):
-            self.stdout.write(data)
-            data = data.strip()
-            if len(data) > 0:
-                self.file = open(self.name, self.mode)
-                self.file.write('{}: {}\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),data))
-                self.file.close()
         def flush(self):
             pass
 
