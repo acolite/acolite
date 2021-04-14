@@ -79,18 +79,16 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
 
             ## make rgb maps
             if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:
-                #ac.acolite.acolite_map(ret, settings = settings, plot_all=False)
                 ac.acolite.acolite_map(l2r, settings = l2r_setu, plot_all=False)
 
             ## compute l2w parameters
             if l2r_setu['l2w_parameters'] is not None:
-                #ret = ac.acolite.acolite_l2w(l2r, settings=settings)
+                if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
                 ret = ac.acolite.acolite_l2w(l2r, settings=l2r_setu)
                 l2w_files.append(ret)
 
                 ## make l2w maps
                 if l2r_setu['map_l2w']:
-                    #ac.acolite.acolite_map(ret, settings=settings)
                     ac.acolite.acolite_map(ret, settings=l2r_setu)
 
         if len(l2r_files) > 0: processed[ni]['l2r'] = l2r_files
