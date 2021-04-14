@@ -26,6 +26,13 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     log = ac.acolite.logging.LogTee(log_file)
     print('Run ID - {}'.format(setu['runid']))
 
+    ## earthdata credentials from settings file
+    for k in ['EARTHDATA_u', 'EARTHDATA_p']:
+        kv = setu[k] if k in setu else ac.config[k]
+        if len(kv) == 0: continue
+        os.environ[k] = kv
+        print(k, kv)
+        
     ## parse inputfile
     if inputfile is not None:
         if type(inputfile) != list:
