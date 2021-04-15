@@ -62,7 +62,9 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             inputfile_list.append(file)
         else:
             mime = mimetypes.guess_type(file)
-            if mime[0] != 'text/plain': continue
+            if mime[0] != 'text/plain':
+                if os.path.exists(file): inputfile_list.append(file) ## assume we can process this file
+                continue
             with open(file, 'r') as f:
                 for l in f.readlines():
                     l = l.strip()
@@ -102,7 +104,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                 ret = ac.tact.tact_gem(l1r, output_atmosphere = l2r_setu['tact_output_atmosphere'],
                                             output_intermediate = l2r_setu['tact_output_intermediate'])
                 l2t_files.append(ret)
-                
+
                 ## make l2t maps
                 if l2r_setu['tact_map']:
                     ac.acolite.acolite_map(ret, settings=l2r_setu)
