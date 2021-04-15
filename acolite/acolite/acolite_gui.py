@@ -42,13 +42,12 @@ def acolite_gui(*args, version=None):
     parser = argparse.ArgumentParser(description='ACOLITE GUI')
     parser.add_argument('--settings', help='settings file')
     parser.add_argument('--images', help='list of images')
-    ##args = parser.parse_args()
     args, unknown = parser.parse_known_args()
 
     import tkinter as tk
-    #from tkinter import *
     from tkinter import END, IntVar, StringVar
     from tkinter import filedialog
+
     import threading
 
     import sys
@@ -113,9 +112,15 @@ def acolite_gui(*args, version=None):
             inputframe.grid_columnconfigure(0,weight=1)
             l.grid(row=0, column=0)
 
+            ## choose directories or files
+            self.input_dir=IntVar()
+            self.input_dir.set(1)
+            c = tk.Checkbutton(inputframe, text="Inputfile as directory", variable=self.input_dir)
+            c.grid(row=1, column=0)
+
             ## make frame for io buttons
             ioframe = tk.Frame(inputframe)
-            ioframe.grid(row=1, column=0)
+            ioframe.grid(row=2, column=0)
 
             l = tk.Label(ioframe, text='Input:')
             l.grid(row=1,column=0)
@@ -274,7 +279,12 @@ def acolite_gui(*args, version=None):
         def select_input(self):
             initial_file = self.tinput.get(1.0, END).strip()
             initial_dir = os.path.dirname(initial_file)
-            inputfile = filedialog.askdirectory(title='Select input scene directory.', initialdir=initial_dir)
+            if self.input_dir.get():
+                inputfile = filedialog.askdirectory(title='Select input scene directory.', initialdir=initial_dir)
+            else:
+                inputfile = filedialog.askopenfilenames(title='Select input file.', initialdir=initial_dir, multiple=True)
+                inputfile = ','.join(inputfile)
+
             if len(inputfile)>0:
                 self.inputfile=inputfile
                 print('Selected {} as input file.'.format(self.inputfile))
@@ -312,6 +322,7 @@ def acolite_gui(*args, version=None):
             self.nbox.delete(1.0, END)
             self.wbox.delete(1.0, END)
             self.ebox.delete(1.0, END)
+            self.tpoly.delete(1.0, END)
 
         def update_settings(self):
             ## set limit from boxes here
@@ -344,14 +355,20 @@ def acolite_gui(*args, version=None):
 
         ## save settings to file
         def save(self):
-            initial_dir=os.path.dirname(self.settings_file)
-            initial_file=os.path.basename(self.settings_file)
-            if sys.platform == 'darwin':
+            if self.settings_file == '':
                 initial_dir=None
                 initial_file=None
+            else:
+                initial_dir=os.path.dirname(self.settings_file)
+                initial_file=os.path.basename(self.settings_file)
+            #if sys.platform == 'darwin':
+            #    initial_dir=None
+            #    initial_file=None
 
-            settings_file = filedialog.asksaveasfilename(title='Select where to save settings.', initialdir=initial_dir, initialfile=initial_file)
+            settings_file = filedialog.asksaveasfilename(title='Select where to save settings.',
+                                                         initialdir=initial_dir, initialfile=initial_file, defaultextension='.txt')
             if len(settings_file) > 0:
+                print(settings_file)
                 self.settings_file = settings_file
                 ac.acolite.settings.write(settings_file, self.acolite_settings)
                 try:
@@ -401,7 +418,7 @@ def acolite_gui(*args, version=None):
                     if 'output' not in self.acolite_settings: self.acolite_settings['output'] = ''
                     self.toutput.insert(END,self.acolite_settings['output'])
 
-                    ## clear and set output
+                    ## clear and set polygon
                     self.tpoly.delete(1.0, END)
                     if 'polygon' not in self.acolite_settings: self.acolite_settings['polygon'] = ''
                     self.tpoly.insert(END,self.acolite_settings['polygon'])
@@ -444,7 +461,8 @@ def acolite_gui(*args, version=None):
                 print('Processing already running.')
             elif self.processingRunning==False:
                 self.update_settings()
-                if os.path.exists(self.acolite_settings['inputfile']):
+                #if os.path.exists(self.acolite_settings['inputfile']):
+                if True:
                     self.processingRunning=True
                     self.processingComplete=False
 
