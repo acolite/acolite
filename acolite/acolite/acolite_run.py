@@ -102,6 +102,10 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                 ret = ac.tact.tact_gem(l1r, output_atmosphere = l2r_setu['tact_output_atmosphere'],
                                             output_intermediate = l2r_setu['tact_output_intermediate'])
                 l2t_files.append(ret)
+                
+                ## make l2t maps
+                if l2r_setu['tact_map']:
+                    ac.acolite.acolite_map(ret, settings=l2r_setu)
 
             ## make rgb maps
             if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:

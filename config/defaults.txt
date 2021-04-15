@@ -29,6 +29,7 @@ inputfile_swir=None
 tact_run=False
 tact_output_atmosphere=False
 tact_output_intermediate=False
+tact_map=True
 
 ## printout verbosity
 verbosity=5

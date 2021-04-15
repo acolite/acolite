@@ -20,8 +20,8 @@ spm_nechad2016_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
 #
 ## T Nechad with generic option
 #
-tur_nechad,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
-tur_nechad_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
+tur_nechad,0,60,False,Planck_Parchment_RGB,T Nechad,FNU
+tur_nechad_*,0,60,False,Planck_Parchment_RGB,T Nechad,FNU
 tur_nechad2016,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 tur_nechad2016_*,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 #
@@ -64,6 +64,9 @@ bt10,270,300,False,default,BT10,K
 bt11,270,300,False,default,BT11,K
 lt10,0,12,False,default,LT10,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
 lt11,0,12,False,default,LT11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+## TACT surface temperatures
+st10,270,300,False,Planck_Parchment_RGB,ST10,K
+st11,270,300,False,Planck_Parchment_RGB,ST11,K
 ##
 #
 ## Hue Angle
