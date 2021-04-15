@@ -216,7 +216,6 @@ def acolite_l2r(gem,
     ## write settings
     settings_file = '{}/acolite_run_{}_l2r_settings.txt'.format(output_,setu['runid'])
     ac.acolite.settings.write(settings_file, setu)
-    print(settings_file)
 
     ## setup output file
     ofile = None
@@ -250,7 +249,6 @@ def acolite_l2r(gem,
             if 'rhot_*' in copy_datasets:
                 copy_datasets.remove('rhot_*')
                 copy_rhot = True
-                #copy_datasets += [ds for ds in gem.datasets if ('rhot_' in ds) & (ds not in copy_datasets)]
             ## copy datasets to L2R
             for ds in copy_datasets:
                 if (ds not in gem.datasets):
@@ -273,270 +271,470 @@ def acolite_l2r(gem,
     lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=gem.gatts['sensor'])
     luts = list(lutdw.keys())
 
-    ## run through bands to get aot
-    aot_dict = {}
-    dsf_rhod = {}
-    for bi, b in enumerate(gem.bands):
-        if (b in setu['dsf_exclude_bands']): continue
-        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
-        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
+    ## #####################
+    ## dark spectrum fitting
+    if (ac_opt == 'dsf'):
+        ## user supplied aot
+        if (setu['dsf_fixed_aot'] is not None):
+            aot_lut = None
+            for li, lut in enumerate(luts):
+                if lut == setu['dsf_fixed_lut']:
+                    aot_lut = np.array(li)
+                    aot_lut.shape+=(1,1) ## make 1,1 dimensions
+            if aot_lut is None:
+                print('LUT {} not recognised'.format(setu['dsf_fixed_lut']))
 
-        ## skip band for aot computation
-        if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']: continue
+            aot_sel = np.array(float(setu['dsf_fixed_aot']))
+            aot_sel.shape+=(1,1) ## make 1,1 dimensions
+            print('User specified aot {} and model {}'.format(aot_sel[0][0], luts[aot_lut[0][0]]))
 
-        ## skip bands according to configuration
-        if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
-        if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
-        if (b in setu['dsf_exclude_bands']): continue
-
-        if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
-
-        band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
-        band_shape = band_data.shape
-        valid = np.isfinite(band_data)*(band_data>0)
-        mask = valid is False
-
-        ## apply TOA filter
-        if setu['dsf_filter_toa']:
-            band_data[mask] = np.nanmedian(band_data) ## fill mask with median
-            band_data = scipy.ndimage.median_filter(band_data, size=setu['dsf_filter_box'])
-            band_data = scipy.ndimage.percentile_filter(band_data, setu['dsf_filter_percentile'], size=setu['dsf_filter_box'])
-            band_data[mask] = np.nan
-        band_sub = np.where(valid)
-
-        ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
-        gk = ''
-
-        ## fixed path reflectance
-        if setu['dsf_path_reflectance'] == 'fixed':
-            if setu['dsf_spectrum_option'] == 'darkest':
-                band_data = np.array((np.nanpercentile(band_data[band_sub], 0)))
-            if setu['dsf_spectrum_option'] == 'percentile':
-                band_data = np.array((np.nanpercentile(band_data[band_sub], setu['dsf_percentile'])))
-            if setu['dsf_spectrum_option'] == 'intercept':
-                band_data = ac.shared.intercept(band_data[band_sub], setu['dsf_intercept_pixels'])
-            band_data.shape+=(1,1) ## make 1,1 dimensions
-            gk='_mean'
-            #if not use_revlut:
-            #    gk='_mean'
-            #else:
-            #    band_data = np.tile(band_data, band_shape)
-            if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(band_data[0,0]))
-
-        ## tiled path reflectance
-        elif setu['dsf_path_reflectance'] == 'tiled':
-            gk = '_tiled'
-
-            ## tile this band data
-            tile_data = np.zeros((tiles[-1][0]+1, tiles[-1][1]+1)) + np.nan
-            for t in range(len(tiles)):
-                ti, tj, subti, subtj = tiles[t]
-                tsub = band_data[subtj[0]:subtj[1], subti[0]:subti[1]]
-                tel = (subtj[1]-subtj[0]) * (subti[1]-subti[0])
-                nsub = len(np.where(np.isfinite(tsub))[0])
-                if nsub < tel * float(setu['dsf_min_tile_cover']): continue
-
-                ## get per tile darkest
-                if setu['dsf_spectrum_option'] == 'darkest':
-                    tile_data[ti,tj] = np.array((np.nanpercentile(tsub, 0)))
-                if setu['dsf_spectrum_option'] == 'percentile':
-                    tile_data[ti,tj] = np.array((np.nanpercentile(tsub, setu['dsf_percentile'])))
-                if setu['dsf_spectrum_option'] == 'intercept':
-                    tile_data[ti,tj] = ac.shared.intercept(tsub, int(setu['dsf_intercept_pixels']))
-
-            ## fill nan tiles with closest values
-            ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
-            band_data = tile_data[tuple(ind)]
-        ## resolved per pixel dsf
-        elif setu['dsf_path_reflectance'] == 'resolved':
-            if not setu['resolved_geometry']: gk = '_mean'
+            ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
+            gk = '' if use_revlut else '_mean'
+            print(use_revlut)
+        ## image derived aot
         else:
-            print('DSF option {} not configured'.format(setu['dsf_path_reflectance']))
-            continue
+            ## run through bands to get aot
+            aot_dict = {}
+            dsf_rhod = {}
+            for bi, b in enumerate(gem.bands):
+                if (b in setu['dsf_exclude_bands']): continue
+                if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
+                if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
 
-        ## do gas correction
-        band_sub = np.where(np.isfinite(band_data))
-        band_data[band_sub] /= gem.bands[b]['tt_gas']
+                ## skip band for aot computation
+                if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']: continue
 
-        ## store rhod
-        if setu['dsf_path_reflectance'] in ['fixed', 'tiled']:
-            dsf_rhod[b] = band_data
+                ## skip bands according to configuration
+                if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
+                if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
+                if (b in setu['dsf_exclude_bands']): continue
 
-        ## compute aot
-        aot_band = {}
-        for li, lut in enumerate(luts):
-            aot_band[lut] = np.zeros(band_data.shape)+np.nan
-            t0 = time.time()
+                if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
 
-            ## reverse lut interpolates rhot directly to aot
-            if use_revlut:
-                aot_band[lut][band_sub] = revl[lut]['rgi'][b]((gem.data_mem['pressure'+gk][band_sub],
-                                                               gem.data_mem['raa'+gk][band_sub],
-                                                               gem.data_mem['vza'+gk][band_sub],
-                                                               gem.data_mem['sza'+gk][band_sub],
-                                                               gem.data_mem['wind'+gk][band_sub],
-                                                               band_data[band_sub]))
-                # mask out of range aot
-                aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=np.nan
-                aot_band[lut][aot_band[lut]>=revl[lut]['maxaot']]=np.nan
+                band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
+                band_shape = band_data.shape
+                valid = np.isfinite(band_data)*(band_data>0)
+                mask = valid is False
 
-            ## standard lut interpolates rhot to results for different aot values
-            else:
-                ## get rho path for lut steps in aot
-                tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
-                                            lutdw[lut]['ipd'][par],
-                                            gem.data_mem['raa'+gk],
-                                            gem.data_mem['vza'+gk],
-                                            gem.data_mem['sza'+gk],
-                                            gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
-                tmp = tmp.flatten()
+                ## apply TOA filter
+                if setu['dsf_filter_toa']:
+                    band_data[mask] = np.nanmedian(band_data) ## fill mask with median
+                    band_data = scipy.ndimage.median_filter(band_data, size=setu['dsf_filter_box'])
+                    band_data = scipy.ndimage.percentile_filter(band_data, setu['dsf_filter_percentile'], size=setu['dsf_filter_box'])
+                    band_data[mask] = np.nan
+                band_sub = np.where(valid)
 
-                ## interpolate rho path to observation
-                aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
-                                                   lutdw[lut]['meta']['tau'],
-                                                   left=np.nan, right=np.nan)
-                #print(aot_band[lut][band_sub])
-            tel = time.time()-t0
+                ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
+                gk = ''
 
-            if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
+                ## fixed path reflectance
+                if setu['dsf_path_reflectance'] == 'fixed':
+                    if setu['dsf_spectrum_option'] == 'darkest':
+                        band_data = np.array((np.nanpercentile(band_data[band_sub], 0)))
+                    if setu['dsf_spectrum_option'] == 'percentile':
+                        band_data = np.array((np.nanpercentile(band_data[band_sub], setu['dsf_percentile'])))
+                    if setu['dsf_spectrum_option'] == 'intercept':
+                        band_data = ac.shared.intercept(band_data[band_sub], setu['dsf_intercept_pixels'])
+                    band_data.shape+=(1,1) ## make 1,1 dimensions
+                    gk='_mean'
+                    #if not use_revlut:
+                    #    gk='_mean'
+                    #else:
+                    #    band_data = np.tile(band_data, band_shape)
+                    if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(band_data[0,0]))
 
-        ###
-        aot_dict[b] = aot_band
+                ## tiled path reflectance
+                elif setu['dsf_path_reflectance'] == 'tiled':
+                    gk = '_tiled'
 
-    ## get and sort keys
-    aot_bands = list(aot_dict.keys())
-    aot_bands.sort()
+                    ## tile this band data
+                    tile_data = np.zeros((tiles[-1][0]+1, tiles[-1][1]+1)) + np.nan
+                    for t in range(len(tiles)):
+                        ti, tj, subti, subtj = tiles[t]
+                        tsub = band_data[subtj[0]:subtj[1], subti[0]:subti[1]]
+                        tel = (subtj[1]-subtj[0]) * (subti[1]-subti[0])
+                        nsub = len(np.where(np.isfinite(tsub))[0])
+                        if nsub < tel * float(setu['dsf_min_tile_cover']): continue
 
-    ## get min aot per pixel
-    aot_stack = {}
-    for li, lut in enumerate(luts):
-        ## stack aot for this lut
-        for bi, b in enumerate(aot_bands):
-            if b not in aot_dict: continue
-            if lut not in aot_stack:
-                aot_stack[lut] = {'all':  aot_dict[b][lut]*1.0}
-            else:
-                aot_stack[lut]['all'] = np.dstack((aot_stack[lut]['all'],
-                                                   aot_dict[b][lut]))
-        ## get minimum and mask of aot
-        aot_stack[lut]['min'] = np.nanmin(aot_stack[lut]['all'], axis=2)
+                        ## get per tile darkest
+                        if setu['dsf_spectrum_option'] == 'darkest':
+                            tile_data[ti,tj] = np.array((np.nanpercentile(tsub, 0)))
+                        if setu['dsf_spectrum_option'] == 'percentile':
+                            tile_data[ti,tj] = np.array((np.nanpercentile(tsub, setu['dsf_percentile'])))
+                        if setu['dsf_spectrum_option'] == 'intercept':
+                            tile_data[ti,tj] = ac.shared.intercept(tsub, int(setu['dsf_intercept_pixels']))
 
-        ## if minimum for fixed retrieval is nan, set it to 0.01
-        if setu['dsf_path_reflectance'] == 'fixed':
-            if np.isnan(aot_stack[lut]['min']):
-                aot_stack[lut]['min'][0][0] = 0.01
+                    ## fill nan tiles with closest values
+                    ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
+                    band_data = tile_data[tuple(ind)]
+                ## resolved per pixel dsf
+                elif setu['dsf_path_reflectance'] == 'resolved':
+                    if not setu['resolved_geometry']: gk = '_mean'
+                else:
+                    print('DSF option {} not configured'.format(setu['dsf_path_reflectance']))
+                    continue
 
-        aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['min'])
+                ## do gas correction
+                band_sub = np.where(np.isfinite(band_data))
+                band_data[band_sub] /= gem.bands[b]['tt_gas']
 
-        ## apply percentile filter
-        if (setu['dsf_filter_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
-            aot_stack[lut]['min'] = \
-                scipy.ndimage.percentile_filter(aot_stack[lut]['min'],
-                                                setu['dsf_filter_percentile'],
-                                                size=setu['dsf_filter_box'])
-        ## apply gaussian kernel smoothing
-        if (setu['dsf_smooth_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
-            aot_stack[lut]['min'] = \
-                convolve(aot_stack[lut]['min'],
-                         Gaussian2DKernel(x_stddev=setu['dsf_smooth_box'][0], y_stddev=setu['dsf_smooth_box'][1]),
-                         boundary='extend')
+                ## store rhod
+                if setu['dsf_path_reflectance'] in ['fixed', 'tiled']:
+                    dsf_rhod[b] = band_data
 
-        ## mask aot
-        aot_stack[lut]['min'][aot_stack[lut]['mask']] = np.nan
+                ## compute aot
+                aot_band = {}
+                for li, lut in enumerate(luts):
+                    aot_band[lut] = np.zeros(band_data.shape)+np.nan
+                    t0 = time.time()
 
-        ## fill nan tiles with closest values
-        #if (setu['dsf_path_reflectance'] == 'tiled'):
-        #    ind = scipy.ndimage.distance_transform_edt(aot_stack[lut]['mask'],
-        #                                               return_distances=False, return_indices=True)
-        #    aot_stack[lut]['min'] = aot_stack[lut]['min'][tuple(ind)]
+                    ## reverse lut interpolates rhot directly to aot
+                    if use_revlut:
+                        aot_band[lut][band_sub] = revl[lut]['rgi'][b]((gem.data_mem['pressure'+gk][band_sub],
+                                                                       gem.data_mem['raa'+gk][band_sub],
+                                                                       gem.data_mem['vza'+gk][band_sub],
+                                                                       gem.data_mem['sza'+gk][band_sub],
+                                                                       gem.data_mem['wind'+gk][band_sub],
+                                                                       band_data[band_sub]))
+                        # mask out of range aot
+                        aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=np.nan
+                        aot_band[lut][aot_band[lut]>=revl[lut]['maxaot']]=np.nan
 
-        ## store b1 and b2
-        tmp = np.argsort(aot_stack[lut]['all'], axis=2)
-        aot_stack[lut]['b1'] = tmp[:,:,0].astype(int)#.astype(float)
-        #aot_stack[lut]['b1'][aot_stack[lut]['mask']] = np.nan
-        aot_stack[lut]['b1'][aot_stack[lut]['mask']] = -1
-
-        aot_stack[lut]['b2'] = tmp[:,:,1].astype(int)#.astype(float)
-        #aot_stack[lut]['b2'][aot_stack[lut]['mask']] = np.nan
-        aot_stack[lut]['b2'][aot_stack[lut]['mask']] = -1
-
-        if setu['dsf_model_selection'] == 'min_dtau':
-            ## array idices
-            aid = np.indices(aot_stack[lut]['all'].shape[0:2])
-            ## abs difference between first and second band tau
-            aot_stack[lut]['dtau'] = np.abs(aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,0]]-\
-                                            aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,1]])
-            #return(aot_stack)
-            #aot_stack[lut]['dtau'] =
-        tmp = None
-
-    ## select model based on min rmsd for 2 bands
-    if verbosity > 1: print('Choosing best fitting model: {}'.format(setu['dsf_model_selection']))
-
-    ## run through model results, get rhod and rhop for two lowest bands
-    for li, lut in enumerate(luts):
-
-        ## select model based on minimum rmsd between two best fitting bands
-        if setu['dsf_model_selection'] == 'min_drmsd':
-            if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
-            rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
-            rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
-            for bi, b in enumerate(aot_bands):
-                ## run through two best fitting bands
-                for ai, ab in enumerate(['b1', 'b2']):
-                    aot_sub = np.where(aot_stack[lut][ab]==bi)
-                    ## get rhod for current band
-                    if (setu['dsf_path_reflectance'] == 'resolved'):
-                        rhod_f[aot_sub[0], aot_sub[1], ai] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
+                    ## standard lut interpolates rhot to results for different aot values
                     else:
-                        rhod_f[aot_sub[0], aot_sub[1], ai] = dsf_rhod[b][aot_sub]
-                    ## get rho path for current band
-                    if len(aot_sub[0]) > 0:
-                        if (use_revlut):
-                            xi = [gem.data_mem['pressure'+gk][aot_sub],
-                                              gem.data_mem['raa'+gk][aot_sub],
-                                              gem.data_mem['vza'+gk][aot_sub],
-                                              gem.data_mem['sza'+gk][aot_sub],
-                                              gem.data_mem['wind'+gk][aot_sub]]
-                        else:
-                            xi = [gem.data_mem['pressure'+gk],
-                                              gem.data_mem['raa'+gk],
-                                              gem.data_mem['vza'+gk],
-                                              gem.data_mem['sza'+gk],
-                                              gem.data_mem['wind'+gk]]
-                        rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                                    xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
-            ## rmsd for current bands
-            cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
-        ## end select with min RMSD
+                        ## get rho path for lut steps in aot
+                        tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
+                                                    lutdw[lut]['ipd'][par],
+                                                    gem.data_mem['raa'+gk],
+                                                    gem.data_mem['vza'+gk],
+                                                    gem.data_mem['sza'+gk],
+                                                    gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
+                        tmp = tmp.flatten()
 
-        ## select model based on minimum delta tau between two lowest aot bands
-        if setu['dsf_model_selection'] == 'min_dtau':
-            cur_sel_par = aot_stack[lut]['dtau']
-        ## end select with min delta tau
+                        ## interpolate rho path to observation
+                        aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
+                                                           lutdw[lut]['meta']['tau'],
+                                                           left=np.nan, right=np.nan)
+                        #print(aot_band[lut][band_sub])
+                    tel = time.time()-t0
 
-        ## store minimum info
-        if li == 0:
-            aot_lut = np.zeros(aot_stack[lut]['min'].shape).astype(int)
-            aot_lut[aot_stack[lut]['mask']] = -1
-            aot_sel = aot_stack[lut]['min'] * 1.0
-            aot_sel_par = cur_sel_par * 1.0
+                    if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
+
+                ###
+                aot_dict[b] = aot_band
+
+            ## get and sort keys
+            aot_bands = list(aot_dict.keys())
+            aot_bands.sort()
+
+            ## get min aot per pixel
+            aot_stack = {}
+            for li, lut in enumerate(luts):
+                ## stack aot for this lut
+                for bi, b in enumerate(aot_bands):
+                    if b not in aot_dict: continue
+                    if lut not in aot_stack:
+                        aot_stack[lut] = {'all':  aot_dict[b][lut]*1.0}
+                    else:
+                        aot_stack[lut]['all'] = np.dstack((aot_stack[lut]['all'],
+                                                           aot_dict[b][lut]))
+                ## get minimum and mask of aot
+                aot_stack[lut]['min'] = np.nanmin(aot_stack[lut]['all'], axis=2)
+
+                ## if minimum for fixed retrieval is nan, set it to 0.01
+                if setu['dsf_path_reflectance'] == 'fixed':
+                    if np.isnan(aot_stack[lut]['min']):
+                        aot_stack[lut]['min'][0][0] = 0.01
+
+                aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['min'])
+
+                ## apply percentile filter
+                if (setu['dsf_filter_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
+                    aot_stack[lut]['min'] = \
+                        scipy.ndimage.percentile_filter(aot_stack[lut]['min'],
+                                                        setu['dsf_filter_percentile'],
+                                                        size=setu['dsf_filter_box'])
+                ## apply gaussian kernel smoothing
+                if (setu['dsf_smooth_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
+                    aot_stack[lut]['min'] = \
+                        convolve(aot_stack[lut]['min'],
+                                 Gaussian2DKernel(x_stddev=setu['dsf_smooth_box'][0], y_stddev=setu['dsf_smooth_box'][1]),
+                                 boundary='extend')
+
+                ## mask aot
+                aot_stack[lut]['min'][aot_stack[lut]['mask']] = np.nan
+
+                ## fill nan tiles with closest values
+                #if (setu['dsf_path_reflectance'] == 'tiled'):
+                #    ind = scipy.ndimage.distance_transform_edt(aot_stack[lut]['mask'],
+                #                                               return_distances=False, return_indices=True)
+                #    aot_stack[lut]['min'] = aot_stack[lut]['min'][tuple(ind)]
+
+                ## store b1 and b2
+                tmp = np.argsort(aot_stack[lut]['all'], axis=2)
+                aot_stack[lut]['b1'] = tmp[:,:,0].astype(int)#.astype(float)
+                #aot_stack[lut]['b1'][aot_stack[lut]['mask']] = np.nan
+                aot_stack[lut]['b1'][aot_stack[lut]['mask']] = -1
+
+                aot_stack[lut]['b2'] = tmp[:,:,1].astype(int)#.astype(float)
+                #aot_stack[lut]['b2'][aot_stack[lut]['mask']] = np.nan
+                aot_stack[lut]['b2'][aot_stack[lut]['mask']] = -1
+
+                if setu['dsf_model_selection'] == 'min_dtau':
+                    ## array idices
+                    aid = np.indices(aot_stack[lut]['all'].shape[0:2])
+                    ## abs difference between first and second band tau
+                    aot_stack[lut]['dtau'] = np.abs(aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,0]]-\
+                                                    aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,1]])
+                    #return(aot_stack)
+                    #aot_stack[lut]['dtau'] =
+                tmp = None
+
+            ## select model based on min rmsd for 2 bands
+            if verbosity > 1: print('Choosing best fitting model: {}'.format(setu['dsf_model_selection']))
+
+            ## run through model results, get rhod and rhop for two lowest bands
+            for li, lut in enumerate(luts):
+
+                ## select model based on minimum rmsd between two best fitting bands
+                if setu['dsf_model_selection'] == 'min_drmsd':
+                    if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
+                    rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
+                    rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
+                    for bi, b in enumerate(aot_bands):
+                        ## run through two best fitting bands
+                        for ai, ab in enumerate(['b1', 'b2']):
+                            aot_sub = np.where(aot_stack[lut][ab]==bi)
+                            ## get rhod for current band
+                            if (setu['dsf_path_reflectance'] == 'resolved'):
+                                rhod_f[aot_sub[0], aot_sub[1], ai] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
+                            else:
+                                rhod_f[aot_sub[0], aot_sub[1], ai] = dsf_rhod[b][aot_sub]
+                            ## get rho path for current band
+                            if len(aot_sub[0]) > 0:
+                                if (use_revlut):
+                                    xi = [gem.data_mem['pressure'+gk][aot_sub],
+                                                      gem.data_mem['raa'+gk][aot_sub],
+                                                      gem.data_mem['vza'+gk][aot_sub],
+                                                      gem.data_mem['sza'+gk][aot_sub],
+                                                      gem.data_mem['wind'+gk][aot_sub]]
+                                else:
+                                    xi = [gem.data_mem['pressure'+gk],
+                                                      gem.data_mem['raa'+gk],
+                                                      gem.data_mem['vza'+gk],
+                                                      gem.data_mem['sza'+gk],
+                                                      gem.data_mem['wind'+gk]]
+                                rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                    ## rmsd for current bands
+                    cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
+                ## end select with min RMSD
+
+                ## select model based on minimum delta tau between two lowest aot bands
+                if setu['dsf_model_selection'] == 'min_dtau':
+                    cur_sel_par = aot_stack[lut]['dtau']
+                ## end select with min delta tau
+
+                ## store minimum info
+                if li == 0:
+                    aot_lut = np.zeros(aot_stack[lut]['min'].shape).astype(int)
+                    aot_lut[aot_stack[lut]['mask']] = -1
+                    aot_sel = aot_stack[lut]['min'] * 1.0
+                    aot_sel_par = cur_sel_par * 1.0
+                else:
+                    aot_sub = np.where(cur_sel_par<aot_sel_par)
+                    if len(aot_sub[0]) == 0: continue
+                    aot_lut[aot_sub] = li
+                    aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
+                    aot_sel_par[aot_sub] = cur_sel_par[aot_sub] * 1.0
+            rhod_f = None
+            rhod_p = None
+    ### end dark_spectrum_fitting
+
+    ## exponential
+    elif ac_opt == 'exp':
+        ## find bands to use
+        exp_b1 = None
+        exp_b1_diff = 1000
+        exp_b2 = None
+        exp_b2_diff = 1000
+        exp_mask = None
+        exp_mask_diff = 1000
+        for b in gem.bands:
+            sd = np.abs(gem.bands[b]['wave_nm'] - setu['exp_wave1'])
+            if (sd < 50) & (sd < exp_b1_diff):
+                exp_b1_diff = sd
+                exp_b1 = b
+                short_wv = gem.bands[b]['wave_nm']
+            sd = np.abs(gem.bands[b]['wave_nm'] - setu['exp_wave2'])
+            if (sd < 50) & (sd < exp_b2_diff):
+                exp_b2_diff = sd
+                exp_b2 = b
+                long_wv = gem.bands[b]['wave_nm']
+            sd = np.abs(gem.bands[b]['wave_nm'] - setu['l2w_mask_wave'])
+            if (sd < 50) & (sd < exp_mask_diff):
+                exp_mask_diff = sd
+                exp_mask = b
+                mask_wv = gem.bands[b]['wave_nm']
+
+        if (exp_b1 is None) or (exp_b2 is None): stop
+
+        ## determine processing option
+        if (short_wv < 900) & (long_wv < 900):
+            exp_option = 'red/NIR'
+        elif (short_wv < 900) & (long_wv > 1500):
+            exp_option = 'NIR/SWIR'
         else:
-            aot_sub = np.where(cur_sel_par<aot_sel_par)
-            if len(aot_sub[0]) == 0: continue
-            aot_lut[aot_sub] = li
-            aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
-            aot_sel_par[aot_sub] = cur_sel_par[aot_sub] * 1.0
-    rhod_f = None
-    rhod_p = None
+            exp_option = 'SWIR'
+
+        ## read data
+        exp_d1 = gem.data(gem.bands[exp_b1]['rhot_ds'])*1.0
+        exp_d2 = gem.data(gem.bands[exp_b2]['rhot_ds'])*1.0
+
+        #if (use_revlut):
+        #    xi = [gem.data_mem['pressure'+gk],
+        #          gem.data_mem['raa'+gk],
+        #          gem.data_mem['vza'+gk],
+        #          gem.data_mem['sza'+gk],
+        #          gem.data_mem['wind'+gk]]
+        #else:
+        #    xi = [gem.data_mem['pressure'+gk],
+        #          gem.data_mem['raa'+gk],
+        #          gem.data_mem['vza'+gk],
+        #          gem.data_mem['sza'+gk],
+        #          gem.data_mem['wind'+gk]]
+
+        ## use mean geometry
+        xi = [gem.data_mem['pressure'+'_mean'][0][0],
+              gem.data_mem['raa'+'_mean'][0][0],
+              gem.data_mem['vza'+'_mean'][0][0],
+              gem.data_mem['sza'+'_mean'][0][0],
+              gem.data_mem['wind'+'_mean'][0][0]]
+
+        exp_lut = luts[0]
+        exp_cwlim = 0.005
+        exp_initial_epsilon = 1.0
+
+        ## Rayleigh reflectance
+        rorayl_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+        rorayl_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+
+        ## subtract Rayleigh reflectance
+        exp_d1 -= rorayl_b1
+        exp_d2 -= rorayl_b2
+
+        ## compute mask
+        if exp_mask == exp_b1:
+            mask = exp_d1 >= setu['exp_swir_threshold']
+        elif exp_mask == exp_b2:
+            mask = exp_d2 >= setu['exp_swir_threshold']
+        else:
+            exp_dm = gem.data(gem.bands[exp_mask]['rhot_ds'])*1.0
+            rorayl_mask = lutdw[exp_lut]['rgi'][exp_mask]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            exp_dm -= rorayl_mask
+            mask = exp_dm >= setu['exp_swir_threshold']
+            exp_dm = None
+
+        ## compute aerosol epsilon band ratio
+        epsilon = exp_d1/exp_d2
+        epsilon[np.where(mask)] = np.nan
+
+        ## red/NIR option
+        exp_fixed_epsilon = False
+        if setu['exp_fixed_epsilon']: exp_fixed_epsilon = True
+
+        if exp_option == 'red/NIR':
+            print('Using similarity spectrum for red/NIR EXP')
+            exp_fixed_epsilon = True
+
+            ## Rayleigh transmittances in both bands
+            dtotr_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            utotr_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            dtotr_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            utotr_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            tr_b1 = (dtotr_b1 * utotr_b1 * gem.bands[exp_b1]['tt_gas'])
+            tr_b2 = (dtotr_b2 * utotr_b2 * gem.bands[exp_b2]['tt_gas'])
+            ## get gamma
+            exp_gamma = tr_b1 / tr_b2 if setu['exp_gamma'] is None else float(setu['exp_gamma'])
+            print('Gamma: {:.2f}'.format(exp_gamma))
+
+            ## get alpha
+            if setu['exp_alpha'] is None:
+                ## import simspec
+                simspec = ac.shared.similarity_read()
+                ## convolute to sensor_o
+                if setu['exp_alpha_weighted']:
+                    ssd = ac.shared.rsr_convolute_dict(simspec['wave'], simspec['ave'], rsrd['rsr'])
+                    exp_alpha = ssd[exp_b1]/ssd[exp_b2]
+                ## or use closest bands
+                else:
+                    ssi0, ssw0 = ac.shared.closest_idx(simspec['wave'], gem.bands[exp_b1]['wave_mu'])
+                    ssi1, ssw1 = ac.shared.closest_idx(simspec['wave'], gem.bands[exp_b2]['wave_mu'])
+                    exp_alpha = simspec['ave'][ssi0]/simspec['ave'][ssi1]
+            else:
+                exp_alpha = float(setu['exp_alpha'])
+            print('Alpha: {:.2f}'.format(exp_alpha))
+
+            ## first estimate of rhow to find clear waters
+            exp_c1 = (exp_alpha/tr_b2)/(exp_alpha*exp_gamma-exp_initial_epsilon)
+            exp_c2 = exp_initial_epsilon * exp_c1
+            rhow_short = (exp_c1 * exp_d1) - (exp_c2 * exp_d2)
+
+            ## additional masking for epsilon
+            epsilon[(rhow_short < 0.) & (rhow_short > exp_cwlim)] = np.nan
+            rhow_short = None
+        elif exp_option == 'NIR/SWIR':
+            print('Using NIR/SWIR EXP')
+            exp_fixed_epsilon = True
+            ## additional masking for epsilon
+            mask2 = (exp_d2 < ((exp_d1+0.005) * 1.5) ) &\
+                    (exp_d2 > ((exp_d1-0.005) * 0.8) ) &\
+                    ((exp_d2 + 0.005)/exp_d1 > 0.8)
+            epsilon[mask2] = np.nan
+            mask2 = None
+        elif exp_option == 'SWIR':
+            print('Using SWIR EXP')
+            if setu['exp_fixed_aerosol_reflectance']: exp_fixed_epsilon = True
+
+        ## compute fixed epsilon
+        if exp_fixed_epsilon:
+            if setu['exp_epsilon'] is not None:
+                epsilon = float(setu['exp_epsilon'])
+            else:
+                epsilon = np.nanpercentile(epsilon,setu['exp_fixed_epsilon_percentile'])
+
+        ## determination of rhoam in long wavelength
+        if exp_option == 'red/NIR':
+            rhoam = (exp_alpha * exp_gamma * exp_d2 - exp_d1) / (exp_alpha * exp_gamma - epsilon)
+        else:
+            rhoam = exp_d2*1.0
+
+        ## clear memory
+        exp_d1,exp_d2 = None, None
+
+        ## fixed rhoam?
+        exp_fixed_rhoam = setu['exp_fixed_aerosol_reflectance']
+        if exp_fixed_rhoam:
+            rhoam = np.nanpercentile(rhoam,setu['exp_fixed_aerosol_reflectance_percentile'])
+            print('{:.0f}th percentile rhoam ({} nm): {:.5f}'.format(setu['exp_fixed_aerosol_reflectance_percentile'], long_wv, rhoam))
+
+        print('EXP band 1', setu['exp_wave1'], exp_b1, gem.bands[exp_b1]['rhot_ds'])
+        print('EXP band 2', setu['exp_wave2'], exp_b2, gem.bands[exp_b2]['rhot_ds'])
+        if exp_fixed_epsilon: print('Epsilon: {:.2f}'.format(epsilon))
+
+        ## output data
+        if setu['exp_output_intermediate']:
+            if not exp_fixed_epsilon:   gemo.write('epsilon', epsilon)
+            if not exp_fixed_rhoam: gemo.write('rhoam', rhoam)
+    ## end exponential
 
     ## set up interpolator for tiled processing
-    if setu['dsf_path_reflectance'] == 'tiled':
+    if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'tiled'):
         xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1])
         ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0])
 
     ## write aot to outputfile
-    if output_file:
+    if (output_file) & (ac_opt == 'dsf'):
         ## reformat & save aot
         if setu['dsf_path_reflectance'] == 'fixed':
             aot_out = np.repeat(aot_sel, gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
@@ -574,94 +772,116 @@ def acolite_l2r(gem,
         t0 = time.time()
         if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
-        gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
-        if setu['slicing']: valid_mask = np.isfinite(cur_data)
-
-        ## shape of atmospheric datasets
-        atm_shape = aot_sel.shape
-        ## if path reflectance is resolved, but resolved geometry available
-        if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
-            atm_shape = cur_data.shape
-            gk = ''
-        romix = np.zeros(atm_shape)+np.nan
-        astot = np.zeros(atm_shape)+np.nan
-        dutott = np.zeros(atm_shape)+np.nan
-        if setu['glint_correction']:
-            ttot_all[b] = np.zeros(atm_shape)+np.nan
-
-        for li, lut in enumerate(luts):
-            ls = np.where(aot_lut == li)
-            if len(ls[0]) == 0: continue
-            ai = aot_sel[ls]
-
-            ## resolved geometry with fixed path reflectance
-            if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
-                ls = np.where(cur_data)
-            ## take all pixels if using fixed processing
-            #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
-
-            if (use_revlut):
-                xi = [gem.data_mem['pressure'+gk][ls],
-                      gem.data_mem['raa'+gk][ls],
-                      gem.data_mem['vza'+gk][ls],
-                      gem.data_mem['sza'+gk][ls],
-                      gem.data_mem['wind'+gk][ls]]
-            else:
-                xi = [gem.data_mem['pressure'+gk],
-                      gem.data_mem['raa'+gk],
-                      gem.data_mem['vza'+gk],
-                      gem.data_mem['sza'+gk],
-                      gem.data_mem['wind'+gk]]
-
-            ## path reflectance
-            romix[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], ai))
-            ## transmittance and spherical albedo
-            astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
-            dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
-            ## total transmittance
-            if setu['glint_correction']:
-                ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
-
-        ## interpolate tiled processing to full scene
-        if setu['dsf_path_reflectance'] == 'tiled':
-            if verbosity > 1: print('Interpolating tiles')
-            romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-            target_mask_full=True, smooth=True, kern_size=3, method='linear')
-            astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-            target_mask_full=True, smooth=True, kern_size=3, method='linear')
-            dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-            target_mask_full=True, smooth=True, kern_size=3, method='linear')
-            if setu['glint_correction']:
-                ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                target_mask_full=True, smooth=True, kern_size=3, method='linear')
-
-        ## write ac parameters
-        if setu['dsf_write_tiled_parameters']:
-            if len(np.atleast_1d(romix)>1):
-                if romix.shape == cur_data.shape:
-                    gemo.write('romix_{}'.format(gem.bands[b]['wave_name']), romix)
-            if len(np.atleast_1d(astot)>1):
-                if astot.shape == cur_data.shape:
-                    gemo.write('astot_{}'.format(gem.bands[b]['wave_name']), astot)
-            if len(np.atleast_1d(dutott)>1):
-                if dutott.shape == cur_data.shape:
-                    gemo.write('dutott_{}'.format(gem.bands[b]['wave_name']), dutott)
-            if setu['glint_correction']:
-                if len(np.atleast_1d(ttot_all[b])>1):
-                    if ttot_all[b].shape == cur_data.shape:
-                        gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
-
-        ## do atmospheric correction
-        rhot_noatm = (cur_data/ gem.bands[b]['tt_gas']) - romix
-        romix = None
-        cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
-        astot=None
-        dutott=None
-        rhot_noatm = None
-
-        ## write rhos
         ds_att = gem.bands[b]
         ds_att['wavelength']=ds_att['wave_nm']
+
+        ## dark spectrum fitting
+        if (ac_opt == 'dsf'):
+            gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
+            if setu['slicing']: valid_mask = np.isfinite(cur_data)
+
+            ## shape of atmospheric datasets
+            atm_shape = aot_sel.shape
+            ## if path reflectance is resolved, but resolved geometry available
+            if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
+                atm_shape = cur_data.shape
+                gk = ''
+            romix = np.zeros(atm_shape)+np.nan
+            astot = np.zeros(atm_shape)+np.nan
+            dutott = np.zeros(atm_shape)+np.nan
+            if setu['glint_correction']:
+                ttot_all[b] = np.zeros(atm_shape)+np.nan
+
+            for li, lut in enumerate(luts):
+                ls = np.where(aot_lut == li)
+                if len(ls[0]) == 0: continue
+                ai = aot_sel[ls]
+
+                ## resolved geometry with fixed path reflectance
+                if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
+                    ls = np.where(cur_data)
+                ## take all pixels if using fixed processing
+                #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
+
+                if (use_revlut):
+                    xi = [gem.data_mem['pressure'+gk][ls],
+                          gem.data_mem['raa'+gk][ls],
+                          gem.data_mem['vza'+gk][ls],
+                          gem.data_mem['sza'+gk][ls],
+                          gem.data_mem['wind'+gk][ls]]
+                else:
+                    xi = [gem.data_mem['pressure'+gk],
+                          gem.data_mem['raa'+gk],
+                          gem.data_mem['vza'+gk],
+                          gem.data_mem['sza'+gk],
+                          gem.data_mem['wind'+gk]]
+
+                ## path reflectance
+                romix[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], ai))
+                ## transmittance and spherical albedo
+                astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
+                dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
+                ## total transmittance
+                if setu['glint_correction']:
+                    ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
+
+            ## interpolate tiled processing to full scene
+            if setu['dsf_path_reflectance'] == 'tiled':
+                if verbosity > 1: print('Interpolating tiles')
+                romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                if setu['glint_correction']:
+                    ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                    target_mask_full=True, smooth=True, kern_size=3, method='linear')
+
+            ## write ac parameters
+            if setu['dsf_write_tiled_parameters']:
+                if len(np.atleast_1d(romix)>1):
+                    if romix.shape == cur_data.shape:
+                        gemo.write('romix_{}'.format(gem.bands[b]['wave_name']), romix)
+                if len(np.atleast_1d(astot)>1):
+                    if astot.shape == cur_data.shape:
+                        gemo.write('astot_{}'.format(gem.bands[b]['wave_name']), astot)
+                if len(np.atleast_1d(dutott)>1):
+                    if dutott.shape == cur_data.shape:
+                        gemo.write('dutott_{}'.format(gem.bands[b]['wave_name']), dutott)
+                if setu['glint_correction']:
+                    if len(np.atleast_1d(ttot_all[b])>1):
+                        if ttot_all[b].shape == cur_data.shape:
+                            gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
+
+            ## do atmospheric correction
+            rhot_noatm = (cur_data/ gem.bands[b]['tt_gas']) - romix
+            romix = None
+            cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
+            astot=None
+            dutott=None
+            rhot_noatm = None
+        ## exponential
+        elif (ac_opt == 'exp'):
+            ## get Rayleigh correction
+            rorayl_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            dtotr_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            utotr_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+
+            ## get epsilon in current band
+            delta = (long_wv-gem.bands[b]['wave_nm'])/(long_wv-short_wv)
+            eps_cur = np.power(epsilon, delta)
+            rhoam_cur = rhoam * eps_cur
+
+            ## add results to band
+            if exp_fixed_epsilon: ds_att['epsilon'] = eps_cur
+            if exp_fixed_rhoam: ds_att['rhoam'] = rhoam_cur
+
+            cur_data = (cur_data - rorayl_cur - rhoam_cur) / (dtotr_cur*utotr_cur)
+            cur_data[mask] = np.nan
+        ## end exponential
+
+        ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
         cur_data = None
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
@@ -671,10 +891,7 @@ def acolite_l2r(gem,
     gemo.datasets_read()
 
     ## glint correction
-    if (setu['aerosol_correction'] == 'dark_spectrum') & setu['glint_correction']:
-        ## update output gem datasets to get rhos
-        gemo.datasets_read()
-
+    if (ac_opt == 'dsf') & (setu['glint_correction']):
         ## find bands for glint correction
         gc_swir1, gc_swir2 = None, None
         gc_swir1_b, gc_swir2_b = None, None

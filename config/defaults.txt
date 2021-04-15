@@ -151,6 +151,7 @@ exp_alpha=None
 exp_alpha_weighted=True
 exp_epsilon=None
 exp_gamma=None
+exp_output_intermediate=False
 
 ##
 s2_target_res=10
