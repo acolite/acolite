@@ -69,16 +69,8 @@ def acolite_gui(*args, version=None):
             ## to be disabled when running processing with multiprocessing
             self.logging = WidgetTee(self.text)
 
-            if args.settings is not None:
-                self.restore(args.settings)
-            else:
-                ## restore acolite_python_settings file if in same directory
-                if os.path.exists('acolite_python_settings.txt'):
-                    self.settings_file = 'acolite_python_settings.txt'
-                else:
-                    self.settings_file = ac.config['defaults']
-                self.restore(self.settings_file)
-                self.settings_file = 'acolite_python_settings.txt'
+            ## restore settings if settings file given
+            if args.settings is not None: self.restore(args.settings)
 
         def setup(self):
             ## set up GUI
@@ -468,18 +460,9 @@ def acolite_gui(*args, version=None):
                     if 'runid' not in self.acolite_settings:
                         self.acolite_settings['runid'] = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-                    logfile = '{}/{}'.format(self.acolite_settings['output'],'acolite_run_{}_log.txt'.format(self.acolite_settings['runid']))
-
-                    try:
-                        with open(logfile, 'w') as f: f.write('')
-                    except:
-                        print('Cannot write to output directory {}'.format(self.acolite_settings['output']))
-                        self.processingRunning=False
-
-
                     if self.processingRunning:
                         print('Running ACOLITE processing on {}'.format(sys.platform))
-                        print('Logging to file.')
+                        print('ACOLITE processing messages will be logged to file.')
 
                         if sys.platform in mp_platforms:
                             ## stop stdout redirection - otherwise Process doesn't finish
