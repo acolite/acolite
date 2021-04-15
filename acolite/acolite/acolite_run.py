@@ -3,10 +3,10 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-04-01
 ## modifications: 2021-04-14 (QV) added output to settings if not configured
-
+##                2021-04-15 (QV) test/parse input files
 
 def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
-    import datetime, os
+    import datetime, os, mimetypes
     import acolite as ac
 
     print('Running generic ACOLITE processing - {}'.format(ac.version))
@@ -22,6 +22,8 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             setu['output'] = os.cwd()
         else:
             setu['output'] = output
+
+    ## log file for l1r generation
     log_file = '{}/acolite_run_{}_log_file.txt'.format(setu['output'],setu['runid'])
     log = ac.acolite.logging.LogTee(log_file)
     print('Run ID - {}'.format(setu['runid']))
@@ -31,8 +33,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         kv = setu[k] if k in setu else ac.config[k]
         if len(kv) == 0: continue
         os.environ[k] = kv
-        print(k, kv)
-        
+
     ## parse inputfile
     if inputfile is not None:
         if type(inputfile) != list:
@@ -51,7 +52,25 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
 
     ## make list of lists to process, one list if merging tiles
     if type(setu_l1r['inputfile']) is not list: setu_l1r['inputfile'] = [setu_l1r['inputfile']]
-    inputfile_list = [setu_l1r['inputfile']] if setu_l1r['merge_tiles'] else setu_l1r['inputfile']
+
+    ## check if a list of files is given
+    tmp_files = setu_l1r['inputfile'] if type(setu_l1r['inputfile']) == list else setu_l1r['inputfile'].split(',')
+    inputfile_list = []
+    for file in tmp_files:
+        print(file)
+        if os.path.isdir(file):
+            inputfile_list.append(file)
+        else:
+            mime = mimetypes.guess_type(file)
+            if mime[0] != 'text/plain': continue
+            with open(file, 'r') as f:
+                for l in f.readlines():
+                    l = l.strip()
+                    if len(l) == 0: continue
+                    cfiles = []
+                    for fn in l.split(','):
+                        if os.path.exists(fn): cfiles.append(fn)
+                    if len(cfiles)>0: inputfile_list.append(cfiles)
     nruns = len(inputfile_list)
 
     ## track processed scenes
