@@ -36,3 +36,5 @@ from .warp_from_source import *
 from .polygon_crop import *
 from .polygon_limit import *
 from .reproject2 import *
+
+from .similarity_read import *
