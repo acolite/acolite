@@ -13,7 +13,7 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     import acolite as ac
     import dateutil, datetime
     import os
-    
+
     if type(date) == str:
         dt = dateutil.parser.parse(date)
     else:
@@ -34,7 +34,7 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     ## get ozone file
     ### use toast as fallback
     ozone_file = None
-    for t in ["AURAOMI", "EPTOMS", "TOAST"]:
+    for t in ["AURAOMI", "EPTOMS", "TOAST", 'N7TOMS']:
         for i, j in enumerate(anc_local):
             if (ozone_file is None) & (t in j):
                 ozone_file = anc_local[i]

@@ -31,7 +31,7 @@ def list_files(date):
     if ((int(year) == 2004) & (int(jday) > 336)) | (int(year) > 2004):
         file_types+=['O3_AURAOMI_24h']
     else:
-        file_types+=['O3_EPTOMS_24h']
+        file_types+=['O3_EPTOMS_24h', 'O3_N7TOMS_24h']
 
     basefiles = []
     for file_type in file_types:
@@ -43,6 +43,9 @@ def list_files(date):
             basefiles.append(cfile)
         elif file_type == "O3_EPTOMS_24h":
             cfile = "N{}00_O3_EPTOMS_24h.hdf".format(yjd)
+            basefiles.append(cfile)
+        elif file_type == "O3_N7TOMS_24h":
+            cfile = "N{}00_O3_N7TOMS_24h.hdf".format(yjd)
             basefiles.append(cfile)
         elif file_type == "MET_NCEP":
             cfile = ["S{}{}_NCEP.MET".format(yjd,h) for h in ['00','06','12','18']]
