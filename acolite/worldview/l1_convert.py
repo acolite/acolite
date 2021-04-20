@@ -110,7 +110,7 @@ def l1_convert(inputfile,
         gatts = {'sensor':meta['sensor'], 'satellite':meta['satellite'],
                      'isodate':isodate, #'global_dims':global_dims,
                      'sza':sza, 'vza':vza, 'raa':raa, 'se_distance': se_distance,
-                     'mus': np.cos(sza*(np.pi/180.))}
+                     'mus': np.cos(sza*(np.pi/180.)), 'acolite_file_type': 'L1R'}
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))

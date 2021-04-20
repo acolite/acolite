@@ -141,7 +141,8 @@ def l1_convert(inputfile, output = None,
         ## make global attributes for L1R NetCDF
         gatts = {'sensor':sensor, 'isodate':isodate, 'global_dims':global_dims,
                  'sza':sza, 'vza':vza, 'raa':raa, 'se_distance': se_distance,
-                 'mus': np.cos(sza*(np.pi/180.)), 'granule': granule, 'mgrs_tile': mgrs_tile}
+                 'mus': np.cos(sza*(np.pi/180.)), 'granule': granule, 'mgrs_tile': mgrs_tile,
+                 'acolite_file_type': 'L1R'}
         if merge_tiles:
             gatts['tile_code'] = 'merged'
         else:

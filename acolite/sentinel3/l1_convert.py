@@ -255,7 +255,7 @@ def l1_convert(inputfile, output = None,
 
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
                      'isodate':isodate, 'global_dims':data_shape,
-                     'se_distance': se_distance}
+                     'se_distance': se_distance, 'acolite_file_type': 'L1R'}
 
         if limit is not None: gatts['limit'] = limit
 
