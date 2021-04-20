@@ -19,7 +19,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
     if 'output' not in setu:
         if output is None:
-            setu['output'] = os.cwd()
+            setu['output'] = os.getcwd()
         else:
             setu['output'] = output
 
