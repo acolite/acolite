@@ -243,7 +243,7 @@ def acolite_l2r(gem,
 
         ## output is L2R
         gemo.gatts['acolite_file_type'] = 'L2R'
-
+        gemo.gatts['ofile'] = ofile
         ## copy datasets from inputfile
         copy_rhot = False
         copy_datasets = setu['copy_datasets']
