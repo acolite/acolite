@@ -98,7 +98,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             if len(ret) != 2: continue
             l2r, l2r_setu = ret
 
-            if setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r)
+            if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r)
             l2r_files.append(l2r)
 
             ## run TACT
@@ -106,7 +106,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                 ret = ac.tact.tact_gem(l1r, output_atmosphere = l2r_setu['tact_output_atmosphere'],
                                             output_intermediate = l2r_setu['tact_output_intermediate'])
                 l2t_files.append(ret)
-                if setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(ret)
+                if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(ret)
 
                 ## make l2t maps
                 if l2r_setu['tact_map']:
@@ -120,7 +120,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             if l2r_setu['l2w_parameters'] is not None:
                 if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
                 ret = ac.acolite.acolite_l2w(l2r, settings=l2r_setu)
-                if setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret)
+                if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret)
                 l2w_files.append(ret)
 
                 ## make l2w maps
