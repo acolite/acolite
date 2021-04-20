@@ -104,7 +104,8 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                 l2r, l2r_setu = ret
             else:
                 l2r = '{}'.format(l1r)
-                
+                l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=setu)
+
             if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r)
             l2r_files.append(l2r)
 
