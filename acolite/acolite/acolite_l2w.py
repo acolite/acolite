@@ -36,7 +36,8 @@ def acolite_l2w(gem,
         ofile = '{}/{}.nc'.format(odir, output_name)
     else:
         ofile = '{}'.format(target_file)
-
+    gem['gatts']['ofile'] = ofile
+    
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
 
