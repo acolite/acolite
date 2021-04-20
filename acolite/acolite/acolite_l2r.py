@@ -562,17 +562,17 @@ def acolite_l2r(gem,
         exp_mask_diff = 1000
         for b in gem.bands:
             sd = np.abs(gem.bands[b]['wave_nm'] - setu['exp_wave1'])
-            if (sd < 50) & (sd < exp_b1_diff):
+            if (sd < 100) & (sd < exp_b1_diff):
                 exp_b1_diff = sd
                 exp_b1 = b
                 short_wv = gem.bands[b]['wave_nm']
             sd = np.abs(gem.bands[b]['wave_nm'] - setu['exp_wave2'])
-            if (sd < 50) & (sd < exp_b2_diff):
+            if (sd < 100) & (sd < exp_b2_diff):
                 exp_b2_diff = sd
                 exp_b2 = b
                 long_wv = gem.bands[b]['wave_nm']
             sd = np.abs(gem.bands[b]['wave_nm'] - setu['l2w_mask_wave'])
-            if (sd < 50) & (sd < exp_mask_diff):
+            if (sd < 100) & (sd < exp_mask_diff):
                 exp_mask_diff = sd
                 exp_mask = b
                 mask_wv = gem.bands[b]['wave_nm']
