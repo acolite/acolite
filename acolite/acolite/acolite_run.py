@@ -93,11 +93,18 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         l2r_files, l2t_files = [], []
         l2w_files = []
         for l1r in l1r_files:
-            ## run ACOLITE
-            ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = verbosity)
-            if len(ret) != 2: continue
-            l2r, l2r_setu = ret
+            gatts = ac.shared.nc_gatts(l1r)
+            if 'acolite_file_type' not in gatts:
+                gatts['acolite_file_type'] = 'L1R'
 
+            if gatts['acolite_file_type'] == 'L1R':
+                ## run ACOLITE
+                ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = verbosity)
+                if len(ret) != 2: continue
+                l2r, l2r_setu = ret
+            else:
+                l2r = '{}'.format(l1r)
+                
             if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r)
             l2r_files.append(l2r)
 
