@@ -119,7 +119,7 @@ def l1_convert(inputfile, output = None,
 
         ## check if we need to find crop position
         if limit is not None:
-            if len(limit) is 4:
+            if len(limit) == 4:
                 ncols = int(meta['NCOLS'])
                 nrows = int(meta['NROWS'])
                 sub = ac.pleiades.geo.crop(meta, limit)
