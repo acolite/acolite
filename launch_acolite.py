@@ -42,11 +42,7 @@ def launch_acolite():
     ## command line processing, run acolite_run directly
     if '--cli' in sys.argv:
         time_start = datetime.datetime.now() ## time of processing start
-        ## parse settings here to add runid
-        #if args.settings is not None:
-        #setu = ac.acolite.settings.parse(None, settings=args.settings, merge=False)
-        #if 'runid' not in setu: setu['runid']=time_start.strftime('%Y%m%d_%H%M%S')
-
+        
         ## add input/output if changed
         inputfile, output = None, None
         if args.inputfile is not None: inputfile = args.inputfile.split(',')
