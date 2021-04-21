@@ -188,7 +188,7 @@ map_fill_color=LightGrey
 map_default_colormap=viridis
 
 # RGB options
-rgb_red_wl=660
+rgb_red_wl=650
 rgb_green_wl=560
 rgb_blue_wl=480
 rgb_min=0.0,0.0,0.0
