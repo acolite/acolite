@@ -12,6 +12,7 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
     import os
     import acolite as ac
     from scipy import interpolate
+    import numpy as np
 
     if hgt_dir is None: hgt_dir = ac.config['hgt_dir']
 
@@ -42,7 +43,8 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
     #        print('Please download {} to {}'.format(f_url,f_local))
     #    #return(0)
 
-    dem = 0
+    dem = np.asarray(0.0)
+    
     ## run through dem files and reproject data to target lat,lon
     for i, hgt_file in enumerate(hgt_files):
         ## read hgt data and geolocation
