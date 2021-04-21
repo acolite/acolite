@@ -1,7 +1,7 @@
 ## About ACOLITE
 ACOLITE combines the atmospheric correction algorithms for aquatic applications of Landsat and Sentinel-2 developed at RBINS. This repository hosts the (more) generic version of ACOLITE with the aim of bringing together the processing of all different sensors. This new generic version was started 4 February 2021.
 
-**In April 2021 this code was released as public beta. Please contact Quinten via email/ACOLITE Forum/GitHub if you find any issues. The settings files are largely compatible with the previous version, but it is recommended to create a new one.**
+**On 21 April 2021 this code was released as public beta. Please contact Quinten via email/ACOLITE Forum/GitHub if you find any issues. The settings files are largely compatible with the previous version, but it is recommended to create a new one.**
 
 ACOLITE allows simple and fast processing of imagery from various satellites, including Landsat (5/7/8) and Sentinel-2/MSI (A/B), PlanetScope and RapidEye, Venµs, SPOT and Pléiades, WorldView-2 and -3, and Sentinel-3/OLCI (A/B) for coastal and inland water applications. The Dark Spectrum Fitting atmospheric correction algorithm works especially well for turbid and productive waters, but can also be applied over clear waters and land with reasonable success.
 
@@ -55,7 +55,7 @@ A suitable Python environment can for example be set up using conda and the pack
 ACOLITE can automatically retrieve ancillary data (ozone, water vapour, pressure and wind speed) from the servers of the Ocean Biology Processing Group (OBPG) at NASA (https://oceandata.sci.gsfc.nasa.gov) and SRTM DEM data from NASA's Land Processes Distributed Active Archive Center (LP DAAC) at the USGS Earth Resources Observation and
 Science (EROS) Center (https://e4ftl01.cr.usgs.gov/MEASURES/) for both resources an EarthData account is requred: https://urs.earthdata.nasa.gov/users/new
 
-ACOLITE tries and retrieve the EARTHDATA_u and EARTHDATA_p (for username and password) from the system environment variables. Alternatively they can be specified in the settings file or the general ACOLITE config file at config/config.txt.
+ACOLITE tries and retrieve the EARTHDATA_u and EARTHDATA_p (for username and password) from the system environment variables. Alternatively they can be specified in the processing settings file or the general ACOLITE config file at config/config.txt.
 
 ## TACT installation
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
