@@ -94,8 +94,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         l2w_files = []
         for l1r in l1r_files:
             gatts = ac.shared.nc_gatts(l1r)
-            if 'acolite_file_type' not in gatts:
-                gatts['acolite_file_type'] = 'L1R'
+            if 'acolite_file_type' not in gatts: gatts['acolite_file_type'] = 'L1R'
 
             if gatts['acolite_file_type'] == 'L1R':
                 ## run ACOLITE
