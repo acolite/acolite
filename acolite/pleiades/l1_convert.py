@@ -258,8 +258,12 @@ def l1_convert(inputfile, output = None,
                         data_full = None
                         new_pan = False
 
+                        ## mask data before zooming
+                        dmin = np.nanmin(data)
+                        data[np.isnan(data)] = 0
                         data = scipy.ndimage.zoom(data, 0.25)
-                        print(data.shape)
+                        data[data<dmin] = np.nan
+                        data[data==dmin] = np.nan
 
                     cur_shape = data.shape
                     data_full = np.zeros(dims)+np.nan
