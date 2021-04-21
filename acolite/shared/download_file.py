@@ -20,7 +20,7 @@ def download_file(url, file, auth=None, session=None, parallel=False, verbosity=
             password = os.environ['EARTHDATA_p']
             auth = (username, password)
         else:
-            print('EARTHDATA user name and password required for download from of {}'.format(url))
+            print('EARTHDATA user name and password required for download of {}'.format(url))
             return()
 
     with requests.Session() as session:
