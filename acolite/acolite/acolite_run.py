@@ -73,6 +73,8 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                     for fn in l.split(','):
                         if os.path.exists(fn): cfiles.append(fn)
                     if len(cfiles)>0: inputfile_list.append(cfiles)
+
+    if setu_l1r['merge_tiles']: inputfile_list = [inputfile_list]
     nruns = len(inputfile_list)
 
     ## track processed scenes
