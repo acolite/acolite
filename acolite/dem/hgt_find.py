@@ -4,10 +4,12 @@
 ## 2017-07-17
 ##                2019-04-24 (QV) added support for zip files
 ##                2021-04-07 (QV) changed numpy import
+##                2021-04-21 (QV) added download
 
 def hgt_find(limit, required=False, hgt_dir=None, hgt_ext='.SRTMGL3.hgt.gz'):
     import os
     import numpy as np
+    import acolite as ac
 
     hgt_limit = [int(np.floor(limit[0])),
                  int(np.floor(limit[1])),
@@ -38,6 +40,10 @@ def hgt_find(limit, required=False, hgt_dir=None, hgt_ext='.SRTMGL3.hgt.gz'):
 
     for hgt_file in hgt_required:
         hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext)
+        ## try downloading if we don't have the tile
+        ## note that some tiles do not exist
+        if not os.path.exists(hgt_path): ac.dem.hgt_download(hgt_file, hgt_dir=hgt_dir)
+
         if os.path.exists(hgt_path): hgt_files.append(hgt_path)
         else:
             hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext.replace('.gz','.zip'))

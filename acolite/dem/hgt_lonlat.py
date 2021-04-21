@@ -4,6 +4,7 @@
 ## QV 2017-07-17
 ## modifications: 2018-12-04 QV added printing of url to download (USGS server requires login so presently not automated)
 ##                2021-04-07 (QV) added to generic acolite
+##                2021-04-21 (QV) removed return if tiles are missing (this is also possible since hgt_find does not know which tiles exist)
 
 def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
                 url_base='http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'):
@@ -32,16 +33,14 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
 
     hgt_files, hgt_required = ac.dem.hgt_find(limit, required=True, hgt_dir=hgt_dir)
 
-    if len(hgt_files) != len(hgt_required):
-        print('DEM files not found in {}'.format(hgt_dir))
-        for f in hgt_required:
-            if f in hgt_files: continue
-            f_url = url_base.format(f)
-            f_local = '{}/{}'.format(hgt_dir,os.path.basename(f_url))
-            #tmp = download_file(f_url, f_local)
-            #hgt_files.append(f)
-            print('Please download {} to {}'.format(f_url,f_local))
-        return(0)
+    #if len(hgt_files) != len(hgt_required):
+    #    print('DEM files not found in {}'.format(hgt_dir))
+    #    for f in hgt_required:
+    #        if f in hgt_files: continue
+    #        f_url = url_base.format(f)
+    #        f_local = '{}/{}'.format(hgt_dir,os.path.basename(f_url))
+    #        print('Please download {} to {}'.format(f_url,f_local))
+    #    #return(0)
 
     ## run through dem files and reproject data to target lat,lon
     for i, hgt_file in enumerate(hgt_files):

@@ -14,15 +14,15 @@ def download_file(url, file, auth=None, session=None, parallel=False, verbosity=
     file_path = os.path.abspath(file)
     start = time.time()
 
-    if 'https://oceandata.sci.gsfc.nasa.gov/' in url:
+    if ('https://oceandata.sci.gsfc.nasa.gov/' in url) or ('MEASURES/SRTMGL3.003/2000.02.11' in url):
         if ('EARTHDATA_u' in os.environ) & ('EARTHDATA_p' in os.environ):
             username = os.environ['EARTHDATA_u']
             password = os.environ['EARTHDATA_p']
             auth = (username, password)
         else:
-            print('EARTHDATA user name and password required for download from oceandata server')
+            print('EARTHDATA user name and password required for download from of {}'.format(url))
             return()
-            
+
     with requests.Session() as session:
             r1 = session.request('get', url)
             r = session.get(r1.url, auth=auth)
