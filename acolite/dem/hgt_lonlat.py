@@ -42,6 +42,7 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
     #        print('Please download {} to {}'.format(f_url,f_local))
     #    #return(0)
 
+    dem = 0
     ## run through dem files and reproject data to target lat,lon
     for i, hgt_file in enumerate(hgt_files):
         ## read hgt data and geolocation
