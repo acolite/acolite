@@ -7,6 +7,8 @@ ACOLITE allows simple and fast processing of imagery from various satellites, in
 
 Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of regions of interest (defined by bounding coordinates or a polygon file). Level 2 outputs are surface reflectance (ρs=Rrs⋅π) and derived products that are saved as geolocated datasets in a NetCDF file, and can be exported as PNG maps. The atmospheric correction is image based and needs no external inputs.
 
+Currently only the generic LUTs are provided, these will be resampled to a specific sensor the first time they are needed. This resampling will take a few minutes (or much longer -- hours -- in the case of the "reverse LUTs"), but saves several GB on the initial download volume.
+
 ACOLITE development was funded under various projects by the Belgian Science Policy Office STEREO program under contracts SR/37/135 (JELLYFOR project) and SR/00/325 (PONDER project), and by the European Community's Seventh Framework Programme (FP7/2007-2013) under grant agreement n° 606797 (HIGHROC project). TACT development was funded by the Belgian Science Policy Office BRAIN-be program under contract BR/165/A1/MICROBIAN.
 
 **ACOLITE is provided by RBINS as an experimental tool, without explicit or implied warranty. Use of the program is at your own discretion and risk.**
