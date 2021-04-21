@@ -11,7 +11,8 @@ def hgt_download(tile,
     import os
     import acolite as ac
     if hgt_dir is None: hgt_dir = ac.config['hgt_dir']
-
+    if not os.path.exists(hgt_dir): os.makedirs(hgt_dir)
+    
     f_url = url_base.format(tile)
     f_local = '{}/{}'.format(hgt_dir,os.path.basename(f_url))
 
