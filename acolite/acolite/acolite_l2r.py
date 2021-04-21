@@ -379,7 +379,8 @@ def acolite_l2r(gem,
 
                 ## do gas correction
                 band_sub = np.where(np.isfinite(band_data))
-                band_data[band_sub] /= gem.bands[b]['tt_gas']
+                if len(band_sub[0])>0:
+                    band_data[band_sub] /= gem.bands[b]['tt_gas']
 
                 ## store rhod
                 if setu['dsf_path_reflectance'] in ['fixed', 'tiled']:
