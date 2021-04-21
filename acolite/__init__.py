@@ -1,4 +1,4 @@
-version = 'Public Beta'
+version = 'Generic Version Public Beta - April 2021'
 
 from acolite import landsat
 from acolite import sentinel2
@@ -24,10 +24,7 @@ import os
 code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
 
-##
-#import os
-#path = os.path.dirname(os.path.abspath(__file__))
-
+## find config file
 if not os.path.exists('{}{}config'.format(path, os.path.sep)):
     path = os.path.split(path)[0]
     ## check if binary distribution
