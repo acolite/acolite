@@ -1,7 +1,7 @@
 ## ACOLITE default settings for S3A_OLCI
 
 ## copy datasets from L1R to L2R
-copy_datasets=lon,lat,sza,vsa,raa
+copy_datasets=lon,lat,sza,vsa,raa,rhot_*
 
 ## dark spectrum fitting options
 dsf_path_reflectance=tiled
