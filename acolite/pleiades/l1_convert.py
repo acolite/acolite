@@ -148,6 +148,7 @@ def l1_convert(inputfile, output = None,
             dims = sub[3], sub[2]
             gatts['global_dims'] = sub[3], sub[2]
 
+        new = True
         ## write lat/lon
         if (output_geolocation):
             if (os.path.exists(ofile) & (not new)):
@@ -169,7 +170,7 @@ def l1_convert(inputfile, output = None,
         t = time.process_time()
         tile_id = 0
         tile_dims = meta['tiles_nrows'], meta['tiles_ncols']
-        new = True
+
         for r_tile in range(meta['ntiles_R']):
             for c_tile in range(meta['ntiles_C']):
                 tile_id+=1
