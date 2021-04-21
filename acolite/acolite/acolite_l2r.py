@@ -1000,10 +1000,17 @@ def acolite_l2r(gem,
 
                 ## get gc factors for this band
                 if gc_user is None:
-                    gc_SWIR1 = (T_cur[sub_gc]/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
-                    gc_SWIR2 = (T_cur[sub_gc]/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+                    if len(np.atleast_1d(Rf_sen[b]))>1: ## if resolved angles
+                        gc_SWIR1 = (T_cur[sub_gc]/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
+                        gc_SWIR2 = (T_cur[sub_gc]/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+                    else:
+                        gc_SWIR1 = (T_cur[sub_gc]/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
+                        gc_SWIR2 = (T_cur[sub_gc]/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
                 else:
-                    gc_USER = (T_cur[sub_gc]/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
+                    if len(np.atleast_1d(Rf_sen[b]))>1: ## if resolved angles
+                        gc_USER = (T_cur[sub_gc]/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
+                    else:
+                        gc_USER = (T_cur[sub_gc]/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
 
                 ## choose glint correction band (based on first band results)
                 if gc_choice is False:
