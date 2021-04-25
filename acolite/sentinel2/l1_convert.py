@@ -325,7 +325,7 @@ def l1_convert(inputfile, output = None,
                 ## use s2 5x5 km grids with detector footprint interpolation
                 if geometry_type == 'grids_footprint':
                     ## compute vza and saa
-                    gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/MSK_DETFOO*.gml'.format(bundle, granule))
+                    gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.gml'.format(bundle, granule))
                     gml_files.sort()
                     ## get detector footprint for 10/20/60 m band
                     dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
