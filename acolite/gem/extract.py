@@ -19,7 +19,7 @@ def extract(st_lon, st_lat, sdate,
                            verbosity=0):
 
     import os, sys
-    import json,bz2, dateutil, datetime, re
+    import json,bz2, dateutil.parser, datetime, re
     import numpy as np
     from pyproj import Proj
 
@@ -81,7 +81,7 @@ def extract(st_lon, st_lat, sdate,
 
     iml = imColl.toList(nimages).getInfo()
     if return_iml: return(iml)
-    
+
     ## track scenes
     scene_list = []
 

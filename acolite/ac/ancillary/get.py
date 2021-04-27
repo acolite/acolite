@@ -11,7 +11,7 @@
 
 def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     import acolite as ac
-    import dateutil, datetime
+    import dateutil.parser, datetime
     import os
 
     if type(date) == str:

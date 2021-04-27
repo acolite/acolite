@@ -33,7 +33,7 @@ def l1_convert(inputfile, output = None,
 
                 verbosity = 0, vname = ''):
 
-    import os, glob, dateutil, time, copy
+    import os, glob, dateutil.parser, time, copy
     import acolite as ac
     import scipy.ndimage
     import numpy as np

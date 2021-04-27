@@ -31,7 +31,7 @@ def l1_convert(inputfile, output = None,
 
                 verbosity = 0, vname = ''):
 
-    import sys, os, glob, dateutil, time
+    import sys, os, glob, dateutil.parser, time
     from osgeo import ogr,osr,gdal
     import acolite as ac
     import scipy.ndimage

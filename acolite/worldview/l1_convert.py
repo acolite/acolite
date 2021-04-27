@@ -14,7 +14,7 @@ def l1_convert(inputfile,
                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                verbosity = 0, vname = ''):
 
-    import os, glob, dateutil, datetime, time
+    import os, glob, dateutil.parser, datetime, time
     import numpy as np
     import scipy.interpolate
     import acolite as ac

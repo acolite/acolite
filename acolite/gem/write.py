@@ -4,7 +4,7 @@
 ## modifications:
 
 def write(gemfile, gem, verbosity=0):
-    import os,json,bz2,dateutil
+    import os,json,bz2,dateutil.parser
     import numpy as np
     import acolite as ac
 

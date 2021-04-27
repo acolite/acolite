@@ -22,7 +22,8 @@ def l1_convert(inputfile, output = None,
                 verbosity = 0, vname = ''):
 
     import os, glob, datetime, time
-    from dateutil import parser
+    import dateutil.parser
+
     import numpy as np
     import scipy.interpolate
     import acolite as ac
@@ -234,7 +235,7 @@ def l1_convert(inputfile, output = None,
         ## end smile correction
 
         ## global attributes
-        dtime = parser.parse(start_time)
+        dtime = dateutil.parser.parse(start_time)
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
@@ -260,7 +261,7 @@ def l1_convert(inputfile, output = None,
 
         if limit is not None: gatts['limit'] = limit
 
-        stime = parser.parse(gatts['isodate'])
+        stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if vname != '': oname+='_{}'.format(vname)
 

@@ -27,7 +27,7 @@ def l1_convert(inputfile, output = None,
                 verbosity = 0, vname = ''):
 
     import os, zipfile, shutil
-    import dateutil, time
+    import dateutil.parser, time
     import numpy as np
     import acolite as ac
 

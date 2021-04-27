@@ -16,7 +16,7 @@ def tact_limit(isotime, limit=None,
     from functools import partial
     import multiprocessing
     import acolite as ac
-    import datetime, dateutil
+    import datetime, dateutil.parser
 
     dt = dateutil.parser.parse(isotime)
     isodate = dt.isoformat()[0:10]
