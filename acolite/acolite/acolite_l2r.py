@@ -740,7 +740,7 @@ def acolite_l2r(gem,
 
     ## store fixed aot in gatts
     if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'fixed'):
-        gemo.gatts['ac_aot_550'] = aot_sel
+        gemo.gatts['ac_aot_550'] = aot_sel[0][0]
         gemo.update_attributes() ## update gatts, could do once at the end
 
     ## write aot to outputfile
