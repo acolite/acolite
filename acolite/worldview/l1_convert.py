@@ -158,37 +158,38 @@ def l1_convert(inputfile,
             zlon = None
         ## end write lat/lon
 
-        ## get list of tiles in this bundle
-        tiles_dims = {}
-        tiles_dims_swir = {}
-        tiles=[]
-        ntiles = len(meta['TILE_INFO'])
-        for ti, tile_mdata in enumerate(meta['TILE_INFO']):
-            tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
-            tiles.append(tile)
+        ## run through bands
+        for b,band in enumerate(band_names):
+            ## get list of tiles in this bundle
+            tiles_dims = {}
+            tiles_dims_swir = {}
+            tiles=[]
+            ntiles = len(meta['TILE_INFO'])
+            for ti, tile_mdata in enumerate(meta['TILE_INFO']):
+                tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
+                tiles.append(tile)
 
-            ## get tile offset
-            offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
-            if verbosity > 1: print('{} - Processing tile {}/{}'.format(datetime.datetime.now().isoformat()[0:19], ti+1, ntiles), tile, offset)
+                ## get tile offset
+                offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
+                if verbosity > 1: print('{} - Band {} Processing tile {}/{}'.format(datetime.datetime.now().isoformat()[0:19], band, ti+1, ntiles), tile, offset)
 
-            file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
-            ## check if the files were named .TIF instead of .TIFF
-            if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
-            if not os.path.exists(file):
-                tiles_dims[tile] = (0,0)
-                continue
+                file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+                ## check if the files were named .TIF instead of .TIFF
+                if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
+                if not os.path.exists(file):
+                    tiles_dims[tile] = (0,0)
+                    continue
 
-            ## get tile from wv3 swir bundle if provided
-            swir_file=None
-            if swir_bundle is not None:
-                for tile_mdata_swir in swir_meta['TILE_INFO']:
-                    if tile in tile_mdata_swir['FILENAME']:
-                        swir_file = '{}/{}'.format(swir_bundle,tile_mdata_swir['FILENAME'])
-                    if not os.path.exists(swir_file):
-                        continue
-            ## end swir bundle
+                ## get tile from wv3 swir bundle if provided
+                swir_file=None
+                if swir_bundle is not None:
+                    for tile_mdata_swir in swir_meta['TILE_INFO']:
+                        if tile in tile_mdata_swir['FILENAME']:
+                            swir_file = '{}/{}'.format(swir_bundle,tile_mdata_swir['FILENAME'])
+                        if not os.path.exists(swir_file):
+                            continue
+                ## end swir bundle
 
-            for b,band in enumerate(band_names):
                 if 'SWIR' not in band:
                     bt = [bt for bt in meta['BAND_INFO'] if meta['BAND_INFO'][bt]['name'] == band][0]
                     bd = meta['BAND_INFO'][bt]
@@ -209,19 +210,26 @@ def l1_convert(inputfile,
                 d *= (np.pi * gatts['se_distance']**2) / (f0_b[band]/10. * gatts['mus'])
                 d[nodata] = np.nan
 
-                ds = 'rhot_{}'.format(waves_names[band])
-                ds_att = {'wavelength':waves_mu[band]*1000}
-                if percentiles_compute:
-                    ds_att['percentiles'] = percentiles
-                    ds_att['percentiles_data'] = np.nanpercentile(d, percentiles)
+                ## make new data full array
+                if ti == 0: data_full = np.zeros(global_dims) + np.nan
 
-                ## write to netcdf file
-                ac.output.nc_write(ofile, ds, d, replace_nan = False,
-                                   global_dims = global_dims, offset = offset,
-                                   attributes = gatts, new = new, dataset_attributes = ds_att)
-                new = False
-                if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, d.shape))
+                ## add in data
+                data_full[offset[1]:offset[1]+d.shape[0], offset[0]:offset[0]+d.shape[1]] = d
                 d = None
+
+            ## set up dataset attributes
+            ds = 'rhot_{}'.format(waves_names[band])
+            ds_att = {'wavelength':waves_mu[band]*1000}
+            if percentiles_compute:
+                ds_att['percentiles'] = percentiles
+                ds_att['percentiles_data'] = np.nanpercentile(data_full, percentiles)
+
+            ## write to netcdf file
+            if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
+            ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att)
+            if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
+            new = False
+            data_full = None
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
