@@ -37,7 +37,7 @@ def acolite_l2w(gem,
     else:
         ofile = '{}'.format(target_file)
     gem['gatts']['ofile'] = ofile
-    
+
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
 
@@ -137,9 +137,11 @@ def acolite_l2w(gem,
             copy_datasets.append(cur_par)
         if (('rhos_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)):
             copy_datasets.append(cur_par)
-        if (('rhow_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)):
+        if (('rhow_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)) |\
+            (cur_par.replace('rhos_', 'rhow_') in setu['l2w_parameters']):
             copy_datasets.append(cur_par.replace('rhos_', 'rhow_'))
-        if (('Rrs_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)):
+        if (('Rrs_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)) |\
+            (cur_par.replace('rhos_', 'Rrs_') in setu['l2w_parameters']):
             copy_datasets.append(cur_par.replace('rhos_', 'Rrs_'))
 
     ## copy datasets
