@@ -6,6 +6,7 @@
 import acolite as ac
 import os, sys
 import numpy as np
+from netCDF4 import Dataset
 
 class gem(object):
         def __init__(self, file, new=False):
@@ -74,3 +75,12 @@ class gem(object):
             ac.output.nc_write(self.file, ds, data, attributes=self.gatts, dataset_attributes=ds_att, new=self.new)
             if self.verbosity > 0: print('Wrote {}'.format(ds))
             self.new = False
+
+        def update_attributes(self):
+            with Dataset(self.file, 'a', format='NETCDF4') as nc:
+                for key in self.gatts.keys():
+                    if self.gatts[key] is not None:
+                        try:
+                            setattr(nc, key, self.gatts[key])
+                        except:
+                            print('Failed to write attribute: {}'.format(key))
