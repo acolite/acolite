@@ -55,7 +55,7 @@ def acolite_l2r(gem,
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
 
     ## get dimensions and number of elements
-    gem.gatts['data_dimensions'] = gem.data('lon').shape
+    gem.gatts['data_dimensions'] = gem.data(gem.datasets[0]).shape
     gem.gatts['data_elements'] = gem.gatts['data_dimensions'][0]*gem.gatts['data_dimensions'][1]
 
     ## read rsrd and get band wavelengths
@@ -244,6 +244,7 @@ def acolite_l2r(gem,
         ## output is L2R
         gemo.gatts['acolite_file_type'] = 'L2R'
         gemo.gatts['ofile'] = ofile
+
         ## copy datasets from inputfile
         copy_rhot = False
         copy_datasets = setu['copy_datasets']
@@ -737,8 +738,13 @@ def acolite_l2r(gem,
         xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1])
         ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0])
 
+    ## store fixed aot in gatts
+    if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'fixed'):
+        gemo.gatts['ac_aot_550'] = aot_sel
+        gemo.update_attributes() ## update gatts, could do once at the end
+
     ## write aot to outputfile
-    if (output_file) & (ac_opt == 'dsf'):
+    if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
         ## reformat & save aot
         if setu['dsf_path_reflectance'] == 'fixed':
             aot_out = np.repeat(aot_sel, gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])

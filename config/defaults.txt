@@ -133,6 +133,7 @@ dsf_plot_dark_spectrum=True
 dsf_write_tiled_parameters=False
 dsf_wave_range=400,2500
 dsf_exclude_bands=,
+dsf_write_aot_550=False
 extra_ac_parameters=False
 
 ## fixed aot option
