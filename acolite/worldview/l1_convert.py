@@ -162,9 +162,14 @@ def l1_convert(inputfile,
         tiles_dims = {}
         tiles_dims_swir = {}
         tiles=[]
-        for tile_mdata in meta['TILE_INFO']:
+        ntiles = len(meta['TILE_INFO'])
+        for ti, tile_mdata in enumerate(meta['TILE_INFO']):
             tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
             tiles.append(tile)
+
+            ## get tile offset
+            offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
+            if verbosity > 1: print('{} - Processing tile {}/{}'.format(datetime.datetime.now().isoformat()[0:19], ti+1, ntiles), tile, offset)
 
             file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
             ## check if the files were named .TIF instead of .TIFF
@@ -211,9 +216,11 @@ def l1_convert(inputfile,
                     ds_att['percentiles_data'] = np.nanpercentile(d, percentiles)
 
                 ## write to netcdf file
-                ac.output.nc_write(ofile, ds, d, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+                ac.output.nc_write(ofile, ds, d, replace_nan = False,
+                                   global_dims = global_dims, offset = offset,
+                                   attributes = gatts, new = new, dataset_attributes = ds_att)
                 new = False
-                if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, d.shape))
                 d = None
 
         if verbosity > 1:
