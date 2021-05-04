@@ -160,14 +160,10 @@ def l1_convert(inputfile,
 
         ## run through bands
         for b,band in enumerate(band_names):
-            ## get list of tiles in this bundle
-            tiles_dims = {}
-            tiles_dims_swir = {}
-            tiles=[]
+            ## run through tiles in this bundle
             ntiles = len(meta['TILE_INFO'])
             for ti, tile_mdata in enumerate(meta['TILE_INFO']):
                 tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
-                tiles.append(tile)
 
                 ## get tile offset
                 offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
@@ -176,9 +172,7 @@ def l1_convert(inputfile,
                 file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
                 ## check if the files were named .TIF instead of .TIFF
                 if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
-                if not os.path.exists(file):
-                    tiles_dims[tile] = (0,0)
-                    continue
+                if not os.path.exists(file): continue
 
                 ## get tile from wv3 swir bundle if provided
                 swir_file=None
@@ -194,7 +188,6 @@ def l1_convert(inputfile,
                     bt = [bt for bt in meta['BAND_INFO'] if meta['BAND_INFO'][bt]['name'] == band][0]
                     bd = meta['BAND_INFO'][bt]
                     d = ac.shared.read_band(file, idx=bd['index'], sub=sub)
-                    if tile not in tiles_dims: tiles_dims[tile] = d.shape
                 else:
                     if swir_file is None:
                         swir_file='{}'.format(file)
@@ -202,7 +195,6 @@ def l1_convert(inputfile,
                     bt = [bt for bt in swir_meta['BAND_INFO'] if swir_meta['BAND_INFO'][bt]['name'] == band][0]
                     bd = swir_meta['BAND_INFO'][bt]
                     d = ac.shared.read_band(swir_file, idx=bd['index'], sub=sub)
-                    if tile not in tiles_dims_swir: tiles_dims_swir[tile] = d.shape
 
                 nodata = d == np.uint16(0)
                 d = d.astype(np.float32)
