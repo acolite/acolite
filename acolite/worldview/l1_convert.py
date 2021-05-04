@@ -126,36 +126,93 @@ def l1_convert(inputfile,
             gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
 
+        ## global scene dimensions from metadata
+        global_dims = [int(meta['NUMROWS']),int(meta['NUMCOLUMNS'])]
+
+        ## get projection info from tiles
+        dct = None
+        ## get list of tiles in this bundle
+        ntiles = len(meta['TILE_INFO'])
+        for ti, tile_mdata in enumerate(meta['TILE_INFO']):
+            tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
+            file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+            ## check if the files were named .TIF instead of .TIFF
+            if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
+            if not os.path.exists(file): continue
+            try:
+                ## get projection info from current tile
+                dct_vnir = ac.shared.projection_read(file)
+                ## set up dict
+                if dct is None:
+                    dct = {k: dct_vnir[k] for k in dct_vnir}
+                else:
+                    ## compute new ranges
+                    dct['xrange'] = min(dct['xrange'][0], dct_vnir['xrange'][0]),\
+                                    max(dct['xrange'][1], dct_vnir['xrange'][1])
+                    dct['yrange'] = max(dct['yrange'][0], dct_vnir['yrange'][0]),\
+                                    min(dct['yrange'][1], dct_vnir['yrange'][1])
+                ## get projection info from swir file - not used atm, check if SWIR band projection matches?
+                #swir_file=None
+                #if swir_bundle is not None:
+                #    for tile_mdata_swir in swir_meta['TILE_INFO']:
+                #        if tile in tile_mdata_swir['FILENAME']:
+                #            swir_file = '{}/{}'.format(swir_bundle,tile_mdata_swir['FILENAME'])
+                #        if not os.path.exists(swir_file): continue
+                #if swir_file is not None: dct_swir = ac.shared.projection_read(swir_file)
+            except:
+                if verbosity > 1: print('Could not determine projection from {}'.format(file))
+                pass
+
+        ## final scene dimensions
+        if dct is not None:
+            ## compute dimensions
+            dct['xdim'] = int(np.round((dct['xrange'][1]-dct['xrange'][0]) / dct['pixel_size'][0]))
+            dct['ydim'] = int(np.round((dct['yrange'][1]-dct['yrange'][0]) / dct['pixel_size'][1]))
+            ## these should match the global dims from metadata
+            if (global_dims[0] != dct['ydim']) |  (global_dims[1] != dct['xdim']):
+                print('Global dims and projection size do not match')
+                print(global_dims[1], dct['xdim'])
+                print(global_dims[0], dct['ydim'])
+            ## add projection to gatts
+            for k in ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'dimensions', 'zone']:
+                if k in dct: gatts[k] = dct[k]
+
         ## write results to output file
         new=True
-        global_dims = [int(meta['NUMROWS']),int(meta['NUMCOLUMNS'])]
 
         ## write lat/lon
         if output_geolocation:
             if verbosity > 1: print('{} - Writing lat/lon'.format(datetime.datetime.now().isoformat()[0:19]))
-            pcol = [0, global_dims[1], global_dims[1], 0]
-            prow = [0, 0, global_dims[0], global_dims[0]]
-            plon = []
-            plat = []
-            band_tag = list(meta['BAND_INFO'].keys())[0]
-            for bk in ['UL', 'UR', 'LR', 'LL']:
-                    k = '{}{}'.format(bk, 'LON')
-                    plon.append(meta['BAND_INFO'][band_tag][k])
-                    k = '{}{}'.format(bk, 'LAT')
-                    plat.append(meta['BAND_INFO'][band_tag][k])
+            if dct is not None: ## compute from projection info
+                lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
+                ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts)
+                lat = None
+                ac.output.nc_write(ofile, 'lon', lon)
+                lon = None
+            else: ## compute from corners given in metadata
+                pcol = [0, global_dims[1], global_dims[1], 0]
+                prow = [0, 0, global_dims[0], global_dims[0]]
+                plon = []
+                plat = []
+                band_tag = list(meta['BAND_INFO'].keys())[0]
+                for bk in ['UL', 'UR', 'LR', 'LL']:
+                        k = '{}{}'.format(bk, 'LON')
+                        plon.append(meta['BAND_INFO'][band_tag][k])
+                        k = '{}{}'.format(bk, 'LAT')
+                        plat.append(meta['BAND_INFO'][band_tag][k])
 
-            ## set up interpolator
-            zlon = scipy.interpolate.interp2d(pcol, prow, plon, kind='linear')
-            zlat = scipy.interpolate.interp2d(pcol, prow, plat, kind='linear')
-            x = np.arange(1, 1+global_dims[1], 1)
-            y = np.arange(1, 1+global_dims[0], 1)
-            ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts)
-            ac.output.nc_write(ofile, 'lon', zlon(x, y))
+                ## set up interpolator
+                zlon = scipy.interpolate.interp2d(pcol, prow, plon, kind='linear')
+                zlat = scipy.interpolate.interp2d(pcol, prow, plat, kind='linear')
+                x = np.arange(1, 1+global_dims[1], 1)
+                y = np.arange(1, 1+global_dims[0], 1)
+                ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts)
+                ac.output.nc_write(ofile, 'lon', zlon(x, y))
+                x = None
+                y = None
+                zlat = None
+                zlon = None
             new = False
-            x = None
-            y = None
-            zlat = None
-            zlon = None
         ## end write lat/lon
 
         ## run through bands
@@ -196,10 +253,13 @@ def l1_convert(inputfile,
                     bd = swir_meta['BAND_INFO'][bt]
                     d = ac.shared.read_band(swir_file, idx=bd['index'], sub=sub)
 
+                ## track mask
                 nodata = d == np.uint16(0)
+                ## convert to float and scale to TOA reflectance
                 d = d.astype(np.float32)
                 d *= float(meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
                 d *= (np.pi * gatts['se_distance']**2) / (f0_b[band]/10. * gatts['mus'])
+                ## apply mask
                 d[nodata] = np.nan
 
                 ## make new data full array
