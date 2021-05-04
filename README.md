@@ -46,7 +46,7 @@ A suitable Python environment can for example be set up using conda and the pack
 
             conda create -n acolite -c conda-forge python=3
             conda activate acolite
-            conda install -c conda-forge numpy matplotlib scipy gdal pyproj astropy cartopy scikit-image pyhdf pyresample
+            conda install -c conda-forge numpy matplotlib scipy gdal pyproj astropy cartopy scikit-image pyhdf pyresample netcdf4
 
 ## Installation
 * cd into a suitable directory and clone the git repository: `git clone https://github.com/acolite/acolite`
