@@ -73,7 +73,7 @@ def acolite_l2r(gem,
     gem.gatts['pressure'] = setu['pressure']
 
     ## read ancillary data
-    if setu['ancillary_data']:
+    if (setu['ancillary_data']) & ('lat' in gem.datasets) & ('lon' in gem.datasets):
         clon = np.nanmedian(gem.data('lon'))
         clat = np.nanmedian(gem.data('lat'))
         anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat)
@@ -743,7 +743,6 @@ def acolite_l2r(gem,
         gemo.gatts['ac_aot_550'] = aot_sel[0][0]
         gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
         gemo.gatts['ac_fit'] = aot_sel_par[0][0]
-        gemo.update_attributes() ## update gatts, could do once at the end
 
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
@@ -1101,6 +1100,9 @@ def acolite_l2r(gem,
         ob_data = None
         ob = None
     ## end orange band
+
+    ## update attributes with latest version
+    gemo.update_attributes()
 
     if verbosity>0: print('Wrote {}'.format(ofile))
 
