@@ -278,9 +278,9 @@ def acolite_l2w(gem,
             if nechad_parameter == '2016':
                 par_name = '{}_Nechad2016_{}'.format(nechad_par, cw)
                 par_attributes['algorithm']='2016 calibration'
-                nechad_dict = ac.shared.coef_nechad_2016()
+                nechad_dict = ac.parameters.nechad.coef_2016()
                 for k in nechad_dict:
-                    if k['sensor'] != gem['gatts']['sensor']: continue
+                    if k['sensor'] != gem['gatts']['sensor'].split('_')[-1]: continue
                     if k['band'] != 'B{}'.format(nechad_band): continue
                     if k['par'] != nechad_par: continue
                     A_Nechad = k['A']
