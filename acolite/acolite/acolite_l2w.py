@@ -435,10 +435,10 @@ def acolite_l2w(gem,
             ## compute CHL
             ratio = np.log10(blue/green)
             blue, green = None, None
-            par_data[par_name] = chl_coef[0] + chl_coef[1] * ratio + \
-                                                     chl_coef[2] * ratio * ratio + \
-                                                     chl_coef[3] * ratio * ratio * ratio + \
-                                                     chl_coef[4] * ratio * ratio * ratio * ratio
+            par_data[par_name] = chl_dct['chl_coef'][0] + chl_dct['chl_coef'][1] * ratio + \
+                                                     chl_dct['chl_coef'][2] * ratio * ratio + \
+                                                     chl_dct['chl_coef'][3] * ratio * ratio * ratio + \
+                                                     chl_dct['chl_coef'][4] * ratio * ratio * ratio * ratio
             par_data[par_name] = np.power(10, par_data[par_name])
             par_atts[par_name] = par_attributes
         ## end CHL_OC
