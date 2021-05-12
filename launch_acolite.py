@@ -42,13 +42,17 @@ def launch_acolite():
     ## command line processing, run acolite_run directly
     if '--cli' in sys.argv:
         time_start = datetime.datetime.now() ## time of processing start
-        
+
         ## add input/output if changed
         inputfile, output = None, None
         if args.inputfile is not None: inputfile = args.inputfile.split(',')
         if args.output is not None: output = args.output
 
         ## run processing
+        if args.settings is None:
+            print('No settings file given')
+            return()
+            
         ac.acolite.acolite_run(args.settings, inputfile=inputfile, output=output)
     else:
         ret = ac.acolite.acolite_gui(sys.argv, version=ac.version)
