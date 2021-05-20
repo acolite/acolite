@@ -13,6 +13,7 @@ output=None
 output_geolocation=True
 output_xy=False
 output_geometry=True
+output_rhorc=False
 
 ## Sentinel-2 per pixel geometry
 geometry_type=grids_footprint

@@ -23,6 +23,11 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         else:
             setu['output'] = output
 
+    if 'l2w_parameters' in setu:
+        if setu['l2w_parameters'] is not None:
+            for par in setu['l2w_parameters']:
+                if 'rhorc' in par: setu['output_rhorc'] = True
+
     ## log file for l1r generation
     log_file = '{}/acolite_run_{}_log_file.txt'.format(setu['output'],setu['runid'])
     log = ac.acolite.logging.LogTee(log_file)

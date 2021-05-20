@@ -892,6 +892,31 @@ def acolite_l2r(gem,
             cur_data[mask] = np.nan
         ## end exponential
 
+        ## write rhorc
+        if (setu['output_rhorc']):
+            ## read TOA
+            cur_rhorc, cur_att = gem.data(dsi, attributes=True)
+
+            ## compute Rayleigh parameters for DSF
+            if (ac_opt == 'dsf'):
+                ## no subset
+                xi = [gem.data_mem['pressure'+gk],
+                      gem.data_mem['raa'+gk],
+                      gem.data_mem['vza'+gk],
+                      gem.data_mem['sza'+gk],
+                      gem.data_mem['wind'+gk]]
+                ## get Rayleigh parameters
+                rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+                dtotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+                utotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+
+            cur_rhorc = (cur_rhorc - rorayl_cur) / (dtotr_cur*utotr_cur)
+            gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
+            cur_rhorc = None
+            rorayl_cur = None
+            dtotr_cur = None
+            utotr_cur = None
+
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
         cur_data = None
@@ -1102,7 +1127,7 @@ def acolite_l2r(gem,
     ## end orange band
 
     ## update attributes with latest version
-    gemo.update_attributes()
+    if output_file: gemo.update_attributes()
 
     if verbosity>0: print('Wrote {}'.format(ofile))
 
