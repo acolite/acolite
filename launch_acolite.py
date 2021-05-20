@@ -4,23 +4,25 @@
 ##                    QV 2019-02-21 ignore numpy errors
 ##                    QV 2021-01-05 added freeze_support call for binary GUI
 ##                    QV 2021-04-01 updated for generic ACOLITE
+##                    QV 2021-05-19 added print of import errors
 
 def launch_acolite():
     ## need to run freeze_support for PyInstaller binary generation
     from multiprocessing import Process, freeze_support
     freeze_support()
 
+    ## import sys to parse arguments
+    import sys
+    import datetime
+    import argparse
+
     ## import acolite source
     try:
         import acolite as ac
     except:
         print('Could not import ACOLITE source')
+        print("Error:", sys.exc_info())
         return()
-
-    ## import sys to parse arguments
-    import sys
-    import datetime
-    import argparse
 
     ## fix matplotlib backend to Agg
     ## skip import if --nogfx is given
@@ -52,7 +54,7 @@ def launch_acolite():
         if args.settings is None:
             print('No settings file given')
             return()
-            
+
         ac.acolite.acolite_run(args.settings, inputfile=inputfile, output=output)
     else:
         ret = ac.acolite.acolite_gui(sys.argv, version=ac.version)
