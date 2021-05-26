@@ -131,7 +131,12 @@ def l1_convert(inputfile, output = None,
         ## scene average geometry
         vza = 0
         sza = 90-float(meta[ik]['SUN_ELEVATION'])
-        raa = float(meta[ik]['SUN_AZIMUTH'])
+        saa = float(meta[ik]['SUN_AZIMUTH'])
+        ## compute view zenith angle
+        r,l,t,b, nadir_top, nadir_bottom,nadir_middle = ac.landsat.image_corners(bundle, meta)
+        vaa = ac.shared.azimuth_two_points(nadir_top[0],nadir_top[1],nadir_bottom[0],nadir_bottom[1])
+        raa = np.abs(saa-vaa)
+        while raa > 180: raa = np.abs(360 - raa)
         se_distance = float(meta[ik]['EARTH_SUN_DISTANCE'])
 
         ## read rsr
@@ -147,7 +152,7 @@ def l1_convert(inputfile, output = None,
 
         ## make global attributes for L1R NetCDF
         gatts = {'sensor':sensor, 'isodate':isodate, 'global_dims':global_dims,
-                 'sza':sza, 'vza':vza, 'raa':raa, 'se_distance': se_distance,
+                 'sza':sza, 'vza':vza, 'vaa':vaa, 'saa':saa, 'raa':raa, 'se_distance': se_distance,
                  'mus': np.cos(sza*(np.pi/180.)), 'wrs_path': path, 'wrs_row': row,
                  'acolite_file_type': 'L1R'}
         if merge_tiles:
@@ -331,9 +336,9 @@ def l1_convert(inputfile, output = None,
                     vza[clip_mask] = np.nan
                     vaa[clip_mask] = np.nan
 
-                raa = (saa-vaa)
+                raa = np.abs(saa-vaa)
                 tmp = np.where(raa>180)
-                raa[tmp]=np.abs(raa[tmp] - 360)
+                raa[tmp]=np.abs(360 - raa[tmp])
                 raa[mask] = np.nan
                 vaa = None
                 saa = None
