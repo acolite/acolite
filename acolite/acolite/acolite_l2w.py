@@ -183,7 +183,7 @@ def acolite_l2w(gem,
             cur_data[cur_d.mask] = np.nan
             cur_d = None
         ## apply mask to Rrs and rhow
-        if mask: cur_data[(l2_flags & flag_value)!=0] = np.nan
+        if (mask) & (setu['l2w_mask_water_parameters']): cur_data[(l2_flags & flag_value)!=0] = np.nan
         if verbosity > 1: print('Writing {}'.format(cur_par))
         ## add attributes
         for k in att_add: cur_att[k] = att_add[k]
@@ -649,7 +649,7 @@ def acolite_l2w(gem,
                 else:
                     cur_data  = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
                 ## mask data
-                if mask: cur_data[(l2_flags & flag_value)!=0] = np.nan
+                if (mask) & (setu['l2w_mask_water_parameters']): cur_data[(l2_flags & flag_value)!=0] = np.nan
                 ## convert to Rrs
                 qaa_in[k] = cur_data/np.pi
 
@@ -710,7 +710,7 @@ def acolite_l2w(gem,
                     cur_data = 1.0 * gem['data'][cur_ds]
                 else:
                     cur_data = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
-                if mask: cur_data[(l2_flags & flag_value)!=0] = np.nan
+                if (mask) & (setu['l2w_mask_water_parameters']): cur_data[(l2_flags & flag_value)!=0] = np.nan
                 if k == 'B':
                     B = cur_data / np.pi
                     Bwave = cw
@@ -1169,7 +1169,7 @@ def acolite_l2w(gem,
         ## write parameters in par_data
         for cur_ds in par_data:
             ## add mask
-            if mask: par_data[cur_ds][(l2_flags & flag_value)!=0] = np.nan
+            if (mask) & (setu['l2w_mask_water_parameters']): par_data[cur_ds][(l2_flags & flag_value)!=0] = np.nan
             ## write to NetCDF
             if verbosity > 1: print('Writing {}'.format(cur_ds))
             ac.output.nc_write(ofile, cur_ds, par_data[cur_ds], dataset_attributes=par_atts[cur_ds],
