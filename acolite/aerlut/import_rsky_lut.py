@@ -7,8 +7,10 @@
 ##               2021-01-26 (QV) new default LUT, flip the raa from OSOAA
 ##               2021-02-24 (QV) renamed from rsky_read_lut
 ##               2021-03-01 (QV) removed separate luts for wind speed
+##               2021-05-31 (QV) added remote lut retrieval
 
-def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, override=False):
+def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, override=False,
+                    get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
     import os
     import numpy as np
     import scipy.interpolate
@@ -54,17 +56,27 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                 return(lut, meta, dim, rgi)
             ## sensor specific lut
             else:
-                lutnc_s = '{}/{}/{}-MOD{}_{}.nc'.format(lutdir, sensor, lutbase, model, sensor)
+                #lutnc_s = '{}/{}/{}-MOD{}_{}.nc'.format(lutdir, sensor, lutbase, model, sensor)
+                slut = '{}-MOD{}_{}'.format(lutbase, model, sensor)
+                lutnc_s = '{}/{}/{}.nc'.format(lutdir, sensor, slut)
 
                 ## get sensor RSR
-                pp_path = ac.config['data_dir']
-                lutdir=pp_path+'/LUT/'
-                rsr_file = pp_path+'/RSR/'+sensor+'.txt'
+                lutdir=ac.config['data_dir']+'/LUT/'
+                rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
                 rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
 
                 ## make new sensor lutfile
                 if (override) & (os.path.isfile(lutnc_s)): os.remove(lutnc_s)
 
+                ## try downloading LUT from GitHub
+                if (not os.path.isfile(lutnc_s)) & (get_remote):
+                    remote_lut = '{}/{}/{}/{}.nc'.format(remote_base, '-'.join(lutbase.split('-')[1:3]), sensor, slut)
+                    try:
+                        ac.shared.download_file(remote_lut, lutnc_s)
+                    except:
+                        print('Could not download remote lut {} to {}'.format(remote_lut, lutnc_s))
+
+                ## generate LUT if download did not work
                 if not os.path.isfile(lutnc_s):
                     print('Resampling RSKY LUT {} to {}'.format(os.path.basename(lutnc), sensor))
                     if not os.path.exists(os.path.dirname(lutnc_s)): os.makedirs(os.path.dirname(lutnc_s))

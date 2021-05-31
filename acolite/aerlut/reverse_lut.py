@@ -2,11 +2,13 @@
 ## luts are created if they do not exist
 ## reverse luts go from rpath -> aot
 ## QV 2021-02-03
+## last updates: 2021-05-31 (QV) added remote lut retrieval
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
                        base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
-                       rsky_lut = 'ACOLITE-RSKY-202102-82W'):
+                       rsky_lut = 'ACOLITE-RSKY-202102-82W',
+                       get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
     import acolite as ac
     import numpy as np
     from netCDF4 import Dataset
@@ -18,6 +20,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
         rsr, rsr_bands = ac.shared.rsr_read(rsrf)
         bands = [b for b in rsr_bands]
     else:
+        lut = list(lutdw.keys())[0]
         bands = list(lutdw[lut]['rgi'].keys())
 
     revl = {}
@@ -31,57 +34,69 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
             lutnc = '{}/{}.nc'.format(lutdir, slut)
 
             if (not os.path.exists(lutnc)) or (override):
-                print('Creating reverse LUTs for {}'.format(sensor))
-                if lutdw is None:
-                    print('Importing source LUTs')
-                    lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
-                                                    add_rsky=True, rsky_lut = rsky_lut)
+                if os.path.exists(lutnc): os.remove(lutnc)
+
+                ## try downloading LUT from GitHub
+                if (get_remote):
+                    remote_lut = '{}/{}-Reverse/{}/{}.nc'.format(remote_base, '-'.join(lut.split('-')[0:3]), sensor, slut)
+                    try:
+                        ac.shared.download_file(remote_lut, lutnc)
+                    except:
+                        print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
+
+                ## generate LUT if download did not work
+                if (not os.path.exists(lutnc)):
+                    print('Creating reverse LUTs for {}'.format(sensor))
+                    if lutdw is None:
+                        print('Importing source LUTs')
+                        lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
+                                                        add_rsky=True, rsky_lut = rsky_lut)
                     pid = lutdw[lut]['ipd'][par]
                     pressures, pids, raas, vzas, szas, winds, aots = lutdw[lut]['dim']
 
-                print('Starting {}'.format(slut))
-                t0 = time.time()
-                tmp = lutdw[lut]['lut'][b][:,pid,:,:,:,:,:].flatten()
-                tmp = np.log(tmp)
-                prc = np.nanpercentile(tmp, pct)
-                h = np.histogram(tmp, bins=nbins, range=prc)
-                rpath_bins = np.exp(h[1])
+                    print('Starting {}'.format(slut))
+                    t0 = time.time()
+                    tmp = lutdw[lut]['lut'][b][:,pid,:,:,:,:,:].flatten()
+                    tmp = np.log(tmp)
+                    prc = np.nanpercentile(tmp, pct)
+                    h = np.histogram(tmp, bins=nbins, range=prc)
+                    rpath_bins = np.exp(h[1])
 
-                ## set up dimensions for lut
-                lut_dimensions = ('pressure','raa','vza','sza','wind','rho')
-                dim = [pressures, raas, vzas, szas, winds, rpath_bins]
-                dims = [len(d) for d in dim]
-                luta = np.zeros(dims) + np.nan
-                ii = 0
-                ni = np.product(dims[:-1])
-                for pi, pressure in enumerate(pressures):
-                    for ri, raa in enumerate(raas):
-                        for vi, vza in enumerate(vzas):
-                            for si, sza in enumerate(szas):
-                                for wi, wind in enumerate(winds):
-                                    ret = lutdw[lut]['rgi'][b]((pressure, pid, raa, vza, sza, wind, aots))
-                                    luta[pi, ri, vi, si, wi, :] = np.interp(rpath_bins, ret, aots)
-                                    ii+=1
-                        print('{} {:.1f}%'.format(b, (ii/ni)*100), end='\r')
-                print('\nResampling {} took {:.1f}s'.format(slut, time.time()-t0))
+                    ## set up dimensions for lut
+                    lut_dimensions = ('pressure','raa','vza','sza','wind','rho')
+                    dim = [pressures, raas, vzas, szas, winds, rpath_bins]
+                    dims = [len(d) for d in dim]
+                    luta = np.zeros(dims) + np.nan
+                    ii = 0
+                    ni = np.product(dims[:-1])
+                    for pi, pressure in enumerate(pressures):
+                        for ri, raa in enumerate(raas):
+                            for vi, vza in enumerate(vzas):
+                                for si, sza in enumerate(szas):
+                                    for wi, wind in enumerate(winds):
+                                        ret = lutdw[lut]['rgi'][b]((pressure, pid, raa, vza, sza, wind, aots))
+                                        luta[pi, ri, vi, si, wi, :] = np.interp(rpath_bins, ret, aots)
+                                        ii+=1
+                            print('{} {:.1f}%'.format(b, (ii/ni)*100), end='\r')
+                    print('\nResampling {} took {:.1f}s'.format(slut, time.time()-t0))
 
-                ## write this sensor band lut
-                if os.path.exists(lutnc): os.remove(lutnc)
-                nc = Dataset(lutnc, 'w')
-                ## set attributes
-                setattr(nc, 'base', slut)
-                setattr(nc, 'aermod', lut[-1])
-                setattr(nc, 'aots', aots)
-                setattr(nc, 'lut_dimensions', lut_dimensions)
-                for di, dn in enumerate(lut_dimensions):
-                    ## set attribute
-                    setattr(nc, dn, dim[di])
-                    ## create dimensions
-                    nc.createDimension(dn, len(dim[di]))
-                ## write lut
-                var = nc.createVariable('lut',np.float32,lut_dimensions)
-                var[:] = luta.astype(np.float32)
-                nc.close()
+                    ## write this sensor band lut
+                    if os.path.exists(lutnc): os.remove(lutnc)
+                    nc = Dataset(lutnc, 'w')
+                    ## set attributes
+                    setattr(nc, 'base', slut)
+                    setattr(nc, 'aermod', lut[-1])
+                    setattr(nc, 'aots', aots)
+                    setattr(nc, 'lut_dimensions', lut_dimensions)
+                    for di, dn in enumerate(lut_dimensions):
+                        ## set attribute
+                        setattr(nc, dn, dim[di])
+                        ## create dimensions
+                        nc.createDimension(dn, len(dim[di]))
+                    ## write lut
+                    var = nc.createVariable('lut',np.float32,lut_dimensions)
+                    var[:] = luta.astype(np.float32)
+                    nc.close()
 
             ## read LUT and make rgi
             if os.path.exists(lutnc):

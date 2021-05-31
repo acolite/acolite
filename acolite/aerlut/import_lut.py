@@ -7,8 +7,11 @@
 ##                  2021-02-24 (QV) removed obsolete code
 ##                  2021-02-25 (QV) changed position of lut files (removed lutid directory), added removal of unzipped file
 ##                  2021-03-02 (QV) integrated sensor specific LUTs
+##                  2021-05-31 (QV) added remote lut retrieval
 
-def import_lut(lutid,lutdir,override=False, sensor=None):
+def import_lut(lutid,lutdir,override=False, sensor=None,
+               get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+
     import os, sys
     import numpy as np
     import acolite as ac
@@ -66,53 +69,64 @@ def import_lut(lutid,lutdir,override=False, sensor=None):
         if (os.path.isfile(lutnc_s)) & (override): os.remove(lutnc_s)
 
         if (not os.path.isfile(lutnc_s)) | (override):
-            print('Resampling LUT {} to sensor {}'.format(lutid, sensor))
-            #rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
-            #rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
-            rsrd = ac.shared.rsr_dict(sensor=sensor)
-            rsr, rsr_bands = rsrd[sensor]['rsr'], rsrd[sensor]['rsr_bands']
+            ## try downloading LUT from GitHub
+            if (get_remote):
+                slut = '{}_{}'.format(lutid, sensor)
+                remote_lut = '{}/{}/{}/{}.nc'.format(remote_base, '-'.join(lutid.split('-')[0:3]), sensor, slut)
+                try:
+                    ac.shared.download_file(remote_lut, lutnc_s)
+                except:
+                    print('Could not download remote lut {} to {}'.format(remote_lut, lutnc_s))
 
-            ## read LUT
-            lut, meta = ac.aerlut.import_lut(lutid,lutdir)
-            lut_dims = lut.shape
+            ## otherwise to local resampling
+            if (not os.path.isfile(lutnc_s)):
+                print('Resampling LUT {} to sensor {}'.format(lutid, sensor))
+                #rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
+                #rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
+                rsrd = ac.shared.rsr_dict(sensor=sensor)
+                rsr, rsr_bands = rsrd[sensor]['rsr'], rsrd[sensor]['rsr_bands']
 
-            ## new ndim convolution
-            lut_sensor = {}
-            for band in rsr_bands:
-                lut_sensor[band] = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=1)
+                ## read LUT
+                lut, meta = ac.aerlut.import_lut(lutid,lutdir)
+                lut_dims = lut.shape
 
-            ## write nc file
-            try:
-                if os.path.isfile(lutnc_s) is False:
-                    from netCDF4 import Dataset
-                    nc = Dataset(lutnc_s, 'w', format='NETCDF4_CLASSIC')
-                    ## write metadata
-                    for i in meta:
-                        attdata=meta[i]
-                        if isinstance(attdata,list):
-                            if isinstance(attdata[0],str):
-                                attdata=','.join(attdata)
-                        setattr(nc, i, attdata)
-                    ## set up LUT dimension
-                    nc.createDimension('par', lut_dims[0])
-                    #nc.createDimension('wave', lut_dims[1]) # not used here
-                    nc.createDimension('azi', lut_dims[2])
-                    nc.createDimension('thv', lut_dims[3])
-                    nc.createDimension('ths', lut_dims[4])
-                    nc.createDimension('wnd', lut_dims[5])
-                    nc.createDimension('tau', lut_dims[6])
-                    ## write LUT
-                    for band in lut_sensor.keys():
-                        var = nc.createVariable(band,np.float32,('par','azi','thv','ths','wnd','tau'))
-                        nc.variables[band][:] = lut_sensor[band].astype(np.float32)
-                    nc.close()
-                    nc = None
-                    arr = None
-                    meta = None
-            except:
-                if os.path.isfile(lutnc_s): os.remove(lutnc_s)
-                print(sys.exc_info()[0])
-                print('Failed to write LUT data to NetCDF (id='+lutid+')')
+                ## new ndim convolution
+                lut_sensor = {}
+                for band in rsr_bands:
+                    lut_sensor[band] = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=1)
+
+                ## write nc file
+                try:
+                    if os.path.isfile(lutnc_s) is False:
+                        from netCDF4 import Dataset
+                        nc = Dataset(lutnc_s, 'w', format='NETCDF4_CLASSIC')
+                        ## write metadata
+                        for i in meta:
+                            attdata=meta[i]
+                            if isinstance(attdata,list):
+                                if isinstance(attdata[0],str):
+                                    attdata=','.join(attdata)
+                            setattr(nc, i, attdata)
+                        ## set up LUT dimension
+                        nc.createDimension('par', lut_dims[0])
+                        #nc.createDimension('wave', lut_dims[1]) # not used here
+                        nc.createDimension('azi', lut_dims[2])
+                        nc.createDimension('thv', lut_dims[3])
+                        nc.createDimension('ths', lut_dims[4])
+                        nc.createDimension('wnd', lut_dims[5])
+                        nc.createDimension('tau', lut_dims[6])
+                        ## write LUT
+                        for band in lut_sensor.keys():
+                            var = nc.createVariable(band,np.float32,('par','azi','thv','ths','wnd','tau'))
+                            nc.variables[band][:] = lut_sensor[band].astype(np.float32)
+                        nc.close()
+                        nc = None
+                        arr = None
+                        meta = None
+                except:
+                    if os.path.isfile(lutnc_s): os.remove(lutnc_s)
+                    print(sys.exc_info()[0])
+                    print('Failed to write LUT data to NetCDF (id='+lutid+')')
 
         ## read dataset from NetCDF
         if os.path.isfile(lutnc_s):
