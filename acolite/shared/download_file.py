@@ -4,6 +4,7 @@
 ## 2018-03-14
 ## modifications: 2018-11-19 (QV) added verbosity option, removed the parallel download
 ##                2020-04-24 (QV) earthdata login
+##                2021-05-31 (QV) added local directory creation
 
 def download_file(url, file, auth=None, session=None, parallel=False, verbosity=0):
 
@@ -12,6 +13,9 @@ def download_file(url, file, auth=None, session=None, parallel=False, verbosity=
 
     import os
     file_path = os.path.abspath(file)
+    file_dir = os.path.dirname(file_path)
+    if not os.path.exists(file_dir): os.makedirs(file_dir)
+
     start = time.time()
 
     if ('https://oceandata.sci.gsfc.nasa.gov/' in url) or ('MEASURES/SRTMGL3.003/2000.02.11' in url):
