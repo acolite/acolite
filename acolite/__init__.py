@@ -38,7 +38,9 @@ config = shared.import_config(cfile)
 ## test whether we can find the relative paths
 for t in config:
     if t in ['EARTHDATA_u', 'EARTHDATA_p']: continue
-    if os.path.exists(config[t]): continue
+    if os.path.exists(config[t]):
+        config[t] = os.path.abspath(config[t])
+        continue
     tmp = path + os.path.sep + config[t]
     if os.path.exists(tmp):
         config[t] = os.path.abspath(tmp)
