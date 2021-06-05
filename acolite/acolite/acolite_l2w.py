@@ -156,9 +156,6 @@ def acolite_l2w(gem,
             cur_tag = cur_par.replace('Rrs_','rhos_')
             mask = True
             att_add = {'algorithm':'Remote sensing reflectance', 'dataset':'rhos'}
-            att_add['standard_name']='Rrs'
-            att_add['long_name']='Remote sensing reflectance'
-            att_add['units']='sr^-1'
             att_add['reference']=''
             att_add['algorithm']=''
         if 'rhow_' in cur_par:
@@ -166,9 +163,6 @@ def acolite_l2w(gem,
             cur_tag = cur_par.replace('rhow_','rhos_')
             mask = True
             att_add = {'algorithm':'Water reflectance', 'dataset':'rhos'}
-            att_add['standard_name']='rhow'
-            att_add['long_name']='Water leaving radiance reflectance'
-            att_add['units']="1"
             att_add['reference']=''
             att_add['algorithm']=''
 
@@ -224,17 +218,11 @@ def acolite_l2w(gem,
             if cur_par[0] == 't':
                 nechad_par = 'TUR'
                 par_attributes = {'algorithm':'Nechad et al. 2009', 'title':'Nechad Turbidity'}
-                par_attributes['standard_name']='turbidity'
-                par_attributes['long_name']='Water turbidity'
-                par_attributes['units']='FNU'
                 par_attributes['reference']='Nechad et al. 2009'
                 par_attributes['algorithm']='2009 calibration'
             elif cur_par[0] == 's':
                 nechad_par = 'SPM'
                 par_attributes = {'algorithm':'Nechad et al. 2010', 'title':'Nechad SPM'}
-                par_attributes['standard_name']='spm'
-                par_attributes['long_name']='Suspended Particulate Matter'
-                par_attributes['units']='g m^-3'
                 par_attributes['reference']='Nechad et al. 2010'
                 par_attributes['algorithm']='2010 calibration'
             else:
@@ -309,9 +297,6 @@ def acolite_l2w(gem,
             mask = True ## water parameter so apply mask
 
             par_attributes = {'algorithm':'Dogliotti et al. 2015', 'title':'Dogliotti Turbidity'}
-            par_attributes['standard_name']='turbidity'
-            par_attributes['long_name']='Water turbidity'
-            par_attributes['units']='FNU'
             par_attributes['reference']='Dogliotti et al. 2015'
             par_attributes['algorithm']=''
 
@@ -390,9 +375,6 @@ def acolite_l2w(gem,
                 continue
 
             par_attributes = {'algorithm':'Chlorophyll a blue/green ratio', 'dataset':'rhos'}
-            par_attributes['standard_name']='chlorophyll_concentration'
-            par_attributes['long_name']='Chlorophyll a concentration derived from blue green ratio'
-            par_attributes['units']='mg m^-3'
             par_attributes['reference']='Franz et al. 2015'
             par_attributes['algorithm']=''
 
@@ -455,9 +437,6 @@ def acolite_l2w(gem,
 
             par_split = par_name.split('_')
             par_attributes = {'algorithm':'Red-edge chlorophyll', 'dataset':'rhos'}
-            par_attributes['standard_name']='chlorophyll_concentration'
-            par_attributes['long_name']='Chlorophyll a concentration derived from red edge'
-            par_attributes['units']='mg m^-3'
             par_attributes['reference']=''
             par_attributes['algorithm']=''
 
@@ -909,9 +888,6 @@ def acolite_l2w(gem,
             mask = False ## no water mask
             par_split = cur_par.split('_')
             par_attributes = {'algorithm':'NDVI', 'dataset':'rhos'}
-            par_attributes['standard_name']='ndvi'
-            par_attributes['long_name']='Normalised Difference Vegetation Index'
-            par_attributes['units']="1"
             par_attributes['reference']=''
             par_attributes['algorithm']=''
 

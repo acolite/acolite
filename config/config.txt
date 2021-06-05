@@ -1,6 +1,7 @@
 ## ACOLITE
 defaults=config/defaults.txt
 parameter_labels=config/parameter_labels.txt
+parameter_cf_attributes=config/parameter_cf_attributes.json
 
 ## EarthData
 EARTHDATA_u=

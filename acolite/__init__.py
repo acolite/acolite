@@ -44,6 +44,12 @@ for t in config:
     if os.path.exists(tmp):
         config[t] = os.path.abspath(tmp)
 
+## read parameter scaling and settings
+param = {'scaling':acolite.parameter_scaling()}
+import json
+with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
+    param['attributes'] = json.load(f)
+
 ## set up earthdata login
 if ('EARTHDATA_u' in config) & ('EARTHDATA_p' in config):
     if len(config['EARTHDATA_u']) > 0: os.environ['EARTHDATA_u'] = config['EARTHDATA_u']

@@ -18,6 +18,7 @@
 ##                QV 2020-07-22 added update_attributes keyword
 ##                QV 2020-07-23 skip fillvalue in ds attributes
 ##                QV 2021-02-09 added replace_nan option for data without offset, changed numpy import
+##                QV 2021-06-04 added dataset attributes defaults
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -32,6 +33,33 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
     import time, os
     from math import ceil
     import numpy as np
+
+    import re
+    import acolite as ac
+
+    ## import atts for dataset
+    atts = None
+    for p in ac.param['attributes']:
+        if p['parameter'] == dataset: atts = {t:p[t] for t in p}
+    if atts is None:
+        for p in ac.param['attributes']:
+            if re.match(p['parameter'], dataset):
+                atts = {t:p[t] for t in p}
+                try:
+                    wave = int(dataset.split('_')[-1])
+                    atts['wavelength'] = wave
+                except:
+                    pass
+
+    ## set attributes from provided/defaults
+    if atts is not None:
+        if dataset_attributes is None:
+            dataset_attributes = {t:atts[t] for t in atts}
+        else:
+            for t in atts:
+                if t not in dataset_attributes:
+                    dataset_attributes[t] = atts[t]
+        dataset_attributes['parameter'] = dataset
 
     if os.path.exists(os.path.dirname(ncfile)) is False:
          os.makedirs(os.path.dirname(ncfile))

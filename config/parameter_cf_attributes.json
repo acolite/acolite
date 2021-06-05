@@ -1,0 +1,88 @@
+[
+
+{"parameter": "rhot_*",
+    "standard_name": "toa_bidirectional_reflectance",
+    "long_name": "Top-of-atmosphere reflectance",
+    "units": "1"},
+
+{"parameter": "rhos_*",
+    "standard_name": "surface_bidirectional_reflectance",
+    "long_name": "Surface reflectance",
+    "units": "1"},
+
+{"parameter": "Rrs_*",
+  "standard_name": "surface_ratio_of_upwelling_radiance_emerging_from_sea_water_to_downwelling_radiative_flux_in_air",
+  "long_name": "Remote sensing reflectance",
+  "units": "sr-1"},
+
+{"parameter": "chl_oc*",
+  "standard_name": "mass_concentration_of_chlorophyll_a_in_sea_water",
+  "long_name": "chlorophyll a concentration in mg m-3 derived from blue green ratio",
+  "units": "mg m-3"},
+
+{"parameter": "chl_re*",
+    "standard_name": "mass_concentration_of_chlorophyll_a_in_sea_water",
+    "long_name": "chlorophyll a concentration in mg m-3 derived from red-edge",
+    "units": "mg m-3"},
+
+{"parameter": "TUR_Dogliotti_*",
+  "standard_name": "sea_water_turbidity",
+  "long_name": "water turbidity in NTU",
+  "units": "1"},
+
+{"parameter": "TUR_Nechad_*",
+  "standard_name": "sea_water_turbidity",
+  "long_name": "water turbidity in NTU",
+  "units": "1"},
+
+{"parameter": "SPM_Nechad_*",
+    "standard_name": "concentration_of_suspended_matter_in_sea_water",
+    "long_name": "suspended particulate matter in g m-3",
+    "units": "g m-3"},
+
+{"parameter": "ndvi*",
+    "standard_name": "normalized_difference_vegetation_index",
+    "long_name": "Normalized Difference Vegetation Index",
+    "units": "1"},
+
+{"parameter": "bt*",
+    "standard_name": "toa_brightness_temperature",
+    "long_name": "At sensor brightness temperature",
+    "units": "K"},
+
+{"parameter": "vaa*",
+    "standard_name": "sensor_azimuth_angle",
+    "long_name": "sensor azimuth angle",
+    "units": "degree"},
+
+{"parameter": "vza*",
+    "standard_name": "sensor_zenith_angle",
+    "long_name": "sensor zenith angle",
+    "units": "degree"},
+
+{"parameter": "saa*",
+    "standard_name": "solar_azimuth_angle",
+    "long_name": "solar azimuth angle",
+    "units": "degree"},
+
+{"parameter": "sza*",
+    "standard_name": "solar_zenith_angle",
+    "long_name": "solar zenith angle",
+    "units": "degree"},
+
+{"parameter": "raa*",
+    "standard_name": "angle_of_rotation_from_solar_azimuth_to_sensor_azimuth",
+    "long_name": "relative azimuth angle",
+    "units": "degree"},
+
+{"parameter": "lat",
+    "standard_name": "latitude",
+    "long_name": "latitude",
+    "units": "degree_north"},
+
+{"parameter": "lon",
+    "standard_name": "longitude",
+    "long_name": "longitude",
+    "units": "degree_east"}
+
+]
