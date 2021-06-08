@@ -11,32 +11,32 @@
     "units": "1"},
 
 {"parameter": "Rrs_*",
-  "standard_name": "surface_ratio_of_upwelling_radiance_emerging_from_sea_water_to_downwelling_radiative_flux_in_air",
+  "standard_name": "surface_ratio_of_upwelling_radiance_emerging_from_water_to_downwelling_radiative_flux_in_air",
   "long_name": "Remote sensing reflectance",
   "units": "sr-1"},
 
 {"parameter": "chl_oc*",
-  "standard_name": "mass_concentration_of_chlorophyll_a_in_sea_water",
+  "standard_name": "mass_concentration_of_chlorophyll_a_in_water",
   "long_name": "chlorophyll a concentration in mg m-3 derived from blue green ratio",
   "units": "mg m-3"},
 
 {"parameter": "chl_re*",
-    "standard_name": "mass_concentration_of_chlorophyll_a_in_sea_water",
+    "standard_name": "mass_concentration_of_chlorophyll_a_in_water",
     "long_name": "chlorophyll a concentration in mg m-3 derived from red-edge",
     "units": "mg m-3"},
 
 {"parameter": "TUR_Dogliotti_*",
-  "standard_name": "sea_water_turbidity",
+  "standard_name": "water_turbidity",
   "long_name": "water turbidity in NTU",
   "units": "1"},
 
 {"parameter": "TUR_Nechad_*",
-  "standard_name": "sea_water_turbidity",
+  "standard_name": "water_turbidity",
   "long_name": "water turbidity in NTU",
   "units": "1"},
 
 {"parameter": "SPM_Nechad_*",
-    "standard_name": "concentration_of_suspended_matter_in_sea_water",
+    "standard_name": "concentration_of_suspended_matter_in_water",
     "long_name": "suspended particulate matter in g m-3",
     "units": "g m-3"},
 
@@ -83,6 +83,14 @@
 {"parameter": "lon",
     "standard_name": "longitude",
     "long_name": "longitude",
-    "units": "degree_east"}
+    "units": "degree_east"},
+
+{"parameter": "x",
+    "standard_name": "projection_x_coordinate",
+    "units": "m"},
+
+{"parameter": "y",
+    "standard_name": "projection_y_coordinate",
+    "units": "m"}
 
 ]

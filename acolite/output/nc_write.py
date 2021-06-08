@@ -89,6 +89,10 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         #setattr(nc, 'auto_grouping', 'rtoa:rrc:rhos' )
         setattr(nc, 'auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs')
 
+        ## CF convention
+        setattr(nc, 'Conventions', 'CF-1.7')
+        ## to add: title , history , institution , source , comment and references
+
         if attributes is not None:
             for key in attributes.keys():
                 if attributes[key] is not None:
