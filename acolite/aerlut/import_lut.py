@@ -8,8 +8,11 @@
 ##                  2021-02-25 (QV) changed position of lut files (removed lutid directory), added removal of unzipped file
 ##                  2021-03-02 (QV) integrated sensor specific LUTs
 ##                  2021-05-31 (QV) added remote lut retrieval
+##                  2021-06-08 (QV) added lut par subsetting
 
-def import_lut(lutid,lutdir,override=False, sensor=None,
+def import_lut(lutid, lutdir,
+               lut_par = ['utotr', 'dtotr', 'rorayl', 'utott', 'dtott', 'astot', 'romix'],
+               override = False, sensor = None,
                get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
 
     import os, sys
@@ -53,6 +56,18 @@ def import_lut(lutid,lutdir,override=False, sensor=None,
             print('Could not import LUT {} from {}'.format(lutid, lutdir))
             return()
 
+        ## subset LUTs
+        if lut_par is not None:
+            lut_sub_idx = []
+            lut_sub_par = []
+            for i, ik in enumerate(lut_par):
+                for j, jk in enumerate(meta['par']):
+                    if (ik == jk):
+                        lut_sub_idx.append(j)
+                        lut_sub_par.append(jk)
+            meta['par'] = lut_sub_par
+            lut = lut[lut_sub_idx,:,:,:,:,:,:]
+
         ## for the  and Continental and Urban models (1,3)
         ## romix nans were retrieved for wavelengths > 2 micron and aot == 0.001
         ## 500mb for C+U and 1013/1100 for U
@@ -81,8 +96,6 @@ def import_lut(lutid,lutdir,override=False, sensor=None,
             ## otherwise to local resampling
             if (not os.path.isfile(lutnc_s)):
                 print('Resampling LUT {} to sensor {}'.format(lutid, sensor))
-                #rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
-                #rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
                 rsrd = ac.shared.rsr_dict(sensor=sensor)
                 rsr, rsr_bands = rsrd[sensor]['rsr'], rsrd[sensor]['rsr_bands']
 
@@ -149,4 +162,18 @@ def import_lut(lutid,lutdir,override=False, sensor=None,
             except:
                 print(sys.exc_info()[0])
                 print('Failed to open LUT data from NetCDF (id='+lutid+')')
+
+        ## subset LUTs
+        if lut_par is not None:
+            lut_sub_idx = []
+            lut_sub_par = []
+            for i, ik in enumerate(lut_par):
+                for j, jk in enumerate(meta['par']):
+                    if (ik == jk):
+                        lut_sub_idx.append(j)
+                        lut_sub_par.append(jk)
+            meta['par'] = lut_sub_par
+            for dataset in lut_sensor:
+                lut_sensor[dataset] = lut_sensor[dataset][lut_sub_idx,:,:,:,:,:]
+
         return(lut_sensor, meta)
