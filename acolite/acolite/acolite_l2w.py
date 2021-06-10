@@ -597,7 +597,7 @@ def acolite_l2w(gem,
 
         #############################
         ## QAA
-        if (cur_par == 'qaa') | (cur_par == 'qaa5') | (cur_par == 'qaa6') | (cur_par == 'qaaw') |\
+        if (cur_par[0:3] == 'qaa') | (cur_par == 'qaa5') | (cur_par == 'qaa6') | (cur_par == 'qaaw') |\
            ((cur_par[0:3] == 'qaa') & (('_v5' in cur_par) | ('_v6' in cur_par) | ('_vw' in cur_par))):
             if qaa_computed: continue
             print('QAA')
@@ -645,17 +645,19 @@ def acolite_l2w(gem,
             qaa_pars = list(ret.keys())
             cur_par_out = []
             ## check which parameters are wanted
-            if ('qaa5' in setu['l2w_parameters']) or ('qaa' in setu['l2w_parameters']):
-                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if ('_v' not in k) and ('qaa_{}'.format(k) not in cur_par_out)]
-                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'v5')]
-                print(cur_par_out)
-            if ('qaa6' in setu['l2w_parameters']) or ('qaa' in setu['l2w_parameters']):
-                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if ('_v' not in k) and ('qaa_{}'.format(k) not in cur_par_out)]
-                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'v6')]
-            if ('qaaw' in setu['l2w_parameters']) or ('qaa' in setu['l2w_parameters']):
-                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if ('_v' not in k) and ('qaa_{}'.format(k) not in cur_par_out)]
-                cur_par_out += ['qaa_{}'.format(k) for k in qaa_pars if (k[-2:] == 'vw')]
-            cur_par_out += [k for k in setu['l2w_parameters'] if (k[4:] in qaa_pars) and (k not in cur_par_out)]
+            cur_par_out = []
+            for p in setu['l2w_parameters']:
+                for qp in qaa_pars:
+                    k = 'qaa_{}'.format(qp)
+                    if k in cur_par_out: continue
+                    if p == 'qaa':
+                        cur_par_out.append(k)
+                    elif p in ['qaa5', 'qaa6', 'qaaw']:
+                        if (('v5_' not in k) & ('v6_' not in k) & ('vw_' not in k)) |\
+                            ('v{}_'.format(p[-1]) in k):
+                            cur_par_out.append(k)
+                    else:
+                        if p == k: cur_par_out.append(k)
             cur_par_out.sort()
 
             ## reformat for output
