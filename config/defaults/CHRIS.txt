@@ -1,0 +1,18 @@
+## ACOLITE default settings for PROBA1/CHRIS
+
+## dark spectrum fitting options
+dsf_path_reflectance=fixed
+dsf_wave_range=800,1020
+dsf_wave_range=500,970
+
+l2w_mask_wave=1000
+l2w_mask_threshold=0.05
+resolved_geometry=False
+luts=ACOLITE-LUT-202102-MOD2
+
+dsf_spectrum_option=percentile
+dsf_percentile=1
+merge_tiles=False
+
+chris_interband_calibration=True
+chris_noise_reduction=True

@@ -130,6 +130,18 @@ def acolite_l1r(bundle, settings, input_type=None):
     ################
 
     ################
+    ## CHRIS
+    if input_type == 'CHRIS':
+        l1r_files = ac.chris.l1_convert(bundle, output = output_,
+                                            interband_calibration = setu['chris_interband_calibration'],
+                                            noise_reduction = setu['chris_noise_reduction'],
+                                            vname = setu['region_name'],
+                                            verbosity = setu['verbosity'])
+    ## end CHRIS
+    ################
+
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files = ac.planet.l1_convert(bundle, output=output_,

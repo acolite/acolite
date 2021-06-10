@@ -4,7 +4,8 @@
 ## 2019-04-02
 ## modifications:
 
-def gas_transmittance(sza, vza, waves=None, uoz=0.3, uwv=1.5, sensor=None):
+def gas_transmittance(sza, vza, waves = None, uoz = 0.3, uwv = 1.5,
+                      rsr = None, sensor = None):
     import acolite as ac
     import numpy as np
 
@@ -42,7 +43,9 @@ def gas_transmittance(sza, vza, waves=None, uoz=0.3, uwv=1.5, sensor=None):
         # find RSR
         rsr_file = ac.config['data_dir']+'/RSR/{}.txt'.format(sensor)
         rsr,bands = ac.shared.rsr_read(file=rsr_file)
-        ## resample individual datasets
+
+    ## resample individual datasets
+    if rsr is not None:
         for k in d: d[k] = ac.shared.rsr_convolute_dict(waves, d[k], rsr)
 
     return(d)

@@ -53,13 +53,21 @@ def acolite_l2r(gem,
     if verbosity > 0: print('Running acolite for {}'.format(gemf))
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
-
+    print(output_name)
     ## get dimensions and number of elements
     gem.gatts['data_dimensions'] = gem.data(gem.datasets[0]).shape
     gem.gatts['data_elements'] = gem.gatts['data_dimensions'][0]*gem.gatts['data_dimensions'][1]
 
     ## read rsrd and get band wavelengths
-    rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
+    hyper = False
+    ## hyperspectral
+    if gem.gatts['sensor'] in ['CHRIS']:
+        hyper = True
+        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
+        rsrd = ac.shared.rsr_dict(rsrd={'CHRIS':{'rsr':rsr}})
+    else:
+        rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
+
     if gem.gatts['sensor'] in rsrd:
         rsrd = rsrd[gem.gatts['sensor']]
     else:
@@ -73,9 +81,13 @@ def acolite_l2r(gem,
     gem.gatts['pressure'] = setu['pressure']
 
     ## read ancillary data
-    if (setu['ancillary_data']) & ('lat' in gem.datasets) & ('lon' in gem.datasets):
-        clon = np.nanmedian(gem.data('lon'))
-        clat = np.nanmedian(gem.data('lat'))
+    if (setu['ancillary_data']) & ((('lat' in gem.datasets) & ('lon' in gem.datasets)) | (('lat' in gem.gatts) & ('lon' in gem.gatts))):
+        if ('lat' in gem.datasets) & ('lon' in gem.datasets):
+            clon = np.nanmedian(gem.data('lon'))
+            clat = np.nanmedian(gem.data('lat'))
+        else:
+            clon = gem.gatts['lon']
+            clat = gem.gatts['lat']
         anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat)
 
         ## overwrite the defaults
@@ -88,7 +100,10 @@ def acolite_l2r(gem,
     ## dem pressure
     if setu['dem_pressure']:
         print('Extracting SRTM DEM data')
-        dem = ac.dem.hgt_lonlat(gem.data('lon'), gem.data('lat'))
+        if ('lat' in gem.datasets) & ('lon' in gem.datasets):
+            dem = ac.dem.hgt_lonlat(gem.data('lon'), gem.data('lat'))
+        else:
+            dem = ac.dem.hgt_lonlat(gem.gatts['lon'], gem.gatts['lon'])
         dem_pressure = ac.ac.pressure_elevation(dem)
         if setu['dem_pressure_resolved']:
             gem.data_mem['pressure'] = dem_pressure
@@ -114,7 +129,7 @@ def acolite_l2r(gem,
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
                                       uoz=gem.gatts['uoz'], uwv=gem.gatts['uwv'],
-                                      sensor=gem.gatts['sensor'])
+                                      rsr=rsrd['rsr'])
 
     ## make bands dataset
     gem.bands = {}
@@ -151,6 +166,7 @@ def acolite_l2r(gem,
         else:
             tmp = gem.data(ds, store=True)
         if len(np.atleast_1d(gem.data(ds)))>1:
+            print(ds)
             use_revlut=True ## if any dataset more than 1 dimension use revlut
         gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
         gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
@@ -222,7 +238,7 @@ def acolite_l2r(gem,
     if output_file:
         new_nc = True
         if target_file is None:
-            ofile = gemf.replace('_L1R.nc', '_L2R.nc')
+            ofile = gemf.replace('_L1R', '_L2R')
             #if ('output' in setu) & (output is None): output = setu['output']
             if output is None: output = output_
             ofile = '{}/{}'.format(output, os.path.basename(ofile))
@@ -269,11 +285,14 @@ def acolite_l2r(gem,
                     gemo.write(k, gem.data_mem[k])
                     gem.data_mem[k] = None
 
+    t0 = time.time()
+    print('Loading LUTs')
     ## load reverse lut romix -> aot
-    if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par)
+    if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, base_luts=setu['luts'])
     ## load aot -> atmospheric parameters lut
-    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=gem.gatts['sensor'])
+    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=None if hyper else gem.gatts['sensor'], base_luts=setu['luts'])
     luts = list(lutdw.keys())
+    print('Loading LUTs took {:.1f} s'.format(time.time()-t0))
 
     ## #####################
     ## dark spectrum fitting
@@ -297,6 +316,7 @@ def acolite_l2r(gem,
             print(use_revlut)
         ## image derived aot
         else:
+            rhot_aot = None
             ## run through bands to get aot
             aot_dict = {}
             dsf_rhod = {}
@@ -345,7 +365,7 @@ def acolite_l2r(gem,
                     #    gk='_mean'
                     #else:
                     #    band_data = np.tile(band_data, band_shape)
-                    if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(band_data[0,0]))
+                    if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(float(band_data[0,0])))
 
                 ## tiled path reflectance
                 elif setu['dsf_path_reflectance'] == 'tiled':
@@ -408,12 +428,38 @@ def acolite_l2r(gem,
                     ## standard lut interpolates rhot to results for different aot values
                     else:
                         ## get rho path for lut steps in aot
-                        tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
-                                                    lutdw[lut]['ipd'][par],
-                                                    gem.data_mem['raa'+gk],
-                                                    gem.data_mem['vza'+gk],
-                                                    gem.data_mem['sza'+gk],
-                                                    gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
+                        if hyper:
+                            ## get modeled rhot for each wavelength
+                            if rhot_aot is None:
+                                rhot_aot = []
+                                for aot in lutdw[lut]['meta']['tau']:
+                                    tmp = lutdw[lut]['rgi']((gem.data_mem['pressure'+gk],
+                                                             lutdw[lut]['ipd'][par],
+                                                             lutdw[lut]['meta']['wave'],
+                                                             gem.data_mem['raa'+gk],
+                                                             gem.data_mem['vza'+gk],
+                                                             gem.data_mem['sza'+gk],
+                                                             gem.data_mem['wind'+gk], aot))
+                                    rhot_aot.append(tmp.flatten())
+                                rhot_aot = np.asarray(rhot_aot)
+                                print(rhot_aot.shape)
+
+                            ## resample modeled results to current band
+                            tmp = ac.shared.rsr_convolute_nd(rhot_aot, lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=1)
+                            #tmp = lutdw[lut]['rgi']((gem.data_mem['pressure'+gk],
+                            #                         lutdw[lut]['ipd'][par],
+                            #                         gem.bands[b]['wave_mu'],
+                            #                         gem.data_mem['raa'+gk],
+                            #                         gem.data_mem['vza'+gk],
+                            #                         gem.data_mem['sza'+gk],
+                            #                         gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
+                        else:
+                            tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
+                                                        lutdw[lut]['ipd'][par],
+                                                        gem.data_mem['raa'+gk],
+                                                        gem.data_mem['vza'+gk],
+                                                        gem.data_mem['sza'+gk],
+                                                        gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
                         tmp = tmp.flatten()
 
                         ## interpolate rho path to observation
@@ -529,7 +575,13 @@ def acolite_l2r(gem,
                                                       gem.data_mem['vza'+gk],
                                                       gem.data_mem['sza'+gk],
                                                       gem.data_mem['wind'+gk]]
-                                rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                if hyper:
+                                    ## get hyperspectral results and resample to band
+                                    res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                                    rhop_f[aot_sub[0], aot_sub[1], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                                else:
+                                    rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
                                                                             xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
                     ## rmsd for current bands
                     cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
@@ -742,7 +794,8 @@ def acolite_l2r(gem,
     if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'fixed'):
         gemo.gatts['ac_aot_550'] = aot_sel[0][0]
         gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
-        gemo.gatts['ac_fit'] = aot_sel_par[0][0]
+        if setu['dsf_fixed_aot'] is None:
+            gemo.gatts['ac_fit'] = aot_sel_par[0][0]
 
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
@@ -764,6 +817,7 @@ def acolite_l2r(gem,
     #scene_mask = np.zeros(gemo.gatts['data_dimensions'], dtype=np.uint8)
 
     print('use_revlut', use_revlut)
+    hyper_res = None
     ## compute surface reflectances
     for bi, b in enumerate(gem.bands):
         if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
@@ -827,14 +881,32 @@ def acolite_l2r(gem,
                           gem.data_mem['sza'+gk],
                           gem.data_mem['wind'+gk]]
 
-                ## path reflectance
-                romix[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], ai))
-                ## transmittance and spherical albedo
-                astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
-                dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
-                ## total transmittance
-                if setu['glint_correction']:
-                    ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
+                if hyper:
+                    ## compute hyper results and resample later
+                    ## hyperpectral sensors should be fixed DSF at the moment
+                    if hyper_res is None:
+                        hyper_res = {}
+                        for prm in [par, 'astot', 'dutott', 'ttot']:
+                            hyper_res[prm] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
+                                             lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai)).flatten()
+                    ## resample to current band
+                    ### path reflectance
+                    romix[ls] = ac.shared.rsr_convolute_nd(hyper_res[par], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                    ## transmittance and spherical albedo
+                    astot[ls] = ac.shared.rsr_convolute_nd(hyper_res['astot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                    dutott[ls] = ac.shared.rsr_convolute_nd(hyper_res['dutott'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                    ## total transmittance
+                    if setu['glint_correction']:
+                        ttot_all[b][ls] = ac.shared.rsr_convolute_nd(hyper_res['ttot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                else:
+                    ## path reflectance
+                    romix[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], ai))
+                    ## transmittance and spherical albedo
+                    astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
+                    dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
+                    ## total transmittance
+                    if setu['glint_correction']:
+                        ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
 
             ## interpolate tiled processing to full scene
             if setu['dsf_path_reflectance'] == 'tiled':

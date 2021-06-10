@@ -116,6 +116,17 @@ def identify_bundle(bundle, input_type = None):
         ################
 
         ################
+        ## CHRIS
+        try:
+            gains, mode_info = ac.chris.vdata(bundle)
+            input_type = 'CHRIS'
+            break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end CHRIS
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:
