@@ -96,6 +96,7 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type == 'Pléiades':
         l1r_files = ac.pleiades.l1_convert(bundle, output=output_,
                                            limit=setu['limit'], poly=setu['polygon'],
+                                           skip_pan = setu['pleiades_skip_pan'],
                                            output_geolocation=setu['output_geolocation'],
                                            vname = setu['region_name'],
                                            verbosity=setu['verbosity'])
