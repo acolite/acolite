@@ -8,3 +8,8 @@ l2w_mask_wave=800
 l2w_mask_threshold=0.1
 dsf_intercept_pixels=1000
 dsf_tile_dimensions=2000,2000
+
+pleiades_skip_pan=False
+rgb_red_wl=663
+rgb_green_wl=558
+rgb_blue_wl=505

@@ -8,6 +8,7 @@ def l1_convert(inputfile, output = None,
                 limit = None, sub = None,
                 poly = None,
                 output_geolocation = True,
+                skip_pan = False,
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                 verbosity = 0, vname = ''):
@@ -201,6 +202,7 @@ def l1_convert(inputfile, output = None,
                         data = ac.shared.read_band(ifile, idx=idx, sub=sub)
                     else:
                         if pmeta is None: continue
+                        if skip_pan: continue
                         pan = True
                         if sub is None:
                             pansub = None

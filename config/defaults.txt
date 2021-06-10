@@ -26,6 +26,9 @@ use_tpg=True
 ## WorldView only (optional)
 inputfile_swir=None
 
+## Pleiades option
+pleiades_skip_pan=False
+
 ## CHRIS
 chris_interband_calibration=True
 chris_noise_reduction=True
