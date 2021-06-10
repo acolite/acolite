@@ -31,6 +31,10 @@ def parse(sensor, settings=None, merge=True):
             else:
                 setu = {k:settings[k] for k in settings}
 
+    ## make sure luts setting is a list
+    if 'luts' in setu:
+        if type(setu['luts']) is not list: setu['luts'] = [setu['luts']]
+
     ## convert values from settings file into numbers
     int_list = ['s2_target_res', 'map_max_dim',
               'dsf_filter_box', 'dsf_tile_dimensions', 'dsf_intercept_pixels', 'dsf_smooth_box',
