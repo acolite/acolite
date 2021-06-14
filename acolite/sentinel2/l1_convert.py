@@ -25,6 +25,9 @@ def l1_convert(inputfile, output = None,
                 merge_zones = False,
                 extend_region = False,
 
+                gains = False,
+                gains_toa = [1.0]*13,
+
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
@@ -459,7 +462,7 @@ def l1_convert(inputfile, output = None,
         ## write TOA bands
         quant = float(meta['QUANTIFICATION_VALUE'])
         if verbosity > 1: print('Converting bands')
-        for b in rsr_bands:
+        for bi, b in enumerate(rsr_bands):
             Bn = 'B{}'.format(b)
             if Bn not in safe_files[granule]: continue
             if os.path.exists(safe_files[granule][Bn]['path']):
@@ -470,6 +473,11 @@ def l1_convert(inputfile, output = None,
                     if clip: data[clip_mask] = np.nan
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
+
+                    if (gains) & (len(gains_toa) == len(rsr_bands)):
+                        ds_att['toa_gain'] = gains_toa[bi]
+                        data *= gains_toa[bi]
+                        if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(gains_toa[bi], ds))
                     #for k in band_data: ds_att[k] = band_data[k][b]
                     if percentiles_compute:
                         ds_att['percentiles'] = percentiles

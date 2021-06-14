@@ -62,6 +62,8 @@ def acolite_l1r(bundle, settings, input_type=None):
     ## Sentinel-2
     if input_type == 'Sentinel-2':
         l1r_files = ac.sentinel2.l1_convert(bundle, output=output_,
+                                     gains = setu['gains'],
+                                     gains_toa = setu['gains_toa'],
                                      s2_target_res=setu['s2_target_res'],
                                      geometry_type=setu['geometry_type'],
                                      geometry_res=setu['geometry_res'],
