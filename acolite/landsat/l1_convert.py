@@ -27,6 +27,9 @@ def l1_convert(inputfile, output = None,
                 merge_zones = False,
                 extend_region = False,
 
+                gains = False,
+                gains_toa = None,
+
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
@@ -145,6 +148,12 @@ def l1_convert(inputfile, output = None,
         waves = np.arange(250, 2500)/1000
         waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
         waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
+
+        ## gains
+        gains_dict = None
+        if gains & (gains_toa is not None):
+            if len(gains_toa) == len(rsr_bands):
+                gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
 
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get()
@@ -408,6 +417,11 @@ def l1_convert(inputfile, output = None,
                     if percentiles_compute:
                         ds_att['percentiles'] = percentiles
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
+
+                    if gains & (gains_dict is not None):
+                        ds_att['toa_gain'] = gains_dict[b]
+                        data *= ds_att['toa_gain']
+                        if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
 
                     if output_pan & pan:
                         ## write output
