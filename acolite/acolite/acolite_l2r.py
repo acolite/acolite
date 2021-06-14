@@ -208,7 +208,7 @@ def acolite_l2r(gem,
             ## create tile geometry datasets
             for ds in geom_ds:
                 if len(np.atleast_1d(gem.data(ds)))>1: ## if not fixed geometry
-                    gem.data_mem['{}_tiled'.format(ds)] = np.zeros((ni,nj))+np.nan
+                    gem.data_mem['{}_tiled'.format(ds)] = np.zeros((ni,nj), dtype=np.float32)+np.nan
                     for t in range(ntiles):
                         ti, tj, subti, subtj = tiles[t]
                         gem.data_mem['{}_tiled'.format(ds)][ti, tj] = \
@@ -372,7 +372,7 @@ def acolite_l2r(gem,
                     gk = '_tiled'
 
                     ## tile this band data
-                    tile_data = np.zeros((tiles[-1][0]+1, tiles[-1][1]+1)) + np.nan
+                    tile_data = np.zeros((tiles[-1][0]+1, tiles[-1][1]+1), dtype=np.float32) + np.nan
                     for t in range(len(tiles)):
                         ti, tj, subti, subtj = tiles[t]
                         tsub = band_data[subtj[0]:subtj[1], subti[0]:subti[1]]
@@ -410,7 +410,7 @@ def acolite_l2r(gem,
                 ## compute aot
                 aot_band = {}
                 for li, lut in enumerate(luts):
-                    aot_band[lut] = np.zeros(band_data.shape)+np.nan
+                    aot_band[lut] = np.zeros(band_data.shape, dtype=np.float32)+np.nan
                     t0 = time.time()
 
                     ## reverse lut interpolates rhot directly to aot
@@ -550,8 +550,8 @@ def acolite_l2r(gem,
                 ## select model based on minimum rmsd between two best fitting bands
                 if setu['dsf_model_selection'] == 'min_drmsd':
                     if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
-                    rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
-                    rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2)) + np.nan
+                    rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2), dtype=np.float32) + np.nan
+                    rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2), dtype=np.float32) + np.nan
                     for bi, b in enumerate(aot_bands):
                         ## run through two best fitting bands
                         for ai, ab in enumerate(['b1', 'b2']):
@@ -594,7 +594,7 @@ def acolite_l2r(gem,
 
                 ## store minimum info
                 if li == 0:
-                    aot_lut = np.zeros(aot_stack[lut]['min'].shape).astype(int)
+                    aot_lut = np.zeros(aot_stack[lut]['min'].shape, dtype=np.float32).astype(int)
                     aot_lut[aot_stack[lut]['mask']] = -1
                     aot_sel = aot_stack[lut]['min'] * 1.0
                     aot_sel_par = cur_sel_par * 1.0
@@ -787,8 +787,8 @@ def acolite_l2r(gem,
 
     ## set up interpolator for tiled processing
     if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'tiled'):
-        xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1])
-        ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0])
+        xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1], dtype=np.float32)
+        ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0], dtype=np.float32)
 
     ## store fixed aot in gatts
     if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'fixed'):
@@ -842,7 +842,7 @@ def acolite_l2r(gem,
 
         ## dark spectrum fitting
         if (ac_opt == 'dsf'):
-            gem.data_mem[dso] = np.zeros(cur_data.shape)+np.nan
+            gem.data_mem[dso] = np.zeros(cur_data.shape, dtype=np.float32)+np.nan
             if setu['slicing']: valid_mask = np.isfinite(cur_data)
 
             ## shape of atmospheric datasets
@@ -851,11 +851,11 @@ def acolite_l2r(gem,
             if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
                 atm_shape = cur_data.shape
                 gk = ''
-            romix = np.zeros(atm_shape)+np.nan
-            astot = np.zeros(atm_shape)+np.nan
-            dutott = np.zeros(atm_shape)+np.nan
+            romix = np.zeros(atm_shape, dtype=np.float32)+np.nan
+            astot = np.zeros(atm_shape, dtype=np.float32)+np.nan
+            dutott = np.zeros(atm_shape, dtype=np.float32)+np.nan
             if setu['glint_correction']:
-                ttot_all[b] = np.zeros(atm_shape)+np.nan
+                ttot_all[b] = np.zeros(atm_shape, dtype=np.float32)+np.nan
 
             for li, lut in enumerate(luts):
                 ls = np.where(aot_lut == li)
