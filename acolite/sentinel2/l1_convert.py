@@ -137,6 +137,12 @@ def l1_convert(inputfile, output = None,
         waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
         waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
 
+        ## gains
+        gains_dict = None
+        if gains & (gains_toa is not None):
+            if len(gains_toa) == len(rsr_bands):
+                gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
+
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get()
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
@@ -474,10 +480,11 @@ def l1_convert(inputfile, output = None,
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
 
-                    if (gains) & (len(gains_toa) == len(rsr_bands)):
-                        ds_att['toa_gain'] = gains_toa[bi]
-                        data *= gains_toa[bi]
-                        if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(gains_toa[bi], ds))
+                    if gains & (gains_dict is not None):
+                        ds_att['toa_gain'] = gains_dict[b]
+                        data *= ds_att['toa_gain']
+                        if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
+
                     #for k in band_data: ds_att[k] = band_data[k][b]
                     if percentiles_compute:
                         ds_att['percentiles'] = percentiles
