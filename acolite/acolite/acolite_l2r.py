@@ -79,7 +79,7 @@ def acolite_l2r(gem,
     gem.gatts['uwv'] = setu['uwv_default']
     gem.gatts['wind'] = setu['wind']
     gem.gatts['pressure'] = setu['pressure']
-
+    
     ## read ancillary data
     if (setu['ancillary_data']) & ((('lat' in gem.datasets) & ('lon' in gem.datasets)) | (('lat' in gem.gatts) & ('lon' in gem.gatts))):
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
@@ -981,6 +981,15 @@ def acolite_l2r(gem,
                 rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
                 dtotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
                 utotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+
+                if setu['dsf_path_reflectance'] == 'tiled':
+                    if verbosity > 1: print('Interpolating tiles for rhorc')
+                    rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                    dtotr_cur = ac.shared.tiles_interp(dtotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                    utotr_cur = ac.shared.tiles_interp(utotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                                target_mask_full=True, smooth=True, kern_size=3, method='linear')
 
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dtotr_cur*utotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
