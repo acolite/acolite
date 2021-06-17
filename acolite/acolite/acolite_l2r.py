@@ -79,7 +79,7 @@ def acolite_l2r(gem,
     gem.gatts['uwv'] = setu['uwv_default']
     gem.gatts['wind'] = setu['wind']
     gem.gatts['pressure'] = setu['pressure']
-    
+
     ## read ancillary data
     if (setu['ancillary_data']) & ((('lat' in gem.datasets) & ('lon' in gem.datasets)) | (('lat' in gem.gatts) & ('lon' in gem.gatts))):
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
@@ -673,8 +673,8 @@ def acolite_l2r(gem,
         exp_initial_epsilon = 1.0
 
         ## Rayleigh reflectance
-        rorayl_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
-        rorayl_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+        rorayl_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
+        rorayl_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
 
         ## subtract Rayleigh reflectance
         exp_d1 -= rorayl_b1
@@ -687,7 +687,7 @@ def acolite_l2r(gem,
             mask = exp_d2 >= setu['exp_swir_threshold']
         else:
             exp_dm = gem.data(gem.bands[exp_mask]['rhot_ds'])*1.0
-            rorayl_mask = lutdw[exp_lut]['rgi'][exp_mask]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            rorayl_mask = lutdw[exp_lut]['rgi'][exp_mask]((xi[0], lutdw[exp_lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
             exp_dm -= rorayl_mask
             mask = exp_dm >= setu['exp_swir_threshold']
             exp_dm = None
@@ -947,9 +947,8 @@ def acolite_l2r(gem,
         ## exponential
         elif (ac_opt == 'exp'):
             ## get Rayleigh correction
-            rorayl_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
-            dtotr_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
-            utotr_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            rorayl_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
+            dutotr_cur = lutdw[exp_lut]['rgi'][b]((xi[0], lutdw[exp_lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
 
             ## get epsilon in current band
             delta = (long_wv-gem.bands[b]['wave_nm'])/(long_wv-short_wv)
@@ -960,7 +959,7 @@ def acolite_l2r(gem,
             if exp_fixed_epsilon: ds_att['epsilon'] = eps_cur
             if exp_fixed_rhoam: ds_att['rhoam'] = rhoam_cur
 
-            cur_data = (cur_data - rorayl_cur - rhoam_cur) / (dtotr_cur*utotr_cur)
+            cur_data = (cur_data - rorayl_cur - rhoam_cur) / (dutotr_cur)
             cur_data[mask] = np.nan
         ## end exponential
 
@@ -978,20 +977,17 @@ def acolite_l2r(gem,
                       gem.data_mem['sza'+gk],
                       gem.data_mem['wind'+gk]]
                 ## get Rayleigh parameters
-                rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['rorayl'], xi[1], xi[2], xi[3], xi[4], 0.001))
-                dtotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
-                utotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+                rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
+                dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
 
                 if setu['dsf_path_reflectance'] == 'tiled':
                     if verbosity > 1: print('Interpolating tiles for rhorc')
                     rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
-                    dtotr_cur = ac.shared.tiles_interp(dtotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                                target_mask_full=True, smooth=True, kern_size=3, method='linear')
-                    utotr_cur = ac.shared.tiles_interp(utotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                    dutotr_cur = ac.shared.tiles_interp(dutotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
 
-            cur_rhorc = (cur_rhorc - rorayl_cur) / (dtotr_cur*utotr_cur)
+            cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
             cur_rhorc = None
             rorayl_cur = None

@@ -11,7 +11,7 @@
 ##                  2021-06-08 (QV) added lut par subsetting
 
 def import_lut(lutid, lutdir,
-               lut_par = ['utotr', 'dtotr', 'rorayl', 'utott', 'dtott', 'astot', 'ttot', 'romix'],
+               lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                override = False, sensor = None,
                get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
 

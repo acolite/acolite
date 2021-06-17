@@ -13,7 +13,7 @@
 def import_luts(pressures = [500, 1013, 1100],
                 base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
-                lut_par = ['utotr', 'dtotr', 'rorayl', 'utott', 'dtott', 'astot', 'ttot', 'romix'],
+                lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                 sensor = None, add_rsky = False, add_dutott = True):
     import scipy.interpolate
     import numpy as np
