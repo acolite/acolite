@@ -30,6 +30,7 @@ def download(date, local_dir = None,
             jday = yjd[4:7]
             url_file = '{}/{}'.format(get_url, basefile)
             local_file = '{}/{}/{}/{}'.format(local_dir,year,jday,basefile)
+            local_file_unzipped = local_file.replace('.bz2', '')
 
             if download:
                 ## download file
@@ -45,9 +46,10 @@ def download(date, local_dir = None,
                         except:
                             if verbosity > 0: print('Could not remove {}'.format(local_file))
 
-                if os.path.exists(local_file) & (not override):
+                if (os.path.exists(local_file) | os.path.exists(local_file_unzipped)) & (not override):
                     if verbosity > 1: print('File {} exists'.format(basefile))
-                    local_files.append(local_file)
+                    if os.path.exists(local_file_unzipped): local_files.append(local_file_unzipped)
+                    elif os.path.exists(local_file): local_files.append(local_file)
                 else:
                     if os.path.exists(os.path.dirname(local_file)) is False:
                         os.makedirs(os.path.dirname(local_file))
