@@ -338,7 +338,7 @@ def acolite_l2r(gem,
                 band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
                 band_shape = band_data.shape
                 valid = np.isfinite(band_data)*(band_data>0)
-                mask = valid is False
+                mask = valid == False
 
                 ## apply TOA filter
                 if setu['dsf_filter_toa']:
@@ -375,7 +375,7 @@ def acolite_l2r(gem,
                     tile_data = np.zeros((tiles[-1][0]+1, tiles[-1][1]+1), dtype=np.float32) + np.nan
                     for t in range(len(tiles)):
                         ti, tj, subti, subtj = tiles[t]
-                        tsub = band_data[subtj[0]:subtj[1], subti[0]:subti[1]]
+                        tsub = band_data[subti[0]:subti[1], subtj[0]:subtj[1]]
                         tel = (subtj[1]-subtj[0]) * (subti[1]-subti[0])
                         nsub = len(np.where(np.isfinite(tsub))[0])
                         if nsub < tel * float(setu['dsf_min_tile_cover']): continue
