@@ -4,7 +4,8 @@
 ## 2019-04-02
 ## modifications:
 
-def gas_transmittance(sza, vza, waves = None, uoz = 0.3, uwv = 1.5,
+def gas_transmittance(sza, vza, pressure = 1013, waves = None, uoz = 0.3, uwv = 1.5,
+                      gases = ['h2o', 'o3', 'o2', 'co2', 'n2o', 'ch4'], lutconfig = '202106F',
                       rsr = None, sensor = None):
     import acolite as ac
     import numpy as np
@@ -13,13 +14,17 @@ def gas_transmittance(sza, vza, waves = None, uoz = 0.3, uwv = 1.5,
     if waves is None: waves=ko3['wave']
     else: waves = [float(w/1000) for w in waves]
 
+    ## compute co2, o2, n2o, ch4 transmittance
+    #keys = ['dica','oxyg','niox','meth']
+    tg_hyp = ac.ac.gaslut_interp(sza, vza, pressure=pressure, waves=waves, lutconfig=lutconfig)
+
     ## compute water transmittance
     wv_wv_hs, tt_wv_hs = ac.ac.wvlut_interp(sza, vza, uwv=uwv)
     tt_wv = np.interp(waves, wv_wv_hs, tt_wv_hs)
 
     ## compute oxygen transmittance
-    wv_o2_hs, tt_o2_hs = ac.ac.o2lut_interp(sza, vza)
-    tt_o2 = np.interp(waves, wv_o2_hs, tt_o2_hs)
+    #wv_o2_hs, tt_o2_hs = ac.ac.o2lut_interp(sza, vza)
+    #tt_o2 = np.interp(waves, wv_o2_hs, tt_o2_hs)
 
     ## cosine of sun and sensor zenith angles
     mu0 = np.cos(sza*(np.pi/180))
@@ -33,10 +38,16 @@ def gas_transmittance(sza, vza, waves = None, uoz = 0.3, uwv = 1.5,
     tt_o3= t0_ozone * tv_ozone
 
     ## prepare gas transmittance dict
-    d =  {'wave':[1000*w for w in waves],
-            'tt_h2o':tt_wv,
-            'tt_o3':tt_o3,
-            'tt_o2':tt_o2, 'tt_gas':tt_wv*tt_o3*tt_o2}
+    d =  {'wave': [1000*w for w in waves],
+            'tt_h2o': tt_wv,
+            'tt_o3': tt_o3,
+            'tt_o2': tg_hyp['ttoxyg'], 'tt_co2': tg_hyp['ttdica'],
+            'tt_n2o': tg_hyp['ttniox'], 'tt_ch4': tg_hyp['ttmeth']}
+
+    ## total gas transmittance
+    #d['tt_gas'] = d['tt_h2o'] * d['tt_o3'] * d['tt_o2'] * d['tt_co2'] * d['tt_n2o'] * d['tt_ch4']
+    d['tt_gas'] = np.ones(len(d['wave']))
+    for g in gases: d['tt_gas'] *= d['tt_{}'.format(g)]
 
     ## resample if sensor is requested
     if sensor is not None:
