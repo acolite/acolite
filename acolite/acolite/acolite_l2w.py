@@ -734,11 +734,11 @@ def acolite_l2w(gem,
                     if w == Gwave: wi = 1
                     if w == Rwave: wi = 2
                     par_data[p] = ret[k][:,:,wi]
-                    par_atts[p] = par_attributes
+                    par_atts[p] = {pk: par_attributes[pk] for pk in par_attributes}
                     par_atts[p]['ds_name'] = p
                 else:
                     par_data[p] = ret[p[6:]]
-                    par_atts[p] = par_attributes
+                    par_atts[p] = {pk: par_attributes[pk] for pk in par_attributes}
                     par_atts[p]['ds_name'] = p
             ret = None
         ## end Pitarch 3 band QAA
