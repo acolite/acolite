@@ -13,3 +13,6 @@ chl_oc3	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al	S2A_MSI
 ;; S2B_MSI same coefficients as L8_OLI
 chl_oc2	443	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al	S2B_MSI
 chl_oc3	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al	S2B_MSI
+;; S3A_OLCI/S3B_OLCI from SeaDAS/MERIS https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
+chl_oc4	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	S3A_OLCI
+chl_oc4	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	S3B_OLCI
