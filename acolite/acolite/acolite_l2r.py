@@ -170,18 +170,7 @@ def acolite_l2r(gem,
             use_revlut=True ## if any dataset more than 1 dimension use revlut
         gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
         gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
-    if not setu['resolved_geometry']: use_revlut = False
 
-    ## for ease of subsetting later, repeat single element datasets to the tile shape
-    if use_revlut:
-        for ds in geom_ds:
-            if len(np.atleast_1d(gem.data(ds)))!=1: continue
-            gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
-    else:
-        ## if use revlut is False at this point, we don't have resolved geometry
-        setu['resolved_geometry'] = False
-    #print(use_revlut, setu['dsf_path_reflectance'], setu['resolved_geometry'])
-    ## end determine revlut
 
     ## for tiled processing track tile positions and average geometry
     tiles = []
@@ -214,8 +203,19 @@ def acolite_l2r(gem,
                         gem.data_mem['{}_tiled'.format(ds)][ti, tj] = \
                             np.nanmean(gem.data(ds)[subti[0]:subti[1],subtj[0]:subtj[1]])
                 else: ## if fixed geometry
-                    gem.data_mem['{}_tiled'.format(ds)] = gem.data(ds)
+                    gem.data_mem['{}_tiled'.format(ds)] = np.zeros((ni,nj), dtype=np.float32)+gem.data(ds)
     ## end tiling
+
+    if (not setu['resolved_geometry']) & (setu['dsf_path_reflectance'] != 'tiled'): use_revlut = False
+    ## for ease of subsetting later, repeat single element datasets to the tile shape
+    if use_revlut:
+        for ds in geom_ds:
+            if len(np.atleast_1d(gem.data(ds)))!=1: continue
+            gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+    else:
+        ## if use revlut is False at this point, we don't have resolved geometry
+        setu['resolved_geometry'] = False
+    ## end determine revlut
 
     ## read LUTs
     if setu['sky_correction']:
@@ -442,17 +442,9 @@ def acolite_l2r(gem,
                                                              gem.data_mem['wind'+gk], aot))
                                     rhot_aot.append(tmp.flatten())
                                 rhot_aot = np.asarray(rhot_aot)
-                                print(rhot_aot.shape)
 
                             ## resample modeled results to current band
                             tmp = ac.shared.rsr_convolute_nd(rhot_aot, lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=1)
-                            #tmp = lutdw[lut]['rgi']((gem.data_mem['pressure'+gk],
-                            #                         lutdw[lut]['ipd'][par],
-                            #                         gem.bands[b]['wave_mu'],
-                            #                         gem.data_mem['raa'+gk],
-                            #                         gem.data_mem['vza'+gk],
-                            #                         gem.data_mem['sza'+gk],
-                            #                         gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
                         else:
                             tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
                                                         lutdw[lut]['ipd'][par],
