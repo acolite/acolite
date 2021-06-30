@@ -8,3 +8,6 @@ resolved_geometry=True
 gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1
 dsf_intercept_pixels=200
 dsf_tile_dimensions=600,600
+
+geometry_per_band=False
+geometry_fixed_footprint=False

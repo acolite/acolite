@@ -18,6 +18,10 @@ def l1_convert(inputfile, output = None,
                 geometry_format='GeoTIFF', ## for gpt geometry
                 geometry_override = False, ## for gpt geometry
 
+                ## for geometry grids_footprint
+                geometry_per_band = False, ## set to False at the moment since l2r processing does not use per band geometry
+                geometry_fixed_footprint = False, ## True use B1 detector footprints else band specific
+
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
@@ -338,19 +342,15 @@ def l1_convert(inputfile, output = None,
                     gml_files.sort()
                     ## get detector footprint for 10/20/60 m band
                     dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
-                    bands = list(grmeta['VIEW_DET'].keys())
-                    bands.sort()
-                    #vza = np.zeros((int(global_dims[0]), int(global_dims[1])))+np.nan
-                    #vaa = np.zeros((int(global_dims[0]), int(global_dims[1])))+np.nan
+                    #bands = list(grmeta['VIEW_DET'].keys())
+                    #bands.sort()
+                    bands = [str(bi) for bi, b in enumerate(rsr_bands)]
+
                     ## set vza and vaa size to geometry res target size
                     vza = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
                     vaa = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
-                    ## warp grids to target resolution
-                    #xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(dfoo.shape[1]))
-                    #ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(dfoo.shape[0]))
-                    #sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
-                    #saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
-                    if verbosity>1:print('Computing per detector geometry')
+
+                    if verbosity>1:print('Computing band average per detector geometry')
                     for nf, bv in enumerate(dval):
                         ## compute detector average geometry
                         if verbosity>2:print('Detector {}'.format(bv))
@@ -375,12 +375,72 @@ def l1_convert(inputfile, output = None,
                                                       target_mask = det_mask, target_mask_full=False, method='linear')
                         vaa[det_mask] = ac.shared.tiles_interp(ave_vaa, xnew+1, ynew+1, smooth=False, fill_nan=True,
                                                       target_mask = det_mask, target_mask_full=False, method='linear')
+
                 ## use target band so we can just do the 60 metres geometry
                 sza = ac.shared.warp_from_source(target_file, dct_prj, sza) # alt (dct, dct_prj, sza)
                 saa = ac.shared.warp_from_source(target_file, dct_prj, saa)
                 vza = ac.shared.warp_from_source(target_file, dct_prj, vza)
                 vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa)
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+
+                ## compute band specific geometry
+                if geometry_per_band:
+                    print('Computing band specific per detector geometry')
+                    vza_all = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1]), len(bands)))+np.nan
+                    vaa_all = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1]), len(bands)))+np.nan
+
+                    grid_shape = grmeta['VIEW']['0']['Zenith'].shape[0]+2, grmeta['VIEW']['0']['Zenith'].shape[1]+2
+                    vza_grid = np.zeros((grid_shape[0], grid_shape[1], len(bands)))+np.nan
+                    vaa_grid = np.zeros((grid_shape[0], grid_shape[1], len(bands)))+np.nan
+
+                    ## use footprint from B1
+                    if geometry_fixed_footprint:
+                        gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.gml'.format(bundle, granule))
+                        gml_files.sort()
+                        dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
+
+                    ## compute band specific view geometry
+                    for bi, b in enumerate(bands):
+                        Bn = band_data['BandNames'][b]
+                        print('Computing band specific geometry - {}'.format(Bn))
+
+                        ## band specific footprint
+                        if not geometry_fixed_footprint:
+                            gml = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO_B{}.gml'.format(bundle, granule, Bn[1:].zfill(2)))
+                            dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml[0])
+
+                        for nf, bv in enumerate(dval):
+                            print('Computing band specific geometry - {} Detector {}'.format(Bn, bv))
+                            det_mask = dfoo==bv
+
+                            bza = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Zenith']
+                            baa = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Azimuth']
+                            bza = ac.sentinel2.grid_extend(bza, iterations=1, crop=False)
+                            baa = ac.sentinel2.grid_extend(baa, iterations=1, crop=False)
+
+                            ## add detector to band VZA grid
+                            vza_tmp =  vza_grid[:,:,bi]
+                            ang_sub = np.where(np.isfinite(bza))
+                            vza_tmp[ang_sub] = bza[ang_sub]
+                            vza_grid[:,:,bi] = vza_tmp
+
+                            ## add detector to band VAA grid
+                            vaa_tmp =  vaa_grid[:,:,bi]
+                            ang_sub = np.where(np.isfinite(baa))
+                            vaa_tmp[ang_sub] = baa[ang_sub]
+                            vaa_grid[:,:,bi] = vaa_tmp
+
+                            ## add +1 to xnew and ynew since we are not cropping the extended grid
+                            vza_tmp = vza_all[:,:, bi]
+                            vza_tmp[det_mask] = ac.shared.tiles_interp(vza_grid[:,:,bi], xnew+1, ynew+1, smooth=False, fill_nan=True,
+                                                                          target_mask = det_mask, target_mask_full=False, method='linear')
+                            vza_all[:,:, bi] = vza_tmp
+
+                            vaa_tmp = vaa_all[:,:, bi]
+                            vaa_tmp[det_mask] = ac.shared.tiles_interp(vaa_grid[:,:,bi], xnew+1, ynew+1, smooth=False, fill_nan=True,
+                                                                          target_mask = det_mask, target_mask_full=False, method='linear')
+                            vaa_all[:,:, bi] = vaa_tmp
+
             elif geometry_type == 'gpt': ## use snap gpt to get nicer angles
                 geometry_parameters = ['view_zenith_mean','view_azimuth_mean','sun_zenith','sun_azimuth']
                 geometry_files = ac.sentinel2.gpt_geometry(bundle, output=output, target_res=geometry_res,
@@ -408,19 +468,16 @@ def l1_convert(inputfile, output = None,
                 vaa[clip_mask] = np.nan
 
             ## compute relative azimuth angle
-            raa = (saa-vaa)
-            ## negative raa
-            tmp = np.where(raa<0)
-            raa[tmp]=np.abs(raa[tmp])
+            raa = np.abs(saa-vaa)
             ## raa along 180 degree symmetry
             tmp = np.where(raa>180)
             raa[tmp]=np.abs(raa[tmp] - 360)
             raa[mask] = np.nan
             vaa = None
-            saa = None
-            mask = None
+
             ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new)
             if verbosity > 1: print('Wrote raa')
+            raa = None
             new = False
             ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
             if verbosity > 1: print('Wrote vza')
@@ -428,6 +485,30 @@ def l1_convert(inputfile, output = None,
             if verbosity > 1: print('Wrote sza')
             sza = None
             vza = None
+
+            ## write per band geometry
+            if geometry_per_band:
+                for bi, b in enumerate(rsr_bands):
+                    Bn = 'B{}'.format(b)
+                    print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
+                    ## band specific view zenith angle
+                    vza = ac.shared.warp_from_source(target_file, dct_prj, vza_all[:,:,bi])
+                    ac.output.nc_write(ofile, 'vza_{}'.format(waves_names[b]), vza, replace_nan=True)
+                    vza = None
+                    ## band specific view azimuth angle
+                    vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa_all[:,:,bi])
+                    #ac.output.nc_write(ofile, 'vaa_{}'.format(waves_names[b]), vaa, replace_nan=True)
+                    ## compute relative azimuth angle
+                    raa = np.abs(saa-vaa)
+                    vaa = None
+                    tmp = np.where(raa>180)
+                    raa[tmp]=np.abs(raa[tmp] - 360)
+                    raa[mask] = np.nan
+                    ac.output.nc_write(ofile, 'raa_{}'.format(waves_names[b]), raa, replace_nan=True)
+                    raa = None
+            ## delete sun azimuth & mask
+            saa = None
+            mask = None
 
         ## write lat/lon
         if (output_geolocation):

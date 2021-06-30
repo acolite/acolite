@@ -60,6 +60,7 @@ def detector_footprint(target_file, gml_file):
         ## burn the vector to the target dataset
         ret = gdal.RasterizeLayer(target_ds, [1], dst_layer,
                     burn_values=[bv],options=['ALL_TOUCHED=True'])
+    dvals.sort()
 
     ## read detector footprints
     data = target_ds.ReadAsArray()
