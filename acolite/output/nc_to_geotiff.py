@@ -10,6 +10,7 @@
 
 def nc_to_geotiff(f, skip_geo=True):
     import acolite as ac
+    import numpy as np
 
     gatts = ac.shared.nc_gatts(f)
     datasets = ac.shared.nc_datasets(f)
@@ -50,6 +51,7 @@ def nc_to_geotiff(f, skip_geo=True):
             dataset.SetGeoTransform(trans)
             dataset.SetProjection(wkt)
             dataset.GetRasterBand(1).WriteArray(data)
+            dataset.GetRasterBand(1).SetNoDataValue(np.nan)
             dataset.FlushCache()
             print('Wrote {}'.format(outfile))
     else:
