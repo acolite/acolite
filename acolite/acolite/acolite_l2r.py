@@ -159,6 +159,7 @@ def acolite_l2r(gem,
 
     ## determine use of reverse lut rhot->aot
     use_revlut = False
+    per_pixel_geometry = False
     ## if path reflectance is tiled or resolved, use reverse lut
     #if setu['dsf_path_reflectance'] != 'fixed': use_revlut = True
     ## no need to use reverse lut if fixed geometry is used
@@ -171,6 +172,7 @@ def acolite_l2r(gem,
             tmp = gem.data(ds, store=True)
         if len(np.atleast_1d(gem.data(ds)))>1:
             use_revlut=True ## if any dataset more than 1 dimension use revlut
+            per_pixel_geometry = True
         gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
         gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
 
@@ -206,18 +208,22 @@ def acolite_l2r(gem,
                         gem.data_mem['{}_tiled'.format(ds)][ti, tj] = \
                             np.nanmean(gem.data(ds)[subti[0]:subti[1],subtj[0]:subtj[1]])
                 else: ## if fixed geometry
-                    gem.data_mem['{}_tiled'.format(ds)] = np.zeros((ni,nj), dtype=np.float32)+gem.data(ds)
+                    if per_pixel_geometry:
+                        gem.data_mem['{}_tiled'.format(ds)] = np.zeros((ni,nj), dtype=np.float32)+gem.data(ds)
+                    else:
+                        gem.data_mem['{}_tiled'.format(ds)] = 1.0 * gem.data(ds)
     ## end tiling
 
     if (not setu['resolved_geometry']) & (setu['dsf_path_reflectance'] != 'tiled'): use_revlut = False
+
     ## for ease of subsetting later, repeat single element datasets to the tile shape
-    if use_revlut:
-        for ds in geom_ds:
-            if len(np.atleast_1d(gem.data(ds)))!=1: continue
-            gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
-    else:
-        ## if use revlut is False at this point, we don't have resolved geometry
-        setu['resolved_geometry'] = False
+    #if use_revlut:
+    #    for ds in geom_ds:
+    #        if len(np.atleast_1d(gem.data(ds)))!=1: continue
+    #        gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+    #else:
+    #    ## if use revlut is False at this point, we don't have resolved geometry
+    #    setu['resolved_geometry'] = False
     ## end determine revlut
 
     ## read LUTs
@@ -815,6 +821,13 @@ def acolite_l2r(gem,
     ### store scene mask
     #scene_mask = np.zeros(gemo.gatts['data_dimensions'], dtype=np.uint8)
 
+    ## for ease of subsetting later, repeat single element datasets to the tile shape
+    if (use_revlut) & (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] != 'tiled'):
+        for ds in geom_ds:
+            if len(np.atleast_1d(gem.data(ds)))!=1: continue
+            if verbosity > 2: print('Reshaping {} to {}x{}'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
+            gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+
     print('use_revlut', use_revlut)
     hyper_res = None
     ## compute surface reflectances
@@ -855,15 +868,9 @@ def acolite_l2r(gem,
             gk_raa = '{}'.format(gk)
             gk_vza = '{}'.format(gk)
             if 'raa_{}'.format(gem.bands[b]['wave_name']) in gem.datasets:
-                print(gk_raa)
                 gk_raa = '_{}'.format(gem.bands[b]['wave_name'])+gk_raa
-                print(gem.data_mem['raa'+gk_raa].shape)
-                print(gk_raa)
             if 'vza_{}'.format(gem.bands[b]['wave_name']) in gem.datasets:
-                print(gk_vza)
                 gk_vza = '_{}'.format(gem.bands[b]['wave_name'])+gk_vza
-                print(gem.data_mem['vza'+gk_vza].shape)
-                print(gk_vza)
 
             romix = np.zeros(atm_shape, dtype=np.float32)+np.nan
             astot = np.zeros(atm_shape, dtype=np.float32)+np.nan
