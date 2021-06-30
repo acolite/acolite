@@ -103,7 +103,8 @@ dem_pressure_write=False
 sky_correction=True
 sky_correction_option=default
 sky_correction_lut=RSKY-202102
-wind=2
+wind=None
+wind_default=2
 
 ## glint correction
 glint_correction=False

@@ -93,9 +93,10 @@ def acolite_l2r(gem,
         ## overwrite the defaults
         if ('ozone' in anc): gem.gatts['uoz'] = anc['ozone']['interp']/1000. ## convert from MET data
         if ('p_water' in anc): gem.gatts['uwv'] = anc['p_water']['interp']/10. ## convert from MET data
-        if ('z_wind' in anc) & ('m_wind' in anc):
+        if ('z_wind' in anc) & ('m_wind' in anc) & (setu['wind'] is None):
             gem.gatts['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-        if ('press' in anc): gem.gatts['pressure'] = anc['press']['interp']
+        if ('press' in anc) & (setu['pressure'] is None):
+            gem.gatts['pressure'] = anc['press']['interp']
 
     ## dem pressure
     if setu['dem_pressure']:
@@ -118,6 +119,7 @@ def acolite_l2r(gem,
         dem_pressure = None
 
     ## set wind to wind range
+    if gem.gatts['wind'] is None: gem.gatts['wind'] = setu['wind_default']
     gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
     gem.gatts['wind'] = min(20, gem.gatts['wind'])
 
