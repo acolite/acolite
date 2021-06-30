@@ -152,6 +152,8 @@ def acolite_l1r(bundle, settings, input_type=None):
     ## Planet
     if input_type == 'Planet':
         l1r_files = ac.planet.l1_convert(bundle, output=output_,
+                                         gains = setu['gains'],
+                                         gains_toa = setu['gains_toa'],
                                          limit=setu['limit'], poly=setu['polygon'],
                                          merge_tiles = setu['merge_tiles'],
                                          merge_zones = setu['merge_zones'],

@@ -24,6 +24,9 @@ def l1_convert(inputfile, output = None,
 
                 from_radiance = False,
 
+                gains = False,
+                gains_toa = None,
+
                 verbosity = 0, vname = ''):
 
     import os, zipfile, shutil
@@ -113,6 +116,11 @@ def l1_convert(inputfile, output = None,
         f0 = ac.shared.f0_get()
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
 
+        ## gains
+        gains_dict = None
+        if gains & (gains_toa is not None):
+            if len(gains_toa) == len(rsr_bands):
+                gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
 
         gatts = {'sensor':meta['sensor'], 'satellite_sensor':meta['satellite_sensor'],
                  'isodate':isodate, #'global_dims':global_dims,
@@ -304,6 +312,12 @@ def l1_convert(inputfile, output = None,
 
             ds = 'rhot_{}'.format(waves_names[b])
             ds_att = {'wavelength':waves_mu[b]*1000}
+
+            if gains & (gains_dict is not None):
+                ds_att['toa_gain'] = gains_dict[b]
+                data *= ds_att['toa_gain']
+                if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
+
             if percentiles_compute:
                 ds_att['percentiles'] = percentiles
                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
