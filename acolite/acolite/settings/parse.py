@@ -52,7 +52,7 @@ def parse(sensor, settings=None, merge=True):
 
                   'exp_swir_threshold', 'exp_fixed_epsilon_percentile', 'exp_fixed_aerosol_reflectance_percentile',
 
-                  'dem_pressure_percentile', 'uoz_default', 'uwv_default', 'wind',
+                  'dem_pressure_percentile', 'uoz_default', 'uwv_default', 'wind_default', 'wind',
                   'l2w_nc_scaled_offset', 'l2w_nc_scaled_factor',
 
                   'blackfill_max', 'glint_mask_rhos_threshold',
