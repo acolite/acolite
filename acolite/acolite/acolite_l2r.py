@@ -327,6 +327,10 @@ def acolite_l2r(gem,
             print(use_revlut)
         ## image derived aot
         else:
+            if setu['dsf_spectrum_option'] not in ['darkest', 'percentile', 'intercept']:
+                print('dsf_spectrum_option {} not configured, falling back to darkest'.format(setu['dsf_spectrum_option']))
+                setu['dsf_spectrum_option'] = 'darkest'
+
             rhot_aot = None
             ## run through bands to get aot
             aot_dict = {}
