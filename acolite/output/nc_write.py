@@ -121,6 +121,11 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
     ## write data
     if dataset in nc.variables.keys():
         ## dataset already in NC file
+        ## update existing dataset attributes
+        if dataset_attributes is not None:
+            for att in dataset_attributes.keys():
+                if att in ['_FillValue']: continue
+                setattr(nc.variables[dataset], att, dataset_attributes[att])
         if offset is None:
             if replace_nan:
                 tmp = nc.variables[dataset][:]
