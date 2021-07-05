@@ -1214,7 +1214,7 @@ def acolite_l2r(gem,
         rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
         ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
         ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])
-        ob['wavelength']=ds_att['wave_nm']
+        ob['wavelength'] = ob['wave_nm']
         gemo.bands['O'] = ob
 
         ## compute orange band
