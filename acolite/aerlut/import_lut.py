@@ -100,7 +100,7 @@ def import_lut(lutid, lutdir,
                 rsr, rsr_bands = rsrd[sensor]['rsr'], rsrd[sensor]['rsr_bands']
 
                 ## read LUT
-                lut, meta = ac.aerlut.import_lut(lutid,lutdir)
+                lut, meta = ac.aerlut.import_lut(lutid,lutdir, lut_par=None) ## add None so all pars are loaded when resampling
                 lut_dims = lut.shape
 
                 ## new ndim convolution
