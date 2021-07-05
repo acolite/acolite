@@ -487,7 +487,7 @@ def l1_convert(inputfile, output = None,
             vza = None
 
             ## write per band geometry
-            if geometry_per_band:
+            if (geometry_per_band) & ((geometry_type == 'grids') | (geometry_type == 'grids_footprint')):
                 for bi, b in enumerate(rsr_bands):
                     Bn = 'B{}'.format(b)
                     print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
