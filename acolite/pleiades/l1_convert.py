@@ -237,7 +237,7 @@ def l1_convert(inputfile, output = None,
                         #data += meta['BAND_INFO'][btags[b]]['reflectance_bias']
                         data /= bd['reflectance_gain']
                         data += bd['reflectance_bias']
-                        data /= meta['mus']
+                        data /= gatts['mus']
                     else:
                         print("{} RADIOMETRIC_PROCESSING not recognised".format(metadata['RADIOMETRIC_PROCESSING']))
                         continue
