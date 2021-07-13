@@ -4,7 +4,7 @@
 copy_datasets=lon,lat,sza,vza,raa,rhot_*
 
 ## dark spectrum fitting options
-dsf_path_reflectance=tiled
+dsf_aot_estimate=tiled
 resolved_geometry=True
 gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 dsf_intercept_pixels=200

@@ -1,7 +1,8 @@
 ## ACOLITE default settings for S2A_MSI
 
 ## dark spectrum fitting options
-dsf_path_reflectance=tiled
+dsf_aot_estimate=tiled
+dsf_spectrum_option=intercept
 dsf_wave_range=400,900
 s2_target_res=10
 resolved_geometry=True

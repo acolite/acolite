@@ -1,7 +1,7 @@
 ## ACOLITE default settings for L7_ETM
 
 ## dark spectrum fitting options
-dsf_path_reflectance=tiled
+dsf_aot_estimate=tiled
 dsf_wave_range=400,2500
 resolved_geometry=True
 gains_toa=1,1,1,1,1,1,1
