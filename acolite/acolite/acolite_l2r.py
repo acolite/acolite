@@ -163,7 +163,7 @@ def acolite_l2r(gem,
     use_revlut = False
     per_pixel_geometry = False
     ## if path reflectance is tiled or resolved, use reverse lut
-    #if setu['dsf_path_reflectance'] != 'fixed': use_revlut = True
+    #if setu['dsf_aot_estimate'] != 'fixed': use_revlut = True
     ## no need to use reverse lut if fixed geometry is used
     #if setu['resolved_geometry']:
     ## we want to use the reverse lut to derive aot if the geometry data is resolved
@@ -182,12 +182,12 @@ def acolite_l2r(gem,
     ## for tiled processing track tile positions and average geometry
     tiles = []
     if 'dsf_tile_dimensions' not in setu: setu['dsf_tile_dimensions'] = None
-    if (setu['dsf_path_reflectance'] == 'tiled') & (setu['dsf_tile_dimensions'] is not None):
+    if (setu['dsf_aot_estimate'] == 'tiled') & (setu['dsf_tile_dimensions'] is not None):
         ni = np.ceil(gem.gatts['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem.gatts['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
         if (ni <= 1) | (nj <= 1):
             if verbosity > 1: print('Scene too small for tiling ({}x{} tiles), using fixed processing'.format(ni,nj))
-            setu['dsf_path_reflectance'] = 'fixed'
+            setu['dsf_aot_estimate'] = 'fixed'
         else:
             ntiles = ni*nj
             if verbosity > 1: print('Processing with {} tiles ({}x{})'.format(ntiles, ni, nj))
@@ -216,7 +216,7 @@ def acolite_l2r(gem,
                         gem.data_mem['{}_tiled'.format(ds)] = 1.0 * gem.data(ds)
     ## end tiling
 
-    if (not setu['resolved_geometry']) & (setu['dsf_path_reflectance'] != 'tiled'): use_revlut = False
+    if (not setu['resolved_geometry']) & (setu['dsf_aot_estimate'] != 'tiled'): use_revlut = False
 
     ## for ease of subsetting later, repeat single element datasets to the tile shape
     #if use_revlut:
@@ -229,7 +229,7 @@ def acolite_l2r(gem,
     ## end determine revlut
 
     ## read LUTs
-    if setu['sky_correction']:
+    if (setu['dsf_interface_reflectance']) & (setu['dsf_interface_option'] == 'default'):
         par = 'romix+rsky_t'
     else:
         par = 'romix'
@@ -367,7 +367,7 @@ def acolite_l2r(gem,
                 gk = ''
 
                 ## fixed path reflectance
-                if setu['dsf_path_reflectance'] == 'fixed':
+                if setu['dsf_aot_estimate'] == 'fixed':
                     if setu['dsf_spectrum_option'] == 'darkest':
                         band_data = np.array((np.nanpercentile(band_data[band_sub], 0)))
                     if setu['dsf_spectrum_option'] == 'percentile':
@@ -383,7 +383,7 @@ def acolite_l2r(gem,
                     if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(float(band_data[0,0])))
 
                 ## tiled path reflectance
-                elif setu['dsf_path_reflectance'] == 'tiled':
+                elif setu['dsf_aot_estimate'] == 'tiled':
                     gk = '_tiled'
 
                     ## tile this band data
@@ -407,10 +407,10 @@ def acolite_l2r(gem,
                     ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
                     band_data = tile_data[tuple(ind)]
                 ## resolved per pixel dsf
-                elif setu['dsf_path_reflectance'] == 'resolved':
+                elif setu['dsf_aot_estimate'] == 'resolved':
                     if not setu['resolved_geometry']: gk = '_mean'
                 else:
-                    print('DSF option {} not configured'.format(setu['dsf_path_reflectance']))
+                    print('DSF option {} not configured'.format(setu['dsf_aot_estimate']))
                     continue
 
                 ## do gas correction
@@ -419,7 +419,7 @@ def acolite_l2r(gem,
                     band_data[band_sub] /= gem.bands[b]['tt_gas']
 
                 ## store rhod
-                if setu['dsf_path_reflectance'] in ['fixed', 'tiled']:
+                if setu['dsf_aot_estimate'] in ['fixed', 'tiled']:
                     dsf_rhod[b] = band_data
 
                 ## use band specific geometry if available
@@ -508,20 +508,20 @@ def acolite_l2r(gem,
                 aot_stack[lut]['min'] = np.nanmin(aot_stack[lut]['all'], axis=2)
 
                 ## if minimum for fixed retrieval is nan, set it to 0.01
-                if setu['dsf_path_reflectance'] == 'fixed':
+                if setu['dsf_aot_estimate'] == 'fixed':
                     if np.isnan(aot_stack[lut]['min']):
                         aot_stack[lut]['min'][0][0] = 0.01
 
                 aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['min'])
 
                 ## apply percentile filter
-                if (setu['dsf_filter_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
+                if (setu['dsf_filter_aot']) & (setu['dsf_aot_estimate'] == 'resolved'):
                     aot_stack[lut]['min'] = \
                         scipy.ndimage.percentile_filter(aot_stack[lut]['min'],
                                                         setu['dsf_filter_percentile'],
                                                         size=setu['dsf_filter_box'])
                 ## apply gaussian kernel smoothing
-                if (setu['dsf_smooth_aot']) & (setu['dsf_path_reflectance'] == 'resolved'):
+                if (setu['dsf_smooth_aot']) & (setu['dsf_aot_estimate'] == 'resolved'):
                     aot_stack[lut]['min'] = \
                         convolve(aot_stack[lut]['min'],
                                  Gaussian2DKernel(x_stddev=setu['dsf_smooth_box'][0], y_stddev=setu['dsf_smooth_box'][1]),
@@ -531,7 +531,7 @@ def acolite_l2r(gem,
                 aot_stack[lut]['min'][aot_stack[lut]['mask']] = np.nan
 
                 ## fill nan tiles with closest values
-                #if (setu['dsf_path_reflectance'] == 'tiled'):
+                #if (setu['dsf_aot_estimate'] == 'tiled'):
                 #    ind = scipy.ndimage.distance_transform_edt(aot_stack[lut]['mask'],
                 #                                               return_distances=False, return_indices=True)
                 #    aot_stack[lut]['min'] = aot_stack[lut]['min'][tuple(ind)]
@@ -581,7 +581,7 @@ def acolite_l2r(gem,
                         for ai, ab in enumerate(['b1', 'b2']):
                             aot_sub = np.where(aot_stack[lut][ab]==bi)
                             ## get rhod for current band
-                            if (setu['dsf_path_reflectance'] == 'resolved'):
+                            if (setu['dsf_aot_estimate'] == 'resolved'):
                                 rhod_f[aot_sub[0], aot_sub[1], ai] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
                             else:
                                 rhod_f[aot_sub[0], aot_sub[1], ai] = dsf_rhod[b][aot_sub]
@@ -797,12 +797,12 @@ def acolite_l2r(gem,
     ## end exponential
 
     ## set up interpolator for tiled processing
-    if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'tiled'):
+    if (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] == 'tiled'):
         xnew = np.linspace(0, tiles[-1][1], gem.gatts['data_dimensions'][1], dtype=np.float32)
         ynew = np.linspace(0, tiles[-1][0], gem.gatts['data_dimensions'][0], dtype=np.float32)
 
     ## store fixed aot in gatts
-    if (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] == 'fixed'):
+    if (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] == 'fixed'):
         gemo.gatts['ac_aot_550'] = aot_sel[0][0]
         gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
         if setu['dsf_fixed_aot'] is None:
@@ -811,9 +811,9 @@ def acolite_l2r(gem,
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
         ## reformat & save aot
-        if setu['dsf_path_reflectance'] == 'fixed':
+        if setu['dsf_aot_estimate'] == 'fixed':
             aot_out = np.repeat(aot_sel, gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
-        elif setu['dsf_path_reflectance'] == 'tiled':
+        elif setu['dsf_aot_estimate'] == 'tiled':
             aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
         else:
             aot_out = aot_sel * 1.0
@@ -828,7 +828,7 @@ def acolite_l2r(gem,
     #scene_mask = np.zeros(gemo.gatts['data_dimensions'], dtype=np.uint8)
 
     ## for ease of subsetting later, repeat single element datasets to the tile shape
-    if (use_revlut) & (ac_opt == 'dsf') & (setu['dsf_path_reflectance'] != 'tiled'):
+    if (use_revlut) & (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] != 'tiled'):
         for ds in geom_ds:
             if len(np.atleast_1d(gem.data(ds)))!=1: continue
             if verbosity > 2: print('Reshaping {} to {}x{}'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
@@ -866,7 +866,7 @@ def acolite_l2r(gem,
             ## shape of atmospheric datasets
             atm_shape = aot_sel.shape
             ## if path reflectance is resolved, but resolved geometry available
-            if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
+            if (use_revlut) & (setu['dsf_aot_estimate'] == 'fixed'):
                 atm_shape = cur_data.shape
                 gk = ''
 
@@ -881,7 +881,7 @@ def acolite_l2r(gem,
             romix = np.zeros(atm_shape, dtype=np.float32)+np.nan
             astot = np.zeros(atm_shape, dtype=np.float32)+np.nan
             dutott = np.zeros(atm_shape, dtype=np.float32)+np.nan
-            if setu['glint_correction']:
+            if setu['dsf_residual_glint_correction']:
                 ttot_all[b] = np.zeros(atm_shape, dtype=np.float32)+np.nan
 
             for li, lut in enumerate(luts):
@@ -890,7 +890,7 @@ def acolite_l2r(gem,
                 ai = aot_sel[ls]
 
                 ## resolved geometry with fixed path reflectance
-                if (use_revlut) & (setu['dsf_path_reflectance'] == 'fixed'):
+                if (use_revlut) & (setu['dsf_aot_estimate'] == 'fixed'):
                     ls = np.where(cur_data)
                 ## take all pixels if using fixed processing
                 #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
@@ -923,7 +923,7 @@ def acolite_l2r(gem,
                     astot[ls] = ac.shared.rsr_convolute_nd(hyper_res['astot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                     dutott[ls] = ac.shared.rsr_convolute_nd(hyper_res['dutott'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                     ## total transmittance
-                    if setu['glint_correction']:
+                    if setu['dsf_residual_glint_correction']:
                         ttot_all[b][ls] = ac.shared.rsr_convolute_nd(hyper_res['ttot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                 else:
                     ## path reflectance
@@ -932,11 +932,11 @@ def acolite_l2r(gem,
                     astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
                     dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
                     ## total transmittance
-                    if setu['glint_correction']:
+                    if setu['dsf_residual_glint_correction']:
                         ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
 
             ## interpolate tiled processing to full scene
-            if setu['dsf_path_reflectance'] == 'tiled':
+            if setu['dsf_aot_estimate'] == 'tiled':
                 if verbosity > 1: print('Interpolating tiles')
                 romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
@@ -944,7 +944,7 @@ def acolite_l2r(gem,
                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
                 dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
-                if setu['glint_correction']:
+                if setu['dsf_residual_glint_correction']:
                     ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                     target_mask_full=True, smooth=True, kern_size=3, method='linear')
 
@@ -959,7 +959,7 @@ def acolite_l2r(gem,
                 if len(np.atleast_1d(dutott)>1):
                     if dutott.shape == cur_data.shape:
                         gemo.write('dutott_{}'.format(gem.bands[b]['wave_name']), dutott)
-                if setu['glint_correction']:
+                if setu['dsf_residual_glint_correction']:
                     if len(np.atleast_1d(ttot_all[b])>1):
                         if ttot_all[b].shape == cur_data.shape:
                             gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
@@ -1007,7 +1007,7 @@ def acolite_l2r(gem,
                 rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
                 dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
 
-                if setu['dsf_path_reflectance'] == 'tiled':
+                if setu['dsf_aot_estimate'] == 'tiled':
                     if verbosity > 1: print('Interpolating tiles for rhorc')
                     rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
@@ -1031,7 +1031,7 @@ def acolite_l2r(gem,
     gemo.datasets_read()
 
     ## glint correction
-    if (ac_opt == 'dsf') & (setu['glint_correction']):
+    if (ac_opt == 'dsf') & (setu['dsf_residual_glint_correction']):
         ## find bands for glint correction
         gc_swir1, gc_swir2 = None, None
         gc_swir1_b, gc_swir2_b = None, None

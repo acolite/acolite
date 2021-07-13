@@ -76,4 +76,23 @@ def parse(sensor, settings=None, merge=True):
     if 'pressure' in setu:
         setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
 
+    ## 2021-07-13
+    ## catch updated setting names
+    ## to be removed for final version
+    if ('dsf_aot_estimate' not in setu) & \
+        ('dsf_path_reflectance' in setu):
+        setu['dsf_aot_estimate'] = setu['dsf_path_reflectance']
+    if ('dsf_interface_reflectance' not in setu) & \
+        ('sky_correction' in setu):
+        setu['dsf_interface_reflectance'] = setu['sky_correction']
+    if ('dsf_interface_option' not in setu) & \
+        ('sky_correction_option' in setu):
+        setu['dsf_interface_option'] = setu['sky_correction_option']
+    if ('dsf_interface_lut' not in setu) & \
+        ('sky_correction_lut' in setu):
+        setu['dsf_interface_lut'] = setu['sky_correction_lut']
+    if ('dsf_residual_glint_correction' not in setu) & \
+        ('glint_correction' in setu):
+        setu['dsf_residual_glint_correction'] = setu['glint_correction']
+
     return(setu)
