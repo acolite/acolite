@@ -214,7 +214,7 @@ def acolite_l2w(gem,
 
             nechad_parameter = 'centre'
             if '2016' in cur_par: nechad_parameter = '2016'
-            if 'ave' in cur_par: nechad_parameter = 'resampled'
+            elif 'ave' in cur_par: nechad_parameter = 'resampled'
 
             ## turbidity
             if cur_par[0] == 't':
@@ -237,6 +237,7 @@ def acolite_l2w(gem,
             if 'ave' not in cur_par:
                 if len(sp) > 2: nechad_wave = sp[2]
             else:
+                if len(sp) > 2: nechad_wave = sp[2]
                 if len(sp) > 3: nechad_wave = sp[3]
 
             if type(nechad_wave) == str:
@@ -248,7 +249,6 @@ def acolite_l2w(gem,
             ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
             for b in rsrd[gem['gatts']['sensor']]['rsr_bands']:
                 if (rsrd[gem['gatts']['sensor']]['wave_name'][b] == str(cw)): nechad_band = b
-            print(nechad_wave, nechad_band)
 
             A_Nechad, C_Nechad = None, None
 
@@ -262,7 +262,7 @@ def acolite_l2w(gem,
 
             ## resampled to band
             if nechad_parameter == 'resampled':
-                par_name = '{}_Nechad_{}_ave'.format(nechad_par, cw)
+                par_name = '{}_NechadAve_{}'.format(nechad_par, cw)
                 nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
                 ## resample parameters to band
                 cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem['gatts']['sensor']]['rsr'])
