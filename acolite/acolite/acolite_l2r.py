@@ -278,8 +278,11 @@ def acolite_l2r(gem,
 
         ## copy datasets from inputfile
         copy_rhot = False
-        copy_datasets = setu['copy_datasets']
-        if copy_datasets is not None:
+        copy_datasets = []
+        if setu['copy_datasets'] is not None: copy_datasets += setu['copy_datasets']
+        if setu['output_bt'] is not None: copy_datasets += [ds for ds in gem.datasets if ds[0:2] == 'bt']
+
+        if len(copy_datasets) > 0:
             ## copy rhot all from L1R
             if 'rhot_*' in copy_datasets:
                 copy_datasets.remove('rhot_*')

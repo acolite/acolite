@@ -131,20 +131,21 @@ def acolite_l2w(gem,
 
     ## list datasets to copy over from L2R
     for cur_par in gem['data']:
-        if (cur_par in setu['l2w_parameters']):
-            copy_datasets.append(cur_par)
-        if (('rhot_*' in setu['l2w_parameters']) & ('rhot_' in cur_par)):
-            copy_datasets.append(cur_par)
-        if (('rhos_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)):
-            copy_datasets.append(cur_par)
-        if (('rhorc_*' in setu['l2w_parameters']) & ('rhorc_' in cur_par)):
-            copy_datasets.append(cur_par)
+        if cur_par in copy_datasets: continue
         if (('rhow_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)) |\
             (cur_par.replace('rhos_', 'rhow_') in setu['l2w_parameters']):
             copy_datasets.append(cur_par.replace('rhos_', 'rhow_'))
         if (('Rrs_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)) |\
             (cur_par.replace('rhos_', 'Rrs_') in setu['l2w_parameters']):
             copy_datasets.append(cur_par.replace('rhos_', 'Rrs_'))
+        if (cur_par in setu['l2w_parameters']):
+            copy_datasets.append(cur_par)
+        elif (('rhot_*' in setu['l2w_parameters']) & ('rhot_' in cur_par)):
+            copy_datasets.append(cur_par)
+        elif (('rhos_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)):
+            copy_datasets.append(cur_par)
+        elif (('rhorc_*' in setu['l2w_parameters']) & ('rhorc_' in cur_par)):
+            copy_datasets.append(cur_par)
 
     ## copy datasets
     for ci, cur_par in enumerate(copy_datasets):
@@ -198,6 +199,7 @@ def acolite_l2w(gem,
     for cur_par in setu['l2w_parameters']:
         if cur_par.lower() in ['rhot_*', 'rhos_*', 'rrs_*', 'rhow_*', 'rhorc_*', '', ' ']: continue ## we have copied these above
         if cur_par.lower() in [ds.lower() for ds in ac.shared.nc_datasets(ofile)]: continue ## parameter already in output dataset (would not work if we are appending subsets to the ncdf)
+        if cur_par.lower()[0:2] == 'bt': continue
 
         ## split on underscores
         sp = cur_par.split('_')
