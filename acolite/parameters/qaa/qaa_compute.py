@@ -105,8 +105,8 @@ def qaa_compute(qaa_in, sza = 0, satellite = None,
 
     # Kpar, Lee et al. 2007
     z = 1.
-    qaa_data['v6_KdPAR_Lee'] = k1+(k2)/np.sqrt(z+1.)
-    qaa_data['v6_Zeu_Lee'] = 4.6/qaa_data['v6_KdPAR_Lee']
+    qaa_data['v6_KPAR_Lee'] = k1+(k2)/np.sqrt(z+1.)
+    qaa_data['v6_Zeu_Lee'] = 4.6/qaa_data['v6_KPAR_Lee']
 
     ## slow (root solving)
     if compute_zeu_lee:
