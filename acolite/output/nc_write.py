@@ -19,6 +19,7 @@
 ##                QV 2020-07-23 skip fillvalue in ds attributes
 ##                QV 2021-02-09 added replace_nan option for data without offset, changed numpy import
 ##                QV 2021-06-04 added dataset attributes defaults
+##                QV 2021-07-19 change to using setncattr
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -73,31 +74,28 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
 
     if new:
         if os.path.exists(ncfile): os.remove(ncfile)
-        #nc = Dataset(ncfile, 'w', format='NETCDF4_CLASSIC')
         nc = Dataset(ncfile, 'w', format=format)
 
         ## set global attributes
-        setattr(nc, 'generated_by', 'ACOLITE' )
-        setattr(nc, 'generated_on',time.strftime('%Y-%m-%d %H:%M:%S %Z'))
-        #setattr(nc, 'project', 'PONDER' )
-        setattr(nc, 'contact', 'Quinten Vanhellemont' )
+        nc.setncattr('generated_by', 'ACOLITE' )
+        nc.setncattr('generated_on',time.strftime('%Y-%m-%d %H:%M:%S %Z'))
+        nc.setncattr('contact', 'Quinten Vanhellemont' )
 
         ## set beam dataformat global attributes
-        setattr(nc, 'product_type', 'NetCDF' )
-        setattr(nc, 'metadata_profile', 'beam' )
-        setattr(nc, 'metadata_version', '0.5' )
-        #setattr(nc, 'auto_grouping', 'rtoa:rrc:rhos' )
-        setattr(nc, 'auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs')
+        nc.setncattr('product_type', 'NetCDF' )
+        nc.setncattr('metadata_profile', 'beam' )
+        nc.setncattr('metadata_version', '0.5' )
+        nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs')
 
         ## CF convention
-        setattr(nc, 'Conventions', 'CF-1.7')
+        nc.setncattr('Conventions', 'CF-1.7')
         ## to add: title , history , institution , source , comment and references
 
         if attributes is not None:
             for key in attributes.keys():
                 if attributes[key] is not None:
                     try:
-                        setattr(nc, key, attributes[key])
+                        nc.setncattr(key, attributes[key])
                     except:
                         print('Failed to write attribute: {}'.format(key))
 
@@ -111,7 +109,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                 for key in attributes.keys():
                     if attributes[key] is not None:
                         try:
-                            setattr(nc, key, attributes[key])
+                            nc.setncattr(key, attributes[key])
                         except:
                             print('Failed to write attribute: {}'.format(key))
 
@@ -125,7 +123,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         if dataset_attributes is not None:
             for att in dataset_attributes.keys():
                 if att in ['_FillValue']: continue
-                setattr(nc.variables[dataset], att, dataset_attributes[att])
+                nc.variables[dataset].setncattr(att, dataset_attributes[att])
         if offset is None:
             if replace_nan:
                 tmp = nc.variables[dataset][:]
@@ -151,12 +149,12 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         var = nc.createVariable(dataset,data.dtype,('y','x'),
                                 fill_value=fillvalue,
                                 zlib=nc_compression,chunksizes=chunksizes)
-        if wavelength is not None: setattr(var, 'wavelength', float(wavelength))
+        if wavelength is not None: var.setncattr('wavelength', float(wavelength))
         ## set attributes
         if dataset_attributes is not None:
             for att in dataset_attributes.keys():
                 if att in ['_FillValue']: continue
-                setattr(var, att, dataset_attributes[att])
+                var.setncattr(att, dataset_attributes[att])
 
         if offset is None:
             if data.dtype in (np.float32, np.float64): var[:] = np.nan
