@@ -127,6 +127,18 @@ def identify_bundle(bundle, input_type = None):
         ################
 
         ################
+        ## PRISMA
+        try:
+            gatts = ac.prisma.attributes(bundle)
+            if gatts['Product_ID'] == b'PRS_L1_STD':
+                input_type = 'PRISMA'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end PRISMA
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:
