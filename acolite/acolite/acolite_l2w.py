@@ -239,6 +239,12 @@ def acolite_l2w(gem,
             else:
                 if len(sp) > 3: nechad_wave = sp[3]
 
+            if type(nechad_wave) == str:
+                if nechad_wave.lower() == 'red': nechad_wave=665
+                elif nechad_wave.lower() == 'nir': nechad_wave=865
+                elif nechad_wave.lower() == 'green': nechad_wave=560
+                else: continue
+
             ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
             for b in rsrd[gem['gatts']['sensor']]['rsr_bands']:
                 if (rsrd[gem['gatts']['sensor']]['wave_name'][b] == str(cw)): nechad_band = b
