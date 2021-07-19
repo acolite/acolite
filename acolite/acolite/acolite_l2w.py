@@ -1072,7 +1072,7 @@ def acolite_l2w(gem,
         if (cur_par == 'hue_angle'):
             hue_coeff = ac.parameters.vanderwoerd.coef_hue_angle()
             if gem['gatts']['sensor'] not in hue_coeff:
-                print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
+                print('Parameter {} not configured for {}.'.format(cur_par, gem['gatts']['sensor']))
                 continue
 
             par_name = cur_par

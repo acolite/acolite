@@ -8,10 +8,10 @@
 def coef_hue_angle(file=None):
     import acolite as ac
     if file is None:
-        file = '{}/Shared/algorithms/VanderWoerd/hue_angle.cfg'.format(ac.config['data_dir'])
+        file = '{}/Shared/algorithms/VanderWoerd/hue_angle.txt'.format(ac.config['data_dir'])
 
     hac={}
-    with open(file, 'r') as f:
+    with open(file, 'r', encoding='utf-8') as f:
         for il, line in enumerate(f.readlines()):
             line=line.strip()
             if len(line) == 0: continue
