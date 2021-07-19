@@ -61,10 +61,10 @@ def acolite_l2r(gem,
     ## read rsrd and get band wavelengths
     hyper = False
     ## hyperspectral
-    if gem.gatts['sensor'] in ['CHRIS']:
+    if gem.gatts['sensor'] in ['CHRIS', 'PRISMA']:
         hyper = True
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
-        rsrd = ac.shared.rsr_dict(rsrd={'CHRIS':{'rsr':rsr}})
+        rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
     else:
         rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
 
@@ -716,10 +716,10 @@ def acolite_l2r(gem,
             exp_fixed_epsilon = True
 
             ## Rayleigh transmittances in both bands
-            dtotr_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
-            utotr_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
-            dtotr_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['dtotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
-            utotr_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['utotr'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            dtotr_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['dtott'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            utotr_b1 = lutdw[exp_lut]['rgi'][exp_b1]((xi[0], lutdw[exp_lut]['ipd']['utott'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            dtotr_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['dtott'], xi[1], xi[2], xi[3], xi[4], 0.001))
+            utotr_b2 = lutdw[exp_lut]['rgi'][exp_b2]((xi[0], lutdw[exp_lut]['ipd']['utott'], xi[1], xi[2], xi[3], xi[4], 0.001))
             tr_b1 = (dtotr_b1 * utotr_b1 * gem.bands[exp_b1]['tt_gas'])
             tr_b2 = (dtotr_b2 * utotr_b2 * gem.bands[exp_b2]['tt_gas'])
             ## get gamma
