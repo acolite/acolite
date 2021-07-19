@@ -953,7 +953,7 @@ def acolite_l2w(gem,
             ds_waves = [w for w in rhos_waves]
 
             ### get required datasets
-            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI']:
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                 continue
 
@@ -997,7 +997,7 @@ def acolite_l2w(gem,
             ds_waves = [w for w in rhos_waves]
 
             ### get required datasets
-            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI']:
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                 continue
 
