@@ -813,7 +813,7 @@ def acolite_l2w(gem,
             par_attributes['algorithm']=''
 
             ## read config
-            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.cfg'.format(ac.config['data_dir']))
+            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.txt'.format(ac.config['data_dir']))
             fait_fai_threshold = float(fait_cfg['fait_fai_threshold'])
             fait_red_threshold = float(fait_cfg['fait_red_threshold'])
             fait_rgb_limit = float(fait_cfg['fait_rgb_limit'])

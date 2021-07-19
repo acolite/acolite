@@ -4,7 +4,7 @@
 
 def import_config(file):
     config={}
-    with open(file, 'r') as f:
+    with open(file, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             line = line.strip()
             if len(line) == 0: continue
