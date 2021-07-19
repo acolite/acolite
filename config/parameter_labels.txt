@@ -23,7 +23,7 @@ spm_nechadave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
 ## T Nechad with generic option
 #
 tur_nechad,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
-tur_nechad_*,1,100,True,,Planck_Parchment_RGB,T Nechad,FNU
+tur_nechad_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
 tur_nechad2016,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 tur_nechad2016_*,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 tur_nechadave,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
