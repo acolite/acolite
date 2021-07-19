@@ -70,12 +70,6 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = ''):
                            'instrument':instrument[i],}
 
         gatts = {}
-        sza = h5_gatts['Sun_zenith_angle']
-        saa = h5_gatts['Sun_azimuth_angle']
-        cossza = np.cos(sza*(np.pi/180.))
-
-
-
 
         isotime = h5_gatts['Product_StartTime']
         time = dateutil.parser.parse(isotime)
@@ -120,18 +114,21 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = ''):
         #vaa = np.arctan2(z_,np.sqrt(x_**2+y_**2))/dtor
         #vza_ave = np.nanmean(np.abs(vza))
         #vaa_ave = np.nanmean(np.abs(vaa))
+        sza_ave = h5_gatts['Sun_zenith_angle']
+        saa_ave = h5_gatts['Sun_azimuth_angle']
+        cossza = np.cos(sza_ave*(np.pi/180.))
         vza_ave = 0
         vaa_ave = 0
 
-        gatts['sza'] = sza
-        gatts['vza'] = vza_ave
+        if 'sza' not in gatts: gatts['sza'] = sza_ave
+        if 'vza' not in gatts: gatts['vza'] = vza_ave
+        if 'saa' not in gatts: gatts['saa'] = saa_ave
+        if 'vaa' not in gatts: gatts['vaa'] = vaa_ave
 
-        gatts['saa'] = saa
-        gatts['vaa'] = vaa_ave
-
-        raa = abs(gatts['saa'] - gatts['vaa'])
-        while raa >= 180: raa = abs(raa-360)
-        gatts['raa'] = raa
+        if 'raa' not in gatts:
+            raa_ave = abs(gatts['saa'] - gatts['vaa'])
+            while raa_ave >= 180: raa_ave = abs(raa_ave-360)
+            gatts['raa'] = raa_ave
 
         mu0 = np.cos(gatts['sza']*(np.pi/180))
         muv = np.cos(gatts['vza']*(np.pi/180))
@@ -154,6 +151,10 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = ''):
 
         ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts)
         ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)))
+        if os.path.exists(l2file):
+            ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)))
+            ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)))
+            ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)))
 
         ## write TOA data
         for bi, b in enumerate(bands):
