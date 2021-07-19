@@ -911,7 +911,7 @@ def acolite_l2w(gem,
                 ds_waves = [w for w in rhot_waves]
 
             ## wavelengths and max wavelength difference
-            ndvi_diff = [25, 45]
+            ndvi_diff = [40, 65]
             req_waves = [660,865]
             for i, reqw in enumerate(req_waves):
                 widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
