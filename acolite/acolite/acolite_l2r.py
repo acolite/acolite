@@ -1010,11 +1010,12 @@ def acolite_l2r(gem,
                       gem.data_mem['vza'+gk_vza],
                       gem.data_mem['sza'+gk],
                       gem.data_mem['wind'+gk]]
+
                 ## get Rayleigh parameters
                 rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
                 dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
 
-                if setu['dsf_aot_estimate'] == 'tiled':
+                if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
                     if verbosity > 1: print('Interpolating tiles for rhorc')
                     rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
