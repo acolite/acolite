@@ -160,6 +160,10 @@ def acolite_l2r(gem,
     print('Using {} atmospheric correction'.format(ac_opt.upper()))
 
     ## determine use of reverse lut rhot->aot
+    if setu['resolved_geometry'] & hyper:
+        print('Resolved geometry for hyperspectral sensors currently not supported')
+        setu['resolved_geometry'] = False
+
     use_revlut = False
     per_pixel_geometry = False
     ## if path reflectance is tiled or resolved, use reverse lut
