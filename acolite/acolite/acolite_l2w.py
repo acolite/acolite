@@ -146,6 +146,8 @@ def acolite_l2w(gem,
             copy_datasets.append(cur_par)
         elif (('rhorc_*' in setu['l2w_parameters']) & ('rhorc_' in cur_par)):
             copy_datasets.append(cur_par)
+        elif (('bt*' in setu['l2w_parameters']) & ('bt' == cur_par.lower()[0:2])):
+            copy_datasets.append(cur_par)
 
     ## copy datasets
     for ci, cur_par in enumerate(copy_datasets):
