@@ -87,12 +87,10 @@ min_tgas_rho=0.75
 
 ## generic options
 ancillary_data=True
-gas_transmittance=True
 uoz_default=0.3
 uwv_default=1.5
 pressure=None
 elevation=None
-lut_pressure=True
 
 ## DEM options
 dem_pressure=False
@@ -101,9 +99,6 @@ dem_pressure_percentile=25
 dem_pressure_write=False
 
 ## correction for reflectance on air-water interface
-#sky_correction=True
-#sky_correction_option=default
-#sky_correction_lut=RSKY-202102
 dsf_interface_reflectance=True
 dsf_interface_option=default
 dsf_interface_lut=RSKY-202102
@@ -112,7 +107,6 @@ wind_default=2
 
 ## residual sun glint correction
 dsf_residual_glint_correction=False
-#glint_correction=False
 glint_force_band=None
 glint_mask_rhos_wave=1600
 glint_mask_rhos_threshold=0.05
@@ -120,7 +114,6 @@ glint_write_rhog_ref=False
 glint_write_rhog_all=False
 
 ## dark spectrum fitting options
-#dsf_path_reflectance=tiled
 dsf_aot_estimate=tiled
 ## options darkest, percentile, intercept
 dsf_spectrum_option=intercept
@@ -137,20 +130,13 @@ dsf_filter_aot=False
 dsf_smooth_aot=True
 dsf_smooth_box=20,20
 
-#
-dsf_full_scene=False
+# more dsf options
 dsf_model_selection=min_drmsd
-#dsf_list_selection=intercept
-#dsf_tile_dimensions=None
 dsf_min_tile_cover=0.10
-dsf_min_tile_aot=0.01
-dsf_plot_retrieved_tiles=True
-dsf_plot_dark_spectrum=True
 dsf_write_tiled_parameters=False
 dsf_wave_range=400,2500
 dsf_exclude_bands=,
 dsf_write_aot_550=False
-extra_ac_parameters=False
 
 ## fixed aot option
 dsf_fixed_aot=None
@@ -172,13 +158,7 @@ exp_output_intermediate=False
 
 ##
 s2_target_res=10
-l8_output_bt=False
-l8_output_lt_tirs=False
 resolved_geometry=False
-resolved_geometry_write=False
-
-## output of xy easting and northing
-xy_output=False
 
 ## gain settings
 gains=False
@@ -210,42 +190,17 @@ rgb_green_wl=560
 rgb_blue_wl=480
 rgb_min=0.0,0.0,0.0
 rgb_max=0.15,0.15,0.15
-rgb_pan_sharpen=False
 
 # more mapping options for 'projected image'
 map_projected=False
 map_raster=False
 map_pcolormesh=False
-map_scalebar=True
-map_scalepos=UL
-map_scalecolor=White
-map_scalecolor_rgb=White
-map_scalelen=None
-map_colorbar_edge=True
-map_max_dim=1000
-map_points=None
-
-# NetCDF output options
-l1r_nc_compression=True
-l2r_nc_compression=True
-l2w_nc_compression=True
-
-# NetCDF deletion options
-l1r_nc_delete=False
-l2r_nc_delete=False
-l2w_nc_delete=False
-
-# Convert reflectance floats to scaled integers
-l2w_nc_scaled=False
-l2w_nc_scaled_offset=0.02
-l2w_nc_scaled_factor=0.0001
 
 # GeoTIFF export options
 l1r_export_geotiff=False
 l2t_export_geotiff=False
 l2r_export_geotiff=False
 l2w_export_geotiff=False
-export_geotiff_coordinates=False
 
 # LUTs
 luts=ACOLITE-LUT-202102-MOD1,ACOLITE-LUT-202102-MOD2
