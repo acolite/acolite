@@ -78,6 +78,7 @@ flag_exponent_negative=3
 flag_exponent_outofscene=4
 
 ## atmospheric correction settings
+atmospheric_correction=True
 aerosol_correction=dark_spectrum
 ## minimum gas transmittance to allow aot retrieval in that band
 min_tgas_aot=0.85
@@ -240,6 +241,8 @@ l2w_nc_scaled_offset=0.02
 l2w_nc_scaled_factor=0.0001
 
 # GeoTIFF export options
+l1r_export_geotiff=False
+l2t_export_geotiff=False
 l2r_export_geotiff=False
 l2w_export_geotiff=False
 export_geotiff_coordinates=False

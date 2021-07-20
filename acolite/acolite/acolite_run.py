@@ -103,44 +103,46 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         for l1r in l1r_files:
             gatts = ac.shared.nc_gatts(l1r)
             if 'acolite_file_type' not in gatts: gatts['acolite_file_type'] = 'L1R'
+            if l1r_setu['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r)
 
-            if gatts['acolite_file_type'] == 'L1R':
-                ## run ACOLITE
-                ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = verbosity)
-                if len(ret) != 2: continue
-                l2r, l2r_setu = ret
-            else:
-                l2r = '{}'.format(l1r)
-                l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=setu)
+            ## do VIS-SWIR atmospheric correction
+            if l1r_setu['atmospheric_correction']:
+                if gatts['acolite_file_type'] == 'L1R':
+                    ## run ACOLITE
+                    ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = verbosity)
+                    if len(ret) != 2: continue
+                    l2r, l2r_setu = ret
+                else:
+                    l2r = '{}'.format(l1r)
+                    l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=setu)
 
-            if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r)
-            l2r_files.append(l2r)
+                if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r)
+                l2r_files.append(l2r)
 
-            ## run TACT
-            if l2r_setu['tact_run']:
-                ret = ac.tact.tact_gem(l1r, output_atmosphere = l2r_setu['tact_output_atmosphere'],
-                                            output_intermediate = l2r_setu['tact_output_intermediate'])
+                ## make rgb maps
+                if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:
+                    ac.acolite.acolite_map(l2r, settings = l2r_setu, plot_all=False)
+
+                ## compute l2w parameters
+                if l2r_setu['l2w_parameters'] is not None:
+                    if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
+                    ret = ac.acolite.acolite_l2w(l2r, settings=l2r_setu)
+                    if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret)
+                    l2w_files.append(ret)
+
+                    ## make l2w maps
+                    if l2r_setu['map_l2w']:
+                        ac.acolite.acolite_map(ret, settings=l2r_setu)
+
+            ## run TACT thermal atmospheric correction
+            if l1r_setu['tact_run']:
+                ret = ac.tact.tact_gem(l1r, output_atmosphere = l1r_setu['tact_output_atmosphere'],
+                                            output_intermediate = l1r_setu['tact_output_intermediate'])
                 l2t_files.append(ret)
-                if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(ret)
+                if l1r_setu['l2t_export_geotiff']: ac.output.nc_to_geotiff(ret)
 
                 ## make l2t maps
-                if l2r_setu['tact_map']:
-                    ac.acolite.acolite_map(ret, settings=l2r_setu)
-
-            ## make rgb maps
-            if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:
-                ac.acolite.acolite_map(l2r, settings = l2r_setu, plot_all=False)
-
-            ## compute l2w parameters
-            if l2r_setu['l2w_parameters'] is not None:
-                if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
-                ret = ac.acolite.acolite_l2w(l2r, settings=l2r_setu)
-                if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret)
-                l2w_files.append(ret)
-
-                ## make l2w maps
-                if l2r_setu['map_l2w']:
-                    ac.acolite.acolite_map(ret, settings=l2r_setu)
+                if l1r_setu['tact_map']: ac.acolite.acolite_map(ret, settings=l1r_setu)
 
         if len(l2r_files) > 0: processed[ni]['l2r'] = l2r_files
         if len(l2t_files) > 0: processed[ni]['l2t'] = l2t_files
