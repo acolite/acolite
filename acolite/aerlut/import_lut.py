@@ -9,6 +9,7 @@
 ##                  2021-03-02 (QV) integrated sensor specific LUTs
 ##                  2021-05-31 (QV) added remote lut retrieval
 ##                  2021-06-08 (QV) added lut par subsetting
+##                  2021-07-20 (QV) added retrieval of generic LUTs
 
 def import_lut(lutid, lutdir,
                lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
@@ -27,6 +28,16 @@ def import_lut(lutid, lutdir,
         ## extract bz2 files
         unzipped = False
         lutncbz2 = '{}.bz2'.format(lutnc)
+
+        ## try downloading LUT from GitHub
+        if (not os.path.isfile(lutnc)) & (not os.path.isfile(lutncbz2)) & (get_remote):
+            remote_lut = '{}/{}/{}'.format(remote_base, '-'.join(lutid.split('-')[0:3]), os.path.basename(lutncbz2))
+            try:
+                ac.shared.download_file(remote_lut, lutncbz2)
+            except:
+                print('Could not download remote lut {} to {}'.format(remote_lut, lutncbz2))
+
+        ## extract bz LUT
         if (not os.path.isfile(lutnc)) & (os.path.isfile(lutncbz2)):
             import bz2, shutil
             with bz2.BZ2File(lutncbz2) as fi, open(lutnc,"wb") as fo:
