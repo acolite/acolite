@@ -10,7 +10,8 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2021-02-24 (QV) new interpolation, lut is determined here and read generically
 
-def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2):
+def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2,
+                  remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
     import os
     import scipy.interpolate
     import acolite as ac
@@ -18,6 +19,16 @@ def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2):
     lut_path = '{}/LUT/WV'.format(ac.config['data_dir'])
     lut_id = 'WV_{}'.format(config)
     lutnc = '{}/{}.nc'.format(lut_path,lut_id)
+
+    ## try downloading LUT from GitHub
+    if (not os.path.isfile(lutnc)):
+        remote_lut = '{}/WV/{}'.format(remote_base, os.path.basename(lutnc))
+        try:
+            ac.shared.download_file(remote_lut, lutnc)
+        except:
+            print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
+
+    ## import LUT
     lut, meta = ac.shared.lutnc_import(lutnc)
 
     ## interpolate hyperspectral dataset
