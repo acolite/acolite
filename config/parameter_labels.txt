@@ -5,6 +5,7 @@ header=parameter,min,max,log,cmap,name,unit
 ## generic reflectances
 #
 rhot_*,0,0.15,False,Greys_r,$\rho_{t}$,-
+rhorc_*,0,0.15,False,Greys_r,$\rho_{rc}$,-
 rhos_*,0,0.1,False,Greys_r,$\rho_{s}$,-
 rhow_*,0,0.1,False,Greys_r,$\rho_{w}$,-
 rrs_*,0,0.03,False,Greys_r,$Rrs$,$sr^{-1}$
