@@ -7,7 +7,7 @@ ACOLITE allows simple and fast processing of imagery from various satellites, in
 
 Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of regions of interest (defined by bounding coordinates or a polygon file). Level 2 outputs are surface reflectance (ρs=Rrs⋅π) and derived products that are saved as geolocated datasets in a NetCDF file, and can be exported as PNG maps. The atmospheric correction is image based and needs no external inputs.
 
-To reduce initial download volume, only the generic LUTs are provided in this repository. Sensor specific LUTs will be resampled from the generic LUTs or retrieved automatically from a separate repository (https://github.com/acolite/acolite_luts) the first time they are needed. The automatic retrieval should only take a few minutes, while the resampling may take up to several hours for the "reverse" LUTs.
+To reduce initial download volume, no LUTs are provided in this repository. (LUTs are still in the history of the repository so it is advised to clone with a low depth, e.g. using --depth 1, to avoid pulling those in.) Required LUTs will be retrieved automatically from a separate repository (https://github.com/acolite/acolite_luts) the first time they are needed.
 
 ACOLITE development was funded under various projects by the Belgian Science Policy Office STEREO program under contracts SR/37/135 (JELLYFOR project) and SR/00/325 (PONDER project), and by the European Community's Seventh Framework Programme (FP7/2007-2013) under grant agreement n° 606797 (HIGHROC project). TACT development was funded by the Belgian Science Policy Office BRAIN-be program under contract BR/165/A1/MICROBIAN.
 
@@ -49,13 +49,13 @@ A suitable Python environment can for example be set up using conda and the pack
             conda install -c conda-forge numpy matplotlib scipy gdal pyproj astropy cartopy scikit-image pyhdf pyresample netcdf4
 
 ## Installation
-* cd into a suitable directory and clone the git repository: `git clone https://github.com/acolite/acolite`
+* cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
 * cd into the new acolite directory `cd acolite`
 * run `python launch_acolite.py`
 
 ## Ancillary and SRTM DEM data download
 ACOLITE can automatically retrieve ancillary data (ozone, water vapour, pressure and wind speed) from the servers of the Ocean Biology Processing Group (OBPG) at NASA (https://oceandata.sci.gsfc.nasa.gov) and SRTM DEM data from NASA's Land Processes Distributed Active Archive Center (LP DAAC) at the USGS Earth Resources Observation and
-Science (EROS) Center (https://e4ftl01.cr.usgs.gov/MEASURES/) for both resources an EarthData account is requred: https://urs.earthdata.nasa.gov/users/new
+Science (EROS) Center (https://e4ftl01.cr.usgs.gov/MEASURES/) for both resources an EarthData account is required: https://urs.earthdata.nasa.gov/users/new
 
 ACOLITE tries and retrieve the EARTHDATA_u and EARTHDATA_p (for username and password) from the system environment variables. Alternatively they can be specified in the processing settings file or the general ACOLITE config file at config/config.txt.
 
