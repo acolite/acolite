@@ -47,13 +47,13 @@ def acolite_l2r(gem,
         nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
         band_data = None
         if (nbf/npx) >= float(setu['blackfill_max']):
-            if verbosity>1: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
+            if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
             return()
 
     if verbosity > 0: print('Running acolite for {}'.format(gemf))
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
-    print(output_name)
+
     ## get dimensions and number of elements
     gem.gatts['data_dimensions'] = gem.data(gem.datasets[0]).shape
     gem.gatts['data_elements'] = gem.gatts['data_dimensions'][0]*gem.gatts['data_dimensions'][1]
@@ -100,7 +100,7 @@ def acolite_l2r(gem,
 
     ## dem pressure
     if setu['dem_pressure']:
-        print('Extracting SRTM DEM data')
+        if verbosity > 1: print('Extracting SRTM DEM data')
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
             dem = ac.dem.hgt_lonlat(gem.data('lon'), gem.data('lat'))
         else:
@@ -493,7 +493,10 @@ def acolite_l2r(gem,
 
                     if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
-                ###
+                ## mask minimum tile aots
+                if setu['dsf_aot_estimate'] == 'tiled': aot_band[lut][aot_band[lut]<setu['dsf_min_tile_aot']]=np.nan
+
+                ## store current band results
                 aot_dict[b] = aot_band
 
             ## get and sort keys

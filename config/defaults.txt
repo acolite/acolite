@@ -133,6 +133,7 @@ dsf_smooth_box=20,20
 # more dsf options
 dsf_model_selection=min_drmsd
 dsf_min_tile_cover=0.10
+dsf_min_tile_aot=0.01
 dsf_write_tiled_parameters=False
 dsf_wave_range=400,2500
 dsf_exclude_bands=,
