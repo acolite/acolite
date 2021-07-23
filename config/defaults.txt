@@ -51,6 +51,7 @@ blackfill_wave=1600
 
 ## copy datasets from L1R to L2R
 copy_datasets=lon,lat,rhot_*
+output_bt=False
 
 ## output l2w parameters
 l2w_parameters=None
@@ -86,6 +87,7 @@ min_tgas_aot=0.85
 min_tgas_rho=0.75
 
 ## generic options
+resolved_geometry=False
 ancillary_data=True
 uoz_default=0.3
 uwv_default=1.5
@@ -159,7 +161,6 @@ exp_output_intermediate=False
 
 ##
 s2_target_res=10
-resolved_geometry=False
 
 ## gain settings
 gains=False
@@ -176,7 +177,7 @@ map_dpi=300
 map_ext=png
 map_limit=None
 
-## map colour bar options
+# map colour bar options
 map_colorbar=True
 map_colorbar_orientation=vertical
 map_auto_range=False
@@ -192,10 +193,11 @@ rgb_blue_wl=480
 rgb_min=0.0,0.0,0.0
 rgb_max=0.15,0.15,0.15
 
-# more mapping options for 'projected image'
+# more mapping options - under development
 map_projected=False
 map_raster=False
 map_pcolormesh=False
+map_points=None
 
 # GeoTIFF export options
 l1r_export_geotiff=False
