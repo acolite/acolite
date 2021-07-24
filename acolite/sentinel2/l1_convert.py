@@ -263,30 +263,13 @@ def l1_convert(inputfile, output = None,
         for k in pkeys:
             if k in dct_prj: gatts[k] = dct_prj[k]
 
-        ## else use the projection info in dct_prj
-        ## from landsat processing
-        #xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,min(dct_prj['yrange']),
-        #       max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
-        #       dct_prj['proj4_string']]
-
         ## eval - this worked with another half pixel offset in computing lat lon
+        ## half pixel offset 2021-07-24
         xyr = [min(dct_prj['xrange']),
-               min(dct_prj['yrange'])+dct_prj['pixel_size'][1],
-               max(dct_prj['xrange'])+dct_prj['pixel_size'][0],
+               min(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
+               max(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
                max(dct_prj['yrange']),
                dct_prj['proj4_string']]
-        ## eval -
-        if False:
-            xyr = [min(dct_prj['xrange']),
-                   min(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
-                   max(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
-                   max(dct_prj['yrange']),
-                   dct_prj['proj4_string']]
-            xyr = [min(dct_prj['xrange']),
-                   min(dct_prj['yrange']),
-                   max(dct_prj['xrange']),
-                   max(dct_prj['yrange']),
-                   dct_prj['proj4_string']]
 
         ## warp settings for read_band
         res_method = 'average'
@@ -377,10 +360,10 @@ def l1_convert(inputfile, output = None,
                                                       target_mask = det_mask, target_mask_full=False, method='linear')
 
                 ## use target band so we can just do the 60 metres geometry
-                sza = ac.shared.warp_from_source(target_file, dct_prj, sza) # alt (dct, dct_prj, sza)
-                saa = ac.shared.warp_from_source(target_file, dct_prj, saa)
-                vza = ac.shared.warp_from_source(target_file, dct_prj, vza)
-                vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa)
+                sza = ac.shared.warp_from_source(target_file, dct_prj, sza, warp_to=warp_to) # alt (dct, dct_prj, sza)
+                saa = ac.shared.warp_from_source(target_file, dct_prj, saa, warp_to=warp_to)
+                vza = ac.shared.warp_from_source(target_file, dct_prj, vza, warp_to=warp_to)
+                vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa, warp_to=warp_to)
                 mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
 
                 ## compute band specific geometry
@@ -476,13 +459,13 @@ def l1_convert(inputfile, output = None,
             vaa = None
 
             ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new)
-            if verbosity > 1: print('Wrote raa')
+            if verbosity > 1: print('Wrote raa {}'.format(raa.shape))
             raa = None
             new = False
             ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
-            if verbosity > 1: print('Wrote vza')
+            if verbosity > 1: print('Wrote vza {}'.format(vza.shape))
             ac.output.nc_write(ofile, 'sza', sza, replace_nan=True)
-            if verbosity > 1: print('Wrote sza')
+            if verbosity > 1: print('Wrote sza {}'.format(sza.shape))
             sza = None
             vza = None
 
@@ -492,11 +475,11 @@ def l1_convert(inputfile, output = None,
                     Bn = 'B{}'.format(b)
                     print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
                     ## band specific view zenith angle
-                    vza = ac.shared.warp_from_source(target_file, dct_prj, vza_all[:,:,bi])
+                    vza = ac.shared.warp_from_source(target_file, dct_prj, vza_all[:,:,bi], warp_to=warp_to)
                     ac.output.nc_write(ofile, 'vza_{}'.format(waves_names[b]), vza, replace_nan=True)
                     vza = None
                     ## band specific view azimuth angle
-                    vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa_all[:,:,bi])
+                    vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa_all[:,:,bi], warp_to=warp_to)
                     #ac.output.nc_write(ofile, 'vaa_{}'.format(waves_names[b]), vaa, replace_nan=True)
                     ## compute relative azimuth angle
                     raa = np.abs(saa-vaa)
@@ -570,6 +553,7 @@ def l1_convert(inputfile, output = None,
                     if percentiles_compute:
                         ds_att['percentiles'] = percentiles
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
+
                     ## write to ms file
                     ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
                     new = False

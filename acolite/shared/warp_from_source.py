@@ -4,7 +4,7 @@
 ## 2021-02-23
 ## modifications:
 
-def warp_from_source(source, dct, data):
+def warp_from_source(source, dct, data, warp_to = None):
     import os
     from osgeo import ogr,osr,gdal
 
@@ -38,14 +38,17 @@ def warp_from_source(source, dct, data):
     source_ds.GetRasterBand(1).WriteArray(data)
     source_ds.FlushCache()
 
-    ## set up the warp
-    xyr = [min(dct['xrange']),
-           min(dct['yrange'])+dct['pixel_size'][1],
-           max(dct['xrange'])+dct['pixel_size'][0],
-           max(dct['yrange']),
-           dct['proj4_string']]
-    warp_to_region = (dct['proj4_string'], xyr,
-                      dct['pixel_size'][0], dct['pixel_size'][1],'average')
+    if warp_to is None:
+        ## set up the warp
+        xyr = [min(dct['xrange']),
+               min(dct['yrange'])+dct['pixel_size'][1],
+               max(dct['xrange'])+dct['pixel_size'][0],
+               max(dct['yrange']),
+               dct['proj4_string']]
+        warp_to_region = (dct['proj4_string'], xyr,
+                          dct['pixel_size'][0], dct['pixel_size'][1],'average')
+    else:
+        warp_to_region = warp_to
 
     ## target geotransform
     #target_gt = dct_prj['region']['xrange'][0], dct_prj['region']['pixel_size'][0], 0.0,\
