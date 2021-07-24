@@ -264,11 +264,11 @@ def l1_convert(inputfile, output = None,
             if k in dct_prj: gatts[k] = dct_prj[k]
 
         ## eval - this worked with another half pixel offset in computing lat lon
-        ## half pixel offset 2021-07-24
-        xyr = [min(dct_prj['xrange']),
+        ## half pixel offset for both min/max 2021-07-24
+        xyr = [min(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
                min(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
                max(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
-               max(dct_prj['yrange']),
+               max(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
                dct_prj['proj4_string']]
 
         ## warp settings for read_band
