@@ -48,12 +48,15 @@ def parse(sensor, settings=None, merge=True):
 
     float_list = ['min_tgas_aot', 'min_tgas_rho',
 
-                  'dsf_percentile', 'dsf_filter_percentile', 'dsf_min_tile_aot', 'dsf_min_tile_cover',
+                  'dsf_percentile', 'dsf_filter_percentile',
+                  'dsf_min_tile_aot', 'dsf_min_tile_cover',
 
-                  'exp_swir_threshold', 'exp_fixed_epsilon_percentile', 'exp_fixed_aerosol_reflectance_percentile',
+                  'exp_swir_threshold', 'exp_fixed_epsilon_percentile',
+                  'exp_fixed_aerosol_reflectance_percentile',
 
-                  'dem_pressure_percentile', 'uoz_default', 'uwv_default', 'wind_default', 'wind',
-                  'l2w_nc_scaled_offset', 'l2w_nc_scaled_factor',
+                  'dem_pressure_percentile',
+                  'uoz_default', 'uwv_default',
+                  'wind_default', 'wind',
 
                   'blackfill_max', 'glint_mask_rhos_threshold',
                   'l2w_mask_threshold', 'l2w_mask_cirrus_threshold','l2w_mask_high_toa_threshold',

@@ -6,8 +6,8 @@
 ##                2021-03-15 (QV) large update, including other parameters and mapping with pcolormesh
 ##                2021-04-01 (QV) changed plot_all option
 
-def acolite_map(ncf, output=None,
-                settings=None,
+def acolite_map(ncf, output = None,
+                settings = None,
                 plot_all = True,
                 plot_skip = ['lon', 'lat', 'l2_flags'],
                 map_save = True,
@@ -19,7 +19,6 @@ def acolite_map(ncf, output=None,
 
     import pyproj
     from osgeo import ogr, osr
-    import cartopy.crs as ccrs
 
     import matplotlib as mpl
     import matplotlib.cm as cm
@@ -139,6 +138,7 @@ def acolite_map(ncf, output=None,
 
                     plt.axis('off')
             else: ## cartopy
+                import cartopy.crs as ccrs
                 axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs)
                 gl = ax.gridlines(draw_labels=True)
                 gl.xlabels_top = False
@@ -146,20 +146,25 @@ def acolite_map(ncf, output=None,
                 gl.xlabels_bottom = True
                 gl.ylabels_right = False
 
-            if setu['map_title']:
-                plt.title(title)
+            if setu['map_title']: plt.title(title)
 
             ## color bars
             cbar = None
             if setu['map_colorbar']:
                 if setu['map_colorbar_orientation'] == 'vertical':
-                    divider = make_axes_locatable(ax)
-                    cax = divider.append_axes('right', size='5%', pad=0.05)
+                    if crs is None:
+                        divider = make_axes_locatable(ax)
+                        cax = divider.append_axes('right', size='5%', pad=0.05)
+                    else:
+                        cax = ax.inset_axes((1.02, 0, 0.02, 1)); #make a color bar axis
                     cbar = fig.colorbar(axim, cax=cax, orientation='vertical')
                     cbar.ax.set_ylabel(part)
                 else:
-                    divider = make_axes_locatable(ax)
-                    cax = divider.append_axes('bottom', size='5%', pad=0.05)
+                    if crs is None:
+                        divider = make_axes_locatable(ax)
+                        cax = divider.append_axes('bottom', size='5%', pad=0.05)
+                    else:
+                        cax = ax.inset_axes((0, -0.05, 1, 0.02)); #make a color bar axis
                     cbar = fig.colorbar(axim, cax=cax, orientation='horizontal')
                     cbar.ax.set_xlabel(part)
 

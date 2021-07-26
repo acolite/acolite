@@ -48,7 +48,13 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             else:
                 inputfile = list(inputfile)
         setu['inputfile'] = inputfile
-    nscenes = len(setu['inputfile'])
+
+    ## check if we have anything to do
+    if 'inputfile' not in setu:
+        print('Nothing to do. Did you provide a settings file or inputfile? Exiting.')
+        return()
+    else:
+        nscenes = len(setu['inputfile'])
 
     ## parse output
     if output is not None: setu['output'] = output

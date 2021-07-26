@@ -21,10 +21,6 @@ def acolite_l2r(gem,
     import scipy.ndimage
     import acolite as ac
 
-    ## for gaussian smoothing of aot
-    from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
-    from astropy.convolution import convolve
-
     time_start = datetime.datetime.now()
 
     ## read gem file if NetCDF
@@ -532,6 +528,9 @@ def acolite_l2r(gem,
                                                         size=setu['dsf_filter_box'])
                 ## apply gaussian kernel smoothing
                 if (setu['dsf_smooth_aot']) & (setu['dsf_aot_estimate'] == 'resolved'):
+                    ## for gaussian smoothing of aot
+                    from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
+                    from astropy.convolution import convolve
                     aot_stack[lut]['min'] = \
                         convolve(aot_stack[lut]['min'],
                                  Gaussian2DKernel(x_stddev=setu['dsf_smooth_box'][0], y_stddev=setu['dsf_smooth_box'][1]),

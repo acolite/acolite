@@ -29,7 +29,6 @@ path = os.path.dirname(code_path)
 
 ## find config file
 if not os.path.exists('{}{}config'.format(path, os.path.sep)):
-    path = os.path.split(path)[0]
     ## check if binary distribution
     if '{}dist{}acolite'.format(os.path.sep,os.path.sep) in path:
         ## two levels for this file
