@@ -132,12 +132,17 @@ def acolite_l2w(gem,
     ## list datasets to copy over from L2R
     for cur_par in gem['data']:
         if cur_par in copy_datasets: continue
-        if (('rhow_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)) |\
-            (cur_par.replace('rhos_', 'rhow_') in setu['l2w_parameters']):
-            copy_datasets.append(cur_par.replace('rhos_', 'rhow_'))
-        if (('Rrs_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)) |\
-            (cur_par.replace('rhos_', 'Rrs_') in setu['l2w_parameters']):
-            copy_datasets.append(cur_par.replace('rhos_', 'Rrs_'))
+
+        ## add rhow / Rrs from rhos
+        if ('rhos_' in cur_par):
+            if (('rhow_*' in setu['l2w_parameters'])) |\
+                (cur_par.replace('rhos_', 'rhow_') in setu['l2w_parameters']):
+                copy_datasets.append(cur_par.replace('rhos_', 'rhow_'))
+            if (('Rrs_*' in setu['l2w_parameters'])) |\
+                (cur_par.replace('rhos_', 'Rrs_') in setu['l2w_parameters']):
+                copy_datasets.append(cur_par.replace('rhos_', 'Rrs_'))
+
+        ## add existing par or evaluate wildcards
         if (cur_par in setu['l2w_parameters']):
             copy_datasets.append(cur_par)
         elif (('rhot_*' in setu['l2w_parameters']) & ('rhot_' in cur_par)):
