@@ -12,6 +12,10 @@ rrs_*,0,0.03,False,Greys_r,$Rrs$,$sr^{-1}$
 rhog_*,0,0.02,False,Greys_r,$\rho_{g}$,-
 rhoe_*,0,0.02,False,Greys_r,$\rho_{e}$,-
 #
+## AOT
+#
+aot_550,0,0.5,False,viridis,$\tau_{a} 550 nm$,-
+#
 ## SPM Nechad with generic option
 #
 spm_nechad,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
