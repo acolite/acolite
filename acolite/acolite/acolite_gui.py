@@ -421,7 +421,8 @@ def acolite_gui(*args, version=None):
                     ## clear and set polygon
                     self.tpoly.delete(1.0, END)
                     if 'polygon' not in self.acolite_settings: self.acolite_settings['polygon'] = ''
-                    self.tpoly.insert(END,self.acolite_settings['polygon'])
+                    if self.acolite_settings['polygon'] is not None:
+                        self.tpoly.insert(END,self.acolite_settings['polygon'])
 
                     ##
                     if 'l2w_parameters' in self.acolite_settings:
