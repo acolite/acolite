@@ -9,7 +9,10 @@ def acolite_luts(sensor = None, hyper = False, pars = ['romix', 'romix+rsky_t'])
     import acolite as ac
 
     ## get all RSR if no sensor(s) specified
-    if (sensor is None) | (sensor.upper() == 'NONE'):
+    if type(sensor) is str:
+        if sensor.upper() == 'NONE': sensor = None
+
+    if (sensor is None):
         rsrd = ac.shared.rsr_dict()
     else:
         if type(sensor) is not list:
