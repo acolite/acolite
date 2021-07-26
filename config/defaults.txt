@@ -81,6 +81,7 @@ flag_exponent_outofscene=4
 ## atmospheric correction settings
 atmospheric_correction=True
 aerosol_correction=dark_spectrum
+
 ## minimum gas transmittance to allow aot retrieval in that band
 min_tgas_aot=0.85
 ## minimum gas transmittance to allow surface reflectance retrieval in that band
@@ -101,7 +102,7 @@ dem_pressure_percentile=25
 dem_pressure_write=False
 
 ## correction for reflectance on air-water interface
-dsf_interface_reflectance=True
+dsf_interface_reflectance=False
 dsf_interface_option=default
 dsf_interface_lut=RSKY-202102
 wind=None
