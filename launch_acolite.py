@@ -17,6 +17,8 @@ def launch_acolite():
     import argparse
 
     ## import acolite source
+    import acolite as ac
+
     try:
         import acolite as ac
     except:
@@ -39,7 +41,12 @@ def launch_acolite():
     parser.add_argument('--settings', help='settings file', default=None)
     parser.add_argument('--inputfile', help='list of images', default=None)
     parser.add_argument('--output', help='output directory', default=None)
+    parser.add_argument('--sensor', help='comma separated sensor list for LUT retrieval', default=None)
     args, unknown = parser.parse_known_args()
+
+    if '--retrieve_luts' in sys.argv:
+        ac.acolite.acolite_luts(sensor=args.sensor)
+        return()
 
     ## command line processing, run acolite_run directly
     if '--cli' in sys.argv:

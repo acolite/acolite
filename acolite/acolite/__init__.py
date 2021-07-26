@@ -8,6 +8,8 @@ from .acolite_run import *
 from .acolite_map import *
 from .acolite_gui import *
 
+from .acolite_luts import *
+
 from .identify_bundle import *
 from .parameter_scaling import *
 
