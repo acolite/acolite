@@ -14,7 +14,9 @@ def acolite_luts(sensor = None, hyper = False, pars = ['romix', 'romix+rsky_t'])
     else:
         if type(sensor) is not list:
             if ',' in sensor:
-                sensor = sensor.split(',')
+                sensor = [s.strip() for s in sensor.split(',')]
+            elif ' ' in sensor:
+                sensor = [s for s in sensor.split(' ') if len(s) > 0]
             else:
                 sensor = [sensor]
         rsrd = {}
