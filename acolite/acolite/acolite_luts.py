@@ -51,6 +51,6 @@ def acolite_luts(sensor = None, hyper = False, pars = ['romix', 'romix+rsky_t'])
         tmp = ac.aerlut.import_luts(sensor = s)
 
         ## get reverse LUT
-        if s is not None:
+        if (s is not None) & (s in ['L5_TM', 'L7_ETM', 'L8_OLI', 'S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']):
             for par in pars:
                 revl = ac.aerlut.reverse_lut(s, par=par)
