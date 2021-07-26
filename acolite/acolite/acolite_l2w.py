@@ -195,7 +195,7 @@ def acolite_l2w(gem,
     if return_gem: gem['data']['l2_flags'] = l2_flags
     new = False
 
-    qaa_computed = False
+    qaa_computed, p3qaa_computed = False, False
     ## parameter loop
     ## compute other parameters
     for cur_par in setu['l2w_parameters']:
@@ -688,6 +688,8 @@ def acolite_l2w(gem,
         #############################
         ## Pitarch 3 band QAA
         if cur_par[0:5] == 'p3qaa':
+            if p3qaa_computed: continue
+
             mask = True ## water parameter so apply mask
             ## load config
             cfg = ac.parameters.pitarch.p3qaa_coef()
@@ -695,7 +697,7 @@ def acolite_l2w(gem,
                 print('P3QAA not configured for {}'.format(gem['gatts']['sensor']))
                 continue
 
-            par_attributes = {'algorithm':'Pitarch et al. in prep.'}
+            par_attributes = {'algorithm':'Pitarch and Vanhellemont, submitted'}
 
             ## read Blue Green Red data, convert to Rrs
             for k in ['B', 'G', 'R']:
@@ -734,6 +736,13 @@ def acolite_l2w(gem,
                 cur_par_out = p3_pars
             else:
                 cur_par_out = [k for k in setu['l2w_parameters'] if k in p3_pars]
+                for k in setu['l2w_parameters']:
+                    if k.lower() == 'p3qaa_a_*':
+                        cur_par_out += [k for k in p3_pars if (k not in cur_par_out) & ('p3qaa_a_' in k.lower())]
+                    if k.lower() == 'p3qaa_bb_*':
+                        cur_par_out += [k for k in p3_pars if (k not in cur_par_out) & ('p3qaa_bb_' in k.lower())]
+                    if k.lower() == 'p3qaa_kd_*':
+                        cur_par_out += [k for k in p3_pars if (k not in cur_par_out) & ('p3qaa_kd_' in k.lower())]
 
             ## reformat for output
             for p in cur_par_out:
@@ -751,6 +760,7 @@ def acolite_l2w(gem,
                     par_atts[p] = {pk: par_attributes[pk] for pk in par_attributes}
                     par_atts[p]['ds_name'] = p
             ret = None
+            p3qaa_computed = True
         ## end Pitarch 3 band QAA
         #############################
 
