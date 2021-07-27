@@ -24,8 +24,7 @@ def acolite_luts(sensor = None, hyper = False, pars = ['romix', 'romix+rsky_t'])
                 sensor = [sensor]
         rsrd = {}
         for s in sensor:
-            s = s.upper()
-            if s in ['CHRIS', 'PRISMA', 'HYPER']:
+            if s.upper() in ['CHRIS', 'PRISMA', 'HYPER']:
                 hyper = True
                 continue
 
