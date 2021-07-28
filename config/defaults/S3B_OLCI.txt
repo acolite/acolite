@@ -12,6 +12,7 @@ dsf_tile_dimensions=120,120
 dsf_exclude_bands=Oa01,Oa02
 dsf_smooth_aot=True
 dsf_smooth_box=10,10
+dsf_interface_reflectance=True
 
 l2w_mask_wave=1020
 l2w_mask_threshold=0.05

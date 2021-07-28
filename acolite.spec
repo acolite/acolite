@@ -1,16 +1,22 @@
-# -*- mode: python -*-
+## .spec file for generating PyInstaller binaries
+##
+## run with python -m PyInstaller acolite.spec
+##
+## run with python -m PyInstaller --noconfirm acolite.spec
+## --noconfirm will overwrite existing build/dist directories
 
+# -*- mode: python -*-
 block_cipher = None
 
 datas = []
 hiddenimports = []
 excludes = []
 
-
 ## not found
 ## hiddenimports+=['pandas._libs.tslibs.timedeltas']
 ## hiddenimports+=['pandas._libs.tslibs.np_datetime','pandas._libs.tslibs.nattype','pandas._libs.skiplist']
 
+## hidden imports
 hiddenimports+=['scipy._lib.messagestream']
 hiddenimports+=['cftime']
 hiddenimports+=['pywt._extensions._cwt']

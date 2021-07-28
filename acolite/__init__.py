@@ -1,5 +1,3 @@
-version = 'Generic Version Public Beta - April 2021'
-
 from acolite import landsat
 from acolite import sentinel2
 from acolite import sentinel3
@@ -36,6 +34,12 @@ if not os.path.exists('{}{}config'.format(path, os.path.sep)):
 
 cfile='{}{}config{}config.txt'.format(path,os.path.sep,os.path.sep)
 config = shared.import_config(cfile)
+
+## update version info
+if 'version' in config:
+    version = 'Generic Version {}'.format(config['version'])
+else:
+    version = 'Generic GitHub Clone'
 
 ## test whether we can find the relative paths
 for t in config:
