@@ -40,13 +40,15 @@ The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and 
 This repository contains all the source code to run ACOLITE in a Python environment. ACOLITE is also distributed as a binary package on the [REMSEM page](http://odnature.naturalsciences.be/remsem/software-and-data/acolite) and supported on the [ACOLITE forum](http://odnature.naturalsciences.be/remsem/acolite-forum/). Currently only the previous Landsat/Sentinel-2 version (v20210114.0) is available as binary on the REMSEM page.
 
 ## Dependencies
-ACOLITE is coded in Python 3, and requires the following Python packages to run with all functionality:`numpy matplotlib scipy gdal pyproj astropy cartopy scikit-image pyhdf pyresample netcdf4 h5py`
+ACOLITE is coded in Python 3, and requires the following Python packages to run: `numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py`
 
 A suitable Python environment can for example be set up using conda and the packages on conda-forge:
 
             conda create -n acolite -c conda-forge python=3
             conda activate acolite
-            conda install -c conda-forge numpy matplotlib scipy gdal pyproj astropy cartopy scikit-image pyhdf pyresample netcdf4
+            conda install -c conda-forge numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py
+
+Additional dependencies may be needed for experimental features: `astropy cartopy`
 
 ## Installation
 * cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
