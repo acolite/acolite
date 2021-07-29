@@ -186,11 +186,11 @@ def acolite_l2r(gem,
         ni = np.ceil(gem.gatts['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem.gatts['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
         if (ni <= 1) | (nj <= 1):
-            if verbosity > 1: print('Scene too small for tiling ({}x{} tiles), using fixed processing'.format(ni,nj))
+            if verbosity > 1: print('Scene too small for tiling ({}x{} tiles of {}x{} pixels), using fixed processing'.format(ni,nj,setu['dsf_tile_dimensions'][0], setu['dsf_tile_dimensions'][1]))
             setu['dsf_aot_estimate'] = 'fixed'
         else:
             ntiles = ni*nj
-            if verbosity > 1: print('Processing with {} tiles ({}x{})'.format(ntiles, ni, nj))
+            if verbosity > 1: print('Processing with {} tiles ({}x{} tiles of {}x{} pixels)'.format(ntiles, ni, nj, setu['dsf_tile_dimensions'][0], setu['dsf_tile_dimensions'][1]))
 
             ## compute tile dimensions
             for ti in range(ni):
