@@ -894,7 +894,7 @@ def acolite_l2r(gem,
             romix = np.zeros(atm_shape, dtype=np.float32)+np.nan
             astot = np.zeros(atm_shape, dtype=np.float32)+np.nan
             dutott = np.zeros(atm_shape, dtype=np.float32)+np.nan
-            if setu['dsf_residual_glint_correction']:
+            if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                 ttot_all[b] = np.zeros(atm_shape, dtype=np.float32)+np.nan
 
             for li, lut in enumerate(luts):
@@ -936,7 +936,7 @@ def acolite_l2r(gem,
                     astot[ls] = ac.shared.rsr_convolute_nd(hyper_res['astot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                     dutott[ls] = ac.shared.rsr_convolute_nd(hyper_res['dutott'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                     ## total transmittance
-                    if setu['dsf_residual_glint_correction']:
+                    if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                         ttot_all[b][ls] = ac.shared.rsr_convolute_nd(hyper_res['ttot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                 else:
                     ## path reflectance
@@ -945,7 +945,7 @@ def acolite_l2r(gem,
                     astot[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['astot'], xi[1], xi[2], xi[3], xi[4], ai))
                     dutott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], ai))
                     ## total transmittance
-                    if setu['dsf_residual_glint_correction']:
+                    if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                         ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
 
             ## interpolate tiled processing to full scene
@@ -957,7 +957,7 @@ def acolite_l2r(gem,
                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
                 dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                 target_mask_full=True, smooth=True, kern_size=3, method='linear')
-                if setu['dsf_residual_glint_correction']:
+                if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                     ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                     target_mask_full=True, smooth=True, kern_size=3, method='linear')
 
@@ -972,7 +972,7 @@ def acolite_l2r(gem,
                 if len(np.atleast_1d(dutott)>1):
                     if dutott.shape == cur_data.shape:
                         gemo.write('dutott_{}'.format(gem.bands[b]['wave_name']), dutott)
-                if setu['dsf_residual_glint_correction']:
+                if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                     if len(np.atleast_1d(ttot_all[b])>1):
                         if ttot_all[b].shape == cur_data.shape:
                             gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
@@ -1219,6 +1219,119 @@ def acolite_l2r(gem,
             Rf_sen = None
             rhog_ref = None
     ## end glint correction
+
+    ## alternative glint correction
+    if (ac_opt == 'dsf') & (setu['dsf_residual_glint_correction']) & (setu['dsf_aot_estimate'] == 'fixed') &\
+       (setu['dsf_residual_glint_correction_method']=='alternative'):
+
+        ## get geometry
+        #if ('raa' in gem.datasets) & ('sza' in gem.datasets) & ('vza' in gem.datasets) & (setu['resolved_geometry']):
+        if False:
+            raa = gem.data('raa')
+            sza = gem.data('sza')
+            vza = gem.data('vza')
+        else:
+            raa = gem.gatts['raa']
+            sza = gem.gatts['sza']
+            vza = gem.gatts['vza']
+
+        ## reference aot and wind speed
+        gc_aot = max(0.1, gemo.gatts['ac_aot_550'])
+        gc_wind = 20
+        gc_lut = gemo.gatts['ac_model']
+
+        ## get surface reflectance for fixed geometry
+        if len(np.atleast_1d(raa)) == 1:
+            if hyper:
+                surf = lutdw[gc_lut]['rgi']((gem.gatts['pressure'],lutdw[gc_lut]['ipd']['rsky_s'],
+                                             lutdw[gc_lut]['meta']['wave'], raa, vza, sza, gc_wind, gc_aot))
+                surf_res = ac.shared.rsr_convolute_dict(lutdw[gc_lut]['meta']['wave'], surf, rsrd['rsr'])
+            else:
+                surf_res = {b : lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],lutdw[gc_lut]['ipd']['rsky_s'],
+                                                         raa, vza, sza, gc_wind, gc_aot)) for b in lutdw[gc_lut]['rgi']}
+
+        ## get reference surface reflectance
+        gc_ref = None
+        for ib, b in enumerate(gemo.bands):
+            rhos_ds = gemo.bands[b]['rhos_ds']
+            if rhos_ds not in gemo.datasets: continue
+            if (gemo.bands[b]['wavelength'] < setu['dsf_residual_glint_wave_range'][0]) |\
+               (gemo.bands[b]['wavelength'] > setu['dsf_residual_glint_wave_range'][1]): continue
+            print('Reading reference for glint correction from band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
+            if gc_ref is None:
+                gc_ref = gemo.data(rhos_ds)
+                gc_sur = [surf_res[b]]
+            else:
+                gc_ref = np.dstack((gc_ref, gemo.data(rhos_ds)))
+                gc_sur.append(surf_res[b])
+
+        if gc_ref is None:
+            print('No bands found between {} and {} nm for glint correction'.format(setu['dsf_residual_glint_wave_range'][0],
+                                                                                    setu['dsf_residual_glint_wave_range'][1]))
+        else:
+            ## compute average reference glint
+            if len(gc_ref.shape) == 3:
+                gc_ref_mean = np.nanmean(gc_ref, axis=2)
+                gc_ref_std = np.nanstd(gc_ref, axis=2)
+                gc_ref = None
+
+                gemo.write('glint_mean', gc_ref_mean)
+                gemo.write('glint_std', gc_ref_std)
+            else: ## or use single band
+                gc_ref_mean = gc_ref*1.0
+
+            ## compute average modeled surface glint
+            gc_sur_mean = np.nanmean(gc_sur)
+            gc_sur_std = np.nanstd(gc_sur)
+
+            ## get subset where to apply glint correction
+            gc_sub = np.where(gc_ref_mean<setu['glint_mask_rhos_threshold'])
+
+            ## glint correction per band
+            for ib, b in enumerate(gemo.bands):
+                rhos_ds = gemo.bands[b]['rhos_ds']
+                if rhos_ds not in gemo.datasets: continue
+                print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
+
+                sur = surf_res[b] * 1.0
+
+                if False:
+                    ## compute surface image
+                    if hyper:
+                        sur = surf_res[b]
+                    else:
+                        print(rhos_ds, 'Interpolating LUT')
+                        if (ds.replace('rhos_', 'raa_') in gem.datasets) &\
+                            (ds.replace('rhos_', 'vza_') in gem.datasets) & (setu['resolved_geometry']):
+                            raa_ = gem.data(ds.replace('rhos_', 'raa_'))
+                            vza_ = gem.data(ds.replace('rhos_', 'vza_'))
+                            sur = lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],
+                                                                      lutdw[gc_lut]['ipd']['rsky_s'],
+                                                                      raa_, vza_, sza, gc_wind, gc_aot))
+                        else:
+                            sur = lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],
+                                                                      lutdw[gc_lut]['ipd']['rsky_s'],
+                                                                      raa, vza, sza, gc_wind, gc_aot))
+
+                ## estimate current band glint from reference glint image and ratio of interface reflectance
+                if len(np.atleast_2d(gc_sur_mean)) == 1:
+                    cur_rhog = gc_ref_mean[gc_sub] * (surf_res[b]/gc_sur_mean)
+                else:
+                    cur_rhog = gc_ref_mean[gc_sub] * (surf_res[b][gc_sub]/gc_sur_mean[gc_sub])
+
+                ## remove glint from rhos
+                cur_data = gemo.data(rhos_ds)
+                cur_data[gc_sub]-=cur_rhog
+                gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
+
+                ## write band glint
+                if setu['glint_write_rhog_all']:
+                    tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
+                    tmp[gc_sub] = cur_rhog
+                    gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
+                    tmp = None
+                cur_rhog = None
+    ## end alternative glint correction
 
     ## compute l8 orange band
     if (gemo.gatts['sensor'] == 'L8_OLI') & (setu['l8_orange_band']):

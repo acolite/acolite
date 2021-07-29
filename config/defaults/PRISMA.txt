@@ -12,3 +12,5 @@ dsf_interface_reflectance=False
 resolved_geometry=False
 dsf_spectrum_option=percentile
 dsf_percentile=1
+
+dsf_residual_glint_correction_method=alternative
