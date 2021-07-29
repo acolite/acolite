@@ -15,6 +15,11 @@ output_xy=False
 output_geometry=True
 output_rhorc=False
 
+## Landsat 8 options
+l8_orange_band=True
+
+## Sentinel-2 options
+s2_target_res=10
 ## Sentinel-2 per pixel geometry
 geometry_type=grids_footprint
 geometry_res=60
@@ -110,6 +115,8 @@ wind_default=2
 
 ## residual sun glint correction
 dsf_residual_glint_correction=False
+dsf_residual_glint_correction_method=default
+dsf_residual_glint_wave_range=1500,2400
 glint_force_band=None
 glint_mask_rhos_wave=1600
 glint_mask_rhos_threshold=0.05
@@ -162,9 +169,6 @@ exp_alpha_weighted=True
 exp_epsilon=None
 exp_gamma=None
 exp_output_intermediate=False
-
-##
-s2_target_res=10
 
 ## gain settings
 gains=False

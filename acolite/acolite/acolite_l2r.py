@@ -56,8 +56,9 @@ def acolite_l2r(gem,
 
     ## read rsrd and get band wavelengths
     hyper = False
+    hyper_sensors = ['CHRIS', 'PRISMA']
     ## hyperspectral
-    if gem.gatts['sensor'] in ['CHRIS', 'PRISMA']:
+    if gem.gatts['sensor'] in hyper_sensors:
         hyper = True
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
@@ -1044,7 +1045,7 @@ def acolite_l2r(gem,
     gemo.datasets_read()
 
     ## glint correction
-    if (ac_opt == 'dsf') & (setu['dsf_residual_glint_correction']):
+    if (ac_opt == 'dsf') & (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
         ## find bands for glint correction
         gc_swir1, gc_swir2 = None, None
         gc_swir1_b, gc_swir2_b = None, None
@@ -1220,8 +1221,7 @@ def acolite_l2r(gem,
     ## end glint correction
 
     ## compute l8 orange band
-    l8_orange_band = True
-    if (gemo.gatts['sensor'] == 'L8_OLI') & (l8_orange_band):
+    if (gemo.gatts['sensor'] == 'L8_OLI') & (setu['l8_orange_band']):
         if verbosity > 1: print('Computing orange band')
         ## load orange band configuration
         ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
