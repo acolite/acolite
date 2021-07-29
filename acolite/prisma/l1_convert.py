@@ -3,7 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-07-14
 
-def l1_convert(inputfile, output=None, verbosity=0, vname = ''):
+def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False):
     import numpy as np
     import h5py, dateutil.parser, os
     import acolite as ac
@@ -182,12 +182,10 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = ''):
 
             ds_att = {k:bands[b][k] for k in bands[b] if k not in ['rsr']}
 
-            if True:
+            if output_lt:
                 ## write toa radiance
                 ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata_radiance)),
                               dataset_attributes = ds_att)
-
-
 
             ## write toa reflectance
             ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata)),

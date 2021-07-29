@@ -152,7 +152,7 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type == 'PRISMA':
         l1r_files = ac.prisma.l1_convert(bundle, output = output_,
                                             vname = setu['region_name'],
-                                            verbosity = setu['verbosity'])
+                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
     ## end PRISMA
     ################
 
