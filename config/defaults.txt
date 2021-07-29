@@ -146,6 +146,9 @@ dsf_write_aot_550=False
 dsf_fixed_aot=None
 dsf_fixed_lut=ACOLITE-LUT-202102-MOD2
 
+## tile dimensions should be set per sensor
+dsf_tile_dimensions=100,100
+
 ## exponential options
 exp_swir_threshold=0.0215
 exp_fixed_epsilon=True
