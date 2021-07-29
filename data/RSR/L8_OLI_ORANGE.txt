@@ -2,7 +2,7 @@
 ;;
 ;; Quinten Vanhellemont 2018-01-22
 ;;
-;; orange band suggested by Alexandre Castagne
+;; L8/OLI orange band suggested by Alexandre Castagne
 ;;
 ;; datasets: wavelength, RSR
 ;;
