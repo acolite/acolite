@@ -845,7 +845,7 @@ def acolite_l2r(gem,
             gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
 
     ## update attributes with latest version
-    if output_file: gemo.update_attributes()
+    #if output_file: gemo.update_attributes()
 
     print('use_revlut', use_revlut)
     hyper_res = None
@@ -1355,6 +1355,9 @@ def acolite_l2r(gem,
         ob_data = None
         ob = None
     ## end orange band
+    
+    ## update attributes with latest version
+    if output_file: gemo.update_attributes()
 
     if verbosity>0: print('Wrote {}'.format(ofile))
 
