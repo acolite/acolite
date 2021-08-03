@@ -46,11 +46,12 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         for p in ac.param['attributes']:
             if re.match(p['parameter'], dataset):
                 atts = {t:p[t] for t in p}
-                try:
-                    wave = int(dataset.split('_')[-1])
-                    atts['wavelength'] = wave
-                except:
-                    pass
+                if p['parameter'][0:2] != 'bt':
+                    try:
+                        wave = int(dataset.split('_')[-1])
+                        atts['wavelength'] = wave
+                    except:
+                        pass
 
     ## set attributes from provided/defaults
     if atts is not None:
