@@ -1128,13 +1128,15 @@ def acolite_l2r(gem,
 
                 ## two way direct transmittance
                 T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
+
+                ## subset if 2d
+                T_cur_sub = T_cur[sub_gc] if len(np.atleast_1d(T_cur)) == 2 else T_cur[0] * 1.0
+
                 if rhos_ds == gc_user:
-                    T_USER = T_cur[sub_gc]
+                    T_USER = T_cur_sub * 1.0
                 else:
-                    if rhos_ds == gc_swir1:
-                        T_SWIR1 = T_cur[sub_gc]
-                    if rhos_ds == gc_swir2:
-                        T_SWIR2 = T_cur[sub_gc]
+                    if rhos_ds == gc_swir1: T_SWIR1 = T_cur_sub * 1.0
+                    if rhos_ds == gc_swir2: T_SWIR2 = T_cur_sub * 1.0
                 T_cur = None
 
             ## swir band choice is made for first band
@@ -1149,19 +1151,22 @@ def acolite_l2r(gem,
                 ## two way direct transmittance
                 T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
 
+                ## subset if 2d
+                T_cur_sub = T_cur[sub_gc] if len(np.atleast_1d(T_cur)) == 2 else T_cur[0] * 1.0
+
                 ## get gc factors for this band
                 if gc_user is None:
                     if len(np.atleast_1d(Rf_sen[b]))>1: ## if resolved angles
-                        gc_SWIR1 = (T_cur[sub_gc]/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
-                        gc_SWIR2 = (T_cur[sub_gc]/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+                        gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
+                        gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
                     else:
-                        gc_SWIR1 = (T_cur[sub_gc]/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
-                        gc_SWIR2 = (T_cur[sub_gc]/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
+                        gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
+                        gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
                 else:
                     if len(np.atleast_1d(Rf_sen[b]))>1: ## if resolved angles
-                        gc_USER = (T_cur[sub_gc]/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
+                        gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
                     else:
-                        gc_USER = (T_cur[sub_gc]/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
+                        gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
 
                 ## choose glint correction band (based on first band results)
                 if gc_choice is False:
@@ -1355,7 +1360,7 @@ def acolite_l2r(gem,
         ob_data = None
         ob = None
     ## end orange band
-    
+
     ## update attributes with latest version
     if output_file: gemo.update_attributes()
 

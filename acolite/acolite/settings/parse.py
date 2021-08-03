@@ -38,7 +38,8 @@ def parse(sensor, settings=None, merge=True):
     ## convert values from settings file into numbers
     int_list = ['s2_target_res', 'map_max_dim',
               'dsf_filter_box', 'dsf_tile_dimensions', 'dsf_intercept_pixels', 'dsf_smooth_box',
-              'blackfill_wave', 'l2w_mask_wave', 'l2w_mask_cirrus_wave', 'glint_mask_rhos_wave', 'exp_wave1',  'exp_wave2',
+              'blackfill_wave', 'l2w_mask_wave', 'l2w_mask_cirrus_wave',
+              'glint_force_band', 'glint_mask_rhos_wave', 'exp_wave1',  'exp_wave2',
               'l2w_mask_smooth_sigma',
               'flag_exponent_swir', 'flag_exponent_cirrus','flag_exponent_toa',
               'flag_exponent_negative', 'flag_exponent_outofscene',
@@ -78,24 +79,5 @@ def parse(sensor, settings=None, merge=True):
     ## default pressure
     if 'pressure' in setu:
         setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
-
-    ## 2021-07-13
-    ## catch updated setting names
-    ## to be removed for final version
-    if ('dsf_aot_estimate' not in setu) & \
-        ('dsf_path_reflectance' in setu):
-        setu['dsf_aot_estimate'] = setu['dsf_path_reflectance']
-    if ('dsf_interface_reflectance' not in setu) & \
-        ('sky_correction' in setu):
-        setu['dsf_interface_reflectance'] = setu['sky_correction']
-    if ('dsf_interface_option' not in setu) & \
-        ('sky_correction_option' in setu):
-        setu['dsf_interface_option'] = setu['sky_correction_option']
-    if ('dsf_interface_lut' not in setu) & \
-        ('sky_correction_lut' in setu):
-        setu['dsf_interface_lut'] = setu['sky_correction_lut']
-    if ('dsf_residual_glint_correction' not in setu) & \
-        ('glint_correction' in setu):
-        setu['dsf_residual_glint_correction'] = setu['glint_correction']
 
     return(setu)
