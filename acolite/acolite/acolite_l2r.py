@@ -277,7 +277,7 @@ def acolite_l2r(gem,
         copy_rhot = False
         copy_datasets = []
         if setu['copy_datasets'] is not None: copy_datasets += setu['copy_datasets']
-        if setu['output_bt'] is not None: copy_datasets += [ds for ds in gem.datasets if ds[0:2] == 'bt']
+        if setu['output_bt']: copy_datasets += [ds for ds in gem.datasets if ds[0:2] == 'bt']
 
         if len(copy_datasets) > 0:
             ## copy rhot all from L1R
@@ -1130,7 +1130,7 @@ def acolite_l2r(gem,
                 T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
 
                 ## subset if 2d
-                T_cur_sub = T_cur[sub_gc] if len(np.atleast_1d(T_cur)) == 2 else T_cur[0] * 1.0
+                T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
 
                 if rhos_ds == gc_user:
                     T_USER = T_cur_sub * 1.0
@@ -1152,18 +1152,18 @@ def acolite_l2r(gem,
                 T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
 
                 ## subset if 2d
-                T_cur_sub = T_cur[sub_gc] if len(np.atleast_1d(T_cur)) == 2 else T_cur[0] * 1.0
+                T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
 
                 ## get gc factors for this band
                 if gc_user is None:
-                    if len(np.atleast_1d(Rf_sen[b]))>1: ## if resolved angles
+                    if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
                         gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
                         gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
                     else:
                         gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
                         gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
                 else:
-                    if len(np.atleast_1d(Rf_sen[b]))>1: ## if resolved angles
+                    if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
                         gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
                     else:
                         gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
