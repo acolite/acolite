@@ -139,6 +139,18 @@ def identify_bundle(bundle, input_type = None):
         ################
 
         ################
+        ## HICO
+        try:
+            gatts = ac.hico.attributes(bundle)
+            if gatts['Instrument_Short_Name'] == 'hico':
+                input_type = 'HICO'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end HICO
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:

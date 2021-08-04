@@ -56,7 +56,7 @@ def acolite_l2r(gem,
 
     ## read rsrd and get band wavelengths
     hyper = False
-    hyper_sensors = ['CHRIS', 'PRISMA']
+    hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO']
     ## hyperspectral
     if gem.gatts['sensor'] in hyper_sensors:
         hyper = True

@@ -157,6 +157,15 @@ def acolite_l1r(bundle, settings, input_type=None):
     ################
 
     ################
+    ## HICO
+    if input_type == 'HICO':
+        l1r_files = ac.hico.l1_convert(bundle, output = output_,
+                                            vname = setu['region_name'],
+                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+    ## end HICO
+    ################
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files = ac.planet.l1_convert(bundle, output=output_,
