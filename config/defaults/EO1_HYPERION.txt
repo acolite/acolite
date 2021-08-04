@@ -1,0 +1,14 @@
+## ACOLITE default settings for HYPERION
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=800,1020
+dsf_wave_range=500,1050
+
+l2w_mask_wave=1020
+l2w_mask_threshold=0.05
+
+dsf_interface_reflectance=False
+resolved_geometry=False
+dsf_spectrum_option=percentile
+dsf_percentile=1

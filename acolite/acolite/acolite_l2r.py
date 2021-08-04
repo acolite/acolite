@@ -56,7 +56,7 @@ def acolite_l2r(gem,
 
     ## read rsrd and get band wavelengths
     hyper = False
-    hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO']
+    hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION']
     ## hyperspectral
     if gem.gatts['sensor'] in hyper_sensors:
         hyper = True
@@ -1276,6 +1276,7 @@ def acolite_l2r(gem,
         else:
             ## compute average reference glint
             if len(gc_ref.shape) == 3:
+                gc_ref[gc_ref<0] = np.nan
                 gc_ref_mean = np.nanmean(gc_ref, axis=2)
                 gc_ref_std = np.nanstd(gc_ref, axis=2)
                 gc_ref = None
@@ -1283,6 +1284,7 @@ def acolite_l2r(gem,
                 gemo.write('glint_mean', gc_ref_mean)
                 gemo.write('glint_std', gc_ref_std)
             else: ## or use single band
+                gc_ref[gc_ref<0] = 0.0
                 gc_ref_mean = gc_ref*1.0
 
             ## compute average modeled surface glint

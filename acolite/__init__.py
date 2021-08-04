@@ -9,6 +9,7 @@ from acolite import venus
 from acolite import chris
 from acolite import prisma
 from acolite import hico
+from acolite import hyperion
 
 from acolite import ac
 from acolite import aerlut

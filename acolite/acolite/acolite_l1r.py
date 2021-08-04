@@ -166,6 +166,15 @@ def acolite_l1r(bundle, settings, input_type=None):
     ################
 
     ################
+    ## HYPERION
+    if input_type == 'HYPERION':
+        l1r_files = ac.hyperion.l1_convert(bundle, output = output_, limit = setu['limit'],
+                                            vname = setu['region_name'],
+                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+    ## end HYPERION
+    ################
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files = ac.planet.l1_convert(bundle, output=output_,

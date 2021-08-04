@@ -18,7 +18,7 @@ def load(settings):
         ## path to settings file given
         if type(settings) is str:
             setf = '{}/config/defaults/{}.txt'.format(ac.path,settings)
-            if os.path.exists(settings) and not os.path.isdir(settings):
+            if (os.path.exists(settings)) and (not os.path.isdir(settings)):
                 setu = ac.acolite.settings.read(settings)
             elif os.path.exists(setf):
                 setu = ac.acolite.settings.read(setf)

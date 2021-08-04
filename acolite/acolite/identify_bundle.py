@@ -151,6 +151,18 @@ def identify_bundle(bundle, input_type = None):
         ################
 
         ################
+        ## HYPERION
+        try:
+            metadata = ac.hyperion.metadata(bundle)
+            if metadata['PRODUCT_METADATA']['SENSOR_ID'] == 'HYPERION':
+                input_type = 'HYPERION'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end HYPERION
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:
