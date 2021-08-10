@@ -95,6 +95,12 @@ def acolite_l2r(gem,
         if ('press' in anc) & (setu['pressure'] is None):
             gem.gatts['pressure'] = anc['press']['interp']
 
+    ## elevation provided
+    if setu['elevation'] is not None:
+        setu['pressure'] = ac.ac.pressure_elevation(setu['elevation'])
+        gem.gatts['pressure'] = setu['pressure']
+        print(gem.gatts['pressure'])
+
     ## dem pressure
     if setu['dem_pressure']:
         if verbosity > 1: print('Extracting SRTM DEM data')
