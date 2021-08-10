@@ -175,6 +175,15 @@ def acolite_l1r(bundle, settings, input_type=None):
     ################
 
     ################
+    ## DESIS
+    if input_type == 'DESIS':
+        l1r_files = ac.desis.l1_convert(bundle, output = output_, limit = setu['limit'], poly = setu['polygon'],
+                                            vname = setu['region_name'],
+                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+    ## end DESIS
+    ################
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files = ac.planet.l1_convert(bundle, output=output_,
