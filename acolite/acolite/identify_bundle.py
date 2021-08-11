@@ -178,6 +178,19 @@ def identify_bundle(bundle, input_type = None):
         ################
 
         ################
+        ## GF6
+        try:
+            tiles, metafile = ac.gf6.bundle_test(bundle)
+            meta = ac.gf6.metadata(metafile)
+            if meta['SatelliteID'] == 'GF6':
+                input_type = 'GF6'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end GF6
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:

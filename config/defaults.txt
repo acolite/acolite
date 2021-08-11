@@ -40,9 +40,6 @@ pleiades_skip_pan=False
 chris_interband_calibration=True
 chris_noise_reduction=True
 
-## PRISMA options
-prisma_output_lt=False
-
 ## TACT settings
 tact_run=False
 tact_output_atmosphere=False
@@ -51,6 +48,9 @@ tact_map=True
 
 ## printout verbosity
 verbosity=5
+
+## output TOA radiance (not from all sensors)
+output_lt=False
 
 ## test cropped scenes for blackfill coverage
 blackfill_skip=True

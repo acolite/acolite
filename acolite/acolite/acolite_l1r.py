@@ -152,7 +152,7 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type == 'PRISMA':
         l1r_files = ac.prisma.l1_convert(bundle, output = output_,
                                             vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
     ## end PRISMA
     ################
 
@@ -161,7 +161,7 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type == 'HICO':
         l1r_files = ac.hico.l1_convert(bundle, output = output_,
                                             vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
     ## end HICO
     ################
 
@@ -170,7 +170,7 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type == 'HYPERION':
         l1r_files = ac.hyperion.l1_convert(bundle, output = output_, limit = setu['limit'],
                                             vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
     ## end HYPERION
     ################
 
@@ -179,7 +179,7 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type == 'DESIS':
         l1r_files = ac.desis.l1_convert(bundle, output = output_, limit = setu['limit'], poly = setu['polygon'],
                                             vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['prisma_output_lt'])
+                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
     ## end DESIS
     ################
 
@@ -199,5 +199,14 @@ def acolite_l1r(bundle, settings, input_type=None):
                                          verbosity=setu['verbosity'])
     ## end Planet
     ################
+
+    ################
+    ## GF6
+    if input_type == 'GF6':
+        l1r_files = ac.gf6.l1_convert(bundle, output = output_, vname = setu['region_name'],
+                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
+    ## end GF6
+    ################
+
 
     return(l1r_files, setu)
