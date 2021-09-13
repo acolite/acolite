@@ -167,7 +167,7 @@ def identify_bundle(bundle, input_type = None):
         try:
             metafile, imagefile = ac.desis.bundle_test(bundle)
             #headerfile = imagefile.replace('.tif', '.hdr')
-            #header = ac.desis.hdr(headerfile)
+            # header = ac.desis.hdr(headerfile)
             meta = ac.desis.metadata(metafile)
             if (meta['mission'] == 'DESIS') & (meta['productType'] in ['L1B', 'L1C']):
                 input_type = 'DESIS'

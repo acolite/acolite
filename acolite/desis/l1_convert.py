@@ -93,9 +93,11 @@ def l1_convert(inputfile, output = None,
         gatts = {}
         gatts['isodate'] = time.isoformat()
         gatts['sensor'] = '{}_{}'.format(meta['mission'], meta['sensor'])
+        gatts['version'] = meta['version']
         gatts['doy'] = doy
         gatts['se_distance'] = se_distance
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        # obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        obase = '{}_{}_{}_L1R'.format(gatts['sensor'], meta['tileID'],time.strftime('%Y_%m_%d_%H_%M_%S'))
         gatts['obase'] = obase
 
         ## add band info
@@ -110,9 +112,36 @@ def l1_convert(inputfile, output = None,
                 if k in dct_prj: gatts[k] = copy.copy(dct_prj[k])
 
         ## make rsr and bands dataset
-        rsr = {'{}'.format(bi): ac.shared.gauss_response(gatts['band_waves'][bi], gatts['band_widths'][bi], step=0.1)
-               for bi in range(len(gatts['band_waves']))}
-        band_rsr = {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]}  for b in rsr}
+        # rsr = {'{}'.format(bi): ac.shared.gauss_response(gatts['band_waves'][bi], gatts['band_widths'][bi], step=0.1)
+        #        for bi in range(len(gatts['band_waves']))}
+        # band_rsr = {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]}  for b in rsr}
+        rsrf = ac.path+f"/data/RSR/{meta['sensor']}_{meta['version']}.txt"
+        band_names = [meta['BAND_INFO'][b]['name'] for b in list(meta['BAND_INFO'].keys())]  
+        try:
+            rsr, rsr_bands = ac.shared.rsr_read(rsrf)
+        except:    
+            if verbosity > 1: print(f"No RSR file found for {meta['sensor']}. Read from metadata.")
+            
+            ## DESIS rsr from METADATA file       
+            rsr = {}
+            rsr_bands = []
+            for band in band_names:
+                rsr[band] = {}            
+                ### CONVERT NM to MICRONS for CONVOLUTION ###
+                rsr[band]['wave'] = [number / 1000 for number in meta['BAND_INFO'][band]['wavelengths']]
+                rsr[band]['response'] = meta['BAND_INFO'][band]['response']
+                rsr_bands.append(band)       
+
+            ## Write to new RSR file
+            if verbosity > 1: print(f"Writing {rsrf}.")
+
+            head = [f";; DESIS RSR from file: {os.path.split(bundle)[1]}", 
+                f";; Version: {meta['version']}", ';; Written by Acolite: {}'.format(datetime.datetime.now().isoformat()[0:19]),
+                 ";; ", ";; wavelength (microns)    response"]
+            ac.shared.rsr_write(rsrf, head, meta['sensor'], rsr)   
+
+        band_rsr = rsr #unclear if I need to convert lists to arrays
+
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
 
         ## make bands dataset
@@ -125,21 +154,26 @@ def l1_convert(inputfile, output = None,
                        'width': gatts['band_widths'][bi],
                        'rsr': band_rsr[b],'f0': f0d[b]}
 
-        gatts['saa'] = float(meta['sunAzimuthAngle'])
-        gatts['sza'] = float(meta['sunZenithAngle'])
-        gatts['vaa'] = float(meta['sceneAzimuthAngle'])
-        gatts['vza'] = float(meta['sceneIncidenceAngle'])
+        # gatts['saa'] = float(meta['sunAzimuthAngle'])
+        # gatts['sza'] = float(meta['sunZenithAngle'])
+        # gatts['vaa'] = float(meta['sceneAzimuthAngle'])
+        # gatts['vza'] = float(meta['sceneIncidenceAngle'])
+        gatts['saa'] = meta['saa']
+        gatts['sza'] = meta['sza']
+        gatts['vaa'] = meta['vaa']
+        gatts['vza'] = meta['vza']
+        gatts['raa'] = meta['raa']
 
-        if 'raa' not in gatts:
-            raa_ave = abs(gatts['saa'] - gatts['vaa'])
-            while raa_ave >= 180: raa_ave = abs(raa_ave-360)
-            gatts['raa'] = raa_ave
+        # if 'raa' not in gatts:
+        #     raa_ave = abs(gatts['saa'] - gatts['vaa'])
+        #     while raa_ave >= 180: raa_ave = abs(raa_ave-360)
+        #     gatts['raa'] = raa_ave
 
         mu0 = np.cos(gatts['sza']*(np.pi/180))
         muv = np.cos(gatts['vza']*(np.pi/180))
 
         if output is None:
-            odir = os.path.dirname(file)
+            odir = os.path.dirname(imagefile)
         else:
             odir = output
         if not os.path.exists(odir): os.makedirs(odir)

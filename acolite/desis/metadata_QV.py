@@ -1,22 +1,14 @@
-## def metadata_parse
-## parses XML metadata from DESIS bundle images
-## written by Quinten Vanhellemont, RBINS for the PONDER project
-## 2017-01-27
-## edited by Dirk Aurin, NASA Goddard Space Flight Center
-## modifications: QV 2019-05-06
-##                2020-03-16 (QV) fixed tile metadata reads
-##                2020-07-26 (QV) added WV3
-##                2021-02-24 (QV) reformatted and simplified for acg
-##                2021-06-28 (DA) adapt from WV2/WV3 to DESIS
+## Read DESIS xml metadata file
+## written by Quinten Vanhellemont, RBINS
+## 2021-08-10
+## modifications: 2021-09-13 (DA) Parse a more comprehensive set of metadata
 
 def metadata(metafile):
-    import os, sys, fnmatch, dateutil.parser
+    import os, sys, dateutil.parser
     from xml.dom import minidom
-    from osgeo import gdal
 
-    if not os.path.isfile(metafile):
-        print('Metadata file not found.')
-        sys.exit()
+    import acolite as ac
+    import numpy as np
 
     try:
         xmldoc = minidom.parse(metafile)
@@ -25,13 +17,14 @@ def metadata(metafile):
         sys.exit()
 
     metadata = {}
-    ## get image information    
-    metadata_tags = ['backgroundValue','version','l1aVersion','mission', 'satelliteID', 'sensor', 
-                        'tileID', 'startTime', 'endTime','productType', 'numberOfBands', 
-                        'orbitDirection', 'sceneAzimuthAngle', 'sceneIncidenceAngle', 
-                        'sunAzimuthAngle', 'sunZenithAngle', 'numberOfBands']
+    tags = ['backgroundValue','version','l1aVersion','mission', 'satelliteID', 'sensor']
+    tags += ['tileID', 'startTime', 'endTime','productType', 'numberOfBands']
+    tags += ['orbitDirection', 'sceneAzimuthAngle', 'sceneIncidenceAngle']
+    tags += ['sunAzimuthAngle', 'sunZenithAngle', 'numberOfBands']
 
-    for tag in metadata_tags:
+    for tag in tags:
+        # tdom = xmldoc.getElementsByTagName(tag)
+        # if len(tdom) > 0: meta[tag] = tdom[0].firstChild.nodeValue
         node = xmldoc.getElementsByTagName(tag)
         if len(node) > 0: metadata[tag] = node[0].firstChild.nodeValue
 
@@ -80,7 +73,7 @@ def metadata(metafile):
     if 'mission' in metadata:
         if metadata['mission'] == 'DESIS':
             metadata['satellite'] = metadata['satelliteID']
-            # metadata['sensor'] = f"{metadata['mission']}_{metadata['sensor']}"
+            metadata['sensor'] = f"{metadata['mission']}_{metadata['sensor']}"
             metadata['isotime']=metadata['startTime'] #metadata["EARLIESTACQTIME"]
             
             ## geometry info
@@ -140,26 +133,5 @@ def metadata(metafile):
             band_values[band_name] = band_data
 
     metadata['BAND_INFO'] = band_values
-
-
-    # ## get tile information
-    # tile_tags = ["FILENAME",
-    #             "ULCOLOFFSET","ULROWOFFSET","URCOLOFFSET","URROWOFFSET",
-    #             "LRCOLOFFSET","LRROWOFFSET","LLCOLOFFSET","LLROWOFFSET",
-    #             "ULLON","ULLAT","URLON","URLAT",
-    #             "LRLON","LRLAT","LLLON","LLLAT",
-    #             "ULX","ULY","URX","URY",
-    #             "LRX","LRY","LLX","LLY"]
-    # tile_values=[]
-    # for t in xmldoc.getElementsByTagName('TILE'):
-    #     tile = {}
-    #     for tag in tile_tags:
-    #             node = t.getElementsByTagName(tag)
-    #             if len(node) > 0:
-    #                 if tag == "FILENAME": val=node[0].firstChild.nodeValue
-    #                 else: val=float(node[0].firstChild.nodeValue)
-    #                 tile[tag]=val
-    #     tile_values.append(tile)
-    # metadata['TILE_INFO'] = tile_values
 
     return(metadata)

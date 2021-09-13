@@ -60,8 +60,15 @@ def acolite_l2r(gem,
     ## hyperspectral
     if gem.gatts['sensor'] in hyper_sensors:
         hyper = True
-        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
-        rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
+        if gem.gatts['sensor']=='DESIS_HSI':  
+            ### DESIS RSR and RSR file are version-specific      
+            rsrd = ac.shared.rsr_dict(f"{gem.gatts['sensor']}_{gem.gatts['version']}")
+            # Restore sensor key without version
+            rsrd[gem.gatts['sensor']] = rsrd[f"{gem.gatts['sensor']}_{gem.gatts['version']}"]
+            del rsrd[f"{gem.gatts['sensor']}_{gem.gatts['version']}"]
+        else:    
+            rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
+            rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
     else:
         rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
 
