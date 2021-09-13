@@ -215,6 +215,7 @@ l1r_export_geotiff=False
 l2t_export_geotiff=False
 l2r_export_geotiff=False
 l2w_export_geotiff=False
+export_geotiff_coordinates=False
 
 # LUTs
 luts=ACOLITE-LUT-202102-MOD1,ACOLITE-LUT-202102-MOD2
