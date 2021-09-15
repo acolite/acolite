@@ -69,7 +69,9 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     tmp_files = setu_l1r['inputfile'] if type(setu_l1r['inputfile']) == list else setu_l1r['inputfile'].split(',')
     inputfile_list = []
     for file in tmp_files:
-        print(file)
+        ##  remove trailing slash
+        if file[-1] == os.sep: file = file[0:-1]
+        
         if os.path.isdir(file):
             inputfile_list.append(file)
         else:
