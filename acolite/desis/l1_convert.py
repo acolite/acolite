@@ -115,7 +115,7 @@ def l1_convert(inputfile, output = None,
         # rsr = {'{}'.format(bi): ac.shared.gauss_response(gatts['band_waves'][bi], gatts['band_widths'][bi], step=0.1)
         #        for bi in range(len(gatts['band_waves']))}
         # band_rsr = {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]}  for b in rsr}
-        rsrf = ac.path+f"/data/RSR/{meta['sensor']}_{meta['version']}.txt"
+        rsrf = ac.path+f"/data/RSR/{meta['mission']}_{meta['sensor']}_{meta['version']}.txt"
         band_names = [meta['BAND_INFO'][b]['name'] for b in list(meta['BAND_INFO'].keys())]  
         try:
             rsr, rsr_bands = ac.shared.rsr_read(rsrf)
