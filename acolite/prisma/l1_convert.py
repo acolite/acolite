@@ -78,7 +78,7 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False)
         d = ac.shared.distance_se(doy)
 
         ## get geometry from l2 file if present
-        l2file = file.replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
+        l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
         if os.path.exists(l2file):
             with h5py.File(l2file, mode='r') as f:
                 vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][:]
