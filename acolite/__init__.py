@@ -49,11 +49,10 @@ else:
 ## test whether we can find the relative paths
 for t in config:
     if t in ['EARTHDATA_u', 'EARTHDATA_p']: continue
-    if (os.path.exists(config[t])) & (config[t] == os.path.abspath(config[t])):
+    if (os.path.exists(config[t])):
         continue
     tmp = path + os.path.sep + config[t]
-    if os.path.exists(tmp):
-        config[t] = os.path.abspath(tmp)
+    config[t] = os.path.abspath(tmp)
 
 ## read parameter scaling and settings
 param = {'scaling':acolite.parameter_scaling()}
