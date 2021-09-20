@@ -265,7 +265,7 @@ def acolite_l2w(gem,
             if nechad_parameter == 'centre':
                 par_name = '{}_Nechad_{}'.format(nechad_par, cw)
                 nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
-                didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], nechad_wave)
+                didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], cw)
                 A_Nechad = nechad_dict['A'][didx]
                 C_Nechad = nechad_dict['C'][didx]
 
