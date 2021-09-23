@@ -82,6 +82,10 @@ def l1_convert(inputfile,
                 continue
 
         band_names = [meta['BAND_INFO'][b]['name'] for b in list(meta['BAND_INFO'].keys())]
+        if len(band_names) == 0:
+            print('Could not identify required bands from {}'.format(bundle))
+            print('Is this a multispectral WorldView image?')
+            continue
         if swir_bundle is not None: band_names += [swir_meta['BAND_INFO'][b]['name'] for b in list(swir_meta['BAND_INFO'].keys())]
 
 
