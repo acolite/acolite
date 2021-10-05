@@ -113,7 +113,7 @@ def l1_convert(inputfile, output = None,
             print('{} not supported'.format(meta['SPACECRAFT_NAME']))
             continue
         if meta['PROCESSING_LEVEL'] != 'Level-1C':
-            print('Processing level {} not supported'.format(meta['PROCESSING_LEVEL']))
+            print('Processing of {} Sentinel-2 {} data not supported'.format(bundle, meta['PROCESSING_LEVEL']))
             continue
 
         dtime = dateutil.parser.parse(grmeta['SENSING_TIME'])
