@@ -99,10 +99,17 @@ def l1_convert(inputfile, output = None,
             pk = 'IMAGE_ATTRIBUTES'
             ik = 'IMAGE_ATTRIBUTES'
             rk = 'PROJECTION_ATTRIBUTES'
+            level = meta['PRODUCT_CONTENTS']['PROCESSING_LEVEL']
         elif 'PRODUCT_METADATA' in meta: ## COLL1
             pk = 'PRODUCT_METADATA'
             ik = 'IMAGE_ATTRIBUTES'
             rk = 'PRODUCT_METADATA'
+            level = meta['PRODUCT_METADATA']['DATA_TYPE']
+
+        if level[0:2].upper() != 'L1':
+            print('Only Level 1 Landsat data can be processed {} is {}'.format(bundle, level))
+            continue
+
         spacecraft_id = meta[pk]['SPACECRAFT_ID']
         sensor_id = meta[pk]['SENSOR_ID']
         path = meta[pk]['WRS_PATH']
