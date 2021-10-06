@@ -12,7 +12,7 @@ from acolite import hico
 from acolite import hyperion
 from acolite import desis
 
-from acolite import gf6
+from acolite import gf
 
 from acolite import ac
 from acolite import aerlut

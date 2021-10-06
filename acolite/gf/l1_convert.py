@@ -24,16 +24,21 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
 
     ## from Mona Allam PDF
     ## 240A9946ECED64C3CB4D56B8A8764F35
-    dn_scaling = {'WFV': {'B1': 0.0675, 'B2': 0.0552, 'B3': 0.0513, 'B4': 0.0314,
-                          'B5': 0.0519, 'B6': 0.0454, 'B7': 0.0718, 'B8': 0.0596},
-                  'PMS': {'PAN': 0.0537, 'MS1': 0.082, 'MS2': 0.0645, 'MS3': 0.0489, 'MS4': 0.0286}}
+    dn_scaling = {}
+    dn_scaling['GF1B'] = {'PMS': {'PAN': 0.0687, 'MS1': 0.0757, 'MS2': 0.0618, 'MS3': 0.0545, 'MS4': 0.0572}}
+    dn_scaling['GF1C'] = {'PMS': {'PAN': 0.0709, 'MS1': 0.0758, 'MS2': 0.0657, 'MS3': 0.0543, 'MS4': 0.0564}}
+    dn_scaling['GF1D'] = {'PMS': {'PAN': 0.0715, 'MS1': 0.0738, 'MS2': 0.0656, 'MS3': 0.0590, 'MS4': 0.0585}}
+
+    dn_scaling['GF6'] = {'WFV': {'B1': 0.0675, 'B2': 0.0552, 'B3': 0.0513, 'B4': 0.0314,
+                                 'B5': 0.0519, 'B6': 0.0454, 'B7': 0.0718, 'B8': 0.0596},
+                          'PMS': {'PAN': 0.0537, 'MS1': 0.082, 'MS2': 0.0645, 'MS3': 0.0489, 'MS4': 0.0286}}
     dn_bias = 0.2
 
     ofiles = []
     for bundle in inputfile:
-        tiles, metafile = ac.gf6.bundle_test(bundle)
-        meta = ac.gf6.metadata(metafile)
-        if meta['SatelliteID'] != 'GF6': continue
+        tiles, metafile = ac.gf.bundle_test(bundle)
+        meta = ac.gf.metadata(metafile)
+        if meta['SatelliteID'] not in  ['GF1D', 'GF6']: continue
 
         print('Processing {}'.format(bundle))
 
@@ -78,16 +83,17 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
             for k in ['wave_mu', 'wave_nm', 'wave_name']:
                 bands[b][k] = rsrd[k][b]
             bands[b]['f0'] = f0d[b]
+
+            if sensor in ['GF1D_PMS', 'GF6_PMS']:
+                bands[b]['index'] = int(bi)+1
             if sensor == 'GF6_WFV':
                 bands[b]['index'] = int(b[1])
-            if sensor == 'GF6_PMS':
-                bands[b]['index'] = int(bi)+1
 
         ## order bands
+        if sensor in ['GF1D_PMS', 'GF6_PMS']:
+            idx = np.argsort([bands[b]['wave_name'] for b in bands if b not in ['PAN']])
         if sensor == 'GF6_WFV':
             idx = np.argsort([bands[b]['wave_name'] for b in bands])
-        if sensor == 'GF6_PMS':
-            idx = np.argsort([bands[b]['wave_name'] for b in bands if b not in ['PAN']])
         bands_sorted = [band_names[i] for i in idx]
 
         ## image crop
@@ -118,14 +124,14 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
             for bi, b in enumerate(bands_sorted):
                 if b == 'PAN': continue
                 print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['obase']))
-                print(b, bi, dn_scaling[gatts['sensor'].split('_')[1]][b])
+                print(b, bi, dn_scaling[gatts['satellite']][gatts['sensor'].split('_')[1]][b])
 
                 ## read data
                 cdata_radiance = ac.shared.read_band(image_file, bands[b]['index'], sub=sub)
                 data_shape = cdata_radiance.shape
 
                 ## compute radiance
-                cdata_radiance = cdata_radiance.astype(np.float32) * dn_scaling[gatts['sensor'].split('_')[1]][b]
+                cdata_radiance = cdata_radiance.astype(np.float32) * dn_scaling[gatts['satellite']][gatts['sensor'].split('_')[1]][b]
                 cdata_radiance += dn_bias
 
                 if output_lt:
@@ -165,7 +171,7 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
                 zlat = interp2d(pcol, prow, plat)
 
                 ## pixel coordinate limits
-                if sensor == 'GF6_PMS':
+                if sensor in ['GF1D_PMS', 'GF6_PMS']:
                     x0, y0 = 0, 0
                     ns, nl = nx, ny
                 if sensor == 'GF6_WFV':

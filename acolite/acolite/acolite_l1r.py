@@ -202,10 +202,10 @@ def acolite_l1r(bundle, settings, input_type=None):
 
     ################
     ## GF6
-    if input_type == 'GF6':
-        l1r_files = ac.gf6.l1_convert(bundle, output = output_, vname = setu['region_name'],
+    if input_type == 'GF':
+        l1r_files = ac.gf.l1_convert(bundle, output = output_, vname = setu['region_name'],
                                             verbosity = setu['verbosity'], output_lt = setu['output_lt'])
-    ## end GF6
+    ## end GF
     ################
 
 
