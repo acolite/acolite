@@ -235,6 +235,7 @@ def acolite_map(ncf, output = None,
 
     bn = os.path.basename(ncf)
     fn = bn.replace('.nc', '')
+    if 'output' in settings: output = settings['output']
     odir = os.path.dirname(ncf) if output is None else output
     if not os.path.exists(odir):
         os.makedirs(odir)

@@ -32,6 +32,7 @@ def acolite_l2w(gem,
     if target_file is None:
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L2R', '_L2W')
+        if 'output' in settings: output = settings['output']
         odir = output if output is not None else os.path.dirname(gemf)
         ofile = '{}/{}.nc'.format(odir, output_name)
     else:
