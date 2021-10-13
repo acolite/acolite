@@ -3,13 +3,12 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-17
-## modifications:
+## modifications: 2021-10-13 (QV) new target Coordinate Transformation - fixes PROJ errors
 
 def detector_footprint(target_file, gml_file):
     from osgeo import ogr,osr,gdal
 
     ## get target projection from band one
-    #g = gdal.Open(safe_files[granule]['B1']['path'])
     g = gdal.Open(target_file)
 
     ## in memory target dataset based chosen band
@@ -18,17 +17,20 @@ def detector_footprint(target_file, gml_file):
     target_ds.SetGeoTransform(g.GetGeoTransform())
 
     ## set up projections
-    wgs84 = osr.SpatialReference()
-    wgs84.ImportFromEPSG(4326)
     to_proj = osr.SpatialReference()
     to_proj.ImportFromWkt(g.GetProjectionRef())
-    target_ds.SetProjection (to_proj.ExportToWkt())
-    tx = osr.CoordinateTransformation(wgs84, to_proj)
+    target_ds.SetProjection(to_proj.ExportToWkt())
 
     # open gml file and select layer
     vector_ds = ogr.Open(gml_file)
     ly = vector_ds.GetLayer(0)
     nfeat = ly.GetFeatureCount()
+
+    ## source projection
+    from_proj = osr.SpatialReference()
+    from_proj.ImportFromWkt(ly.GetSpatialRef().ExportToWkt())
+    tx = osr.CoordinateTransformation(from_proj, to_proj)
+
     dvals = []
     for nf in range(nfeat):
         ## set up destination layer
@@ -48,6 +50,7 @@ def detector_footprint(target_file, gml_file):
         # get geometry and transform
         geom = feat.GetGeometryRef()
         geom.Transform(tx)
+
         # create output geometry
         out_geom = ogr.Feature(defn)
         out_geom.SetGeometry(geom)
