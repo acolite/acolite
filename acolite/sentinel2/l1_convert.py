@@ -2,7 +2,8 @@
 ## converts sentinel .SAFE bundle data to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-11
-## modifications:
+## modifications: 2021-10-13 (QV) support for new L1C format from processing baseline 4
+#                 2021-10-14 (QV) fixed band specific footprints for band specific geometry for PB004
 
 def l1_convert(inputfile, output = None,
                 limit = None, sub = None,
@@ -301,6 +302,18 @@ def l1_convert(inputfile, output = None,
                     target_file = safe_files[granule]['B11']['path']
                 elif geometry_res == 60:
                     target_file = safe_files[granule]['B1']['path']
+
+                ## get proj dct for geometry
+                dct_geom = ac.sentinel2.projection(grmeta, s2_target_res=geometry_res)
+                xyr_geom = [min(dct_geom['xrange'])+dct_geom['pixel_size'][0]/2,
+                            min(dct_geom['yrange'])+dct_geom['pixel_size'][1]/2,
+                            max(dct_geom['xrange'])+dct_geom['pixel_size'][0]/2,
+                            max(dct_geom['yrange'])+dct_geom['pixel_size'][1]/2,
+                            dct_geom['proj4_string']]
+
+                ## warp settings for read_band
+                warp_to_geom = (dct_geom['proj4_string'], xyr_geom, dct_geom['pixel_size'][0], dct_geom['pixel_size'][1], 'average')
+
                 ## open target file to get dimensions
                 g = gdal.Open(target_file)
                 xSrc = g.RasterXSize
@@ -323,8 +336,20 @@ def l1_convert(inputfile, output = None,
                     ## compute vza and saa
                     gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.gml'.format(bundle, granule))
                     gml_files.sort()
+
+                    jp2_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.jp2'.format(bundle, granule))
+                    jp2_files.sort()
+
                     ## get detector footprint for 10/20/60 m band
-                    dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
+                    if len(gml_files) > 0:
+                        dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
+                    elif len(jp2_files) > 0:
+                        dfoo = ac.shared.read_band(jp2_files[0], warp_to=warp_to_geom)
+                        dval = np.unique(dfoo)
+                    else:
+                        print('No footprint files found')
+                        continue
+
                     #bands = list(grmeta['VIEW_DET'].keys())
                     #bands.sort()
                     bands = [str(bi) for bi, b in enumerate(rsr_bands)]
@@ -380,7 +405,15 @@ def l1_convert(inputfile, output = None,
                     if geometry_fixed_footprint:
                         gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.gml'.format(bundle, granule))
                         gml_files.sort()
-                        dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
+                        jp2_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.jp2'.format(bundle, granule))
+                        jp2_files.sort()
+
+                        ## get detector footprint for 10/20/60 m band
+                        if len(gml_files) > 0:
+                            dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml_files[0])
+                        elif len(jp2_files) > 0:
+                            dfoo = ac.shared.read_band(jp2_files[0], warp_to=warp_to_geom)
+                            dval = np.unique(dfoo)
 
                     ## compute band specific view geometry
                     for bi, b in enumerate(bands):
@@ -390,7 +423,13 @@ def l1_convert(inputfile, output = None,
                         ## band specific footprint
                         if not geometry_fixed_footprint:
                             gml = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO_B{}.gml'.format(bundle, granule, Bn[1:].zfill(2)))
-                            dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml[0])
+                            jp2 = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO_B{}.jp2'.format(bundle, granule, Bn[1:].zfill(2)))
+
+                            if len(gml) > 0:
+                                dval, dfoo = ac.sentinel2.detector_footprint(target_file, gml[0])
+                            elif len(jp2) > 0:
+                                dfoo = ac.shared.read_band(jp2[0], warp_to=warp_to_geom)
+                                dval = np.unique(dfoo)
 
                         for nf, bv in enumerate(dval):
                             print('Computing band specific geometry - {} Detector {}'.format(Bn, bv))
@@ -531,6 +570,11 @@ def l1_convert(inputfile, output = None,
 
         ## write TOA bands
         quant = float(meta['QUANTIFICATION_VALUE'])
+        nodata = int(meta['NODATA'])
+        ## new offset in processing baseline 4
+        if 'RADIO_ADD_OFFSET' in band_data:
+            for Bn in band_data['RADIO_ADD_OFFSET']:
+                band_data['RADIO_ADD_OFFSET'][Bn] = float(band_data['RADIO_ADD_OFFSET'][Bn])
         if verbosity > 1: print('Converting bands')
         for bi, b in enumerate(rsr_bands):
             Bn = 'B{}'.format(b)
@@ -538,8 +582,11 @@ def l1_convert(inputfile, output = None,
             if os.path.exists(safe_files[granule][Bn]['path']):
                 if b in waves_names:
                     data = ac.shared.read_band(safe_files[granule][Bn]['path'], sub=sub, warp_to=warp_to)
-                    data = data.astype(np.float32)/quant
-                    data[np.where(data == 0.0)] = np.nan
+                    data_mask = data == nodata
+                    data = data.astype(np.float32)
+                    if 'RADIO_ADD_OFFSET' in band_data: data += band_data['RADIO_ADD_OFFSET'][Bn]
+                    data /= quant
+                    data[data_mask] = np.nan
                     if clip: data[clip_mask] = np.nan
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}

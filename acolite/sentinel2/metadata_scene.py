@@ -8,7 +8,7 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2018-10-01 (QV) removed obsolete bits
 ##                2021-02-11 (QV) adapted for acolite-gen, renamed from scene_meta
-
+##                2021-10-13 (QV) adapted for new processing baseline which includes TOA offsets
 
 def metadata_scene(metafile):
     import dateutil.parser
@@ -47,18 +47,6 @@ def metadata_scene(metafile):
 
     ## get information for sensor bands
     banddata = {}
-    banddata['F0'] = {}
-    tdom = xmldoc.getElementsByTagName('SOLAR_IRRADIANCE')
-    for t in tdom:
-        band = t.getAttribute('bandId')
-        banddata['F0'][band] = float(t.firstChild.nodeValue) # 'unit':t.getAttribute('unit')
-
-    banddata['PHYSICAL_GAINS'] = {}
-    tdom = xmldoc.getElementsByTagName('PHYSICAL_GAINS')
-    for t in tdom:
-        band = t.getAttribute('bandId')
-        banddata['PHYSICAL_GAINS'][band] = float(t.firstChild.nodeValue)
-
     banddata['BandNames'] = {}
     banddata['Resolution'] = {}
     banddata['Wavelength'] = {}
@@ -66,8 +54,9 @@ def metadata_scene(metafile):
 
     tdom = xmldoc.getElementsByTagName('Spectral_Information')
     for t in tdom:
-        band = t.getAttribute('bandId')
-        banddata['BandNames'][band] = t.getAttribute('physicalBand')
+        bandi = t.getAttribute('bandId')
+        band = t.getAttribute('physicalBand')
+        banddata['BandNames'][bandi] = band
         banddata['Resolution'][band] = t.getElementsByTagName('RESOLUTION')[0].firstChild.nodeValue
         banddata['Wavelength'][band] = {tag:float(t.getElementsByTagName(tag)[0].firstChild.nodeValue) for tag in ['CENTRAL','MIN','MAX']}
         tag = t.getElementsByTagName('Spectral_Response')
@@ -77,11 +66,25 @@ def metadata_scene(metafile):
             wave = np.linspace(banddata['Wavelength'][band]['MIN'],banddata['Wavelength'][band]['MAX'], int((banddata['Wavelength'][band]['MAX']-banddata['Wavelength'][band]['MIN'])/step)+1)
         banddata['RSR'][band] = {'response':rsr, 'wave':wave}
 
-    ## some interpretation
-    #metadata['TIME'] = dateutil.parser.parse(metadata['PRODUCT_STOP_TIME'])
-    #metadata["DOY"] = metadata["TIME"].strftime('%j')
-    #metadata["SE_DISTANCE"] = distance_se(metadata['DOY'])
+    tdom = xmldoc.getElementsByTagName('SOLAR_IRRADIANCE')
+    for t in tdom:
+        if 'F0' not in banddata: banddata['F0'] = {}
+        bandi = t.getAttribute('bandId')
+        band = banddata['BandNames'][bandi]
+        banddata['F0'][band] = float(t.firstChild.nodeValue) # 'unit':t.getAttribute('unit')
 
-    #metadata["SATELLITE"] = metadata['SPACECRAFT_NAME'] # 'Sentinel-2A'
+    tdom = xmldoc.getElementsByTagName('PHYSICAL_GAINS')
+    for t in tdom:
+        if 'PHYSICAL_GAINS' not in banddata: banddata['PHYSICAL_GAINS'] = {}
+        bandi = t.getAttribute('bandId')
+        band = banddata['BandNames'][bandi]
+        banddata['PHYSICAL_GAINS'][band] = float(t.firstChild.nodeValue)
+
+    tdom = xmldoc.getElementsByTagName('RADIO_ADD_OFFSET')
+    for t in tdom:
+        if 'RADIO_ADD_OFFSET' not in banddata: banddata['RADIO_ADD_OFFSET'] = {}
+        bandi = t.getAttribute('band_id')
+        band = banddata['BandNames'][bandi]
+        banddata['RADIO_ADD_OFFSET'][band] = float(t.firstChild.nodeValue)
 
     return(metadata,banddata)
