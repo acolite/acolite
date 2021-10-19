@@ -181,10 +181,11 @@ def identify_bundle(bundle, input_type = None):
         ## GF
         try:
             tiles, metafile = ac.gf.bundle_test(bundle)
-            meta = ac.gf.metadata(metafile)
-            if meta['SatelliteID'] in ['GF1D', 'GF6']:
-                input_type = 'GF'
-                break ## exit loop
+            if metafile is not None:
+                meta = ac.gf.metadata(metafile)
+                if meta['SatelliteID'] in ['GF1D', 'GF6']:
+                    input_type = 'GF'
+                    break ## exit loop
         except:
             pass ## continue to next sensor
         ## end GF
