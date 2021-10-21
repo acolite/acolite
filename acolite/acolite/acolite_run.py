@@ -71,7 +71,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     for file in tmp_files:
         ##  remove trailing slash
         if file[-1] == os.sep: file = file[0:-1]
-        
+
         if os.path.isdir(file):
             inputfile_list.append(file)
         else:
@@ -124,23 +124,30 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                     l2r = '{}'.format(l1r)
                     l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=setu)
 
-                if l2r_setu['l2r_export_geotiff']: ac.output.nc_to_geotiff(l2r, skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
-                l2r_files.append(l2r)
+                ## if we have multiple l2r files
+                if type(l2r) is not list: l2r = [l2r]
+                l2r_files+=l2r
+
+                if l2r_setu['l2r_export_geotiff']:
+                    for ncf in l2r:
+                        ac.output.nc_to_geotiff(ncf, skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
 
                 ## make rgb maps
                 if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:
-                    ac.acolite.acolite_map(l2r, settings = l2r_setu, plot_all=False)
+                    for ncf in l2r:
+                        ac.acolite.acolite_map(ncf, settings = l2r_setu, plot_all=False)
 
                 ## compute l2w parameters
                 if l2r_setu['l2w_parameters'] is not None:
                     if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
-                    ret = ac.acolite.acolite_l2w(l2r, settings=l2r_setu)
-                    if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
-                    l2w_files.append(ret)
+                    for ncf in l2r:
+                        ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
+                        if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
+                        l2w_files.append(ret)
 
-                    ## make l2w maps
-                    if l2r_setu['map_l2w']:
-                        ac.acolite.acolite_map(ret, settings=l2r_setu)
+                        ## make l2w maps
+                        if l2r_setu['map_l2w']:
+                            ac.acolite.acolite_map(ret, settings=l2r_setu)
 
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
@@ -157,5 +164,21 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         if len(l2w_files) > 0: processed[ni]['l2w'] = l2w_files
     ## end processing loop
     log.__del__()
+
+    ## remove files
+    for ni in processed:
+        for level in ['l1r', 'l2r', 'l2t', 'l2w']:
+            if l1r_setu['{}_delete_netcdf'.format(level)]:
+                if level not in processed[ni]: continue
+                ## run through images and delete them
+                for f in processed[ni][level]:
+                    os.remove(f)
+                    ## also delete pan file if it exists
+                    if level == 'l1r':
+                        panf = f.replace('_L1R.nc', '_L1R_pan.nc')
+                        if os.path.exists(panf):
+                            os.remove(panf)
+                ## replace by empty list
+                processed[ni][level] = []
 
     return(processed)

@@ -217,6 +217,12 @@ l2r_export_geotiff=False
 l2w_export_geotiff=False
 export_geotiff_coordinates=False
 
+# delete NetCDFs
+l1r_delete_netcdf=False
+l2t_delete_netcdf=False
+l2r_delete_netcdf=False
+l2w_delete_netcdf=False
+
 # LUTs
 luts=ACOLITE-LUT-202102-MOD1,ACOLITE-LUT-202102-MOD2
 slicing=False
