@@ -3,9 +3,14 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-07-26
 ## modifications:
-##
+##                2021-10-24 (QV) added LUT identifiers and pressures, get_remote keyword
 
-def acolite_luts(sensor = None, hyper = False, pars = ['romix', 'romix+rsky_t']):
+def acolite_luts(sensor = None, hyper = False,
+                 get_remote = True, compute_reverse = True,
+                 pressures = [500, 1013, 1100],
+                 base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
+                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
+                 pars = ['romix', 'romix+rsky_t']):
     import acolite as ac
 
     ## get all RSR if no sensor(s) specified
@@ -50,9 +55,11 @@ def acolite_luts(sensor = None, hyper = False, pars = ['romix', 'romix+rsky_t'])
         tg_dict = ac.ac.gas_transmittance(0, 0, uoz=0.3, uwv=1.6, rsr=None if s is None else rsrd[s]['rsr'])
 
         ## get sensor LUT
-        tmp = ac.aerlut.import_luts(sensor = s)
+        tmp = ac.aerlut.import_luts(sensor = s, get_remote = get_remote, pressures = pressures,
+                                    base_luts = base_luts, rsky_lut = rsky_lut)
 
         ## get reverse LUT
-        if (s is not None) & (s in ['L5_TM', 'L7_ETM', 'L8_OLI', 'S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']):
+        if (compute_reverse) & (s is not None) & (s in ['L5_TM', 'L7_ETM', 'L8_OLI', 'S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']):
             for par in pars:
-                revl = ac.aerlut.reverse_lut(s, par=par)
+                revl = ac.aerlut.reverse_lut(s, get_remote = get_remote, par=par, pressures = pressures,
+                                            base_luts = base_luts, rsky_lut = rsky_lut)

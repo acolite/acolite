@@ -10,11 +10,11 @@
 ##                  2021-05-31 (QV) added remote lut retrieval
 ##                  2021-06-08 (QV) added lut par subsetting
 ##                  2021-07-20 (QV) added retrieval of generic LUTs
+##                  2021-10-22 (QV) compute ttot if not in LUT
 
-def import_lut(lutid, lutdir,
-               lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
-               override = False, sensor = None,
-               get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
+               override = False, sensor = None, get_remote = True, 
+               remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
 
     import os, sys
     import numpy as np
@@ -76,6 +76,26 @@ def import_lut(lutid, lutdir,
                     if (ik == jk):
                         lut_sub_idx.append(j)
                         lut_sub_par.append(jk)
+            ## add ttot if not in NetCDF
+            if ('ttot' in lut_par) & ('ttot' not in meta['par']):
+                for j, jk in enumerate(meta['par']):
+                    if 'tray' == jk: tri = j
+                    if 'taer' == jk: tai = j
+                lut = np.append(lut, lut[[tri], :,:,:,:,:,:]+lut[[tai], :,:,:,:,:,:], axis=0)
+                lut_sub_par.append('ttot')
+                lut_sub_idx.append(lut.shape[0]-1)
+
+            ## add romix+rsurf if not in NetCDF
+            if ('romix+rsurf' in lut_par) & ('romix+rsurf' not in meta['par']) & \
+               (('romix' in meta['par']) & ('rsurf' in meta['par'])):
+                for j, jk in enumerate(meta['par']):
+                    if 'romix' == jk: pi = j
+                    if 'rsurf' == jk: pj = j
+                lut = np.append(lut, lut[[pi], :,:,:,:,:,:]+lut[[pj], :,:,:,:,:,:], axis=0)
+                lut_sub_par.append('romix+rsurf')
+                lut_sub_idx.append(lut.shape[0]-1)
+
+            ## subset to requested parameters
             meta['par'] = lut_sub_par
             lut = lut[lut_sub_idx,:,:,:,:,:,:]
 
@@ -183,6 +203,29 @@ def import_lut(lutid, lutdir,
                     if (ik == jk):
                         lut_sub_idx.append(j)
                         lut_sub_par.append(jk)
+            ## add ttot if not in NetCDF
+            if ('ttot' in lut_par) & ('ttot' not in meta['par']):
+                for j, jk in enumerate(meta['par']):
+                    if 'tray' == jk: tri = j
+                    if 'taer' == jk: tai = j
+                for dataset in lut_sensor:
+                    lut_sensor[dataset] = np.append(lut_sensor[dataset], \
+                        lut_sensor[dataset][[tri],:,:,:,:,:]+lut_sensor[dataset][[tai],:,:,:,:,:], axis=0)
+                lut_sub_par.append('ttot')
+                lut_sub_idx.append(lut_sensor[dataset].shape[0]-1)
+
+            ## add romix+rsurf if not in NetCDF
+            if ('romix+rsurf' in lut_par) & ('romix+rsurf' not in meta['par']) &\
+               (('romix' in meta['par']) & ('rsurf' in meta['par'])):
+                for j, jk in enumerate(meta['par']):
+                    if 'romix' == jk: pi = j
+                    if 'rsurf' == jk: pj = j
+                for dataset in lut_sensor:
+                    lut_sensor[dataset] = np.append(lut_sensor[dataset], \
+                        lut_sensor[dataset][[pi],:,:,:,:,:]+lut_sensor[dataset][[pj],:,:,:,:,:], axis=0)
+                lut_sub_par.append('romix+rsurf')
+                lut_sub_idx.append(lut_sensor[dataset].shape[0]-1)
+
             meta['par'] = lut_sub_par
             for dataset in lut_sensor:
                 lut_sensor[dataset] = lut_sensor[dataset][lut_sub_idx,:,:,:,:,:]

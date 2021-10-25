@@ -3,9 +3,11 @@
 ## reverse luts go from rpath -> aot
 ## QV 2021-02-03
 ## last updates: 2021-05-31 (QV) added remote lut retrieval
+##               2021-10-24 (QV) added pressures and get_remote as keyword to other functions
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
+                       pressures = [500, 1013, 1100],
                        base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
                        rsky_lut = 'ACOLITE-RSKY-202102-82W',
                        get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
@@ -50,7 +52,8 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     if lutdw is None:
                         print('Importing source LUTs')
                         lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
-                                                        add_rsky=True, rsky_lut = rsky_lut)
+                                                        pressures = pressures, get_remote = get_remote,
+                                                        add_rsky = True, rsky_lut = rsky_lut)
                     pid = lutdw[lut]['ipd'][par]
                     pressures, pids, raas, vzas, szas, winds, aots = lutdw[lut]['dim']
 

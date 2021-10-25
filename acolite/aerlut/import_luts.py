@@ -8,13 +8,14 @@
 ##                     2021-02-01 (QV) added wind speed for rsky lut, removed temp fixes for old luts
 ##                     2021-02-03 (QV) added down*up total transmittances
 ##                     2021-03-01 (QV) added new rsky luts with integrated wind speed
-##                  2021-06-08 (QV) added lut par subsetting
+##                     2021-06-08 (QV) added lut par subsetting
+##                     2021-10-24 (QV) added get_remote as keyword
 
 def import_luts(pressures = [500, 1013, 1100],
                 base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
                 lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
-                sensor = None, add_rsky = False, add_dutott = True):
+                get_remote = True, sensor = None, add_rsky = False, add_dutott = True):
     import scipy.interpolate
     import numpy as np
     import acolite as ac
@@ -28,11 +29,11 @@ def import_luts(pressures = [500, 1013, 1100],
             lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
             if sensor is None:
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
-                lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par)
+                lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par, get_remote = get_remote)
             else:
                 ## sensor specific lut
                 #lut_data_dict, lut_meta = ac.aerlut.import_lut_sensor(sensor, None, lutid, override=0, lutdir=lutdir)
-                lut_data_dict, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par)
+                lut_data_dict, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par, get_remote = get_remote)
 
                 #bands = list(lut_data_dict.keys())
                 # get bands from rsr_file as different systems may not keep dict keys in the same order
@@ -68,7 +69,7 @@ def import_luts(pressures = [500, 1013, 1100],
 
             if add_rsky:
                 tlut = lut_dict[lut]['lut']
-                rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut)
+                rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, get_remote = get_remote)
                 rlut = rskyd[int(lut[-1])]['lut']
                 rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
                 rskyd = None
