@@ -284,6 +284,7 @@ def acolite_l2r(gem,
         copy_datasets = []
         if setu['copy_datasets'] is not None: copy_datasets += setu['copy_datasets']
         if setu['output_bt']: copy_datasets += [ds for ds in gem.datasets if ds[0:2] == 'bt']
+        if setu['output_xy']: copy_datasets += ['x', 'y']
 
         if len(copy_datasets) > 0:
             ## copy rhot all from L1R
@@ -1122,113 +1123,116 @@ def acolite_l2r(gem,
             ## compute where to apply the glint correction
             ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
             gc_mask_data = gemo.data(gc_mask)
-            sub_gc = np.where(np.isfinite(gc_mask_data) & \
-                              (gc_mask_data<=setu['glint_mask_rhos_threshold']))
-            gc_mask_data = None
+            if gc_mask_data == (): ## can be an empty tuple for night time images (should not be processed, but this avoids a crash)
+                print('No glint mask could be determined.')
+            else:
+                sub_gc = np.where(np.isfinite(gc_mask_data) & \
+                                  (gc_mask_data<=setu['glint_mask_rhos_threshold']))
+                gc_mask_data = None
 
-            ## get reference bands transmittance
-            for ib, b in enumerate(gemo.bands):
-                rhos_ds = gemo.bands[b]['rhos_ds']
-                if rhos_ds not in [gc_swir1, gc_swir2, gc_user]: continue
-                if rhos_ds not in gemo.datasets: continue
+                ## get reference bands transmittance
+                for ib, b in enumerate(gemo.bands):
+                    rhos_ds = gemo.bands[b]['rhos_ds']
+                    if rhos_ds not in [gc_swir1, gc_swir2, gc_user]: continue
+                    if rhos_ds not in gemo.datasets: continue
 
-                ## two way direct transmittance
-                T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
+                    ## two way direct transmittance
+                    T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
 
-                ## subset if 2d
-                T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
+                    ## subset if 2d
+                    T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
 
-                if rhos_ds == gc_user:
-                    T_USER = T_cur_sub * 1.0
-                else:
-                    if rhos_ds == gc_swir1: T_SWIR1 = T_cur_sub * 1.0
-                    if rhos_ds == gc_swir2: T_SWIR2 = T_cur_sub * 1.0
-                T_cur = None
-
-            ## swir band choice is made for first band
-            gc_choice = False
-            ## glint correction per band
-            for ib, b in enumerate(gemo.bands):
-                rhos_ds = gemo.bands[b]['rhos_ds']
-                if rhos_ds not in gemo.datasets: continue
-                if b not in ttot_all: continue
-                print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
-
-                ## two way direct transmittance
-                T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
-
-                ## subset if 2d
-                T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
-
-                ## get gc factors for this band
-                if gc_user is None:
-                    if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
-                        gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
-                        gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+                    if rhos_ds == gc_user:
+                        T_USER = T_cur_sub * 1.0
                     else:
-                        gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
-                        gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
-                else:
-                    if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
-                        gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
-                    else:
-                        gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
+                        if rhos_ds == gc_swir1: T_SWIR1 = T_cur_sub * 1.0
+                        if rhos_ds == gc_swir2: T_SWIR2 = T_cur_sub * 1.0
+                    T_cur = None
 
-                ## choose glint correction band (based on first band results)
-                if gc_choice is False:
-                    gc_choice = True
+                ## swir band choice is made for first band
+                gc_choice = False
+                ## glint correction per band
+                for ib, b in enumerate(gemo.bands):
+                    rhos_ds = gemo.bands[b]['rhos_ds']
+                    if rhos_ds not in gemo.datasets: continue
+                    if b not in ttot_all: continue
+                    print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
+
+                    ## two way direct transmittance
+                    T_cur  = np.exp(-1.*(ttot_all[b]/muv)) * np.exp(-1.*(ttot_all[b]/mus))
+
+                    ## subset if 2d
+                    T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
+
+                    ## get gc factors for this band
                     if gc_user is None:
-                        swir1_rhos = gemo.data(gc_swir1)[sub_gc]
-                        swir2_rhos = gemo.data(gc_swir2)[sub_gc]
-                        ## set negatives to 0
-                        swir1_rhos[swir1_rhos<0] = 0
-                        swir2_rhos[swir2_rhos<0] = 0
-                        ## estimate glint correction in the blue band
-                        g1_blue = gc_SWIR1 * swir1_rhos
-                        g2_blue = gc_SWIR2 * swir2_rhos
-                        ## use SWIR1 or SWIR2 based glint correction
-                        use_swir1 = np.where(g1_blue<g2_blue)
-                        g1_blue, g2_blue = None, None
-                        rhog_ref = swir2_rhos
-                        rhog_ref[use_swir1] = swir1_rhos[use_swir1]
-                        swir1_rhos, swir2_rhos = None, None
-                        use_swir1 = None
+                        if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
+                            gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
+                            gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+                        else:
+                            gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
+                            gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
                     else:
-                        rhog_ref = gemo.data(gc_user)[sub_gc]
-                        ## set negatives to 0
-                        rhog_ref[rhog_ref<0] = 0
-                    ## write reference glint
-                    if setu['glint_write_rhog_ref']:
+                        if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
+                            gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
+                        else:
+                            gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
+
+                    ## choose glint correction band (based on first band results)
+                    if gc_choice is False:
+                        gc_choice = True
+                        if gc_user is None:
+                            swir1_rhos = gemo.data(gc_swir1)[sub_gc]
+                            swir2_rhos = gemo.data(gc_swir2)[sub_gc]
+                            ## set negatives to 0
+                            swir1_rhos[swir1_rhos<0] = 0
+                            swir2_rhos[swir2_rhos<0] = 0
+                            ## estimate glint correction in the blue band
+                            g1_blue = gc_SWIR1 * swir1_rhos
+                            g2_blue = gc_SWIR2 * swir2_rhos
+                            ## use SWIR1 or SWIR2 based glint correction
+                            use_swir1 = np.where(g1_blue<g2_blue)
+                            g1_blue, g2_blue = None, None
+                            rhog_ref = swir2_rhos
+                            rhog_ref[use_swir1] = swir1_rhos[use_swir1]
+                            swir1_rhos, swir2_rhos = None, None
+                            use_swir1 = None
+                        else:
+                            rhog_ref = gemo.data(gc_user)[sub_gc]
+                            ## set negatives to 0
+                            rhog_ref[rhog_ref<0] = 0
+                        ## write reference glint
+                        if setu['glint_write_rhog_ref']:
+                            tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
+                            tmp[sub_gc] = rhog_ref
+                            gemo.write('rhog_ref', tmp)
+                            tmp = None
+                    ## end select glint correction band
+
+                    ## calculate glint in this band
+                    if gc_user is None:
+                        cur_rhog = gc_SWIR2 * rhog_ref
+                        try:
+                            cur_rhog[use_swir1] = gc_SWIR1[use_swir1] * rhog_ref[use_swir1]
+                        except:
+                            cur_rhog[use_swir1] = gc_SWIR1 * rhog_ref[use_swir1]
+                    else:
+                        cur_rhog = gc_USER * rhog_ref
+
+                    ## remove glint from rhos
+                    cur_data = gemo.data(rhos_ds)
+                    cur_data[sub_gc]-=cur_rhog
+                    gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
+
+                    ## write band glint
+                    if setu['glint_write_rhog_all']:
                         tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
-                        tmp[sub_gc] = rhog_ref
-                        gemo.write('rhog_ref', tmp)
+                        tmp[sub_gc] = cur_rhog
+                        gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
                         tmp = None
-                ## end select glint correction band
-
-                ## calculate glint in this band
-                if gc_user is None:
-                    cur_rhog = gc_SWIR2 * rhog_ref
-                    try:
-                        cur_rhog[use_swir1] = gc_SWIR1[use_swir1] * rhog_ref[use_swir1]
-                    except:
-                        cur_rhog[use_swir1] = gc_SWIR1 * rhog_ref[use_swir1]
-                else:
-                    cur_rhog = gc_USER * rhog_ref
-
-                ## remove glint from rhos
-                cur_data = gemo.data(rhos_ds)
-                cur_data[sub_gc]-=cur_rhog
-                gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
-
-                ## write band glint
-                if setu['glint_write_rhog_all']:
-                    tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
-                    tmp[sub_gc] = cur_rhog
-                    gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
-                    tmp = None
-                cur_rhog = None
-            Rf_sen = None
-            rhog_ref = None
+                    cur_rhog = None
+                Rf_sen = None
+                rhog_ref = None
     ## end glint correction
 
     ## alternative glint correction
