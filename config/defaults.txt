@@ -126,6 +126,19 @@ glint_mask_rhos_threshold=0.05
 glint_write_rhog_ref=False
 glint_write_rhog_all=False
 
+## adjacency correction options
+adjacency_correction=False
+adjacency_method=acstar3
+acstar3_method=iter
+acstar3_psf_raster=False
+acstar3_max_wavelength=720
+acstar3_fit_all_bands=True
+acstar3_write_rhosu=True
+acstar3_write_rhoa=True
+acstar3_write_rhoe=True
+acstar3_ex=3
+acstar3_mask_edges=True
+
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
 ## options darkest, percentile, intercept
