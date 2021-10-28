@@ -4,6 +4,7 @@
 ## QV 2021-02-03
 ## last updates: 2021-05-31 (QV) added remote lut retrieval
 ##               2021-10-24 (QV) added pressures and get_remote as keyword to other functions
+##               2021-10-25 (QV) test if the wind dimension is != 1 or missing
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
@@ -52,10 +53,18 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     if lutdw is None:
                         print('Importing source LUTs')
                         lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
+                                                        lut_par = [par],
                                                         pressures = pressures, get_remote = get_remote,
-                                                        add_rsky = True, rsky_lut = rsky_lut)
+                                                        add_rsky = par == 'romix+rsky_t', rsky_lut = rsky_lut)
                     pid = lutdw[lut]['ipd'][par]
-                    pressures, pids, raas, vzas, szas, winds, aots = lutdw[lut]['dim']
+                    if len(lutdw[lut]['dim']) == 7:
+                        wind_dim = True
+                        pressures, pids, raas, vzas, szas, winds, aots = lutdw[lut]['dim']
+                    else:
+                        pressures, pids, raas, vzas, szas, aots = lutdw[lut]['dim']
+                        wind_dim = False
+                        winds = np.atleast_1d(2)
+
 
                     print('Starting {}'.format(slut))
                     t0 = time.time()
@@ -77,7 +86,10 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                             for vi, vza in enumerate(vzas):
                                 for si, sza in enumerate(szas):
                                     for wi, wind in enumerate(winds):
-                                        ret = lutdw[lut]['rgi'][b]((pressure, pid, raa, vza, sza, wind, aots))
+                                        if wind_dim:
+                                            ret = lutdw[lut]['rgi'][b]((pressure, pid, raa, vza, sza, wind, aots))
+                                        else:
+                                            ret = lutdw[lut]['rgi'][b]((pressure, pid, raa, vza, sza, aots))
                                         luta[pi, ri, vi, si, wi, :] = np.interp(rpath_bins, ret, aots)
                                         ii+=1
                             print('{} {:.1f}%'.format(b, (ii/ni)*100), end='\r')
@@ -119,9 +131,14 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     minaot = 0.001
                     maxaot = 5
                     print(meta.keys())
+
                 ## band specific interpolator
-                rgi[b] = scipy.interpolate.RegularGridInterpolator([meta[k] for k in meta['lut_dimensions']],
-                                                                 lutb,bounds_error=False, fill_value=None)
+                if len(np.atleast_1d(meta['wind'])) == 1:
+                    rgi[b] = scipy.interpolate.RegularGridInterpolator([meta[k] for k in meta['lut_dimensions'] if k not in ['wind']],
+                                                                     lutb[:,:,:,:,0,:],bounds_error=False, fill_value=None)
+                else:
+                    rgi[b] = scipy.interpolate.RegularGridInterpolator([meta[k] for k in meta['lut_dimensions']],
+                                                                     lutb,bounds_error=False, fill_value=None)
         revl[lut]={'rgi':rgi, 'minaot':minaot, 'maxaot':maxaot,
                    'model':int(lut[-1]), 'meta':meta}
     return(revl)

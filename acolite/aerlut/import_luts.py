@@ -20,6 +20,13 @@ def import_luts(pressures = [500, 1013, 1100],
     import numpy as np
     import acolite as ac
 
+    if add_rsky:
+        for k in ['utott', 'dtott', 'astot', 'romix']:
+            if k not in lut_par: lut_par.append(k)
+    if add_dutott:
+        for k in ['utott', 'dtott']:
+            if k not in lut_par: lut_par.append(k)
+
     lut_dict = {}
     ## run through luts
     for lut in base_luts:
