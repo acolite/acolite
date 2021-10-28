@@ -3,15 +3,13 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-23
 ## modifications:
+## 2021-10-21 (shundt@usgs.gov): Use GetExtent method for envelope. This works for single and multi-polygon 
 
 def polygon_limit(poly):
     from osgeo import ogr,osr,gdal
-    env = None
     vector_ds = ogr.Open(poly)
     lyr = vector_ds.GetLayer()
-    for feature in lyr:
-        geom=feature.GetGeometryRef()
-        if env is None: env = geom.GetEnvelope()
+    env = lyr.GetExtent()
     vector_ds = None
     limit = [env[2], env[0], env[3], env[1]]
     return(limit)
