@@ -11,8 +11,8 @@ def projection_geo(dct, xy=False, add_half_pixel=False):
         xdim = np.linspace(dct['xrange'][0],dct['xrange'][1],dct['xdim']).reshape(1,dct['xdim'])
         ydim = np.linspace(dct['yrange'][0],dct['yrange'][1],dct['ydim']).reshape(dct['ydim'],1)
     else:
-        xdim = np.linspace(dct['xrange'][0],dct['xrange'][1],dct['xdim']).reshape(1,dct['xdim']) + dct['pixel_size'][0]/2
-        ydim = np.linspace(dct['yrange'][0],dct['yrange'][1],dct['ydim']).reshape(dct['ydim'],1) + dct['pixel_size'][1]/2
+        xdim = np.linspace(dct['xrange'][0],dct['xrange'][1]-dct['pixel_size'][0],dct['xdim']).reshape(1,dct['xdim']) + dct['pixel_size'][0]/2
+        ydim = np.linspace(dct['yrange'][0],dct['yrange'][1]-dct['pixel_size'][1],dct['ydim']).reshape(dct['ydim'],1) + dct['pixel_size'][1]/2
 
     xdim = np.tile(xdim, (dct['ydim'],1))
     ydim = np.tile(ydim, (1,dct['xdim']))

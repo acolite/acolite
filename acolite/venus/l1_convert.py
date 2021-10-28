@@ -155,11 +155,6 @@ def l1_convert(inputfile, output = None,
                 max(dct_prj['xrange']),
                 max(dct_prj['yrange']),
                 dct_prj['proj4_string']]
-        ## and add it here if using a limit crop
-        ## perhaps a second look at projection_sub is needed
-        if limit is not None:
-            xyr[1]+=dct_prj['pixel_size'][1]
-            xyr[2]+=dct_prj['pixel_size'][0]
 
         res_method = 'average'
         warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)

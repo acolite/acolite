@@ -281,24 +281,16 @@ def l1_convert(inputfile, output = None,
         for k in pkeys:
             if k in dct_prj: gatts[k] = copy.copy(dct_prj[k])
 
-        ## else use the projection info in dct_prj
-        #xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,min(dct_prj['yrange']),
-        #       max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
-        #       dct_prj['proj4_string']]
-        #xyr_pan = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0],min(dct_prj['yrange']),
-        #           max(dct_prj['xrange']),max(dct_prj['yrange'])-dct_prj['pixel_size'][1],
-        #           dct_prj['proj4_string']]
-
-        ## new after S2 changes
-        xyr = [min(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,
-               min(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
-               max(dct_prj['xrange'])-dct_prj['pixel_size'][0]/2,
-               max(dct_prj['yrange'])-dct_prj['pixel_size'][1]/2,
+        ## new after S2 changes 2021-10-28
+        xyr = [min(dct_prj['xrange']),
+               min(dct_prj['yrange']),
+               max(dct_prj['xrange']),
+               max(dct_prj['yrange']),
                dct_prj['proj4_string']]
         xyr_pan = [min(dct_prj['xrange']),
                    min(dct_prj['yrange']),
-                   max(dct_prj['xrange'])+dct_prj['pixel_size'][0],
-                   max(dct_prj['yrange'])-dct_prj['pixel_size'][1],
+                   max(dct_prj['xrange']),
+                   max(dct_prj['yrange']),
                    dct_prj['proj4_string']]
 
         ## warp settings for read_band
@@ -380,7 +372,7 @@ def l1_convert(inputfile, output = None,
                 datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct_prj)
+                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
                 if verbosity > 1: print('Wrote lon')
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
@@ -395,7 +387,7 @@ def l1_convert(inputfile, output = None,
                 datasets = []
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True)
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'x', x, new=new)
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)

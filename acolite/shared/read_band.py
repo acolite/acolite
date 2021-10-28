@@ -46,8 +46,9 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
                 outputBounds = warp_to[1]
                 outputBoundsSRS = dstSRS
 
-            targetAlignedPixels = True
-
+            #targetAlignedPixels = True
+            targetAlignedPixels = False
+            
             ## if we don't know target resolution, figure out from the outputBounds
             if target_res is None:
                 xRes = None

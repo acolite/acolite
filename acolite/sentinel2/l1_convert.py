@@ -264,12 +264,11 @@ def l1_convert(inputfile, output = None,
         for k in pkeys:
             if k in dct_prj: gatts[k] = dct_prj[k]
 
-        ## eval - this worked with another half pixel offset in computing lat lon
-        ## half pixel offset for both min/max 2021-07-24
-        xyr = [min(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
-               min(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
-               max(dct_prj['xrange'])+dct_prj['pixel_size'][0]/2,
-               max(dct_prj['yrange'])+dct_prj['pixel_size'][1]/2,
+        ## with subsetting fix the offsets should not be required 2021-10-28
+        xyr = [min(dct_prj['xrange']),
+               min(dct_prj['yrange']),
+               max(dct_prj['xrange']),
+               max(dct_prj['yrange']),
                dct_prj['proj4_string']]
 
         ## warp settings for read_band
@@ -289,6 +288,7 @@ def l1_convert(inputfile, output = None,
         if clip:
             clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
+            print('clip mask', clip_mask.shape)
 
         ## start the conversion
         ## write geometry
@@ -305,10 +305,11 @@ def l1_convert(inputfile, output = None,
 
                 ## get proj dct for geometry
                 dct_geom = ac.sentinel2.projection(grmeta, s2_target_res=geometry_res)
-                xyr_geom = [min(dct_geom['xrange'])+dct_geom['pixel_size'][0]/2,
-                            min(dct_geom['yrange'])+dct_geom['pixel_size'][1]/2,
-                            max(dct_geom['xrange'])+dct_geom['pixel_size'][0]/2,
-                            max(dct_geom['yrange'])+dct_geom['pixel_size'][1]/2,
+                ## with subsetting fix the offsets should not be required 2021-10-28
+                xyr_geom = [min(dct_geom['xrange']),
+                            min(dct_geom['yrange']),
+                            max(dct_geom['xrange']),
+                            max(dct_geom['yrange']),
                             dct_geom['proj4_string']]
 
                 ## warp settings for read_band

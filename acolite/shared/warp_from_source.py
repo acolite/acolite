@@ -68,7 +68,9 @@ def warp_from_source(source, dct, data, warp_to = None):
         else:
             outputBounds = warp_to_region[1]
             outputBoundsSRS = dstSRS
-        targetAlignedPixels = True
+        #targetAlignedPixels = True
+        targetAlignedPixels = False
+
         target_res = None
         ## if we don't know target resolution, figure out from the outputBounds
         if target_res is None:
@@ -86,7 +88,7 @@ def warp_from_source(source, dct, data, warp_to = None):
         if len(warp_to_region) >= 4:
             xRes = warp_to_region[2]
             yRes = warp_to_region[3]
-        if (xRes is None) or (yRes is None): targetAlignedPixels = False
+        #if (xRes is None) or (yRes is None): targetAlignedPixels = False
 
         ## use given warp algorithm
         if len(warp_to_region) >= 5:
@@ -94,11 +96,18 @@ def warp_from_source(source, dct, data, warp_to = None):
 
         ## warp in memory and read dataset to array
         ## https://gdal.org/python/osgeo.gdal-module.html
+        #ds = gdal.Warp('', source_ds,
+        #                xRes = xRes, yRes = yRes,
+        #                outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
+        #                dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
+        #                format='VRT', resampleAlg=warp_alg)
+
         ds = gdal.Warp('', source_ds,
                         xRes = xRes, yRes = yRes,
                         outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
                         dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
                         format='VRT', resampleAlg=warp_alg)
+
         data = ds.ReadAsArray()
         ds = None
     source_ds = None

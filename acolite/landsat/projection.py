@@ -80,8 +80,8 @@ def projection(meta):
                 ytag = 'PRODUCT_{}_CORNER_MAPY'.format(corner)
                 y.append(float(meta[pk][ytag]))
 
-    xrange = [min(x),max(x)]
-    yrange = [max(y),min(y)]
+    xrange = [min(x)-pixel_size[0]/2,max(x)+pixel_size[0]/2]
+    yrange = [max(y)-pixel_size[1]/2,min(y)+pixel_size[1]/2]
 
 
     dct = {'p': p, 'epsg':  p.crs.to_epsg(),
@@ -96,7 +96,7 @@ def projection(meta):
         dct['false_n'] : false_n
         dct['lat_0'] : lat_0
 
-    dct['xdim'] = int((dct['xrange'][1]-dct['xrange'][0])/dct['pixel_size'][0])+1
-    dct['ydim'] = int((dct['yrange'][1]-dct['yrange'][0])/dct['pixel_size'][1])+1
+    dct['xdim'] = int((dct['xrange'][1]-dct['xrange'][0])/dct['pixel_size'][0])#+1
+    dct['ydim'] = int((dct['yrange'][1]-dct['yrange'][0])/dct['pixel_size'][1])#+1
 
     return(dct)

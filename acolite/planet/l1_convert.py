@@ -224,23 +224,15 @@ def l1_convert(inputfile, output = None,
             if k in dct_prj: gatts[k] = dct_prj[k]
 
         ## warp settings for read_band
-        ## remove extra pixel here
+        ## updated 2021-10-28
         xyr = [min(dct_prj['xrange']),
-               min(dct_prj['yrange']),#+dct_prj['pixel_size'][1],
-               max(dct_prj['xrange']),#+dct_prj['pixel_size'][0],
+               min(dct_prj['yrange']),
+               max(dct_prj['xrange']),
                max(dct_prj['yrange']),
                dct_prj['proj4_string']]
-        ## and add it here if using a limit crop
-        ## perhaps a second look at projection_sub is needed
-        if limit is not None:
-            xyr[1]+=dct_prj['pixel_size'][1]
-            xyr[2]+=dct_prj['pixel_size'][0]
 
         res_method = 'average'
         warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)
-
-        ## warp_to subset is off by one pixel
-        #if (limit is None) & (sub is None): warp_to = None
 
         ## store scene and output dimensions
         gatts['scene_dims'] = dct['ydim'], dct['xdim']
