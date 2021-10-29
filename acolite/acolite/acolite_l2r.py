@@ -225,6 +225,13 @@ def acolite_l2r(gem,
 
     if (not setu['resolved_geometry']) & (setu['dsf_aot_estimate'] != 'tiled'): use_revlut = False
 
+    ## set LUT dimension parameters to correct shape if resolved processing
+    if (use_revlut) & (per_pixel_geometry) & (setu['dsf_aot_estimate'] == 'resolved'):
+        for ds in geom_ds:
+            if len(np.atleast_1d(gem.data(ds)))!=1: continue
+            print('Reshaping {} to {}x{} pixels for resolved processing'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
+            gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+
     ## for ease of subsetting later, repeat single element datasets to the tile shape
     #if use_revlut:
     #    for ds in geom_ds:
