@@ -12,7 +12,7 @@
 
 def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2,
                   remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
-    import os
+    import os, sys
     import scipy.interpolate
     import acolite as ac
 
@@ -29,7 +29,11 @@ def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2,
             print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
 
     ## import LUT
-    lut, meta = ac.shared.lutnc_import(lutnc)
+    if os.path.exists(lutnc):
+        lut, meta = ac.shared.lutnc_import(lutnc)
+    else:
+        print('Could not open WV LUT {}'.format(lutnc))
+        sys.exit(1)
 
     ## interpolate hyperspectral dataset
     rgi = scipy.interpolate.RegularGridInterpolator([meta['ths'], meta['thv'], meta['wv'], range(3), meta['wave']],lut,

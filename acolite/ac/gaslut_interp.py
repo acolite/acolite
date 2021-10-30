@@ -9,7 +9,7 @@ def gaslut_interp(sza, vza, pressure = 1013,
                   sensor = None, waves = None,
                   lutconfig = '202106F', pars = ['ttdica','ttoxyg','ttniox','ttmeth'],
                   remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
-    import os
+    import os, sys
     import acolite as ac
     from netCDF4 import Dataset
     import scipy.interpolate
@@ -29,7 +29,11 @@ def gaslut_interp(sza, vza, pressure = 1013,
             print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
 
     ## import LUT
-    lut, meta = ac.shared.lutnc_import(lutnc)
+    if os.path.exists(lutnc):
+        lut, meta = ac.shared.lutnc_import(lutnc)
+    else:
+        print('Could not open WV LUT {}'.format(lutnc))
+        sys.exit(1)
 
     ## set up interpolator
     ipd = {p:pi for pi, p in enumerate(meta['par'])}

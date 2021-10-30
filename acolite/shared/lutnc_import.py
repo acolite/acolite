@@ -22,7 +22,8 @@ def lutnc_import(lutnc):
         nc.close()
     except:
         print(sys.exc_info()[0])
-        print('Failed to open LUT {} data from NetCDF'.format(lutnc))
-        print(lut_nc)
+        print('Failed to open LUT {} data from NetCDF'.format(os.path.basename(lutnc)))
+        print('File not found {}'.format(lutnc))
+        sys.exit(1)
 
     return(lut,meta)
