@@ -614,8 +614,13 @@ def acstar3(ncf, output=None, settings=None,
                 ## find aot position with minimal negatives (but we want a small amount of negatives)
                 aot_list = sorted(list(aots.keys()))
                 neg_list = [aots[aot]['neg'] for aot in aot_list]
-                i1 = np.where(np.asarray(neg_list) >= min_neg)[0][0]
-                i0 = np.max((0, i1-1))
+                i1 = np.where(np.asarray(neg_list) >= min_neg)[0]
+                if len(i1) == 0:
+                    print('Found no negatives in aot range {}-{}, image is likely fully cloudy.'.format(arange[0], arange[1]))
+                    iterate = False
+                else:
+                    i1 = i1[0]
+                    i0 = np.max((0, i1-1))
 
                 ## stop iterating
                 if np.abs(step) <= min_step:
