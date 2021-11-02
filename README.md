@@ -46,7 +46,7 @@ A suitable Python environment can for example be set up using conda and the pack
 
             conda create -n acolite -c conda-forge python=3
             conda activate acolite
-            conda install -c conda-forge numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py
+            conda install -c conda-forge numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests
 
 Additional dependencies may be needed for experimental features: `astropy cartopy`
 
@@ -59,7 +59,7 @@ Additional dependencies may be needed for experimental features: `astropy cartop
 ACOLITE can automatically retrieve ancillary data (ozone, water vapour, pressure and wind speed) from the servers of the Ocean Biology Processing Group (OBPG) at NASA (https://oceandata.sci.gsfc.nasa.gov) and SRTM DEM data from NASA's Land Processes Distributed Active Archive Center (LP DAAC) at the USGS Earth Resources Observation and
 Science (EROS) Center (https://e4ftl01.cr.usgs.gov/MEASURES/) for both resources an EarthData account is required: https://urs.earthdata.nasa.gov/users/new
 
-Your EarthData account needs to have approval for OB.DAAC Data Access and LP DAAC Data Pool to access the ancillary and SRTM DEM datasets. Login to your EarthData account to check Authorised Apps, and click Approve More Applications if necessary: https://urs.earthdata.nasa.gov/profile 
+Your EarthData account needs to have approval for OB.DAAC Data Access and LP DAAC Data Pool to access the ancillary and SRTM DEM datasets. Login to your EarthData account to check Authorised Apps, and click Approve More Applications if necessary: https://urs.earthdata.nasa.gov/profile
 
 ACOLITE tries and retrieve the EARTHDATA_u and EARTHDATA_p (for username and password) from the system environment variables. Alternatively they can be specified in the processing settings file or the general ACOLITE config file at config/config.txt.
 
