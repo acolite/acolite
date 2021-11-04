@@ -59,7 +59,10 @@ def l1_convert(inputfile,
         tlon = float(attributes['Target Longitude'])
 
         ## compute sun position
-        sza_, saa_, se_distance = ac.shared.sun_position(tc, tlon, tlat)
+        sd = ac.shared.sun_position(tc, tlon, tlat)
+        sza_ = sd['zenith']
+        saa_ = sd['azimuth']
+        se_distance = sd['distance']
 
         #if 'Solar Azimuth Angle' in attributes:
         #    saa = float(attributes['Solar Azimuth Angle'])

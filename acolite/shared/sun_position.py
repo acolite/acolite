@@ -2,6 +2,7 @@
 ## calculate sun position for date and time
 ##
 ## modifications: QV 2020-04-01 modified for arrays of lon and lat
+##                QV 2021-11-04 return dict with more parameters
 
 def sun_position(date, lon, lat):
     import numpy as np
@@ -91,4 +92,19 @@ def sun_position(date, lon, lat):
 
     az/=dtor
     zen = 90.-el/dtor
-    return(zen, az, distance)
+
+    d = {}
+    d['julian_date'] = jd
+    d['almanach_time'] = almanach_time
+    d['mean_longitude'] = mnlong
+    d['mean_anomaly'] = mnanom
+    d['elevation'] = el
+    d['zenith'] = zen
+    d['azimuth'] = az
+    d['distance'] = distance
+    d['right_ascension'] = ra
+    d['declination'] = dec
+    d['greenwich_mean_sidereal_time'] = gmst
+    d['local_mean_sidereal_time'] = lmst
+    d['hour_angle'] = ha
+    return(d)
