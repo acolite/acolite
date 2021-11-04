@@ -314,6 +314,13 @@ def acstar3(ncf, output=None, settings=None,
         else:
             return(atm, data, datac, datati, idp_)
 
+    ## read global attributes
+    gatts = ac.shared.nc_gatts(ncf)
+    sensor = gatts['sensor']
+    if (sensor not in ['L8_OLI', 'S2A_MSI', 'S2B_MSI']) or ('PlanetScope' not in sensor):
+        print('ACSTAR3 not implemented for {}'.format(sensor))
+        return([ncf])
+
     ## placeholder settings
     ## if called directly without settings
     if setu is None:
@@ -357,9 +364,6 @@ def acstar3(ncf, output=None, settings=None,
     ## path reflectance parameter
     rpar = 'romix'
 
-    ## read global attributes
-    gatts = ac.shared.nc_gatts(ncf)
-
     ## store original results
     ac_aot_550_dsf = gatts['ac_aot_550'] if 'ac_aot_550' in gatts else np.nan
     ac_model_dsf = gatts['ac_model'] if 'ac_model' in gatts else 'None'
@@ -367,7 +371,6 @@ def acstar3(ncf, output=None, settings=None,
 
     ## get datasets and sensor rsr
     datasets = ac.shared.nc_datasets(ncf)
-    sensor = gatts['sensor']
     ss = sensor.lower().split('_')
 
     resolution = gatts['scene_pixel_size'][0]
