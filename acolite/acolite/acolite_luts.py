@@ -29,7 +29,7 @@ def acolite_luts(sensor = None, hyper = False,
                 sensor = [sensor]
         rsrd = {}
         for s in sensor:
-            if s.upper() in ['CHRIS', 'PRISMA', 'HYPER']:
+            if (s.upper() in ['CHRIS', 'PRISMA', 'HYPER']) or ('DESIS' in s.upper()):
                 hyper = True
                 continue
 
