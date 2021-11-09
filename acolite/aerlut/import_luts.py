@@ -10,15 +10,22 @@
 ##                     2021-03-01 (QV) added new rsky luts with integrated wind speed
 ##                     2021-06-08 (QV) added lut par subsetting
 ##                     2021-10-24 (QV) added get_remote as keyword
+##                     2021-11-09 (QV) added reduce dimensions
 
 def import_luts(pressures = [500, 1013, 1100],
                 base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
                 lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
+                reduce_dimensions = False, return_lut_array = False,
+                vza_range = [0, 16],  aot_range = [0, 1.],
                 get_remote = True, sensor = None, add_rsky = False, add_dutott = True):
     import scipy.interpolate
     import numpy as np
     import acolite as ac
+
+    ## indices for reducing LUT size
+    vza_sub = [0, -1]
+    aot_sub = [0, -1]
 
     if add_rsky:
         for k in ['utott', 'dtott', 'astot', 'romix']:
@@ -35,9 +42,15 @@ def import_luts(pressures = [500, 1013, 1100],
             lutid = '{}-{}mb'.format(lut, '{}'.format(pr).zfill(4))
             lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
             if sensor is None:
+                ## indices for reducing LUT size
+                vza_idx, aot_idx = 4, 7
+
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
                 lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par, get_remote = get_remote)
             else:
+                ## indices for reducing LUT size
+                vza_idx, aot_idx = 3, 6
+
                 ## sensor specific lut
                 #lut_data_dict, lut_meta = ac.aerlut.import_lut_sensor(sensor, None, lutid, override=0, lutdir=lutdir)
                 lut_data_dict, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par, get_remote = get_remote)
@@ -59,6 +72,15 @@ def import_luts(pressures = [500, 1013, 1100],
                 ipd = {par:ip for ip,par in enumerate(lut_meta['par'])}
 
                 lut_dict[lut] = {'meta':lut_meta, 'dim':lut_dim, 'ipd':ipd}
+
+                ## find indices to reduce dimensions
+                if reduce_dimensions:
+                    for vi, v in enumerate(lut_meta['thv']):
+                        if v <= vza_range[0]: vza_sub[0] = vi
+                        if (v >= vza_range[1]) & (vza_sub[1] == -1): vza_sub[1] = vi+1
+                    for vi, v in enumerate(lut_meta['tau']):
+                        if v <= aot_range[0]: aot_sub[0] = vi
+                        if (v >= aot_range[1]) & (aot_sub[1] == -1): aot_sub[1] = vi+1
 
                 if sensor is not None:
                     lut_dict[lut]['lut'] = {band:[] for band in rsr_bands}
@@ -123,6 +145,12 @@ def import_luts(pressures = [500, 1013, 1100],
                        lut_dict[lut]['meta']['tau']]
                 lut_dict[lut]['dim'] = dim
                 ## end add rsky
+
+            ## reduce dimensions / memory use
+            if reduce_dimensions:
+                lut_dict[lut]['dim'][vza_idx] = lut_dict[lut]['dim'][vza_idx][vza_sub[0]:vza_sub[1]]
+                lut_dict[lut]['dim'][aot_idx] = lut_dict[lut]['dim'][aot_idx][aot_sub[0]:aot_sub[1]]
+                lut_dict[lut]['lut'] = lut_dict[lut]['lut'][:,:,:,:,vza_sub[0]:vza_sub[1],:,:,aot_sub[0]:aot_sub[1]]
 
             ## add product of transmittances
             if add_dutott:
@@ -202,6 +230,13 @@ def import_luts(pressures = [500, 1013, 1100],
                 lut_dict[lut]['dim'] = dim
                 ## end add rsky
 
+            ## reduce dimensions / memory use
+            if reduce_dimensions:
+                lut_dict[lut]['dim'][vza_idx] = lut_dict[lut]['dim'][vza_idx][vza_sub[0]:vza_sub[1]]
+                lut_dict[lut]['dim'][aot_idx] = lut_dict[lut]['dim'][aot_idx][aot_sub[0]:aot_sub[1]]
+                for band in rsr_bands:
+                    lut_dict[lut]['lut'][band] = lut_dict[lut]['lut'][band][:,:,:,vza_sub[0]:vza_sub[1],:,:,aot_sub[0]:aot_sub[1]]
+
             ## add product of transmittances
             if add_dutott:
                 lut_dict[lut]['meta']['par']+=['dutott']
@@ -225,5 +260,9 @@ def import_luts(pressures = [500, 1013, 1100],
                     lut_dict[lut]['rgi'][band] = scipy.interpolate.RegularGridInterpolator(lut_dict[lut]['dim'],
                                                                                        lut_dict[lut]['lut'][band][:,:,:,:,:,0,:],
                                                                                        bounds_error=False, fill_value=np.nan)
+    ## remove LUT array to reduce memory use
+    if not return_lut_array:
+        for lut in lut_dict:
+            del lut_dict[lut]['lut']
 
     return(lut_dict)

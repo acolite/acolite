@@ -12,3 +12,4 @@ dsf_tile_dimensions=600,600
 
 geometry_per_band=False
 geometry_fixed_footprint=False
+luts_reduce_dimensions=True

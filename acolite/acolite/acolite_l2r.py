@@ -60,13 +60,13 @@ def acolite_l2r(gem,
     ## hyperspectral
     if gem.gatts['sensor'] in hyper_sensors:
         hyper = True
-        if gem.gatts['sensor']=='DESIS_HSI':  
-            ### DESIS RSR and RSR file are version-specific      
+        if gem.gatts['sensor']=='DESIS_HSI':
+            ### DESIS RSR and RSR file are version-specific
             rsrd = ac.shared.rsr_dict(f"{gem.gatts['sensor']}_{gem.gatts['version']}")
             # Restore sensor key without version
             rsrd[gem.gatts['sensor']] = rsrd[f"{gem.gatts['sensor']}_{gem.gatts['version']}"]
             del rsrd[f"{gem.gatts['sensor']}_{gem.gatts['version']}"]
-        else:    
+        else:
             rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
             rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
     else:
@@ -326,7 +326,9 @@ def acolite_l2r(gem,
     ## load reverse lut romix -> aot
     if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, base_luts=setu['luts'])
     ## load aot -> atmospheric parameters lut
-    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=None if hyper else gem.gatts['sensor'], base_luts=setu['luts'])
+    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=None if hyper else gem.gatts['sensor'],
+                                  base_luts=setu['luts'], pressures = setu['luts_pressures'],
+                                  reduce_dimensions=setu['luts_reduce_dimensions'])
     luts = list(lutdw.keys())
     print('Loading LUTs took {:.1f} s'.format(time.time()-t0))
 
