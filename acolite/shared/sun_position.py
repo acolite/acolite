@@ -98,7 +98,7 @@ def sun_position(date, lon, lat):
     d['almanach_time'] = almanach_time
     d['mean_longitude'] = mnlong
     d['mean_anomaly'] = mnanom
-    d['elevation'] = el
+    d['elevation'] = el/dtor
     d['zenith'] = zen
     d['azimuth'] = az
     d['distance'] = distance
