@@ -1,9 +1,9 @@
 # QV 2020-06-23 from Planet Support CSV file
-# 
-# received "5 band" SuperDove RSR from Pooja Pandey at Planet Support
-# with Blue, Green_ii, Red, RedEdge and NIR bands
 #
-# excluded red edge band in this file
+# received "5 channel" SuperDove RSR from Pooja Pandey at Planet Support
+# with Blue, Green_ii, Red, RedEdge and NIR
+#
+# excluded RedEdge in this file
 #
 #  PlanetScope 22 Band 1 Blue
 #
