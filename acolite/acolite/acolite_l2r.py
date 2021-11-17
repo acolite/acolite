@@ -1041,8 +1041,16 @@ def acolite_l2r(gem,
                       gem.data_mem['wind'+gk]]
 
                 ## get Rayleigh parameters
-                rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
-                dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
+                if hyper:
+                    rorayl_hyper = lutdw[luts[0]]['rgi']((xi[0], lutdw[luts[0]]['ipd'][par],
+                                        lutdw[luts[0]]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], 0.001)).flatten()
+                    dutotr_hyper = lutdw[luts[0]]['rgi']((xi[0], lutdw[luts[0]]['ipd']['dutott'],
+                                        lutdw[luts[0]]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], 0.001)).flatten()
+                    rorayl_cur = ac.shared.rsr_convolute_nd(rorayl_hyper, lutdw[luts[0]]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                    dutotr_cur = ac.shared.rsr_convolute_nd(dutotr_hyper, lutdw[luts[0]]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                else:
+                    rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
+                    dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
 
                 if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
                     if verbosity > 1: print('Interpolating tiles for rhorc')
