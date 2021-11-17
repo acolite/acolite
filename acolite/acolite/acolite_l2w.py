@@ -52,7 +52,21 @@ def acolite_l2w(gem,
     if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhos datasets.'.format(gemf, len(rhos_ds)))
 
     ## read rsr
-    rsrd = ac.shared.rsr_dict(sensor=gem['gatts']['sensor'])
+    hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION', 'DESIS_HSI']
+    ## hyperspectral
+    if gem['gatts']['sensor'] in hyper_sensors:
+        hyper = True
+        if gem['gatts']['sensor']=='DESIS_HSI':
+            ### DESIS RSR and RSR file are version-specific
+            rsrd = ac.shared.rsr_dict(f"{gem['gatts']['sensor']}_{gem['gatts']['version']}")
+            # Restore sensor key without version
+            rsrd[gem['gatts']['sensor']] = rsrd[f"{gem['gatts']['sensor']}_{gem['gatts']['version']}"]
+            del rsrd[f"{gem['gatts']['sensor']}_{gem['gatts']['version']}"]
+        else:
+            rsr = ac.shared.rsr_hyper(gem['gatts']['band_waves'], gem['gatts']['band_widths'])
+            rsrd = ac.shared.rsr_dict(rsrd={gem['gatts']['sensor']:{'rsr':rsr}})
+    else:
+        rsrd = ac.shared.rsr_dict(sensor=gem['gatts']['sensor'])
 
     ## compute flag value to mask for water products
     flag_value = 0
