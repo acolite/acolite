@@ -11,7 +11,9 @@ def identify_bundle(bundle, input_type = None):
     zipped = False
 
     while input_type is None:
-        if not os.path.exists(bundle): break ## exit loop if path does not exist
+        if not os.path.exists(bundle):
+            print('Input file {} does not exist'.format(bundle))
+            break ## exit loop if path does not exist
 
         ################
         ## ACOLITE
