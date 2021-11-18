@@ -68,6 +68,22 @@ def acolite_l2w(gem,
     else:
         rsrd = ac.shared.rsr_dict(sensor=gem['gatts']['sensor'])
 
+    ## spectral turbidity/spm
+    nechad_range = setu['nechad_range']
+    for k in ['tur_nechad_*', 'spm_nechad_*']:
+        if (k in setu['l2w_parameters']):
+            setu['l2w_parameters'].remove(k)
+            ## add key to auto grouping for SNAP
+            if k[0:-2] not in gem['gatts']['auto_grouping']:
+                gem['gatts']['auto_grouping'] += ':{}'.format(k[0:-2])
+            ## run through bands
+            for b in rsrd[gem['gatts']['sensor']]['wave_name']:
+                w = rsrd[gem['gatts']['sensor']]['wave_nm'][b]
+                wn = rsrd[gem['gatts']['sensor']]['wave_name'][b]
+                if (w < nechad_range[0]) or (w > nechad_range[1]): continue
+                if wn == 'nan': continue
+                setu['l2w_parameters'].append(k.replace('_*', '_{}').format(wn))
+
     ## compute flag value to mask for water products
     flag_value = 0
     if setu['l2w_mask']:
@@ -264,11 +280,16 @@ def acolite_l2w(gem,
                 if len(sp) > 2: nechad_wave = sp[2]
                 if len(sp) > 3: nechad_wave = sp[3]
 
+            ## find out wavelength for turbidity product
             if type(nechad_wave) == str:
                 if nechad_wave.lower() == 'red': nechad_wave=665
                 elif nechad_wave.lower() == 'nir': nechad_wave=865
                 elif nechad_wave.lower() == 'green': nechad_wave=560
-                else: continue
+                else:
+                    try: ## if wavelength is specified
+                        nechad_wave = int(nechad_wave)
+                    except:
+                        continue
 
             ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
             for b in rsrd[gem['gatts']['sensor']]['rsr_bands']:
@@ -324,8 +345,8 @@ def acolite_l2w(gem,
         #############################
 
         #############################
-        ## start Dogliotti turbidity
-        if 'dogliotti' in cur_par:
+        ## start Dogliotti 2015 turbidity
+        if 'dogliotti2015' in cur_par:
             mask = True ## water parameter so apply mask
 
             par_attributes = {'algorithm':'Dogliotti et al. 2015', 'title':'Dogliotti Turbidity'}
@@ -333,7 +354,7 @@ def acolite_l2w(gem,
             par_attributes['algorithm']=''
 
             ## get config
-            par_name = 'TUR_Dogliotti'
+            par_name = 'TUR_Dogliotti2015'
             dcfg = 'defaults'
             dogliotti_par = 'blended'
             if len(sp) > 2:

@@ -25,15 +25,15 @@
     "long_name": "chlorophyll a concentration in mg m-3 derived from red-edge",
     "units": "mg m-3"},
 
-{"parameter": "TUR_Dogliotti_*",
+{"parameter": "TUR_Dogliotti2015_*",
   "standard_name": "water_turbidity",
-  "long_name": "water turbidity in NTU",
-  "units": "1"},
+  "long_name": "water turbidity in FNU",
+  "units": "FNU"},
 
 {"parameter": "TUR_Nechad_*",
   "standard_name": "water_turbidity",
-  "long_name": "water turbidity in NTU",
-  "units": "1"},
+  "long_name": "water turbidity in FNU",
+  "units": "FNU"},
 
 {"parameter": "SPM_Nechad_*",
     "standard_name": "concentration_of_suspended_matter_in_water",
