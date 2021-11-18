@@ -75,8 +75,9 @@ l2w_mask_cirrus_wave=1373
 l2w_mask_high_toa=True
 l2w_mask_high_toa_threshold=0.3
 
-## range for Nechad algorithms
+## settings for Nechad algorithms
 nechad_range=600,900
+nechad_max_rhow_C_factor=0.5
 
 ## smooth datasets before masking (get rid of some speckle in the masks)
 l2w_mask_smooth=True

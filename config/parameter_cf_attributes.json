@@ -30,12 +30,27 @@
   "long_name": "water turbidity in FNU",
   "units": "FNU"},
 
-{"parameter": "TUR_Nechad_*",
+  {"parameter": "TUR_Dogliotti2022_*",
+    "standard_name": "water_turbidity",
+    "long_name": "water turbidity in FNU",
+    "units": "FNU"},
+
+{"parameter": "TUR_Nechad2009_*",
   "standard_name": "water_turbidity",
   "long_name": "water turbidity in FNU",
   "units": "FNU"},
 
-{"parameter": "SPM_Nechad_*",
+{"parameter": "SPM_Nechad2010_*",
+    "standard_name": "concentration_of_suspended_matter_in_water",
+    "long_name": "suspended particulate matter in g m-3",
+    "units": "g m-3"},
+
+{"parameter": "TUR_Nechad2009Ave_*",
+    "standard_name": "water_turbidity",
+    "long_name": "water turbidity in FNU",
+    "units": "FNU"},
+
+{"parameter": "SPM_Nechad2010Ave_*",
     "standard_name": "concentration_of_suspended_matter_in_water",
     "long_name": "suspended particulate matter in g m-3",
     "units": "g m-3"},

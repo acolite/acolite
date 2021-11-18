@@ -53,6 +53,7 @@ def acolite_l2w(gem,
 
     ## read rsr
     hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION', 'DESIS_HSI']
+    hyper = False
     ## hyperspectral
     if gem['gatts']['sensor'] in hyper_sensors:
         hyper = True
@@ -70,12 +71,17 @@ def acolite_l2w(gem,
 
     ## spectral turbidity/spm
     nechad_range = setu['nechad_range']
-    for k in ['tur_nechad_*', 'spm_nechad_*']:
+    for k in ['tur_nechad2009_*', 'tur_nechad2009ave_*',
+              'spm_nechad2010_*', 'spm_nechad2010ave_*',
+              'tur_dogliotti2022_*']:
         if (k in setu['l2w_parameters']):
             setu['l2w_parameters'].remove(k)
             ## add key to auto grouping for SNAP
-            if k[0:-2] not in gem['gatts']['auto_grouping']:
-                gem['gatts']['auto_grouping'] += ':{}'.format(k[0:-2])
+            grouping_key = k[0:-2]
+            grouping_key = grouping_key[0:5].upper() + grouping_key[5:]
+            if 'ave' in grouping_key: grouping_key = grouping_key.replace('ave','Ave')
+            if grouping_key not in gem['gatts']['auto_grouping']:
+                gem['gatts']['auto_grouping'] += ':{}'.format(grouping_key)
             ## run through bands
             for b in rsrd[gem['gatts']['sensor']]['wave_name']:
                 w = rsrd[gem['gatts']['sensor']]['wave_nm'][b]
@@ -262,11 +268,13 @@ def acolite_l2w(gem,
                 par_attributes = {'algorithm':'Nechad et al. 2009', 'title':'Nechad Turbidity'}
                 par_attributes['reference']='Nechad et al. 2009'
                 par_attributes['algorithm']='2009 calibration'
+                cal_year = 2009
             elif cur_par[0] == 's':
                 nechad_par = 'SPM'
                 par_attributes = {'algorithm':'Nechad et al. 2010', 'title':'Nechad SPM'}
                 par_attributes['reference']='Nechad et al. 2010'
                 par_attributes['algorithm']='2010 calibration'
+                cal_year = 2010
             else:
                 continue
 
@@ -299,7 +307,7 @@ def acolite_l2w(gem,
 
             ## band center
             if nechad_parameter == 'centre':
-                par_name = '{}_Nechad_{}'.format(nechad_par, cw)
+                par_name = '{}_Nechad{}_{}'.format(nechad_par, cal_year, cw)
                 nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
                 didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], cw)
                 A_Nechad = nechad_dict['A'][didx]
@@ -307,11 +315,12 @@ def acolite_l2w(gem,
 
             ## resampled to band
             if nechad_parameter == 'resampled':
-                par_name = '{}_NechadAve_{}'.format(nechad_par, cw)
+                par_name = '{}_Nechad{}Ave_{}'.format(nechad_par, cal_year, cw)
                 nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
                 ## resample parameters to band
                 cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem['gatts']['sensor']]['rsr'])
-                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['A'], rsrd[gem['gatts']['sensor']]['rsr'])
+                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, 1/nechad_dict['A'], rsrd[gem['gatts']['sensor']]['rsr'])
+                adct = {k:1/adct[k] for k in adct}
                 A_Nechad = adct[nechad_band]
                 C_Nechad = cdct[nechad_band]
 
@@ -335,7 +344,9 @@ def acolite_l2w(gem,
                 else:
                     cur_data = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
                 ## compute parameter
+                cur_mask = np.where(cur_data >= (setu['nechad_max_rhow_C_factor'] * C_Nechad))
                 cur_data = (A_Nechad * cur_data) / (1.-(cur_data/C_Nechad))
+                cur_data[cur_mask] = np.nan
                 par_data[par_name] = cur_data
                 par_atts[par_name] = par_attributes
                 par_atts[par_name]['ds_name'] = par_name
@@ -414,6 +425,77 @@ def acolite_l2w(gem,
             red = None
             nir = None
         ## end Dogliotti turbidity
+        #############################
+
+        #############################
+        ## Dogliotti generic turbidity
+        if 'dogliotti2022' in cur_par:
+            mask = True ## water parameter so apply mask
+            nechad_par = 'TUR'
+            par_attributes = {'algorithm':'Dogliotti et al. in prep', 'title':'Dogliotti Turbidity'}
+            par_attributes['reference']='Nechad et al. 2009'
+            par_attributes['algorithm']='turbidity recalibration 2022'
+            nechad_parameter = 'center'
+            if not hyper: nechad_parameter = 'resampled'
+
+            ## find out which band to use
+            nechad_band = None
+            nechad_wave = 665
+            sp = cur_par.split('_')
+            if len(sp) > 2: nechad_wave = sp[2]
+            if len(sp) > 3: nechad_wave = sp[3]
+
+            ## find out wavelength for turbidity product
+            if type(nechad_wave) == str:
+                if nechad_wave.lower() == 'red': nechad_wave=665
+                elif nechad_wave.lower() == 'nir': nechad_wave=865
+                elif nechad_wave.lower() == 'green': nechad_wave=560
+                else:
+                    try: ## if wavelength is specified
+                        nechad_wave = int(nechad_wave)
+                    except:
+                        continue
+
+            ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
+            for b in rsrd[gem['gatts']['sensor']]['rsr_bands']:
+                if (rsrd[gem['gatts']['sensor']]['wave_name'][b] == str(cw)): nechad_band = b
+
+            A_Nechad, C_Nechad = None, None
+            nechad_dict = ac.parameters.dogliotti.coef_hyper()
+
+            ## band center
+            if nechad_parameter == 'center':
+                par_name = '{}_Dogliotti2022_{}'.format(nechad_par, cw)
+                didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], cw)
+                A_Nechad = nechad_dict['A_mean'][didx]
+                C_Nechad = nechad_dict['C'][didx]
+            elif nechad_parameter == 'resampled':
+                par_name = '{}_Dogliotti2022_{}'.format(nechad_par, cw)
+                # resample parameters to band
+                cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem['gatts']['sensor']]['rsr'])
+                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, 1/nechad_dict['A_mean'], rsrd[gem['gatts']['sensor']]['rsr'])
+                adct = {k:1/adct[k] for k in adct}
+                A_Nechad = adct[nechad_band]
+                C_Nechad = cdct[nechad_band]
+
+            ## if we have A and C we can continue
+            if (A_Nechad is not None) & (C_Nechad is not None):
+                cur_ds = 'rhos_{}'.format(cw)
+                if cur_ds in gem['data']:
+                    cur_data = 1.0 * gem['data'][cur_ds]
+                else:
+                    cur_data = ac.shared.nc_data(gemf, cur_ds, sub=sub).data
+                ## compute parameter
+                cur_mask = np.where(cur_data >= (setu['nechad_max_rhow_C_factor'] * C_Nechad))
+                cur_data = (A_Nechad * cur_data) / (1.-(cur_data/C_Nechad))
+                cur_data[cur_mask] = np.nan
+                par_data[par_name] = cur_data
+                par_atts[par_name] = par_attributes
+                par_atts[par_name]['ds_name'] = par_name
+                par_atts[par_name]['wavelength'] = cw
+                par_atts[par_name]['A_{}'.format(nechad_par)] = A_Nechad
+                par_atts[par_name]['C_{}'.format(nechad_par)] = C_Nechad
+        ## end Dogliotti generic turbidity
         #############################
 
         #############################
