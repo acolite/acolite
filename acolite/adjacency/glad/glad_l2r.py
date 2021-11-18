@@ -1,10 +1,11 @@
 ## def glad_l2r
 ## Applies GLAD correction to ACOLITE L2R file
-## GLAD developments from 2018, some results presented at ESA LPS 2019, Lisbon
+## GLAD developments from 2018, some results presented at ESA LPS 2019, Milan
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-07-06
 ## modifications: 2021-10-11 (QV) added output option
 ##                2021-10-12 (QV) added alternative interface reflectance method
+##                2021-11-09 (QV) added output of glad_x/glad_y
 
 
 def glad_l2r(ncf, output = None, ofile = None,
@@ -14,6 +15,7 @@ def glad_l2r(ncf, output = None, ofile = None,
                 glad_write_rhosu = True,
                 glad_write_rhog = True,
                 glad_write_rhoe = True,
+                glad_write_xy = False,
 
                 glad_adj_exclude_water = False,
                 glad_adj_difr = False,
@@ -94,6 +96,7 @@ def glad_l2r(ncf, output = None, ofile = None,
     gatts_out['glad_write_rhosu'] = 1 if glad_write_rhosu else 0
     gatts_out['glad_write_rhog'] = 1 if glad_write_rhog else 0
     gatts_out['glad_write_rhoe'] = 1 if glad_write_rhoe else 0
+    gatts_out['glad_write_xy'] = 1 if glad_write_xy else 0
     gatts_out['glad_adj_exclude_water'] = 1 if glad_adj_exclude_water else 0
     gatts_out['glad_adj_difr'] = 1 if glad_adj_difr else 0
     gatts_out['glad_glint'] = 1 if glad_glint else 0
@@ -184,26 +187,6 @@ def glad_l2r(ncf, output = None, ofile = None,
         int_cur = {b: float(lutdw[lut]['rgi'][b](rgi_pos)) for b in rsrd[sensor]['rsr_bands']}
         int_cur_b1 = {b: int_cur[b]/int_cur[glad_ref1_band] if int_cur[glad_ref1_band]>0 else 0 for b in rsrd[sensor]['rsr_bands'] }
         int_cur_b2 = {b: int_cur[b]/int_cur[glad_ref2_band] if int_cur[glad_ref2_band]>0 else 0 for b in rsrd[sensor]['rsr_bands']}
-
-#        print(int_cur)
-#        print(int_cur_b1)
-#        print(int_cur_b2)
-
-
-
-#        rgi_pos = [pressure, 0, raa, vza, sza, wind, aot]
-#        rgi_pos[1] = lutdw[lut]['ipd'][interface_par]
-#        int_cur_wind = {b: float(lutdw[lut]['rgi'][b](rgi_pos)) for b in rsrd[sensor]['rsr_bands']}
-#        int_cur_wind_b1 = {b: int_cur_wind[b]/int_cur_wind[glad_ref1_band] for b in rsrd[sensor]['rsr_bands']}
-#        int_cur_wind_b2 = {b: int_cur_wind[b]/int_cur_wind[glad_ref2_band] for b in rsrd[sensor]['rsr_bands']}
-
-#        print(int_cur_wind)
-#        print(int_cur_wind_b1)
-#        print(int_cur_wind_b2)
-
-
-#        print(glad_dict['gc_ref1'])
-#        stop
 
         ## run through bands
         for bi,b in enumerate(glad_order):
@@ -344,6 +327,7 @@ def glad_l2r(ncf, output = None, ofile = None,
                     glad_loop = False
                     continue
 
+
                 ## a/c in current band
                 cur_rhos = (cur_rhot/ bands[b]['tt_gas']) - atm['romix'][b]
                 cur_rhos = (cur_rhos) / ((atm['dtott'][b] * atm['utott'][b]) + atm['astot'][b]*cur_rhos)
@@ -444,6 +428,11 @@ def glad_l2r(ncf, output = None, ofile = None,
     if glad_skip:
         if os.path.exists(ofile): os.remove(ofile)
         return(ncf)
+        
+    ## write glad_x and glad_y
+    if glad_write_xy:
+        ac.output.nc_write(ofile, 'glad_x', glad_x)
+        ac.output.nc_write(ofile, 'glad_y', glad_y)
 
     ## recompute orange band
     if (sensor == 'L8_OLI') & ('rhos_613' in datasets):
