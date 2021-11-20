@@ -260,7 +260,8 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
             ofiles.append(ofile)
 
     ## remove scratch directory
-    if (clear_scratch) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
-        os.rmdir(ac.config['scratch_dir'])
+    if os.path.exists(ac.config['scratch_dir']):
+        if (clear_scratch) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
+            os.rmdir(ac.config['scratch_dir'])
 
     return(ofiles)
