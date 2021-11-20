@@ -207,7 +207,7 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
                 new = False
 
             ## old geolocation
-            if rpr_file is not None:
+            if rpr_file is None:
                 nx, ny = int(meta['WidthInPixels']), int(meta['HeightInPixels'])
                 tllat, tllon = float(meta['TopLeftLatitude']), float(meta['TopLeftLongitude'])
                 trlat, trlon = float(meta['TopRightLatitude']), float(meta['TopRightLongitude'])
