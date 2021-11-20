@@ -10,6 +10,9 @@ EARTHDATA_p=
 ## Data directory
 data_dir=data
 
+## Scratch directory
+scratch_dir=scratch
+
 ## atmospheric correction LUT data directory
 lut_dir=data/LUT
 

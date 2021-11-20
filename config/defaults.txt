@@ -40,6 +40,10 @@ pleiades_skip_pan=False
 chris_interband_calibration=True
 chris_noise_reduction=True
 
+## GF settings
+clear_scratch=True
+gf_reproject_to_utm=False
+
 ## TACT settings
 tact_run=False
 tact_output_atmosphere=False
@@ -233,6 +237,7 @@ l2t_export_geotiff=False
 l2r_export_geotiff=False
 l2w_export_geotiff=False
 export_geotiff_coordinates=False
+export_geotiff_match_file=None
 
 # delete NetCDFs
 l1r_delete_netcdf=False

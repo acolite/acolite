@@ -2,13 +2,17 @@
 ## converts GF6 bundle to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-09
+## modifications: 2021-11-20 (QV) reproject file if projection not recognised
 
-def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', output_lt=False):
+def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
+                          output_lt = False, reproject_to_utm = False, clear_scratch = True):
     import numpy as np
     from scipy.interpolate import interp2d
 
     import datetime, dateutil.parser, os
     import acolite as ac
+    from osgeo import gdal
+    #import subprocess
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -47,6 +51,11 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
+
+        ## figure out suitable UTM zone
+        utm_zone = (int(1+(float(meta['CenterLongitude'])+180.0)/6.0))
+        north = float(meta['CenterLatitude']) > 0.0
+        epsg = 'EPSG:32{}{}'.format('6' if north else '7', utm_zone)
 
         ## output attributes
         gatts = {}
@@ -120,6 +129,51 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
             gatts['obase'] = obase + '_{}'.format(ctile)
             ofile = '{}/{}.nc'.format(odir, gatts['obase'])
 
+            ## identify projection
+            try:
+                prj = ac.shared.projection_read(image_file)
+            except:
+                prj = None
+
+            ## reproject file to UTM if projection not read succesfully
+            rpr_file = None
+            if reproject_to_utm:
+                if prj is None:
+                    rpr_file = '{}/{}'.format(ac.config['scratch_dir'], bn.replace('.tiff', '_reprojected.tif'))
+                    if not os.path.exists(rpr_file):
+                        if verbosity > 1: print('Reprojecting {} to {}'.format(image_file, epsg))
+                        if verbosity > 1: print('Target file {}'.format(rpr_file))
+                        #sp = subprocess.run(' '.join(["gdalwarp", "-overwrite", " -t_srs {} -r cubic ".format(epsg),
+                        #                              image_file.replace(' ', '\ '), rpr_file.replace(' ', '\ ')]),
+                        #                              shell=True, check=True, stdout=subprocess.PIPE)
+                        ## scratch directory
+                        if not os.path.exists(ac.config['scratch_dir']):
+                            os.makedirs(ac.config['scratch_dir'])
+                        ## reproject and close dataset
+                        ds = gdal.Warp(rpr_file, image_file, dstSRS=epsg)
+                        ds = None
+                    ## get prj from new file
+                    if os.path.exists(rpr_file):
+                        prj = ac.shared.projection_read(rpr_file)
+
+            ## add projection keys to gatts
+            if prj is not None:
+                pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
+                for k in pkeys:
+                    if k in prj: gatts[k] = prj[k]
+
+                ## compute geolocation
+                if True:
+                    if verbosity > 1: print('Computing latitude/longitude')
+                    lon, lat = ac.shared.projection_geo(prj, add_half_pixel=True)
+                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                    lon = None
+                    if verbosity > 1: print('Wrote lon')
+                    ac.output.nc_write(ofile, 'lat', lat, double=True)
+                    lat = None
+                    if verbosity > 1: print('Wrote lat')
+                    new=False
+
             ## run through bands
             for bi, b in enumerate(bands_sorted):
                 if b == 'PAN': continue
@@ -127,7 +181,10 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
                 print(b, bi, dn_scaling[gatts['satellite']][gatts['sensor'].split('_')[1]][b])
 
                 ## read data
-                cdata_radiance = ac.shared.read_band(image_file, bands[b]['index'], sub=sub)
+                if rpr_file is None:
+                    cdata_radiance = ac.shared.read_band(image_file, bands[b]['index'], sub=sub)
+                else:
+                    cdata_radiance = ac.shared.read_band(rpr_file, bands[b]['index'], sub=sub)
                 data_shape = cdata_radiance.shape
 
                 ## compute radiance
@@ -149,8 +206,8 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
                 cdata = None
                 new = False
 
-            ## geolocation
-            if True:
+            ## old geolocation
+            if rpr_file is not None:
                 nx, ny = int(meta['WidthInPixels']), int(meta['HeightInPixels'])
                 tllat, tllon = float(meta['TopLeftLatitude']), float(meta['TopLeftLongitude'])
                 trlat, trlon = float(meta['TopRightLatitude']), float(meta['TopRightLongitude'])
@@ -194,7 +251,16 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
                 lon = None
                 new = False
 
+            ## remove reprojected file
+            if (clear_scratch) & (rpr_file is not None):
+                if os.path.exists(rpr_file):
+                    os.remove(rpr_file)
 
             ## add current tile to outputs
             ofiles.append(ofile)
+
+    ## remove scratch directory
+    if (clear_scratch) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
+        os.rmdir(ac.config['scratch_dir'])
+
     return(ofiles)
