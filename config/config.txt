@@ -29,4 +29,4 @@ snap_directory=/Applications/snap
 grid_dir=data/TACT/grid
 
 ## libRadtran directory
-libradtran_dir=/Users/quinten/Documents/Software/LibRadtran/libRadtran-2.0.2
+libradtran_dir=external/libRadtran-2.0.2
