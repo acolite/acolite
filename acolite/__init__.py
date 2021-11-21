@@ -40,6 +40,8 @@ if not os.path.exists('{}{}config'.format(path, os.path.sep)):
 
 cfile='{}{}config{}config.txt'.format(path,os.path.sep,os.path.sep)
 config = shared.import_config(cfile)
+config['code_path'] = code_path
+config['path'] = path
 
 ## update version info
 if 'version' in config:
