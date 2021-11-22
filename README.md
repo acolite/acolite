@@ -68,15 +68,15 @@ TACT is now integrated into ACOLITE, and allows for processing of the Landsat th
 
 By default ACOLITE expects the libRadtran (v2.0.2) to be in external/libRadtran-2.0.2 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= setting. To install libRadtran in the external directory (when in the main acolite directory):
 
-* mkdir external
-* cd external
-* wget http://www.libradtran.org/download/history/libRadtran-2.0.2.tar.gz
-* gzip -d libRadtran-2.0.2.tar.gz
-* tar -xvf libRadtran-2.0.2.tar
-* cd libRadtran-2.0.2
-* ./configure
-* make
-* make check
+            mkdir external
+            cd external
+            wget http://www.libradtran.org/download/history/libRadtran-2.0.2.tar.gz
+            gzip -d libRadtran-2.0.2.tar.gz
+            tar -xvf libRadtran-2.0.2.tar
+            cd libRadtran-2.0.2
+            ./configure
+            make
+            make check
 
 ## TACT configuration
 **2021-11-22 QV I believe this next section is no longer required**
