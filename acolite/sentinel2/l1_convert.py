@@ -361,6 +361,7 @@ def l1_convert(inputfile, output = None,
 
                     if verbosity>1:print('Computing band average per detector geometry')
                     for nf, bv in enumerate(dval):
+                        if bv == 0: continue ## fill value in new format
                         ## compute detector average geometry
                         if verbosity>2:print('Detector {}'.format(bv))
                         for b in bands:
@@ -433,6 +434,7 @@ def l1_convert(inputfile, output = None,
                                 dval = np.unique(dfoo)
 
                         for nf, bv in enumerate(dval):
+                            if bv == 0: continue ## fill value in new format
                             print('Computing band specific geometry - {} Detector {}'.format(Bn, bv))
                             det_mask = dfoo==bv
 
