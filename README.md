@@ -66,10 +66,22 @@ ACOLITE tries and retrieve the EARTHDATA_u and EARTHDATA_p (for username and pas
 ## TACT installation
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
 
-TACT needs the user to have an account at the Research Data Archive (RDA) at the University Corporation for Atmospheric Research (UCAR) to retrieve atmospheric profile data: https://rda.ucar.edu/
+By default ACOLITE expects the libRadtran (v2.0.2) to be in external/libRadtran-2.0.2 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= setting. To install libRadtran in the external directory (when in the main acolite directory):
+
+* mkdir external
+* cd external
+* wget http://www.libradtran.org/download/history/libRadtran-2.0.2.tar.gz
+* gzip -d libRadtran-2.0.2.tar.gz
+* tar -xvf libRadtran-2.0.2.tar
+* cd libRadtran-2.0.2
+* ./configure
+* make
+* make check
 
 ## TACT configuration
-* Edit the configuration file `nano config/config.txt` and add the full path to the libRadtran directory on your system to the libradtran_dir= setting
+**2021-11-22 QV I believe this next section is no longer required**
+TACT needs the user to have an account at the Research Data Archive (RDA) at the University Corporation for Atmospheric Research (UCAR) to retrieve atmospheric profile data: https://rda.ucar.edu/
+
 * Edit your .netrc file to add your RDA UCAR credentials: `nano $HOME/.netrc`, with $l and $p your login and password respectively for the RDA:
 
             machine rda.ucar.edu
