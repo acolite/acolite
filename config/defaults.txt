@@ -246,7 +246,7 @@ l2r_delete_netcdf=False
 l2w_delete_netcdf=False
 
 # LUTs
-luts=ACOLITE-LUT-202102-MOD1,ACOLITE-LUT-202102-MOD2
-luts_pressures=500,1013,1100
+luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2
+luts_pressures=500,750,1013,1100
 luts_reduce_dimensions=False
 slicing=False
