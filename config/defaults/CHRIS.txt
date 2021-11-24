@@ -8,7 +8,7 @@ dsf_wave_range=500,970
 l2w_mask_wave=1000
 l2w_mask_threshold=0.05
 resolved_geometry=False
-luts=ACOLITE-LUT-202102-MOD2
+luts=ACOLITE-LUT-202110-MOD2
 
 dsf_spectrum_option=percentile
 dsf_percentile=1
