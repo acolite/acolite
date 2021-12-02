@@ -36,6 +36,12 @@ The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and 
 
 * Vanhellemont 2020b, [Combined land surface emissivity and temperature estimation from Landsat 8 OLI and TIRS](https://doi.org/10.1016/j.isprsjprs.2020.06.007)
 
+TACT performance for Antarctic mountain sites and near shore waters was evaluated in:
+
+* Vanhellemont et al. 2021a, [Towards physical habitat characterisation in the Antarctic Sør Rondane Mountains using satellite remote sensing](https://doi.org/10.1016/j.rsase.2021.100529)
+
+* Vanhellemont et al. 2021b, [Validation of Landsat 8 high resolution Sea Surface Temperature using surfers](https://doi.org/10.1016/j.ecss.2021.107650)
+
 ## Distribution
 This repository contains all the source code to run ACOLITE in a Python environment. ACOLITE is also distributed as a binary package on the [REMSEM page](http://odnature.naturalsciences.be/remsem/software-and-data/acolite) and supported on the [ACOLITE forum](http://odnature.naturalsciences.be/remsem/acolite-forum/). Currently only the previous Landsat/Sentinel-2 version (v20210114.0) is available as binary on the REMSEM page.
 
