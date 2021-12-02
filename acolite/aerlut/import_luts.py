@@ -12,8 +12,8 @@
 ##                     2021-10-24 (QV) added get_remote as keyword
 ##                     2021-11-09 (QV) added reduce dimensions
 
-def import_luts(pressures = [500, 1013, 1100],
-                base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
+def import_luts(pressures = [500, 750, 1013, 1100],
+                base_luts = ['ACOLITE-LUT-202110-MOD1', 'ACOLITE-LUT-202110-MOD2'],
                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
                 lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                 reduce_dimensions = False, return_lut_array = False,
