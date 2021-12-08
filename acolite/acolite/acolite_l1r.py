@@ -71,6 +71,8 @@ def acolite_l1r(bundle, settings, input_type=None):
                                      geometry_res=setu['geometry_res'],
                                      geometry_per_band=setu['geometry_per_band'],
                                      geometry_fixed_footprint=setu['geometry_fixed_footprint'],
+                                     s2_include_auxillary = setu['s2_include_auxillary'],
+                                     s2_project_auxillary = setu['s2_project_auxillary'],
                                      limit=setu['limit'], poly=setu['polygon'],
                                      merge_tiles = setu['merge_tiles'],
                                      merge_zones = setu['merge_zones'],

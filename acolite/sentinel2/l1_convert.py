@@ -19,6 +19,9 @@ def l1_convert(inputfile, output = None,
                 geometry_format='GeoTIFF', ## for gpt geometry
                 geometry_override = False, ## for gpt geometry
 
+                s2_include_auxillary = False,
+                s2_project_auxillary = True,
+
                 ## for geometry grids_footprint
                 geometry_per_band = False, ## set to False at the moment since l2r processing does not use per band geometry
                 geometry_fixed_footprint = False, ## True use B1 detector footprints else band specific
@@ -570,6 +573,42 @@ def l1_convert(inputfile, output = None,
                 y = None
                 if verbosity > 1: print('Wrote y')
                 new=False
+
+        ## auxillary data
+        if s2_include_auxillary:
+            ofile_aux = '{}/{}'.format(os.path.dirname(ofile), os.path.basename(ofile).replace('_L1R.nc', '_AUX.nc'))
+            ofile_aux_new = True
+            for source in ['AUX_CAMSFO', 'AUX_ECMWFT']:
+                ## read aux data
+                aux_data = ac.sentinel2.auxillary(bundle, granule, sources=[source])
+                if len(aux_data) > 0:
+                    ## add to gatts
+                    for ai, an in enumerate(aux_data):
+                        gatts['{}_{}_{}'.format(source, an, 'dimensions')] = aux_data[an]['values'].shape
+                        gatts['{}_{}_{}'.format(source, an, 'values')] = aux_data[an]['values'].flatten()
+                        gatts['{}_{}_{}'.format(source, an, 'longitudes')] = aux_data[an]['longitudes'].flatten()
+                        gatts['{}_{}_{}'.format(source, an, 'latitudes')] = aux_data[an]['latitudes'].flatten()
+                    ## project to extent
+                    if s2_project_auxillary:
+                        aux_file = '{}/GRANULE/{}/AUX_DATA/{}'.format(bundle, granule, source)
+                        # gdal warp
+                        #adata = ac.shared.read_band(aux_file, sub=None, warp_to=warp_to)
+                        lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
+                        llo = np.vstack((lon.flatten(),lat.flatten())).T
+                        lon = None
+                        lat = None
+                        for ai, an in enumerate(aux_data):
+                            lli = np.stack((aux_data[an]['longitudes'].flatten(),
+                                            aux_data[an]['latitudes'].flatten())).T
+                            v = aux_data[an]['values'].flatten()
+                            ## interpolate and fill edges
+                            ret = scipy.interpolate.griddata(lli, v, llo)
+                            ret = ac.shared.fillnan(ret.reshape(int(gatts['global_dims'][0]), int(gatts['global_dims'][1])))
+                            ## write
+                            ac.output.nc_write(ofile_aux, '{}_{}'.format(source, an), ret, replace_nan=True, attributes=gatts, new = ofile_aux_new)
+                            if verbosity > 1: print('Wrote {}'.format('{}_{}'.format(source, an)))
+                            ret = None
+                            ofile_aux_new = False
 
         ## write TOA bands
         quant = float(meta['QUANTIFICATION_VALUE'])
