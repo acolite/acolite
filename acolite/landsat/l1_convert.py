@@ -23,6 +23,7 @@ def l1_convert(inputfile, output = None,
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
+                netcdf_projection = True,
                 merge_tiles = False,
                 merge_zones = False,
                 extend_region = False,
@@ -277,6 +278,20 @@ def l1_convert(inputfile, output = None,
                     dct_prj = {k:dct_sub[k] for k in dct_sub}
         ## end cropped
 
+        ## get projection info for netcdf
+        if netcdf_projection:
+            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=False)
+            ## PAN band projection - not used but why not compute it
+            dct_prj_pan = {k: dct_prj[k] for k in dct_prj}
+            dct_prj_pan['pixel_size'] = dct_prj_pan['pixel_size'][0]/2, dct_prj_pan['pixel_size'][1]/2
+            dct_prj_pan['xdim'] *= 2
+            dct_prj_pan['ydim'] *= 2
+            nc_projection_pan = ac.shared.projection_netcdf(dct_prj_pan, add_half_pixel=False)
+        else:
+            nc_projection = None
+            nc_projection_pan = None
+
+        ## save projection keys in gatts
         pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
         for k in pkeys:
             if k in dct_prj: gatts[k] = copy.copy(dct_prj[k])
@@ -299,6 +314,7 @@ def l1_convert(inputfile, output = None,
         warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/2,dct_prj['pixel_size'][1]/2, res_method)
 
         ## store scene and output dimensions
+        gatts['ydim'], gatts['xdim'] = dct['ydim'], dct['xdim']
         gatts['scene_dims'] = dct['ydim'], dct['xdim']
         gatts['global_dims'] = dct_prj['dimensions']
         gatts['pan_dims'] =  dct_prj['dimensions'][0]*2, dct_prj['dimensions'][1]*2
@@ -310,6 +326,8 @@ def l1_convert(inputfile, output = None,
         if new: ## half pixel offset for writing geotiff
             gatts['xrange'][0]-=gatts['pixel_size'][0]/2
             gatts['yrange'][0]-=gatts['pixel_size'][1]/2
+            gatts['xrange'][1]-=gatts['pixel_size'][0]/2
+            gatts['yrange'][1]-=gatts['pixel_size'][1]/2
 
         ## copy thermal constants to metadata
         mts = ['LEVEL1_THERMAL_CONSTANTS', 'TIRS_THERMAL_CONSTANTS', 'THERMAL_CONSTANTS'] ## Coll2, Coll1 L8, Coll1 L5/7
@@ -351,7 +369,7 @@ def l1_convert(inputfile, output = None,
                 vaa = None
                 saa = None
                 mask = None
-                ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new)
+                ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new, nc_projection=nc_projection)
                 if verbosity > 1: print('Wrote raa')
                 new = False
                 ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
@@ -372,8 +390,8 @@ def l1_convert(inputfile, output = None,
                 datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=False)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection)
                 if verbosity > 1: print('Wrote lon')
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
                 if verbosity > 1: print('Wrote lat')
@@ -387,7 +405,7 @@ def l1_convert(inputfile, output = None,
                 datasets = []
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False, nc_projection=nc_projection)
                 ac.output.nc_write(ofile, 'x', x, new=new)
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)
@@ -426,7 +444,7 @@ def l1_convert(inputfile, output = None,
                         ## write output
                         ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
                         ac.output.nc_write(ofile_pan, ds, data, attributes=gatts,replace_nan=True,
-                                           new=new_pan, dataset_attributes = ds_att)
+                                           new=new_pan, dataset_attributes = ds_att, nc_projection=nc_projection_pan)
                         new_pan = False
                         if verbosity > 1: print('Converting bands: Wrote {} to separate L1R_pan'.format(ds))
 
@@ -437,7 +455,8 @@ def l1_convert(inputfile, output = None,
                     if clip: data[clip_mask] = np.nan
 
                     ## write to ms file
-                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
+                                       dataset_attributes = ds_att, nc_projection=nc_projection)
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
                 else:

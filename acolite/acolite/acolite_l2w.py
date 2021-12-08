@@ -2,8 +2,7 @@
 ## new L2W parameter computation for L2R generic extracted miniscene
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-09
-## modifications:
-
+## modifications: 2021-12-08 (QV) added nc_projection
 
 def acolite_l2w(gem,
                 settings = None,
@@ -26,6 +25,10 @@ def acolite_l2w(gem,
     if type(gem) is str:
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub, load_data=load_data)
+        if 'nc_projection' in gem:
+            nc_projection = gem['nc_projection']
+        else:
+            nc_projection = None
     gemf = gem['gatts']['gemfile']
 
     ## set up output file
@@ -228,12 +231,12 @@ def acolite_l2w(gem,
         if verbosity > 1: print('Writing {}'.format(cur_par))
         ## add attributes
         for k in att_add: cur_att[k] = att_add[k]
-        ac.output.nc_write(ofile, cur_par, cur_data, dataset_attributes=cur_att, attributes=gem['gatts'], new=new)
+        ac.output.nc_write(ofile, cur_par, cur_data, dataset_attributes=cur_att, attributes=gem['gatts'], new=new, nc_projection=nc_projection)
         cur_data = None
         new = False
 
     ## write l2 flags
-    ac.output.nc_write(ofile, 'l2_flags', l2_flags, attributes=gem['gatts'], new=new)
+    ac.output.nc_write(ofile, 'l2_flags', l2_flags, attributes=gem['gatts'], new=new, nc_projection=nc_projection)
     if return_gem: gem['data']['l2_flags'] = l2_flags
     new = False
 
@@ -1298,7 +1301,7 @@ def acolite_l2w(gem,
             ## write to NetCDF
             if verbosity > 1: print('Writing {}'.format(cur_ds))
             ac.output.nc_write(ofile, cur_ds, par_data[cur_ds], dataset_attributes=par_atts[cur_ds],
-                               attributes=gem['gatts'], new=new)
+                               attributes=gem['gatts'], new=new, nc_projection=nc_projection)
             ## we can also add parameter to gem
             if return_gem:
                 gem['data'][cur_ds] = par_data[cur_ds]

@@ -2,7 +2,7 @@
 ## converts Planet data to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
-## modifications:
+## modifications: 2021-12-08 (QV) added nc_projection
 
 def l1_convert(inputfile, output = None,
                 limit = None, sub = None,
@@ -14,6 +14,7 @@ def l1_convert(inputfile, output = None,
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
+                netcdf_projection = True,
                 merge_tiles = False,
                 merge_zones = False,
                 extend_region = False,
@@ -219,6 +220,13 @@ def l1_convert(inputfile, output = None,
                     dct_prj = {k:dct_sub[k] for k in dct_sub}
         ## end cropped
 
+        ## get projection info for netcdf
+        if netcdf_projection:
+            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=True)
+        else:
+            nc_projection = None
+
+        ## save projection keys in gatts
         pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
         for k in pkeys:
             if k in dct_prj: gatts[k] = dct_prj[k]
@@ -257,7 +265,7 @@ def l1_convert(inputfile, output = None,
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection)
                 lon = None
                 if verbosity > 1: print('Wrote lon')
                 ac.output.nc_write(ofile, 'lat', lat, double=True)
@@ -274,7 +282,7 @@ def l1_convert(inputfile, output = None,
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new)
+                ac.output.nc_write(ofile, 'x', x, new=new, nc_projection=nc_projection)
                 x = None
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)
@@ -315,7 +323,8 @@ def l1_convert(inputfile, output = None,
                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
             ## write to netcdf file
-            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
+                                new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 

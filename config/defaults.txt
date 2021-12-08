@@ -14,6 +14,7 @@ output_geolocation=True
 output_xy=False
 output_geometry=True
 output_rhorc=False
+netcdf_projection=True
 
 ## Landsat 8 options
 l8_orange_band=True

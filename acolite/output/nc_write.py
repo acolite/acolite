@@ -1,4 +1,4 @@
-## def write_rgb
+## def nc_write
 ## writes dataset to netcdf file
 ## written by Quinten Vanhellemont, RBINS for the PONDER project
 ## 2016-07
@@ -20,12 +20,15 @@
 ##                QV 2021-02-09 added replace_nan option for data without offset, changed numpy import
 ##                QV 2021-06-04 added dataset attributes defaults
 ##                QV 2021-07-19 change to using setncattr
+##                QV 2021-12-08 added nc_projection
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
-                 keep=True, offset=None, replace_nan=False, metadata=None, dataset_attributes=None, double=False,
+                 keep=True, offset=None, replace_nan=False,
+                 metadata=None, dataset_attributes=None, double=False,
                  chunking=True, chunk_tiles=[10,10], chunksizes=None, fillvalue=None,
-                 format='NETCDF4',#'NETCDF4_CLASSIC',
+                 nc_projection = None,
+                 format='NETCDF4', #'NETCDF4_CLASSIC',
                  nc_compression=False # currently off: file saving takes *much* longer,
                                       #about 30% file size reduction for Pléiades
                  ):
@@ -101,8 +104,27 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                         print('Failed to write attribute: {}'.format(key))
 
         ## set up x and y dimensions
-        nc.createDimension('x', global_dims[1])
-        nc.createDimension('y', global_dims[0])
+        x = nc.createDimension('x', global_dims[1])
+        y = nc.createDimension('y', global_dims[0])
+
+        ## set up NetCDF projection if provided
+        if nc_projection is not None:
+            pkey = [k for k in nc_projection.keys() if k not in ['x', 'y']][0]
+            nc.setncattr('projection_key', pkey)
+
+            var = nc.createVariable(pkey, np.float64)
+            for att in nc_projection[pkey]['attributes'].keys():
+                if att in ['_FillValue']: continue
+                var.setncattr(att, nc_projection[pkey]['attributes'][att])
+
+            for v in ['x', 'y']:
+                var = nc.createVariable(v, nc_projection[v]['data'].dtype, (v,))
+                #var[:] = nc_projection[v]['data']
+                var = nc.variables[v]
+                var[:] = nc_projection[v]['data']
+                for att in nc_projection[v]['attributes'].keys():
+                    if att in ['_FillValue']: continue
+                    var.setncattr(att, nc_projection[v]['attributes'][att])
     else:
         nc = Dataset(ncfile, 'a', format=format)
         if update_attributes:
@@ -116,6 +138,13 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
 
     if (not double) & (data.dtype == np.float64):
         data = data.astype(np.float32)
+
+    ## get grid_mapping projection key
+    try:
+        #pkey = getattr(nc,'projection_key')
+        pkey = nc.getncattr('projection_key')
+    except:
+        pkey = None
 
     ## write data
     if dataset in nc.variables.keys():
@@ -156,6 +185,9 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
             for att in dataset_attributes.keys():
                 if att in ['_FillValue']: continue
                 var.setncattr(att, dataset_attributes[att])
+
+        ## add grid mapping key if there is projection set
+        if pkey is not None: var.setncattr('grid_mapping', pkey)
 
         if offset is None:
             if data.dtype in (np.float32, np.float64): var[:] = np.nan

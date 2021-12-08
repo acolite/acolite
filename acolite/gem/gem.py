@@ -2,6 +2,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-04-01
 ## modifications: 2021-04-01 (QV) added some write support
+##                2021-12-08 (QV) added nc_projection
 
 import acolite as ac
 import os, sys
@@ -16,6 +17,7 @@ class gem(object):
             self.store = False
             self.bands = {}
             self.verbosity = 0
+            self.nc_projection = None
 
             if new:
                 self.new = True
@@ -26,6 +28,7 @@ class gem(object):
                 self.new = False
                 self.gatts_read()
                 self.datasets_read()
+                self.nc_projection = ac.shared.nc_read_projection(self.file)
 
         def gatts_read(self):
             self.gatts = ac.shared.nc_gatts(self.file)
@@ -72,7 +75,8 @@ class gem(object):
             if self.new:
                 if os.path.exists(self.file):
                     os.remove(self.file)
-            ac.output.nc_write(self.file, ds, data, attributes=self.gatts, dataset_attributes=ds_att, new=self.new)
+            ac.output.nc_write(self.file, ds, data, attributes=self.gatts,
+                                dataset_attributes=ds_att, new=self.new, nc_projection=self.nc_projection)
             if self.verbosity > 0: print('Wrote {}'.format(ds))
             self.new = False
 

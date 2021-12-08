@@ -2,8 +2,7 @@
 ## function to convert image from original format to ACOLITE L1R NetCDF
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-10
-## modifications:
-##
+## modifications: 2021-12-08 (QV) added nc_projection
 
 def acolite_l1r(bundle, settings, input_type=None):
     import acolite as ac
@@ -55,6 +54,7 @@ def acolite_l1r(bundle, settings, input_type=None):
                                     output_geolocation=setu['output_geolocation'],
                                     output_xy=setu['output_xy'],
                                     output_geometry=setu['output_geometry'],
+                                    netcdf_projection = setu['netcdf_projection'],
                                     vname = setu['region_name'],
                                     verbosity=setu['verbosity'])
     ## end Landsat
@@ -73,6 +73,7 @@ def acolite_l1r(bundle, settings, input_type=None):
                                      geometry_fixed_footprint=setu['geometry_fixed_footprint'],
                                      s2_include_auxillary = setu['s2_include_auxillary'],
                                      s2_project_auxillary = setu['s2_project_auxillary'],
+                                     netcdf_projection = setu['netcdf_projection'],
                                      limit=setu['limit'], poly=setu['polygon'],
                                      merge_tiles = setu['merge_tiles'],
                                      merge_zones = setu['merge_zones'],
@@ -197,6 +198,7 @@ def acolite_l1r(bundle, settings, input_type=None):
                                          extend_region = setu['extend_region'],
                                          output_geolocation=setu['output_geolocation'],
                                          output_xy=setu['output_xy'],
+                                         netcdf_projection = setu['netcdf_projection'],
                                          vname = setu['region_name'],
                                          verbosity=setu['verbosity'])
     ## end Planet

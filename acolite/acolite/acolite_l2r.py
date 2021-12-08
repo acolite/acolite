@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-01
 ## modifications: 2021-03-11 (QV) forked from acolite_gem
+##                2021-12-08 (QV) added nc_projection
 
 def acolite_l2r(gem,
                 output = None,
@@ -24,7 +25,9 @@ def acolite_l2r(gem,
     time_start = datetime.datetime.now()
 
     ## read gem file if NetCDF
-    if type(gem) is str: gem = ac.gem.gem(gem)
+    if type(gem) is str:
+        gem = ac.gem.gem(gem)
+        nc_projection = gem.nc_projection
     gemf = gem.file
 
     ## combine default and user defined settings
@@ -51,7 +54,7 @@ def acolite_l2r(gem,
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
 
     ## get dimensions and number of elements
-    gem.gatts['data_dimensions'] = gem.data(gem.datasets[0]).shape
+    gem.gatts['data_dimensions'] = gem.data(gem.datasets[-1]).shape
     gem.gatts['data_elements'] = gem.gatts['data_dimensions'][0]*gem.gatts['data_dimensions'][1]
 
     ## read rsrd and get band wavelengths
@@ -278,6 +281,7 @@ def acolite_l2r(gem,
             ofile = '{}'.format(target_file)
 
         gemo = ac.gem.gem(ofile, new=True)
+        gemo.nc_projection = nc_projection
         gemo.bands = gem.bands
         gemo.verbosity = setu['verbosity']
         gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}

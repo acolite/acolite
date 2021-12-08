@@ -8,81 +8,103 @@
 ##                2021-02-09 (QV) more generic, only depends on presence of xrange, yrange, pixel_size and p4 string tags
 ##                2021-02-11 (QV) disabled half pixel offset option, need to check Landsat
 ##                2021-11-20 (QV) added match_file to extract projection from (esp if data is using RPC for geolocation?)
+##                2021-12-08 (QV) added support for the netcdf projection
 
-def nc_to_geotiff(f, skip_geo=True, match_file=None):
+def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None):
     import acolite as ac
     import numpy as np
     import os
+    from osgeo import osr, gdal
 
     gatts = ac.shared.nc_gatts(f)
-    datasets = ac.shared.nc_datasets(f)
-    tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
+    datasets_file = ac.shared.nc_datasets(f)
+    if 'ofile' in gatts:
+        out = gatts['ofile'].replace('.nc', '')
+    else:
+        out = f.replace('.nc', '')
 
-    if all([t in gatts for t in tags]) or (match_file is not None):
-        from osgeo import osr, gdal
-        if 'ofile' in gatts:
-            out = gatts['ofile'].replace('.nc', '')
-        else:
-            out = f.replace('.nc', '')
-
-        if match_file is None:
-            xrange = gatts['xrange']
-            yrange = gatts['yrange']
-            pixel_size = gatts['pixel_size']
-
-            ## make WKT
-            srs = osr.SpatialReference()
-            srs.ImportFromProj4(gatts['proj4_string'])
-            wkt = srs.ExportToWkt()
-
-            ## make geotransform, add half a pixel for pixel centers
-            trans = (xrange[0]+pixel_size[0]/2, pixel_size[0], 0.0, \
-                     yrange[0]+pixel_size[1]/2, 0.0, pixel_size[1])
-        else:
-            if os.path.exists(match_file):
-                ## get projection info from match file
-                src_ds = gdal.Open(match_file)
-                transform = src_ds.GetGeoTransform()
-                projection = src_ds.GetProjection()
-                dimx, dimy = src_ds.RasterXSize, src_ds.RasterYSize
-                ## get RPC data
-                rpcs = src_ds.GetMetadata('RPC')
-                src_ds = None
-            else:
-                print('File {} not fount. Not outputting GeoTIFF files.'.format(match_file))
-                return
-
-        for ds in datasets:
-            if (skip_geo) & (ds in ['lat', 'lon', 'x', 'y']): continue
-
-            data = ac.shared.nc_data(f, ds)
-            y,x = data.shape
-            if data.dtype == np.float32:
-                dt = gdal.GDT_Float32
-            else:
-                print(data.dtype)
-
+    if 'projection_key' in gatts:
+        for ds in datasets_file:
+            if datasets is not None:
+                if ds not in datasets: continue
+            if ds in ['x', 'y', gatts['projection_key']]: continue
+            if (skip_geo) & (ds in ['lat', 'lon']): continue
             outfile = '{}_{}{}'.format(out, ds, '.tif')
-
-            if match_file is None:
-                driver = gdal.GetDriverByName('GTiff')
-                dataset = driver.Create(outfile, x, y, 1, dt)
-                dataset.SetGeoTransform(trans)
-                dataset.SetProjection(wkt)
-            else:
-                ## create output file
-                driver = gdal.GetDriverByName('GTiff')
-                dataset = driver.Create(outfile, dimx, dimy, 1, dt)
-                dataset.SetGeoTransform(transform)
-                dataset.SetProjection(projection)
-                #dataset = driver.CreateCopy(outfile, src_ds, 0 )
-                ## write RPC data
-                dataset.SetMetadata(rpcs ,'RPC')
-                src_ds = None
-
-            dataset.GetRasterBand(1).WriteArray(data)
-            dataset.GetRasterBand(1).SetNoDataValue(np.nan)
-            dataset.FlushCache()
+            ## masking of np.nan values doesn't work
+            #dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
+            #                    outputType=gdal.GDT_Float32, noData=np.nan, maskBand='mask')
+            dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds))
+            ## this is in effect writing the data twice, but needed to keep the nodata value mask
+            if True:
+                data = ac.shared.nc_data(f, ds)
+                dt.GetRasterBand(1).WriteArray(data)
+                dt.GetRasterBand(1).SetNoDataValue(np.nan)
+            dt = None
             print('Wrote {}'.format(outfile))
     else:
-        print('File {} not  recognised. Not outputting GeoTIFF files.'.format(f))
+        tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
+        if all([t in gatts for t in tags]) or (match_file is not None):
+            if match_file is None:
+                xrange = gatts['xrange']
+                yrange = gatts['yrange']
+                pixel_size = gatts['pixel_size']
+
+                ## make WKT
+                srs = osr.SpatialReference()
+                srs.ImportFromProj4(gatts['proj4_string'])
+                wkt = srs.ExportToWkt()
+
+                ## make geotransform
+                trans = (xrange[0], pixel_size[0], 0.0, \
+                         yrange[0], 0.0, pixel_size[1])
+
+            else:
+                if os.path.exists(match_file):
+                    ## get projection info from match file
+                    src_ds = gdal.Open(match_file)
+                    transform = src_ds.GetGeoTransform()
+                    projection = src_ds.GetProjection()
+                    dimx, dimy = src_ds.RasterXSize, src_ds.RasterYSize
+                    ## get RPC data
+                    rpcs = src_ds.GetMetadata('RPC')
+                    src_ds = None
+                else:
+                    print('File {} not fount. Not outputting GeoTIFF files.'.format(match_file))
+                    return
+
+            for ds in datasets_file:
+                if datasets is not None:
+                    if ds not in datasets: continue
+                if (skip_geo) & (ds in ['lat', 'lon', 'x', 'y']): continue
+
+                data = ac.shared.nc_data(f, ds)
+                y,x = data.shape
+                if data.dtype == np.float32:
+                    dt = gdal.GDT_Float32
+                else:
+                    print(data.dtype)
+
+                outfile = '{}_{}{}'.format(out, ds, '.tif')
+
+                if match_file is None:
+                    driver = gdal.GetDriverByName('GTiff')
+                    dataset = driver.Create(outfile, x, y, 1, dt)
+                    dataset.SetGeoTransform(trans)
+                    dataset.SetProjection(wkt)
+                else:
+                    ## create output file
+                    driver = gdal.GetDriverByName('GTiff')
+                    dataset = driver.Create(outfile, dimx, dimy, 1, dt)
+                    dataset.SetGeoTransform(transform)
+                    dataset.SetProjection(projection)
+                    #dataset = driver.CreateCopy(outfile, src_ds, 0 )
+                    ## write RPC data
+                    dataset.SetMetadata(rpcs ,'RPC')
+                    src_ds = None
+
+                dataset.GetRasterBand(1).WriteArray(data)
+                dataset.GetRasterBand(1).SetNoDataValue(np.nan)
+                dataset.FlushCache()
+                print('Wrote {}'.format(outfile))
+        else:
+            print('File {} not  recognised. Not outputting GeoTIFF files.'.format(f))

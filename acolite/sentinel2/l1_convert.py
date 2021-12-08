@@ -4,6 +4,7 @@
 ## 2021-02-11
 ## modifications: 2021-10-13 (QV) support for new L1C format from processing baseline 4
 #                 2021-10-14 (QV) fixed band specific footprints for band specific geometry for PB004
+##                2021-12-08 (QV) added nc_projection
 
 def l1_convert(inputfile, output = None,
                 limit = None, sub = None,
@@ -19,6 +20,7 @@ def l1_convert(inputfile, output = None,
                 geometry_format='GeoTIFF', ## for gpt geometry
                 geometry_override = False, ## for gpt geometry
 
+                netcdf_projection = True,
                 s2_include_auxillary = False,
                 s2_project_auxillary = True,
 
@@ -263,6 +265,13 @@ def l1_convert(inputfile, output = None,
                     dct_prj = {k:dct_sub[k] for k in dct_sub}
         ## end cropped
 
+        ## get projection info for netcdf
+        if netcdf_projection:
+            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=True)
+        else:
+            nc_projection = None
+
+        ## save projection keys in gatts
         pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
         for k in pkeys:
             if k in dct_prj: gatts[k] = dct_prj[k]
@@ -503,7 +512,7 @@ def l1_convert(inputfile, output = None,
             raa[mask] = np.nan
             vaa = None
 
-            ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new)
+            ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote raa {}'.format(raa.shape))
             raa = None
             new = False
@@ -548,7 +557,7 @@ def l1_convert(inputfile, output = None,
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
                 print(lon.shape)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection)
                 lon = None
                 if verbosity > 1: print('Wrote lon')
                 print(lat.shape)
@@ -566,7 +575,7 @@ def l1_convert(inputfile, output = None,
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new)
+                ac.output.nc_write(ofile, 'x', x, new=new, nc_projection=nc_projection)
                 x = None
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)
@@ -605,7 +614,8 @@ def l1_convert(inputfile, output = None,
                             ret = scipy.interpolate.griddata(lli, v, llo)
                             ret = ac.shared.fillnan(ret.reshape(int(gatts['global_dims'][0]), int(gatts['global_dims'][1])))
                             ## write
-                            ac.output.nc_write(ofile_aux, '{}_{}'.format(source, an), ret, replace_nan=True, attributes=gatts, new = ofile_aux_new)
+                            ac.output.nc_write(ofile_aux, '{}_{}'.format(source, an), ret, replace_nan=True,
+                                                attributes=gatts, new = ofile_aux_new, nc_projection=nc_projection)
                             if verbosity > 1: print('Wrote {}'.format('{}_{}'.format(source, an)))
                             ret = None
                             ofile_aux_new = False
@@ -644,7 +654,8 @@ def l1_convert(inputfile, output = None,
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                     ## write to ms file
-                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
+                                        dataset_attributes = ds_att, nc_projection=nc_projection)
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
             else:
