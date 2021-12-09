@@ -112,6 +112,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             gatts = ac.shared.nc_gatts(l1r)
             if 'acolite_file_type' not in gatts: gatts['acolite_file_type'] = 'L1R'
             if l1r_setu['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r, match_file = l1r_setu['export_geotiff_match_file'],
+                                                            cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                             skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
 
             ## do VIS-SWIR atmospheric correction
@@ -142,6 +143,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                 if l2r_setu['l2r_export_geotiff']:
                     for ncf in l2r:
                         ac.output.nc_to_geotiff(ncf, match_file = l2r_setu['export_geotiff_match_file'],
+                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                 skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
 
                 ## make rgb maps
@@ -155,6 +157,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                     for ncf in l2r:
                         ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
                         if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
+                                                                        cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                                         skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
                         l2w_files.append(ret)
 
@@ -168,7 +171,8 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                                             output_intermediate = l1r_setu['tact_output_intermediate'])
                 l2t_files.append(ret)
                 if l1r_setu['l2t_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l1r_setu['export_geotiff_match_file'],
-                                                                                skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
+                                                                           cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                                           skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
 
                 ## make l2t maps
                 if l1r_setu['tact_map']: ac.acolite.acolite_map(ret, settings=l1r_setu)

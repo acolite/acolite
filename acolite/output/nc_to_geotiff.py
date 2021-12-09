@@ -10,11 +10,17 @@
 ##                2021-11-20 (QV) added match_file to extract projection from (esp if data is using RPC for geolocation?)
 ##                2021-12-08 (QV) added support for the netcdf projection
 
-def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None):
+def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimized_geotiff=False):
     import acolite as ac
     import numpy as np
     import os
     from osgeo import osr, gdal
+
+    creationOptions = None
+    format = 'GTiff'
+    if cloud_optimized_geotiff:
+        creationOptions = ['COMPRESS=DEFLATE', 'PREDICTOR=2', 'OVERVIEWS=NONE', 'BLOCKSIZE=1024']
+        format = 'COG'
 
     gatts = ac.shared.nc_gatts(f)
     datasets_file = ac.shared.nc_datasets(f)
@@ -33,7 +39,8 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None):
             ## masking of np.nan values doesn't work
             #dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
             #                    outputType=gdal.GDT_Float32, noData=np.nan, maskBand='mask')
-            dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds))
+            dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
+                                format=format, creationOptions=creationOptions)
             ## this is in effect writing the data twice, but needed to keep the nodata value mask
             if True:
                 data = ac.shared.nc_data(f, ds)
@@ -92,7 +99,6 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None):
                     dataset.SetGeoTransform(trans)
                     dataset.SetProjection(wkt)
                 else:
-                    ## create output file
                     driver = gdal.GetDriverByName('GTiff')
                     dataset = driver.Create(outfile, dimx, dimy, 1, dt)
                     dataset.SetGeoTransform(transform)
