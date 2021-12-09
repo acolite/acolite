@@ -323,6 +323,7 @@ def l1_convert(inputfile, output = None,
         if (merge_tiles is False):
             new = True
             new_pan = True
+
         if new: ## half pixel offset for writing geotiff
             gatts['xrange'][0]-=gatts['pixel_size'][0]/2
             gatts['yrange'][0]-=gatts['pixel_size'][1]/2
@@ -405,7 +406,7 @@ def l1_convert(inputfile, output = None,
                 datasets = []
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False, nc_projection=nc_projection)
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False)
                 ac.output.nc_write(ofile, 'x', x, new=new)
                 if verbosity > 1: print('Wrote x')
                 ac.output.nc_write(ofile, 'y', y)
