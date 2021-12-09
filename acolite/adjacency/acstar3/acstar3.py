@@ -316,8 +316,9 @@ def acstar3(ncf, output=None, settings=None,
 
     ## read global attributes
     gatts = ac.shared.nc_gatts(ncf)
+    nc_projection = ac.shared.nc_read_projection(ncf)
     sensor = gatts['sensor']
-    if (sensor not in ['L8_OLI', 'S2A_MSI', 'S2B_MSI']) or ('PlanetScope' not in sensor):
+    if (sensor not in ['L8_OLI', 'S2A_MSI', 'S2B_MSI']) and ('PlanetScope' not in sensor):
         print('ACSTAR3 not implemented for {}'.format(sensor))
         return([ncf])
 
@@ -732,8 +733,10 @@ def acstar3(ncf, output=None, settings=None,
         for ds in datasets:
             if ('rhot_' in ds) & (ds not in ['rhot_1373']) : continue
             if 'rhos_' in ds: continue
+            if (nc_projection is not None) & (ds in ['x', 'y', gatts['projection_key']]): continue
             d, att = ac.shared.nc_data(ncf, ds, attributes = True)
-            ac.output.nc_write(ofile, ds, d, dataset_attributes = att, attributes = gatts, new = new)
+            ac.output.nc_write(ofile, ds, d, dataset_attributes = att, attributes = gatts,
+                                new = new, nc_projection=nc_projection)
             new = False
 
         ## compute adjacency and environment effects

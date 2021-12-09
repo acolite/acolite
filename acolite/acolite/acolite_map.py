@@ -261,6 +261,9 @@ def acolite_map(ncf, output = None,
 
     ## make plots
     for cpar in plot_parameters:
+        if 'projection_key' in gatts:
+            if cpar in ['x', 'y', gatts['projection_key']]: continue
+            
         cparl = cpar.lower()
         ## RGB
         if (cpar == 'rgb_rhot') | (cpar == 'rgb_rhos'):

@@ -29,6 +29,10 @@ def tact_gem(gem, output_file = True,
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub)
     gemf = gem['gatts']['gemfile']
+    if 'nc_projection' in gem:
+        nc_projection = gem['nc_projection']
+    else:
+        nc_projection = None
 
     if verbosity > 0: print('Running tact for {}'.format(gemf))
 
@@ -124,6 +128,9 @@ def tact_gem(gem, output_file = True,
 
     ## write output NetCDF
     if output_file:
+        gem['gatts']['acolite_file_type'] = 'L2T'
+        gem['gatts']['ofile'] = ofile
+
         new = True
         datasets_ofile = []
         if os.path.exists(ofile) & target_file_append:
@@ -134,7 +141,8 @@ def tact_gem(gem, output_file = True,
             if ds not in gem['data']: continue
             ds_att = None
             if ds in gem['atts']: ds_att = gem['atts'][ds]
-            ac.output.nc_write(ofile, ds, gem['data'][ds], new=new, attributes=gem['gatts'], dataset_attributes=ds_att)
+            ac.output.nc_write(ofile, ds, gem['data'][ds], new=new, nc_projection=nc_projection,
+                               attributes=gem['gatts'], dataset_attributes=ds_att)
             if verbosity > 1: print('Wrote {} to {}'.format(ds, ofile))
             new=False
         if verbosity > 0: print('Wrote {}'.format(ofile))

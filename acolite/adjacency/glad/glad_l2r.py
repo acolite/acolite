@@ -41,6 +41,7 @@ def glad_l2r(ncf, output = None, ofile = None,
 
     ## get attributes and identify sensor
     gatts = ac.shared.nc_gatts(ncf)
+    nc_projection = ac.shared.nc_read_projection(ncf)
     sensor = gatts['sensor']
 
     sensors = ['L5_TM', 'L7_ETM', 'L8_OLI', 'S2A_MSI','S2B_MSI']
@@ -125,8 +126,10 @@ def glad_l2r(ncf, output = None, ofile = None,
     update_attributes, new = True, True
     for ds in copy_datasets:
         if ds not in datasets: continue
+        if (nc_projection is not None) & (ds in ['x', 'y', gatts['projection_key']]): continue
         d, a = ac.shared.nc_data(ncf, ds, attributes=True)
         ac.output.nc_write(ofile, ds, d, dataset_attributes = a,
+                           nc_projection = nc_projection,
                            attributes=gatts_out, update_attributes = update_attributes, new=new)
         update_attributes, new = False, False
 
@@ -399,13 +402,13 @@ def glad_l2r(ncf, output = None, ofile = None,
             ## write current rhot
             if write_rhot:
                 ac.output.nc_write(ofile, bands[b]['rhot_ds'], cur_rhot, dataset_attributes = cur_att,
-                       attributes=gatts_out, update_attributes = update_attributes, new=new)
+                       nc_projection=nc_projection, attributes=gatts_out, update_attributes = update_attributes, new=new)
                 update_attributes, new = False, False
 
             ## update attributes
             for k in atm: cur_att[k] = atm[k][b]
             ac.output.nc_write(ofile, bands[b]['rhos_ds'], cur_rhos, dataset_attributes = cur_att,
-                                attributes=gatts_out, update_attributes = update_attributes, new=new)
+                                nc_projection=nc_projection, attributes=gatts_out, update_attributes = update_attributes, new=new)
             update_attributes, new = False, False
 
 
@@ -428,7 +431,7 @@ def glad_l2r(ncf, output = None, ofile = None,
     if glad_skip:
         if os.path.exists(ofile): os.remove(ofile)
         return(ncf)
-        
+
     ## write glad_x and glad_y
     if glad_write_xy:
         ac.output.nc_write(ofile, 'glad_x', glad_x)
