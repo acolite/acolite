@@ -53,7 +53,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     if lutdw is None:
                         print('Importing source LUTs')
                         lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
-                                                        lut_par = [par],
+                                                        lut_par = [par], return_lut_array = True,
                                                         pressures = pressures, get_remote = get_remote,
                                                         add_rsky = par == 'romix+rsky_t', rsky_lut = rsky_lut)
                     pid = lutdw[lut]['ipd'][par]
