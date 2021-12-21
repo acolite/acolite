@@ -138,7 +138,11 @@ def l1_convert(inputfile,
         ## get list of tiles in this bundle
         ntiles = len(meta['TILE_INFO'])
         for ti, tile_mdata in enumerate(meta['TILE_INFO']):
-            tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
+            try:
+                tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
+            except:
+                tile = ''
+
             file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
             ## check if the files were named .TIF instead of .TIFF
             if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
@@ -224,7 +228,10 @@ def l1_convert(inputfile,
             ## run through tiles in this bundle
             ntiles = len(meta['TILE_INFO'])
             for ti, tile_mdata in enumerate(meta['TILE_INFO']):
-                tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
+                try:
+                    tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
+                except:
+                    tile = ''
 
                 ## get tile offset
                 offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
