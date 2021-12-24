@@ -19,7 +19,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
     import acolite as ac
 
     if True:
-            lutdir = '{}/LUT/{}/'.format(ac.config['data_dir'], '-'.join(lutbase.split('-')[1:3]))
+            lutdir = '{}/{}/'.format(ac.config['lut_dir'], '-'.join(lutbase.split('-')[1:3]))
             lutnc = '{}/{}-MOD{}.nc'.format(lutdir, lutbase, model)
 
             ## base lut
@@ -72,7 +72,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                 lutnc_s = '{}/{}/{}.nc'.format(lutdir, sensor, slut)
 
                 ## get sensor RSR
-                lutdir=ac.config['data_dir']+'/LUT/'
+                lutdir=ac.config['lut_dir']
                 rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
                 rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
 
