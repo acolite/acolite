@@ -50,6 +50,8 @@ chl_oc4,0.03,30,True,Calgae255,CHL OC4,mgm$^{-3}$
 #
 chl_re_gons,1,100,True,Calgae255,CHL Gons,mg m$^{-3}$
 chl_re_gons740,1,100,True,Calgae255,CHL Gons740,mg m$^{-3}$
+chl_re_gons_nocheck,1,100,True,Calgae255,CHL Gons,mg m$^{-3}$
+chl_re_gons740_nocheck,1,100,True,Calgae255,CHL Gons740,mg m$^{-3}$
 chl_re_moses3b,1,100,True,Calgae255,CHL Moses,mg m$^{-3}$
 chl_re_moses3b740,1,100,True,Calgae255,CHL Moses740,mg m$^{-3}$
 chl_re_mishra,1,100,True,Calgae255,CHL Mishra,mg m$^{-3}$

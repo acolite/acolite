@@ -689,9 +689,10 @@ def acolite_l2w(gem,
                     rm = tmp_data[1]/tmp_data[0]
                     par_data[par_name] = ((rm * (gc[3] + bb)) - gc[4] - np.power(bb,gc[5]))
                     par_data[par_name] /= gons[gons_name]['astar_chl']
-                    par_data[par_name][par_data[par_name]<0]=np.nan
-                    gm = gons[gons_name]['validity']
-                    par_data[par_name][((tmp_data[0] <= gm[0]) | (tmp_data[1]/tmp_data[0] <= gm[1]))]=np.nan
+                    if '_nocheck' not in par_name:
+                        par_data[par_name][par_data[par_name]<0]=np.nan
+                        gm = gons[gons_name]['validity']
+                        par_data[par_name][((tmp_data[0] <= gm[0]) | (tmp_data[1]/tmp_data[0] <= gm[1]))]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute GONS
