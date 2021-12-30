@@ -65,6 +65,7 @@ def l1_convert(inputfile,
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
 
         metafiles = glob.glob('{}/{}'.format(bundle,'*.XML'))
+        metafiles.sort()
         if len(metafiles)>0:
             idx = 0
             if len(metafiles) >= 1:
