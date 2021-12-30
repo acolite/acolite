@@ -47,12 +47,17 @@ def acolite_l2w(gem,
 
     ## get rhot and rhos wavelengths
     rhot_ds = [ds for ds in gem['datasets'] if 'rhot_' in ds]
-    rhot_waves = [int(ds.split('_')[1]) for ds in rhot_ds]
+    rhot_waves = [int(ds.split('_')[-1]) for ds in rhot_ds]
     if len(rhot_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhot datasets.'.format(gemf, len(rhot_ds)))
 
     rhos_ds = [ds for ds in gem['datasets'] if 'rhos_' in ds]
-    rhos_waves = [int(ds.split('_')[1]) for ds in rhos_ds]
+    rhos_waves = [int(ds.split('_')[-1]) for ds in rhos_ds]
     if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhos datasets.'.format(gemf, len(rhos_ds)))
+
+    if gem['gatts']['acolite_file_type'] != 'L2R':
+        print('Only L2W processing of ACOLITE L2R files supported.')
+        print('{} is a "{}" file'.format(gemf, gem['gatts']['acolite_file_type']))
+        return()
 
     ## read rsr
     hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION', 'DESIS_HSI']
