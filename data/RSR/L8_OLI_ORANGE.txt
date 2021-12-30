@@ -1,8 +1,6 @@
 ;; L8/OLI Orange RSR
 ;;
-;; Quinten Vanhellemont 2018-01-22
-;;
-;; L8/OLI orange band suggested by Alexandre Castagne
+;; L8/OLI orange band as suggested by Castagna et al. 2020 https://doi.org/10.3390/rs12040637
 ;;
 ;; datasets: wavelength, RSR
 ;;
