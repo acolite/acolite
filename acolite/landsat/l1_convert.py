@@ -124,6 +124,7 @@ def l1_convert(inputfile, output = None,
 
         ## some hard coded info
         sat = 'L{}'.format(spacecraft_id[-1])
+        pan_scale = 2
         if sensor_id in ['TM']:# Landsat 5
             sen = 'TM'
             pan_bands = []
@@ -141,6 +142,7 @@ def l1_convert(inputfile, output = None,
         #    pan_bands = ['8']
         #    thermal_bands = ['10', '11']
         elif sensor_id in ['ALI']:# EO1/ALI
+            pan_scale = 3
             sat = 'EO1'
             sen = 'ALI'
             pan_bands = ['1']
@@ -275,8 +277,8 @@ def l1_convert(inputfile, output = None,
             elif (warp_to is None):
                 dct_prj = {k:dct[k] for k in dct}
         else:
-            pan_dims = sub[3]*2, sub[2]*2
-            sub_pan = [s*2 for s in sub]
+            pan_dims = sub[3]*pan_scale, sub[2]*pan_scale
+            sub_pan = [s*pan_scale for s in sub]
             gatts['sub'] = sub
             gatts['pan_sub'] = sub_pan
             gatts['limit'] = limit
@@ -294,9 +296,9 @@ def l1_convert(inputfile, output = None,
             nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=False)
             ## PAN band projection - not used but why not compute it
             dct_prj_pan = {k: dct_prj[k] for k in dct_prj}
-            dct_prj_pan['pixel_size'] = dct_prj_pan['pixel_size'][0]/2, dct_prj_pan['pixel_size'][1]/2
-            dct_prj_pan['xdim'] *= 2
-            dct_prj_pan['ydim'] *= 2
+            dct_prj_pan['pixel_size'] = dct_prj_pan['pixel_size'][0]/pan_scale, dct_prj_pan['pixel_size'][1]/pan_scale
+            dct_prj_pan['xdim'] *= pan_scale
+            dct_prj_pan['ydim'] *= pan_scale
             nc_projection_pan = ac.shared.projection_netcdf(dct_prj_pan, add_half_pixel=False)
         else:
             nc_projection = None
@@ -322,13 +324,13 @@ def l1_convert(inputfile, output = None,
         ## warp settings for read_band
         res_method = 'near'
         warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)
-        warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/2,dct_prj['pixel_size'][1]/2, res_method)
+        warp_to_pan = (dct_prj['proj4_string'], xyr_pan, dct_prj['pixel_size'][0]/pan_scale,dct_prj['pixel_size'][1]/pan_scale, res_method)
 
         ## store scene and output dimensions
         gatts['ydim'], gatts['xdim'] = dct['ydim'], dct['xdim']
         gatts['scene_dims'] = dct['ydim'], dct['xdim']
         gatts['global_dims'] = dct_prj['dimensions']
-        gatts['pan_dims'] =  dct_prj['dimensions'][0]*2, dct_prj['dimensions'][1]*2
+        gatts['pan_dims'] =  dct_prj['dimensions'][0]*pan_scale, dct_prj['dimensions'][1]*pan_scale
 
         ## new file for every bundle if not merging
         if (merge_tiles is False):
@@ -435,7 +437,7 @@ def l1_convert(inputfile, output = None,
                     if b in pan_bands: ## pan band
                         if (not output_pan) & (not output_pan_ms): continue
                         pan = True
-                        mus_pan = scipy.ndimage.zoom(mus, zoom=2, order=1) if len(np.atleast_1d(mus))>1 else mus * 1
+                        mus_pan = scipy.ndimage.zoom(mus, zoom=pan_scale, order=1) if len(np.atleast_1d(mus))>1 else mus * 1
                         data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan, warp_to=warp_to_pan)
                         mus_pan = None
                     else: ## not a pan band
@@ -461,7 +463,7 @@ def l1_convert(inputfile, output = None,
                         if verbosity > 1: print('Converting bands: Wrote {} to separate L1R_pan'.format(ds))
 
                     ## prepare for low res output
-                    if output_pan_ms & pan: data = scipy.ndimage.zoom(data, zoom=0.5, order=1)
+                    if output_pan_ms & pan: data = scipy.ndimage.zoom(data, zoom=1/pan_scale, order=1)
 
                     ## clip data
                     if clip: data[clip_mask] = np.nan
