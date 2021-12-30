@@ -10,3 +10,9 @@ dsf_intercept_pixels=1000
 dsf_tile_dimensions=2000,2000
 dsf_spectrum_option=percentile
 dsf_percentile=1
+
+dsf_residual_glint_correction=False
+dsf_residual_glint_correction_method=alternative
+dsf_residual_glint_wave_range=800,900
+glint_mask_rhos_wave=800
+glint_mask_rhos_threshold=0.1
