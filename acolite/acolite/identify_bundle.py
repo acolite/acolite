@@ -33,6 +33,8 @@ def identify_bundle(bundle, input_type = None):
         ## Landsat
         try:
             mtl = glob.glob('{}/{}'.format(bundle, '*MTL.txt'))
+            mtl += glob.glob('{}/{}'.format(bundle, '*MTL_L1T.TXT'))
+            mtl += glob.glob('{}/{}'.format(bundle, '*MTL_L1GST.TXT'))
             if len(mtl)>0:
                 meta = ac.landsat.metadata_read(mtl[0])
                 ## get relevant data from meta
