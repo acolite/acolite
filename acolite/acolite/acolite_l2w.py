@@ -57,7 +57,7 @@ def acolite_l2w(gem,
     if gem['gatts']['acolite_file_type'] != 'L2R':
         print('Only L2W processing of ACOLITE L2R files supported.')
         print('{} is a "{}" file'.format(gemf, gem['gatts']['acolite_file_type']))
-        return()
+        return(None)
 
     ## read rsr
     hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION', 'DESIS_HSI']

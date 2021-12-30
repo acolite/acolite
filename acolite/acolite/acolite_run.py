@@ -156,14 +156,15 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                     if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
                     for ncf in l2r:
                         ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
-                        if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
-                                                                        cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
-                                                                        skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
-                        l2w_files.append(ret)
+                        if ret is not None:
+                            if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
+                                                                            cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                                            skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
+                            l2w_files.append(ret)
 
-                        ## make l2w maps
-                        if l2r_setu['map_l2w']:
-                            ac.acolite.acolite_map(ret, settings=l2r_setu)
+                            ## make l2w maps
+                            if l2r_setu['map_l2w']:
+                                ac.acolite.acolite_map(ret, settings=l2r_setu)
 
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
