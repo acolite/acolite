@@ -31,7 +31,8 @@ def metadata_parse(metafile):
                     "MINSUNEL","MAXSUNEL","MEANSUNEL",
                     "MINSATAZ","MAXSATAZ","MEANSATAZ",
                     "MINSATEL","MAXSATEL","MEANSATEL",
-                    "EARLIESTACQTIME","LATESTACQTIME"]
+                    "EARLIESTACQTIME","LATESTACQTIME",
+                    "RADIOMETRICLEVEL", "RADIOMETRICENHANCEMENT"]
 
     for tag in metadata_tags:
         node = xmldoc.getElementsByTagName(tag)
@@ -60,6 +61,19 @@ def metadata_parse(metafile):
             band_names=['COASTAL','BLUE','GREEN','YELLOW','RED','REDEDGE','NIR1','NIR2']
             band_indices=[1,2,3,4,5,6,7,8]
             band_tag_names = ["BAND_C","BAND_B","BAND_G","BAND_Y","BAND_R","BAND_RE","BAND_N", "BAND_N2"]
+
+        if metadata['SATID'] == 'QB02':
+            metadata['satellite'] = 'QuickBird2'
+            metadata['sensor'] = 'QuickBird2'
+            try:
+                ## "L2A" data
+                metadata["isotime"]=metadata["EARLIESTACQTIME"]
+            except:
+                ## "L1B" data
+                metadata["isotime"]=metadata["FIRSTLINETIME"]
+            band_names=['Blue','Green','Red','NIR']
+            band_indices=[1,2,3,4]
+            band_tag_names = ["BAND_B","BAND_G","BAND_R","BAND_N"]
 
     ## common stuff
     #metadata["DOY"] = metadata["TIME"].strftime('%j')

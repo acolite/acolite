@@ -11,6 +11,7 @@ def l1_convert(inputfile,
                poly = None,
                output_geolocation = True,
                percentiles_compute = True,
+               convert_atmospherically_corrected = True,
                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                verbosity = 0, vname = ''):
 
@@ -62,13 +63,28 @@ def l1_convert(inputfile,
 
         ## parse the metadata
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
-        metafile = glob.glob('{}/{}'.format(bundle,'*.XML'))
-        if len(metafile)>0:
-            metafile = metafile[0]
+
+        metafiles = glob.glob('{}/{}'.format(bundle,'*.XML'))
+        if len(metafiles)>0:
+            idx = 0
+            if len(metafiles) >= 1:
+                for idx, mf in enumerate(metafiles):
+                    if ('.aux.' not in mf) & ('README' not in mf) & ('(1)' not in mf):
+                        break
+            metafile = metafiles[idx]
             meta = ac.worldview.metadata_parse(metafile)
         else:
             print('No metadata found for {}'.format(bundle))
             continue
+
+        ## test if we need to do an atmospheric correction
+        atmospherically_corrected = False
+        if ('RADIOMETRICLEVEL' in meta) & ('RADIOMETRICENHANCEMENT' in meta):
+            if meta['RADIOMETRICENHANCEMENT'] in ['ACOMP']:
+                print('Image {} is already corrected by supplier.'.format(bundle))
+                print('RADIOMETRICLEVEL: {} RADIOMETRICENHANCEMENT: {}'.format(meta['RADIOMETRICLEVEL'], meta['RADIOMETRICENHANCEMENT']))
+                atmospherically_corrected = True
+                if not convert_atmospherically_corrected: continue
 
         ## parse the metadata
         if swir_bundle is not None:
@@ -116,11 +132,13 @@ def l1_convert(inputfile,
                      'sza':sza, 'vza':vza, 'raa':raa, 'se_distance': se_distance,
                      'mus': np.cos(sza*(np.pi/180.)), 'acolite_file_type': 'L1R'}
 
+        if atmospherically_corrected: gatts['acolite_file_type'] = 'converted'
+
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if vname != '': oname+='_{}'.format(vname)
 
-        ofile = '{}/{}_L1R.nc'.format(output, oname)
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile
 
@@ -282,6 +300,8 @@ def l1_convert(inputfile,
 
             ## set up dataset attributes
             ds = 'rhot_{}'.format(waves_names[band])
+            if atmospherically_corrected: ds = ds.replace('rhot_', 'rhos_acomp_')
+
             ds_att = {'wavelength':waves_mu[band]*1000}
             if percentiles_compute:
                 ds_att['percentiles'] = percentiles
