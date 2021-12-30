@@ -576,7 +576,7 @@ def acolite_l2w(gem,
         if (cur_par[0:6] == 'chl_re'):
             par_name = cur_par
             mask = True ## apply non water mask
-            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']:
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                 continue
 

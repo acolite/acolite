@@ -1,8 +1,8 @@
 ## def l1_convert
-## converts Planet data to l1r NetCDF for acolite-gen
+## converts Sentinel-3/OLCI or ENVISAT/MERIS data to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
-## modifications:
+## modifications: 2021-12-22 (QV) added MERIS processing
 
 def l1_convert(inputfile, output = None,
                 limit = None, sub = None,
@@ -55,7 +55,17 @@ def l1_convert(inputfile, output = None,
         t0 = time.time()
         new = True
         ## identify sensor
-        sensor = '{}_OLCI'.format(os.path.basename(bundle)[0:3])
+        platform = os.path.basename(bundle)[0:3]
+        if platform in ['S3A', 'S3B']:
+            sensor = '{}_OLCI'.format(platform)
+            len_gains = 21
+            bands_data = ac.sentinel3.olci_band_info()
+            band_id = 'Oa'
+        if platform in ['EN1']:
+            sensor = '{}_MERIS'.format(platform)
+            len_gains = 15
+            bands_data = ac.sentinel3.meris_band_info()
+            band_id = 'M'
         rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
         rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
 
@@ -96,12 +106,12 @@ def l1_convert(inputfile, output = None,
             ## or full size data
             else:
                 for ds in datasets:
-                    if '_radiance' in ds:
+                    if ds[3:] == '_radiance':
                         data[ds] = ac.shared.nc_data(file, ds, sub=sub)
                         if verbosity > 2: print(ds, data[ds].shape)
                         if use_gains:
                             cg = 1.0
-                            if len(gains) == 21:
+                            if len(gains) == len_gains:
                                 gi = int(ds[2:4])-1
                                 cg = float(gains[gi])
                             if verbosity > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
@@ -141,6 +151,9 @@ def l1_convert(inputfile, output = None,
                 for l in meta[k].keys():
                     if l in ['atmospheric_temperature_profile',
                              'horizontal_wind', 'reference_pressure_level']: continue
+                    if meta[k][l].shape != tpg_shape:
+                        print('{}-{} tpg shape {} not supported'.format(k,l,meta[k][l].shape))
+                        continue
                     z = scipy.interpolate.interp2d(tpx, tpy, meta[k][l])
                     tpg[l] = z(subx,suby)
 
@@ -172,7 +185,6 @@ def l1_convert(inputfile, output = None,
 
         ## for smile correction
         ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
-        bands_data = ac.sentinel3.olci_band_info()
 
         ## get per pixel detector index
         if sub is None:
@@ -199,8 +211,8 @@ def l1_convert(inputfile, output = None,
                 ## bounding bands
                 b1_i = bands_data[band]['lower_water']-1
                 b2_i = bands_data[band]['upper_water']-1
-                band1 = 'Oa{}'.format(str(bands_data[band]['lower_water']).zfill(2))
-                band2 = 'Oa{}'.format(str(bands_data[band]['upper_water']).zfill(2))
+                band1 = '{}{}'.format(band_id, str(bands_data[band]['lower_water']).zfill(2))
+                band2 = '{}{}'.format(band_id, str(bands_data[band]['upper_water']).zfill(2))
 
                 ## compute reflectance using per detector F0
                 r_ = (data['{}_radiance'.format(band)]) / meta['instrument_data']['solar_flux'][b_i][di]

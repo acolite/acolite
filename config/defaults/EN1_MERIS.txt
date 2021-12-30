@@ -1,0 +1,28 @@
+## ACOLITE default settings for EN1_MERIS
+
+## for subsetting using tpg seems to give poor results
+use_tpg=False
+
+## copy datasets from L1R to L2R
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+
+## dark spectrum fitting options
+dsf_aot_estimate=resolved
+resolved_geometry=True
+dsf_smooth_aot=True
+dsf_smooth_box=10,10
+dsf_filter_aot=True
+
+## maritime aerosol model
+luts=ACOLITE-LUT-202110-MOD2
+
+gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+dsf_intercept_pixels=200
+dsf_tile_dimensions=120,120
+#dsf_exclude_bands=M01,M02
+dsf_exclude_bands=,
+dsf_interface_reflectance=True
+
+l2w_mask_wave=885
+l2w_mask_threshold=0.1
+l2w_mask_negative_wave_range=400,800

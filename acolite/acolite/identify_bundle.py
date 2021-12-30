@@ -71,6 +71,9 @@ def identify_bundle(bundle, input_type = None):
             if 'OLCI Level 1b Product' in gatts['title']:
                 input_type = 'Sentinel-3'
                 break ## exit loop
+            elif 'MERIS Level 1b Product' in gatts['title']:
+                input_type = 'Sentinel-3'
+                break ## exit loop
             else:
                 print(gatts['title'])
         except:
