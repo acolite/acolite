@@ -231,7 +231,7 @@ def acolite_map(ncf, output = None,
                 setu['map_pcolormesh'] = True
 
     rhos_ds = [ds for ds in datasets if 'rhos_' in ds]
-    rhos_wv = [int(ds.split('_')[1]) for ds in rhos_ds]
+    rhos_wv = [int(ds.split('_')[-1]) for ds in rhos_ds]
 
     bn = os.path.basename(ncf)
     fn = bn.replace('.nc', '')
@@ -263,16 +263,27 @@ def acolite_map(ncf, output = None,
     for cpar in plot_parameters:
         if 'projection_key' in gatts:
             if cpar in ['x', 'y', gatts['projection_key']]: continue
-            
+
         cparl = cpar.lower()
         ## RGB
         if (cpar == 'rgb_rhot') | (cpar == 'rgb_rhos'):
             ## find datasets for RGB compositing
             rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
-            if cpar == 'rgb_rhot': ds_base = 'rhot_'
-            if cpar == 'rgb_rhos': ds_base = 'rhos_'
+            if cpar == 'rgb_rhot':
+                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhot_' in ds]
+                if len(ds_base) == 0:
+                    ds_base = 'rhot_'
+                else:
+                    ds_base = '_'.join(ds_base[0]) + '_'
+            if cpar == 'rgb_rhos':
+                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhos_' in ds]
+                if len(ds_base) == 0:
+                    ds_base = 'rhos_'
+                else:
+                    ds_base = '_'.join(ds_base[0]) + '_'
+
             rho_ds = [ds for ds in datasets if ds_base in ds]
-            rho_wv = [int(ds.split('_')[1]) for ds in rho_ds]
+            rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
             if len(rho_wv) < 3: continue
             ## read and stack rgb
             for iw, w in enumerate(rgb_wave):
