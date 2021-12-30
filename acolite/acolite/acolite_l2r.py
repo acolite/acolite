@@ -1378,14 +1378,24 @@ def acolite_l2r(gem,
                 cur_rhog = None
     ## end alternative glint correction
 
-    ## compute l8 orange band
-    if (gemo.gatts['sensor'] == 'L8_OLI') & (setu['l8_orange_band']):
+    ## compute oli orange band
+    if (gemo.gatts['sensor'] in ['L8_OLI', 'EO1_ALI']) & (setu['oli_orange_band']):
         if verbosity > 1: print('Computing orange band')
         ## load orange band configuration
-        ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
+        if gemo.gatts['sensor'] == 'L8_OLI':
+            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
+            sensor_o = 'L8_OLI_ORANGE'
+            panb, greenb, redb = '8', '3', '4'
+        #if gemo.gatts['sensor'] == 'L9_OLI2':
+        #    ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
+        #    sensor_o = 'L9_OLI2_ORANGE'
+        #    panb, greenb, redb = '8', '3', '4'
+        if gemo.gatts['sensor'] == 'EO1_ALI':
+            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/EO1/ali_orange.cfg')
+            sensor_o = 'EO1_ALI_ORANGE'
+            panb, greenb, redb = '1', '4', '5'
 
         ## read rsr for wavelength name
-        sensor_o = 'L8_OLI_ORANGE'
         rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
         ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
         ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])
@@ -1393,9 +1403,9 @@ def acolite_l2r(gem,
         gemo.bands['O'] = ob
 
         ## compute orange band
-        ob_data = gemo.data(gemo.bands['8']['rhos_ds'])*float(ob_cfg['pf'])
-        ob_data += gemo.data(gemo.bands['3']['rhos_ds'])*float(ob_cfg['gf'])
-        ob_data += gemo.data(gemo.bands['4']['rhos_ds'])*float(ob_cfg['rf'])
+        ob_data = gemo.data(gemo.bands[panb]['rhos_ds'])*float(ob_cfg['pf'])
+        ob_data += gemo.data(gemo.bands[greenb]['rhos_ds'])*float(ob_cfg['gf'])
+        ob_data += gemo.data(gemo.bands[redb]['rhos_ds'])*float(ob_cfg['rf'])
         gemo.write(ob['rhos_ds'], ob_data, ds_att = ob)
         ob_data = None
         ob = None

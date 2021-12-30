@@ -17,7 +17,11 @@ def metadata_bands(bundle, meta):
     for k in meta[pk]:
         if 'FILE_NAME' in k:
             fname = meta[pk][k]
-            par = k[len('_FILE_NAME'):]
+            if 'FILE_NAME_' in k:
+                par = k[len('_FILE_NAME'):]
+            else:
+                par = 'BAND_'+k[4:len(k)-len('_FILE_NAME')]
+                k = 'FILE_NAME_'+par
             if '.TIF' not in fname: continue
             file = '{}/{}'.format(bundle, fname)
             if os.path.exists(file):

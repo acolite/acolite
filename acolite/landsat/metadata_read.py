@@ -5,6 +5,8 @@
 ## modifications: 2018-09-19 QV changed strip, added encoding
 
 def metadata_read(metafile):
+    import acolite as ac
+
     mdata={}
     with open(metafile,'r', encoding="utf-8") as f:
         for line in f.readlines():
@@ -20,4 +22,8 @@ def metadata_read(metafile):
                 mdata[cur_group] = group_data
             else:
                 group_data[split[0]] = split[1]
+
+    ## do updates for ALI
+    mdata = ac.landsat.metadata_ali(mdata)
+
     return(mdata)

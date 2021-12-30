@@ -5,7 +5,7 @@
 ## 2021-02-05
 ## modifications: 2021-02-09 (QV) added warp_to option
 
-def read_toa(fm, mus = 1, sub=None, warp_to=None, usgs_reflectance = True, usgs_radiance=False, usgs_bt=True):
+def read_toa(fm, mus = 1, sub=None, warp_to=None, usgs_reflectance = True, usgs_radiance = False, usgs_bt=True):
     import numpy as np
     import acolite as ac
 
@@ -22,6 +22,9 @@ def read_toa(fm, mus = 1, sub=None, warp_to=None, usgs_reflectance = True, usgs_
         usgs_reflectance = False
         usgs_radiance = True
         thermal = True
+        
+    if ('REFLECTANCE_MULT' not in fm) or ('REFLECTANCE_ADD' not in fm):
+        usgs_reflectance = False
 
     ## convert to reflectance
     if usgs_reflectance:

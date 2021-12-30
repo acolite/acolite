@@ -16,8 +16,8 @@ output_geometry=True
 output_rhorc=False
 netcdf_projection=True
 
-## Landsat 8 options
-l8_orange_band=True
+## Landsat OLI options
+oli_orange_band=True
 
 ## Sentinel-2 options
 s2_target_res=10

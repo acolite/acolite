@@ -38,10 +38,12 @@ def projection(meta):
 
         #p = Proj(proj='utm',zone=zone,ellps=ellipsoid)
         proj4_list = ['+proj=utm',
-                      '+zone={}'.format(zone),
+                      '+zone={}'.format(abs(zone)),
                       '+datum={}'.format(datum),
                       '+units=m',
                       '+no_defs ']
+        if zone < 0: proj4_list += ['+south']
+
 
     if is_ps:
         vertical_lon = float(meta[prk]["VERTICAL_LON_FROM_POLE"])

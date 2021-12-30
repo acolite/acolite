@@ -37,7 +37,7 @@ def l1_convert(inputfile, output = None,
 
                 verbosity = 0, vname = ''):
 
-    import os, glob, dateutil.parser, time, copy
+    import os, glob, datetime, dateutil.parser, time, copy
     import acolite as ac
     import scipy.ndimage
     import numpy as np
@@ -84,6 +84,10 @@ def l1_convert(inputfile, output = None,
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
         mtl = glob.glob('{}/{}'.format(bundle, '*MTL.txt'))
+        ## add ALI MTL files
+        mtl += glob.glob('{}/{}'.format(bundle, '*MTL_L1T.TXT'))
+        mtl += glob.glob('{}/{}'.format(bundle, '*MTL_L1GST.TXT'))
+
         if len(mtl) == 0:
             if verbosity > 0: print('No metadata file found for {}'.format(bundle))
             continue
@@ -132,6 +136,15 @@ def l1_convert(inputfile, output = None,
             sen = 'OLI'
             pan_bands = ['8']
             thermal_bands = ['10', '11']
+        #elif sensor_id in ['OLI2', 'OLI2_TIRS2']:# Landsat 9
+        #    sen = 'OLI2'
+        #    pan_bands = ['8']
+        #    thermal_bands = ['10', '11']
+        elif sensor_id in ['ALI']:# EO1/ALI
+            sat = 'EO1'
+            sen = 'ALI'
+            pan_bands = ['1']
+            thermal_bands = []
         else:
             print(spacecraft_id, sensor_id)
             print('Not configured')
@@ -204,15 +217,13 @@ def l1_convert(inputfile, output = None,
                         print('Time difference too large, skipping {}'.format(bundle))
                         continue
 
-        print(ofile)
-
         ## add band info to gatts
         for b in rsr_bands:
             gatts['{}_wave'.format(b)] = waves_mu[b]*1000
             gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
             if b in fmeta:
-                fmeta[b]['f0'] = f0_b[b]
+                fmeta[b]['f0'] = f0_b[b]/10
                 fmeta[b]['se_distance'] = gatts['se_distance']
 
         ## get scene projection and extent
