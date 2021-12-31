@@ -1,7 +1,7 @@
 ## do CHRIS noise reduction/destriping
 ## original Python Code by Héloïse Lavigne
 ## function for ACOLITE processing QV 2021-06-09
-## last updates:
+## last updates: 2021-12-31 (QV) skip TOA radiances when creating the RTOA dataset
 
 def noise_reduction(ncf, rename=True):
     import numpy as np
@@ -39,10 +39,12 @@ def noise_reduction(ncf, rename=True):
 
     ## read data
     ds_att = {}
+    RTOA = None
     for di, ds in enumerate(datasets):
+        if 'rhot_' not in ds: continue
         tmp, att = ac.shared.nc_data(ncf, ds, attributes=True)
         ds_att[ds] = att
-        if di == 0:
+        if RTOA is None:
             RTOA = tmp
         else:
             RTOA = np.dstack((RTOA, tmp))
