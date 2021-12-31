@@ -21,7 +21,7 @@ def l1_convert(inputfile, output = None,
 
                 verbosity = 0, vname = ''):
 
-    import os, glob, datetime, time
+    import os, glob, datetime, time, re
     import dateutil.parser
 
     import numpy as np
@@ -112,7 +112,7 @@ def l1_convert(inputfile, output = None,
                         if use_gains:
                             cg = 1.0
                             if len(gains) == len_gains:
-                                gi = int(ds[2:4])-1
+                                gi = int(re.findall(r'\d+', ds)[0])-1
                                 cg = float(gains[gi])
                             if verbosity > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
                             data[ds]*=cg
