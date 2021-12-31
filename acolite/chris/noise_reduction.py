@@ -169,7 +169,14 @@ def noise_reduction(ncf, rename=True):
     else:
         ofile = '{}'.format(ncf)
         new = False
+    dix = 0
     for di, ds in enumerate(datasets):
-        ac.output.nc_write(ofile, ds, RTOAcal2[:,:,di], dataset_attributes=ds_att[ds], attributes=gatts, new=new)
+        if 'rhot_' in ds:
+            ac.output.nc_write(ofile, ds, RTOAcal2[:,:,dix], dataset_attributes=ds_att[ds], attributes=gatts, new=new)
+            dix += 1
+        else:
+            tmp, att = ac.shared.nc_data(ncf, ds, attributes=True)
+            ac.output.nc_write(ofile, ds, tmp, dataset_attributes=att, attributes=gatts, new=new)
+
         new = False
     return(ofile)
