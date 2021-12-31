@@ -168,6 +168,9 @@ dsf_filter_aot=False
 dsf_smooth_aot=True
 dsf_smooth_box=20,20
 
+# fill nans in resolved aot (e.g. over very bright targets)
+dsf_aot_fillnan=True
+
 # more dsf options
 dsf_model_selection=min_drmsd
 dsf_min_tile_cover=0.10

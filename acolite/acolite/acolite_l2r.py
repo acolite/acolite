@@ -479,6 +479,9 @@ def acolite_l2r(gem,
                         aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=np.nan
                         aot_band[lut][aot_band[lut]>=revl[lut]['maxaot']]=np.nan
 
+                        ## replace nans with closest aot
+                        if (setu['dsf_aot_fillnan']): aot_band[lut] = ac.shared.fillnan(aot_band[lut])
+
                     ## standard lut interpolates rhot to results for different aot values
                     else:
                         ## get rho path for lut steps in aot
@@ -512,7 +515,6 @@ def acolite_l2r(gem,
                         aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
                                                            lutdw[lut]['meta']['tau'],
                                                            left=np.nan, right=np.nan)
-                        #print(aot_band[lut][band_sub])
                     tel = time.time()-t0
 
                     if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
@@ -582,6 +584,7 @@ def acolite_l2r(gem,
                 aot_stack[lut]['b2'] = tmp[:,:,1].astype(int)#.astype(float)
                 #aot_stack[lut]['b2'][aot_stack[lut]['mask']] = np.nan
                 aot_stack[lut]['b2'][aot_stack[lut]['mask']] = -1
+
 
                 if setu['dsf_model_selection'] == 'min_dtau':
                     ## array idices
