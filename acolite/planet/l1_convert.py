@@ -3,21 +3,12 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
 ## modifications: 2021-12-08 (QV) added nc_projection
+##                2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
-                limit = None, sub = None,
-                poly = None,
-
-                output_geolocation = True,
-                output_xy = False,
+def l1_convert(inputfile, output = None, settings = {},
 
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-
-                netcdf_projection = True,
-                merge_tiles = False,
-                merge_zones = False,
-                extend_region = False,
 
                 check_sensor = True,
                 check_time = True,
@@ -35,6 +26,8 @@ def l1_convert(inputfile, output = None,
     import numpy as np
     import acolite as ac
 
+    if 'verbosity' in settings: verbosity = settings['verbosity']
+
     ## parse inputfile
     if type(inputfile) != list:
         if type(inputfile) == str:
@@ -44,33 +37,16 @@ def l1_convert(inputfile, output = None,
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                print('Using limit from polygon envelope: {}'.format(limit))
-                clip = True
-            except:
-                print('Failed to import polygon {}'.format(poly))
-
-    ## check if merging settings make sense
-    if (limit is None) & (merge_tiles):
-        if verbosity > 0: print("Merging tiles not supported without ROI limit")
-        merge_tiles = False
-    if merge_tiles:
-        merge_zones = True
-        extend_region = True
-        ## start with last file in time
-        inputfile.sort()
-        inputfile.reverse()
+    ## start with last file in time
+    inputfile.sort()
+    inputfile.reverse()
 
     new = True
     warp_to = None
 
     ofile = None
     ofiles = []
+    setu = {}
 
     for bundle in inputfile:
         t0 = time.time()
@@ -105,6 +81,49 @@ def l1_convert(inputfile, output = None,
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
+
+        ## merge sensor specific settings
+        if new:
+            setu = ac.acolite.settings.parse(meta['sensor'], settings=settings)
+            verbosity = setu['verbosity']
+
+            ## get other settings
+            limit = setu['limit']
+            output_geolocation = setu['output_geolocation']
+            output_geometry = setu['output_geometry']
+            output_xy = setu['output_xy']
+            netcdf_projection = setu['netcdf_projection']
+
+            vname = setu['region_name']
+            gains = setu['gains']
+            gains_toa = setu['gains_toa']
+            if output is None: output = setu['output']
+
+            poly = setu['polygon']
+            merge_tiles = setu['merge_tiles']
+            merge_zones = setu['merge_zones']
+            extend_region = setu['extend_region']
+
+            ## check if ROI polygon is given
+            clip, clip_mask = False, None
+            if poly is not None:
+                if os.path.exists(poly):
+                    try:
+                        limit = ac.shared.polygon_limit(poly)
+                        print('Using limit from polygon envelope: {}'.format(limit))
+                        clip = True
+                    except:
+                        print('Failed to import polygon {}'.format(poly))
+
+            ## check if merging settings make sense
+            if (limit is None) & (merge_tiles):
+                if verbosity > 0: print("Merging tiles not supported without ROI limit")
+                merge_tiles = False
+            if merge_tiles:
+                merge_zones = True
+                extend_region = True
+
+        sub = None
 
         ## read rsr
         rsrf = ac.path+'/data/RSR/{}.txt'.format(meta['sensor'])
@@ -340,4 +359,4 @@ def l1_convert(inputfile, output = None,
              shutil.rmtree(bundle)
              bundle = '{}'.format(bundle_orig)
 
-    return(ofiles)
+    return(ofiles, setu)

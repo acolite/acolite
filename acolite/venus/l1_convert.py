@@ -2,29 +2,12 @@
 ## converts VENUS data to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-04-08
-## modifications:
+## modifications:  2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
-                limit = None, sub = None,
-                poly = None,
-
-                output_geolocation = True,
-                output_xy = False,
-
+def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-
-                merge_tiles = False,
-                merge_zones = False,
-                extend_region = False,
-
-                check_sensor = True,
-                check_time = True,
-                max_merge_time = 600, # seconds
-
-                from_radiance = False,
-
-                verbosity = 0, vname = ''):
+                verbosity = 0):
 
 
     import os
@@ -42,17 +25,6 @@ def l1_convert(inputfile, output = None,
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                print('Using limit from polygon envelope: {}'.format(limit))
-                clip = True
-            except:
-                print('Failed to import polygon {}'.format(poly))
-
     new = True
     warp_to = None
 
@@ -60,6 +32,8 @@ def l1_convert(inputfile, output = None,
     ofiles = []
 
     for bundle in inputfile:
+        sub = None
+        
         t0 = time.time()
         meta = ac.venus.metadata_parse(bundle)
         if meta['image_type'] != 'Reflectance':
@@ -70,6 +44,33 @@ def l1_convert(inputfile, output = None,
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
+
+        ## parse sensor settings
+        setu = ac.acolite.settings.parse(meta['sensor'], settings=settings)
+        verbosity = setu['verbosity']
+
+        ## get other settings
+        limit = setu['limit']
+        output_geolocation = setu['output_geolocation']
+        output_xy = setu['output_xy']
+        netcdf_projection = setu['netcdf_projection']
+
+        vname = setu['region_name']
+        gains = setu['gains']
+        gains_toa = setu['gains_toa']
+        if output is None: output = setu['output']
+
+        ## check if ROI polygon is given
+        poly = setu['polygon']
+        clip, clip_mask = False, None
+        if poly is not None:
+            if os.path.exists(poly):
+                try:
+                    limit = ac.shared.polygon_limit(poly)
+                    print('Using limit from polygon envelope: {}'.format(limit))
+                    clip = True
+                except:
+                    print('Failed to import polygon {}'.format(poly))
 
         ## read rsr
         rsrf = ac.path+'/data/RSR/{}.txt'.format(meta['sensor'])
@@ -91,7 +92,7 @@ def l1_convert(inputfile, output = None,
 
 
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
+        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if vname != '': oname+='_{}'.format(vname)
         ofile = '{}/{}_L1R.nc'.format(output, oname)
 
@@ -282,4 +283,4 @@ def l1_convert(inputfile, output = None,
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
-    return(ofiles)
+    return(ofiles, setu)

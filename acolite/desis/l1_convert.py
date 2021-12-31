@@ -2,14 +2,21 @@
 ## converts DESIS file to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-10
+## modifications: 2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
-                limit = None, poly = None,
-                verbosity = 0, vname = '', output_lt = False):
-
+def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
     import datetime, dateutil.parser, os, copy
     import acolite as ac
+
+    ## parse sensor specific settings
+    setu = ac.acolite.settings.parse('DESIS_HSI', settings=settings)
+    vname = setu['region_name']
+    output_lt = setu['output_lt']
+    if output is None: output = setu['output']
+    verbosity = setu['verbosity']
+    poly = setu['polygon']
+    limit = setu['limit']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -116,29 +123,29 @@ def l1_convert(inputfile, output = None,
         #        for bi in range(len(gatts['band_waves']))}
         # band_rsr = {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]}  for b in rsr}
         rsrf = ac.path+f"/data/RSR/{meta['mission']}_{meta['sensor']}_{meta['version']}.txt"
-        band_names = [meta['BAND_INFO'][b]['name'] for b in list(meta['BAND_INFO'].keys())]  
+        band_names = [meta['BAND_INFO'][b]['name'] for b in list(meta['BAND_INFO'].keys())]
         try:
             rsr, rsr_bands = ac.shared.rsr_read(rsrf)
-        except:    
+        except:
             if verbosity > 1: print(f"No RSR file found for {meta['sensor']}. Read from metadata.")
-            
-            ## DESIS rsr from METADATA file       
+
+            ## DESIS rsr from METADATA file
             rsr = {}
             rsr_bands = []
             for band in band_names:
-                rsr[band] = {}            
+                rsr[band] = {}
                 ### CONVERT NM to MICRONS for CONVOLUTION ###
                 rsr[band]['wave'] = [number / 1000 for number in meta['BAND_INFO'][band]['wavelengths']]
                 rsr[band]['response'] = meta['BAND_INFO'][band]['response']
-                rsr_bands.append(band)       
+                rsr_bands.append(band)
 
             ## Write to new RSR file
             if verbosity > 1: print(f"Writing {rsrf}.")
 
-            head = [f";; DESIS RSR from file: {os.path.split(bundle)[1]}", 
+            head = [f";; DESIS RSR from file: {os.path.split(bundle)[1]}",
                 f";; Version: {meta['version']}", ';; Written by Acolite: {}'.format(datetime.datetime.now().isoformat()[0:19]),
                  ";; ", ";; wavelength (microns)    response"]
-            ac.shared.rsr_write(rsrf, head, meta['sensor'], rsr)   
+            ac.shared.rsr_write(rsrf, head, meta['sensor'], rsr)
 
         band_rsr = rsr #unclear if I need to convert lists to arrays
 
@@ -235,4 +242,4 @@ def l1_convert(inputfile, output = None,
         cube = None
 
         ofiles.append(ofile)
-    return(ofiles)
+    return(ofiles, setu)

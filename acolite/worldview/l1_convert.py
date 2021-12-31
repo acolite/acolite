@@ -2,18 +2,15 @@
 ## converts Worldview data to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-25
-## modifications:
+## modifications: 2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile,
+def l1_convert(inputfile, output = None,
                inputfile_swir = None,
-               output = None,
-               limit = None, sub = None,
-               poly = None,
-               output_geolocation = True,
-               percentiles_compute = True,
+               settings = {},
                convert_atmospherically_corrected = True,
+               percentiles_compute = True,
                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-               verbosity = 0, vname = ''):
+               verbosity = 0):
 
     import os, glob, dateutil.parser, datetime, time
     import numpy as np
@@ -41,23 +38,12 @@ def l1_convert(inputfile,
             return()
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                print('Using limit from polygon envelope: {}'.format(limit))
-                print('Not yet implemented for WorldView')
-                clip = True
-            except:
-                print('Failed to import polygon {}'.format(poly))
-
     new = True
     ofile = None
     ofiles = []
 
     for fi, bundle in enumerate(inputfile):
+        sub = None
         t0 = time.time()
         swir_bundle = inputfile_swir[fi] if inputfile_swir is not None else None
 
@@ -77,6 +63,28 @@ def l1_convert(inputfile,
         else:
             print('No metadata found for {}'.format(bundle))
             continue
+
+        ## parse sensor specific settings
+        setu = ac.acolite.settings.parse(meta['sensor'], settings=settings)
+        verbosity = setu['verbosity']
+        inputfile_swir = setu['inputfile_swir']
+        limit=setu['limit']
+        poly=setu['polygon']
+        output_geolocation=setu['output_geolocation']
+        vname = setu['region_name']
+        if output is None: output = setu['output']
+
+        ## check if ROI polygon is given
+        clip, clip_mask = False, None
+        if poly is not None:
+            if os.path.exists(poly):
+                try:
+                    limit = ac.shared.polygon_limit(poly)
+                    print('Using limit from polygon envelope: {}'.format(limit))
+                    print('Not yet implemented for WorldView')
+                    clip = True
+                except:
+                    print('Failed to import polygon {}'.format(poly))
 
         ## test if we need to do an atmospheric correction
         atmospherically_corrected = False
@@ -320,4 +328,4 @@ def l1_convert(inputfile,
             print('Created {}'.format(ofile))
         if ofile not in ofiles: ofiles.append(ofile)
 
-    return(ofiles)
+    return(ofiles, setu)

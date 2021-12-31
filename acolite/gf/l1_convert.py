@@ -3,9 +3,9 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-09
 ## modifications: 2021-11-20 (QV) reproject file if projection not recognised
+##                2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
-                          output_lt = False, reproject_to_utm = False, clear_scratch = True):
+def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
     from scipy.interpolate import interp2d
 
@@ -13,6 +13,8 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
     import acolite as ac
     from osgeo import gdal
     #import subprocess
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -43,6 +45,19 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
         tiles, metafile = ac.gf.bundle_test(bundle)
         meta = ac.gf.metadata(metafile)
         if meta['SatelliteID'] not in  ['GF1D', 'GF6']: continue
+
+        ## sensor settings
+        setu = ac.acolite.settings.parse(meta['SatelliteID'], settings=settings)
+        verbosity = setu['verbosity']
+        ## get other settings
+        limit = setu['limit']
+        output_lt = setu['output_lt']
+        reproject_to_utm = setu['gf_reproject_to_utm']
+        clear_scratch = setu['clear_scratch']
+        vname = setu['region_name']
+        gains = setu['gains']
+        gains_toa = setu['gains_toa']
+        if output is None: output = setu['output']
 
         print('Processing {}'.format(bundle))
 
@@ -264,4 +279,4 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '',
         if (clear_scratch) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
             os.rmdir(ac.config['scratch_dir'])
 
-    return(ofiles)
+    return(ofiles, setu)

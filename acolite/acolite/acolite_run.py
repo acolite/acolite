@@ -9,7 +9,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     import datetime, os, mimetypes
     import acolite as ac
 
-    print('Running generic ACOLITE processing - {}'.format(ac.version))
+    print('Running ACOLITE processing - {}'.format(ac.version))
     ## time of processing start
     time_start = datetime.datetime.now()
 
@@ -60,7 +60,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     if output is not None: setu['output'] = output
 
     ## get defaults settings for l1r processing
-    setu_l1r = ac.acolite.settings.parse(None, settings=setu, merge=True)
+    setu_l1r = ac.acolite.settings.parse(None, settings=setu, merge=False)
 
     ## make list of lists to process, one list if merging tiles
     if type(setu_l1r['inputfile']) is not list: setu_l1r['inputfile'] = [setu_l1r['inputfile']]
@@ -69,6 +69,9 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     tmp_files = setu_l1r['inputfile'] if type(setu_l1r['inputfile']) == list else setu_l1r['inputfile'].split(',')
     inputfile_list = []
     for file in tmp_files:
+        if len(file) == 0: continue
+        if not os.path.exists(file): continue
+
         ##  remove trailing slash
         if file[-1] == os.sep: file = file[0:-1]
 
@@ -88,7 +91,8 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                         if os.path.exists(fn): cfiles.append(fn)
                     if len(cfiles)>0: inputfile_list.append(cfiles)
 
-    if setu_l1r['merge_tiles']: inputfile_list = [inputfile_list]
+    if 'merge_tiles' in setu_l1r:
+        if setu_l1r['merge_tiles']: inputfile_list = [inputfile_list]
     nruns = len(inputfile_list)
 
     ## track processed scenes
@@ -99,11 +103,19 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         bundle = inputfile_list[ni]
         processed[ni] = {'input': bundle}
 
+        ## save user settings
+        settings_file = '{}/acolite_run_{}_l1r_settings_user.txt'.format(setu_l1r['output'],setu_l1r['runid'])
+        ac.acolite.settings.write(settings_file, setu_l1r)
+
         ## run l1 convert
         ret = ac.acolite.acolite_l1r(bundle, setu_l1r)
         if len(ret) == 0: continue
         l1r_files, l1r_setu = ret
         processed[ni]['l1r'] = l1r_files
+
+        ## save all used settings
+        settings_file = '{}/acolite_run_{}_l1r_settings.txt'.format(l1r_setu['output'],l1r_setu['runid'])
+        ac.acolite.settings.write(settings_file, l1r_setu)
 
         ## do atmospheric correction
         l2r_files, l2t_files = [], []
@@ -187,6 +199,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     ## remove files
     for ni in processed:
         for level in ['l1r', 'l2r', 'l2t', 'l2w']:
+            if '{}_delete_netcdf'.format(level) not in l1r_setu: continue
             if l1r_setu['{}_delete_netcdf'.format(level)]:
                 if level not in processed[ni]: continue
                 ## run through images and delete them

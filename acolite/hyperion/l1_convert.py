@@ -2,12 +2,15 @@
 ## converts HYPERION L1T bundle to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-04
+## modifications:  2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', output_lt=False):
+def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
     import datetime, dateutil.parser, os, copy
     import acolite as ac
     from netCDF4 import Dataset
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -58,6 +61,14 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
         satellite = metadata['PRODUCT_METADATA']['SPACECRAFT_ID']
 
         gatts['sensor'] = '{}_{}'.format(satellite, sensor)
+
+        ## get sensor specific settings
+        setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+        verbosity = setu['verbosity']
+        limit = setu['limit']
+        vname = setu['region_name']
+        output_lt=setu['output_lt']
+        if output is None: output = setu['output']
 
         gatts['sza'] = 90-float(metadata["PRODUCT_PARAMETERS"]['SUN_ELEVATION'])
         gatts['vza'] = np.abs(float(metadata["PRODUCT_PARAMETERS"]['SENSOR_LOOK_ANGLE']))
@@ -174,4 +185,4 @@ def l1_convert(inputfile, output = None, limit = None, verbosity=0, vname = '', 
 
 
         ofiles.append(ofile)
-    return(ofiles)
+    return(ofiles, setu)

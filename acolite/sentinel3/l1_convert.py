@@ -3,23 +3,12 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
 ## modifications: 2021-12-22 (QV) added MERIS processing
+##                2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
-                limit = None, sub = None,
-                poly = None,
-
-                output_geolocation = True,
-                output_geometry=True,
-
+def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-
-                smile_correction = True,
-                use_tpg = True,
-                use_gains = True,
-                gains = [1.0] * 21,
-
-                verbosity = 0, vname = ''):
+                verbosity = 5):
 
     import os, glob, datetime, time, re
     import dateutil.parser
@@ -27,6 +16,8 @@ def l1_convert(inputfile, output = None,
     import numpy as np
     import scipy.interpolate
     import acolite as ac
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -36,17 +27,6 @@ def l1_convert(inputfile, output = None,
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scene{}'.format(nscenes, 's' if nscenes==1 else ''))
-
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                if verbosity > 1: print('Using limit from polygon envelope: {}'.format(limit))
-                clip = True
-            except:
-                if verbosity > 1: print('Failed to import polygon {}'.format(poly))
 
     ## start conversion
     ofile = None
@@ -69,9 +49,40 @@ def l1_convert(inputfile, output = None,
         rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
         rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
 
+        ## merge sensor specific settings
+        setu = ac.acolite.settings.parse(sensor, settings=settings)
+        verbosity = setu['verbosity']
+
+        ## extract sensor specific settings
+        smile_correction = setu['smile_correction']
+        use_tpg = setu['use_tpg']
+        use_gains = setu['gains']
+        gains = setu['gains_toa']
+
+        ## get other settings
+        limit = setu['limit']
+        output_geolocation = setu['output_geolocation']
+        output_geometry = setu['output_geometry']
+        vname = setu['region_name']
+        output = setu['output']
+
+        ## check if ROI polygon is given
+        poly = setu['polygon']
+        clip, clip_mask = False, None
+        if poly is not None:
+            if os.path.exists(poly):
+                try:
+                    limit = ac.shared.polygon_limit(poly)
+                    if verbosity > 1: print('Using limit from polygon envelope: {}'.format(limit))
+                    clip = True
+                except:
+                    if verbosity > 1: print('Failed to import polygon {}'.format(poly))
+
+        ## find data files
         dfiles = [os.path.basename(f) for f in glob.glob('{}/*.nc'.format(bundle))]
         dfiles.sort()
 
+        ## find xml files
         mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
         if len(mfile)==1: mfile = mfile[0]
 
@@ -356,4 +367,4 @@ def l1_convert(inputfile, output = None,
 
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
-    return(ofiles)
+    return(ofiles, setu)

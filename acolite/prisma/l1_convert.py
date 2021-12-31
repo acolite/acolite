@@ -2,11 +2,19 @@
 ## converts PRISMA HDF file to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-07-14
+## modifications: 2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False):
+def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
     import h5py, dateutil.parser, os
     import acolite as ac
+
+    ## parse settings
+    setu = ac.acolite.settings.parse('PRISMA', settings=settings)
+    verbosity = setu['verbosity']
+    if output is None: output = setu['output']
+    output_lt = setu['output_lt']
+    vname = setu['region_name']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -191,4 +199,4 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False)
             ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata)),
                               dataset_attributes = ds_att)
         ofiles.append(ofile)
-    return(ofiles)
+    return(ofiles, setu)

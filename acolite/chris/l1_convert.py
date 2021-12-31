@@ -2,17 +2,22 @@
 ## converts CHRIS HDF file to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-06-08
+## modifications: 2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile,
-                interband_calibration = True,
-                noise_reduction = True,
-                output = None,
-                output_radiance = False,
-                verbosity = 0, vname = ''):
+def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
     from pyhdf.SD import SD,SDC
     import datetime
     import numpy as np
     import acolite as ac
+
+    ## parse sensor specific settings
+    setu = ac.acolite.settings.parse('CHRIS', settings=settings)
+    interband_calibration = setu['chris_interband_calibration']
+    noise_reduction = setu['chris_noise_reduction']
+    vname = setu['region_name']
+    output_radiance = setu['output_lt']
+    if output is None: output = setu['output']
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -23,16 +28,12 @@ def l1_convert(inputfile,
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
+
     ## get CHRIS interband calibration
     if interband_calibration: ibcal = ac.chris.interband_calibration()
 
     ofiles = []
     for bundle in inputfile:
-        if output is None:
-            output_ = os.path.dirname(bundle)
-        else:
-            output_ = '{}'.format(output)
-
         ## read gains and get bands
         gains, mode_info = ac.chris.vdata(bundle)
         nbands = len(mode_info)
@@ -114,7 +115,7 @@ def l1_convert(inputfile,
                                                  '-' if gatts['FlyByZenith'] < 0 else '+',
                                                  '{:.0f}'.format(abs(gatts['FlyByZenith'])).zfill(2))
         if vname != '': obase+='_{}'.format(vname)
-        ofile = '{}/{}_L1R.nc'.format(output_, obase)
+        ofile = '{}/{}_L1R.nc'.format(output, obase)
 
         ## make RSR
         rsr = ac.shared.rsr_hyper(gatts['band_waves'], gatts['band_widths'])
@@ -235,4 +236,4 @@ def l1_convert(inputfile,
 
         if ofile not in ofiles: ofiles.append(ofile)
 
-    return(ofiles)
+    return(ofiles, setu)

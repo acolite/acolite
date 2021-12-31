@@ -6,42 +6,32 @@
 ##                2021-02-09 (QV) added cross zone warping support (test)
 ##                2021-02-10 (QV) fixed cross zone warping and added support for full tile warping
 ##                2021-02-11 (QV) added checks for merging tiles of the same sensor and close in time
+##                2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
-                limit = None, sub = None,
-                poly = None,
+def l1_convert(inputfile, output = None, settings = {},
 
                 output_pan = True,
                 output_pan_ms = True,
                 output_thermal = True,
 
-                output_geometry = True,
-                output_geolocation = True,
-                output_xy = False,
                 usgs_reflectance = True,
 
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
-                netcdf_projection = True,
-                merge_tiles = False,
-                merge_zones = False,
-                extend_region = False,
-
-                gains = False,
-                gains_toa = None,
-
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
 
-                verbosity = 0, vname = ''):
+                verbosity = 5, vname = ''):
 
     import os, glob, datetime, dateutil.parser, time, copy
     import acolite as ac
     import scipy.ndimage
     import numpy as np
     t0 = time.time()
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -51,25 +41,6 @@ def l1_convert(inputfile, output = None,
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
-
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                print('Using limit from polygon envelope: {}'.format(limit))
-                clip = True
-            except:
-                print('Failed to import polygon {}'.format(poly))
-
-    ## check if merging settings make sense
-    if (limit is None) & (merge_tiles):
-        if verbosity > 0: print("Merging tiles not supported without ROI limit")
-        merge_tiles = False
-    if merge_tiles:
-        merge_zones = True
-        extend_region = True
 
     new = True
     new_pan = True
@@ -153,6 +124,48 @@ def l1_convert(inputfile, output = None,
             continue
 
         sensor = '{}_{}'.format(sat,sen)
+
+        ## merge sensor specific settings
+        if new:
+            setu = ac.acolite.settings.parse(sensor, settings=settings)
+            verbosity = setu['verbosity']
+
+            ## get other settings
+            limit = setu['limit']
+            output_geolocation = setu['output_geolocation']
+            output_geometry = setu['output_geometry']
+            output_xy = setu['output_xy']
+            netcdf_projection = setu['netcdf_projection']
+
+            vname = setu['region_name']
+            gains = setu['gains']
+            gains_toa = setu['gains_toa']
+            if output is None: output = setu['output']
+
+            ## check if ROI polygon is given
+            poly = setu['polygon']
+            clip, clip_mask = False, None
+            if poly is not None:
+                if os.path.exists(poly):
+                    try:
+                        limit = ac.shared.polygon_limit(poly)
+                        print('Using limit from polygon envelope: {}'.format(limit))
+                        clip = True
+                    except:
+                        print('Failed to import polygon {}'.format(poly))
+
+            ## check if merging settings make sense
+            merge_tiles = setu['merge_tiles']
+            merge_zones = setu['merge_zones']
+            extend_region = setu['extend_region']
+            if (limit is None) & (merge_tiles):
+                if verbosity > 0: print("Merging tiles not supported without ROI limit")
+                merge_tiles = False
+            if merge_tiles:
+                merge_zones = True
+                extend_region = True
+
+        sub = None
 
         ## scene average geometry
         vza = 0
@@ -500,4 +513,4 @@ def l1_convert(inputfile, output = None,
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
-    return(ofiles)
+    return(ofiles, setu)

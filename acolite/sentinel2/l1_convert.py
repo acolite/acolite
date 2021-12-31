@@ -5,44 +5,16 @@
 ## modifications: 2021-10-13 (QV) support for new L1C format from processing baseline 4
 #                 2021-10-14 (QV) fixed band specific footprints for band specific geometry for PB004
 ##                2021-12-08 (QV) added nc_projection
+##                2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
-                limit = None, sub = None,
-                poly = None,
-                s2_target_res = 10,
-
-                output_geometry = True,
-                output_geolocation = True,
-                output_xy = False,
-
-                geometry_type = 'grids_footprint', ## 'gpt' or 'grids'
-                geometry_res = 60, ## for gpt geometry
-                geometry_format='GeoTIFF', ## for gpt geometry
-                geometry_override = False, ## for gpt geometry
-
-                netcdf_projection = True,
-                s2_include_auxillary = False,
-                s2_project_auxillary = True,
-
-                ## for geometry grids_footprint
-                geometry_per_band = False, ## set to False at the moment since l2r processing does not use per band geometry
-                geometry_fixed_footprint = False, ## True use B1 detector footprints else band specific
-
+def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-
-                merge_tiles = False,
-                merge_zones = False,
-                extend_region = False,
-
-                gains = False,
-                gains_toa = [1.0]*13,
-
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
-
-                verbosity = 0, vname = ''):
+                geometry_format='GeoTIFF', ## for gpt geometry
+                verbosity = 5):
 
     import sys, os, glob, dateutil.parser, time
     from osgeo import ogr,osr,gdal
@@ -50,6 +22,8 @@ def l1_convert(inputfile, output = None,
     import scipy.ndimage
     import numpy as np
     t0 = time.time()
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -60,33 +34,13 @@ def l1_convert(inputfile, output = None,
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                print('Using limit from polygon envelope: {}'.format(limit))
-                clip = True
-            except:
-                print('Failed to import polygon {}'.format(poly))
-
-    ## check if merging settings make sense
-    if (limit is None) & (merge_tiles):
-        if verbosity > 0: print("Merging tiles not supported without ROI limit")
-        merge_tiles = False
-    if merge_tiles:
-        merge_zones = True
-        extend_region = True
-
     new = True
     warp_to = None
 
     ofile = None
     ofiles = []
-
     for bundle in inputfile:
-        if output is None: output = os.path.dirname(bundle)
+        #if output is None: output = os.path.dirname(bundle)
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
         try:
@@ -121,6 +75,56 @@ def l1_convert(inputfile, output = None,
         if meta['PROCESSING_LEVEL'] != 'Level-1C':
             print('Processing of {} Sentinel-2 {} data not supported'.format(bundle, meta['PROCESSING_LEVEL']))
             continue
+
+        ## merge sensor specific settings
+        if new:
+            setu = ac.acolite.settings.parse(sensor, settings=settings)
+            verbosity = setu['verbosity']
+            if output is None: output = setu['output']
+
+            gains = setu['gains']
+            gains_toa = setu['gains_toa']
+
+            s2_target_res=setu['s2_target_res']
+
+            geometry_type=setu['geometry_type']
+            geometry_res=setu['geometry_res']
+            geometry_per_band=setu['geometry_per_band']
+            geometry_fixed_footprint=setu['geometry_fixed_footprint']
+
+            s2_include_auxillary = setu['s2_include_auxillary']
+            s2_project_auxillary = setu['s2_project_auxillary']
+            netcdf_projection = setu['netcdf_projection']
+
+            output_geolocation=setu['output_geolocation']
+            output_xy=setu['output_xy']
+            output_geometry=setu['output_geometry']
+            vname = setu['region_name']
+
+            ## check if ROI polygon is given
+            limit=setu['limit']
+            poly=setu['polygon']
+            clip, clip_mask = False, None
+            if poly is not None:
+                if os.path.exists(poly):
+                    try:
+                        limit = ac.shared.polygon_limit(poly)
+                        print('Using limit from polygon envelope: {}'.format(limit))
+                        clip = True
+                    except:
+                        print('Failed to import polygon {}'.format(poly))
+
+            ## check if merging settings make sense
+            merge_tiles = setu['merge_tiles']
+            merge_zones = setu['merge_zones']
+            extend_region = setu['extend_region']
+            if (limit is None) & (merge_tiles):
+                if verbosity > 0: print("Merging tiles not supported without ROI limit")
+                merge_tiles = False
+            if merge_tiles:
+                merge_zones = True
+                extend_region = True
+        sub = None
 
         dtime = dateutil.parser.parse(grmeta['SENSING_TIME'])
         doy = dtime.strftime('%j')
@@ -668,4 +672,4 @@ def l1_convert(inputfile, output = None,
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
-    return(ofiles)
+    return(ofiles, setu)

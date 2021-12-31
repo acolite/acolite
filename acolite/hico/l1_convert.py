@@ -2,12 +2,15 @@
 ## converts HICO L1 NC file to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-03
+## modifications:  2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False):
+def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
     import datetime, dateutil.parser, os
     import acolite as ac
     from netCDF4 import Dataset
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -42,6 +45,13 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False)
         gatts =  {}
         gatts['sensor'] = 'ISS_HICO'
         gatts['isodate'] = time.isoformat()
+
+        ## get sensor specific settings
+        setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+        verbosity = setu['verbosity']
+        vname = setu['region_name']
+        output_lt=setu['output_lt']
+        if output is None: output = setu['output']
 
         obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
         if not os.path.exists(odir): os.makedirs(odir)
@@ -122,4 +132,4 @@ def l1_convert(inputfile, output=None, verbosity=0, vname = '', output_lt=False)
                         print('Failed to write attribute: {}'.format(key))
 
         ofiles.append(ofile)
-    return(ofiles)
+    return(ofiles, setu)

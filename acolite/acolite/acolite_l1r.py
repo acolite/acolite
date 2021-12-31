@@ -3,13 +3,11 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-10
 ## modifications: 2021-12-08 (QV) added nc_projection
+##                2021-12-31 (QV) new handling of settings
 
-def acolite_l1r(bundle, settings, input_type=None):
+def acolite_l1r(bundle, setu, input_type=None):
     import acolite as ac
     import os
-
-    ## combine settings, get defaults
-    setu = ac.acolite.settings.parse(None, settings=settings)
 
     ## set up l1r_files list
     l1r_files = []
@@ -21,197 +19,109 @@ def acolite_l1r(bundle, settings, input_type=None):
     if input_type is None:
         if setu['verbosity'] > 0: print('{} not recognized.'.format(bundle[0]))
 
-    ## set output directory
-    if setu['output'] is not None:
-        output_ = setu['output']
-    else:
-        output_ = os.path.dirname(bundle[0])
-
     setu['inputfile'] = bundle
-    setu['output'] = output_
-    settings_file = '{}/acolite_run_{}_l1r_settings.txt'.format(setu['output'],setu['runid'])
-    ac.acolite.settings.write(settings_file, setu)
-    print(settings_file)
+    ## set output directory
+    if 'output' not in setu:
+        setu['output'] = os.path.dirname(setu['inputfile'][0])
 
     ################
     ## ACOLITE
     if input_type == 'ACOLITE':
         ## return bundle if ACOLITE type
         l1r_files = bundle
+        gatts = ac.shared.nc_gatts(bundle[0])
+        setu = ac.acolite.settings.parse(gatts['sensor'], settings = setu)
     ## end ACOLITE
     ################
 
     ################
     ## Landsat
     if input_type == 'Landsat':
-        l1r_files = ac.landsat.l1_convert(bundle, output=output_,
-                                    gains = setu['gains'],
-                                    gains_toa = setu['gains_toa'],
-                                    limit=setu['limit'], poly=setu['polygon'],
-                                    merge_tiles = setu['merge_tiles'],
-                                    merge_zones = setu['merge_zones'],
-                                    extend_region = setu['extend_region'],
-                                    output_geolocation=setu['output_geolocation'],
-                                    output_xy=setu['output_xy'],
-                                    output_geometry=setu['output_geometry'],
-                                    netcdf_projection = setu['netcdf_projection'],
-                                    vname = setu['region_name'],
-                                    verbosity=setu['verbosity'])
+        l1r_files, setu = ac.landsat.l1_convert(bundle, settings = setu)
     ## end Landsat
     ################
 
     ################
     ## Sentinel-2
     if input_type == 'Sentinel-2':
-        l1r_files = ac.sentinel2.l1_convert(bundle, output=output_,
-                                     gains = setu['gains'],
-                                     gains_toa = setu['gains_toa'],
-                                     s2_target_res=setu['s2_target_res'],
-                                     geometry_type=setu['geometry_type'],
-                                     geometry_res=setu['geometry_res'],
-                                     geometry_per_band=setu['geometry_per_band'],
-                                     geometry_fixed_footprint=setu['geometry_fixed_footprint'],
-                                     s2_include_auxillary = setu['s2_include_auxillary'],
-                                     s2_project_auxillary = setu['s2_project_auxillary'],
-                                     netcdf_projection = setu['netcdf_projection'],
-                                     limit=setu['limit'], poly=setu['polygon'],
-                                     merge_tiles = setu['merge_tiles'],
-                                     merge_zones = setu['merge_zones'],
-                                     extend_region = setu['extend_region'],
-                                     output_geolocation=setu['output_geolocation'],
-                                     output_xy=setu['output_xy'],
-                                     output_geometry=setu['output_geometry'],
-                                     vname = setu['region_name'],
-                                     verbosity=setu['verbosity'])
+        l1r_files, setu = ac.sentinel2.l1_convert(bundle, settings = setu)
     ## end Sentinel-2
     ################
 
     ################
     ## Sentinel-3
     if input_type == 'Sentinel-3':
-        l1r_files = ac.sentinel3.l1_convert(bundle, output=output_,
-                                            smile_correction = setu['smile_correction'],
-                                            use_tpg = setu['use_tpg'],
-                                            limit=setu['limit'], poly=setu['polygon'],
-                                            output_geolocation=setu['output_geolocation'],
-                                            output_geometry=setu['output_geometry'],
-                                            vname = setu['region_name'],
-                                            verbosity=setu['verbosity'])
+        l1r_files, setu = ac.sentinel3.l1_convert(bundle, settings = setu)
     ## end Sentinel-3
     ################
 
     ################
     ## Pléiades/SPOT
     if input_type == 'Pléiades':
-        l1r_files = ac.pleiades.l1_convert(bundle, output=output_,
-                                           limit=setu['limit'], poly=setu['polygon'],
-                                           skip_pan = setu['pleiades_skip_pan'],
-                                           output_geolocation=setu['output_geolocation'],
-                                           vname = setu['region_name'],
-                                           verbosity=setu['verbosity'])
+        l1r_files, setu = ac.pleiades.l1_convert(bundle, settings = setu)
     ## end Pléiades/SPOT
     ################
 
     ################
     ## VENUS
     if input_type == 'VENUS':
-        l1r_files = ac.venus.l1_convert(bundle, output=output_,
-                                         limit=setu['limit'], poly=setu['polygon'],
-                                         #merge_tiles = setu['merge_tiles'],
-                                         #merge_zones = setu['merge_zones'],
-                                         extend_region = setu['extend_region'],
-                                         output_geolocation=setu['output_geolocation'],
-                                         output_xy=setu['output_xy'],
-                                         vname = setu['region_name'],
-                                         verbosity=setu['verbosity'])
+        l1r_files, setu = ac.venus.l1_convert(bundle, settings = setu)
     ## end VENUS
     ################
 
     ################
     ## WorldView
     if input_type == 'WorldView':
-        l1r_files = ac.worldview.l1_convert(bundle, output=output_,
-                                            inputfile_swir = setu['inputfile_swir'],
-                                            limit=setu['limit'], poly=setu['polygon'],
-                                            output_geolocation=setu['output_geolocation'],
-                                            vname = setu['region_name'],
-                                            verbosity=setu['verbosity'])
+        l1r_files, setu = ac.worldview.l1_convert(bundle, inputfile_swir = setu['inputfile_swir'], settings = setu)
     ## end WorldView
     ################
 
     ################
     ## CHRIS
     if input_type == 'CHRIS':
-        l1r_files = ac.chris.l1_convert(bundle, output = output_,
-                                            interband_calibration = setu['chris_interband_calibration'],
-                                            noise_reduction = setu['chris_noise_reduction'],
-                                            vname = setu['region_name'],
-                                            verbosity = setu['verbosity'])
+        l1r_files, setu = ac.chris.l1_convert(bundle, settings = setu)
     ## end CHRIS
     ################
 
     ################
     ## PRISMA
     if input_type == 'PRISMA':
-        l1r_files = ac.prisma.l1_convert(bundle, output = output_,
-                                            vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
+        l1r_files, setu = ac.prisma.l1_convert(bundle, settings = setu)
     ## end PRISMA
     ################
 
     ################
     ## HICO
     if input_type == 'HICO':
-        l1r_files = ac.hico.l1_convert(bundle, output = output_,
-                                            vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
+        l1r_files, setu = ac.hico.l1_convert(bundle, settings = setu)
     ## end HICO
     ################
 
     ################
     ## HYPERION
     if input_type == 'HYPERION':
-        l1r_files = ac.hyperion.l1_convert(bundle, output = output_, limit = setu['limit'],
-                                            vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
+        l1r_files, setu = ac.hyperion.l1_convert(bundle, settings = setu)
     ## end HYPERION
     ################
 
     ################
     ## DESIS
     if input_type == 'DESIS':
-        l1r_files = ac.desis.l1_convert(bundle, output = output_, limit = setu['limit'], poly = setu['polygon'],
-                                            vname = setu['region_name'],
-                                            verbosity = setu['verbosity'], output_lt = setu['output_lt'])
+        l1r_files, setu = ac.desis.l1_convert(bundle, settings = setu)
     ## end DESIS
     ################
 
     ################
     ## Planet
     if input_type == 'Planet':
-        l1r_files = ac.planet.l1_convert(bundle, output=output_,
-                                         gains = setu['gains'],
-                                         gains_toa = setu['gains_toa'],
-                                         limit=setu['limit'], poly=setu['polygon'],
-                                         merge_tiles = setu['merge_tiles'],
-                                         merge_zones = setu['merge_zones'],
-                                         extend_region = setu['extend_region'],
-                                         output_geolocation=setu['output_geolocation'],
-                                         output_xy=setu['output_xy'],
-                                         netcdf_projection = setu['netcdf_projection'],
-                                         vname = setu['region_name'],
-                                         verbosity=setu['verbosity'])
+        l1r_files, setu = ac.planet.l1_convert(bundle, settings = setu)
     ## end Planet
     ################
 
     ################
     ## GF
     if input_type == 'GF':
-        l1r_files = ac.gf.l1_convert(bundle, output = output_, vname = setu['region_name'],
-                                            verbosity = setu['verbosity'],
-                                            output_lt = setu['output_lt'],
-                                            reproject_to_utm = setu['gf_reproject_to_utm'],
-                                            clear_scratch = setu['clear_scratch'])
+        l1r_files, setu = ac.gf.l1_convert(bundle, settings = setu)
     ## end GF
     ################
 

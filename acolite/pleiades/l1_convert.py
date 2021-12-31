@@ -2,22 +2,24 @@
 ## converts Pléiades data to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
-## modifications:
+## modifications: 2021-12-31 (QV) new handling of settings
 
-def l1_convert(inputfile, output = None,
+def l1_convert(inputfile, output = None, settings = {},
                 limit = None, sub = None,
                 poly = None,
                 output_geolocation = True,
                 skip_pan = False,
                 percentiles_compute = True,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-                verbosity = 0, vname = ''):
+                verbosity = 5, vname = ''):
 
     import os
     import dateutil.parser, time
     import numpy as np
     import acolite as ac
     import scipy.ndimage
+
+    if 'verbosity' in settings: verbosity = settings['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -31,17 +33,6 @@ def l1_convert(inputfile, output = None,
     ofiles = []
     for bundle in inputfile:
         ofile = None
-
-        ## check if ROI polygon is given
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
 
         ## check if we are dealing with Pléiades image bundle
         try:
@@ -57,6 +48,7 @@ def l1_convert(inputfile, output = None,
             print('Multiple metadata files found')
             return()
 
+        sub = None
         new = True
         new_pan = True
         ofile = None
@@ -69,6 +61,26 @@ def l1_convert(inputfile, output = None,
         for pmfile in set(pmfiles):
             if pmfile == '': continue
             pmeta = ac.pleiades.metadata_parse(pmfile, pan=True)
+
+        ## merge sensor specific settings
+        setu = ac.acolite.settings.parse(meta['sensor'], settings=settings)
+        verbosity = setu['verbosity']
+        if output is None: output = setu['output']
+        limit = setu['limit']
+        poly = setu['polygon']
+        output_geolocation = setu['output_geolocation']
+        skip_pan = setu['pleiades_skip_pan']
+
+        ## check if ROI polygon is given
+        clip, clip_mask = False, None
+        if poly is not None:
+            if os.path.exists(poly):
+                try:
+                    limit = ac.shared.polygon_limit(poly)
+                    print('Using limit from polygon envelope: {}'.format(limit))
+                    clip = True
+                except:
+                    print('Failed to import polygon {}'.format(poly))
 
         if limit is not None:
             out_scene = ac.pleiades.geo.test_coverage(meta, limit, verbose=verbosity>2)
@@ -284,4 +296,4 @@ def l1_convert(inputfile, output = None,
 
             if ofile not in ofiles: ofiles.append(ofile)
 
-    return(ofiles)
+    return(ofiles, setu)
