@@ -16,3 +16,4 @@ merge_tiles=False
 
 chris_interband_calibration=True
 chris_noise_reduction=True
+output_lt=False
