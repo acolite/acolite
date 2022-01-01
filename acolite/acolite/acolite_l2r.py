@@ -4,6 +4,7 @@
 ## 2021-03-01
 ## modifications: 2021-03-11 (QV) forked from acolite_gem
 ##                2021-12-08 (QV) added nc_projection
+##                2022-01-01 (QV) added segmented dsf option
 
 def acolite_l2r(gem,
                 output = None,
@@ -21,6 +22,7 @@ def acolite_l2r(gem,
     import numpy as np
     import scipy.ndimage
     import acolite as ac
+    import skimage.measure
 
     time_start = datetime.datetime.now()
 
@@ -233,7 +235,39 @@ def acolite_l2r(gem,
                         gem.data_mem['{}_tiled'.format(ds)] = 1.0 * gem.data(ds)
     ## end tiling
 
+    ## set up image segments
+    if setu['dsf_aot_estimate'] == 'segmented':
+        segment_data = {}
+        rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
+        finite_mask = np.isfinite(gem.data(rhot_ds[0]))
+        segment_mask = skimage.measure.label(finite_mask)
+        segments = np.unique(segment_mask)
+
+        ## find and label segments
+        for segment in segments:
+            #if segment == 0: continue
+            seg_sub = np.where((segment_mask == segment) & (finite_mask))
+            if len(seg_sub[0]) == 0: continue
+            segment_data[segment] = {'segment': segment, 'sub': seg_sub}
+
+        if len(segment_data) <= 1:
+            print('Image segmentation only found {} segments'.format(len(segment_data)))
+            print('Proceeding with dsf_aot_estimate=fixed')
+            setu['dsf_aot_estimate'] = 'fixed'
+        else:
+            print('Found {} segments'.format(len(segment_data)))
+            for segment in segment_data:
+                print('Segment {}/{}: {} pixels'.format(segment, len(segment_data), len(segment_data[segment]['sub'][0])))
+            ## convert geometry and ancillary data
+            for ds in geom_ds:
+                if len(np.atleast_1d(gem.data(ds)))>1: ## if not fixed geometry
+                    gem.data_mem['{}_segmented'.format(ds)] = [np.nanmean(gem.data(ds)[segment_data[segment]['sub']]) for segment in segment_data]
+                else:
+                    gem.data_mem['{}_segmented'.format(ds)] = [1.0 * gem.data(ds) for segment in segment_data]
+    ## end segmenting
+
     if (not setu['resolved_geometry']) & (setu['dsf_aot_estimate'] != 'tiled'): use_revlut = False
+    if setu['dsf_aot_estimate'] in ['fixed', 'segmented']: use_revlut = False
 
     ## set LUT dimension parameters to correct shape if resolved processing
     if (use_revlut) & (per_pixel_geometry) & (setu['dsf_aot_estimate'] == 'resolved'):
@@ -437,6 +471,17 @@ def acolite_l2r(gem,
                     ## fill nan tiles with closest values
                     ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
                     band_data = tile_data[tuple(ind)]
+                ## image is segmented based on input vector mask
+                elif setu['dsf_aot_estimate'] == 'segmented':
+                    gk = '_segmented'
+                    if setu['dsf_spectrum_option'] == 'darkest':
+                        band_data = np.array([np.nanpercentile(band_data[segment_data[segment]['sub']], 0)[0] for segment in segment_data])
+                    if setu['dsf_spectrum_option'] == 'percentile':
+                        band_data = np.array([np.nanpercentile(band_data[segment_data[segment]['sub']], setu['dsf_percentile'])[0] for segment in segment_data])
+                    if setu['dsf_spectrum_option'] == 'intercept':
+                        band_data = np.array([ac.shared.intercept(band_data[segment_data[segment]['sub']], setu['dsf_intercept_pixels'])  for segment in segment_data])
+                    band_data.shape+=(1,1) ## make 2 dimensions
+                    #if verbosity > 2: print(b, setu['dsf_spectrum_option'], ['{:.3f}'.format(float(v)) for v in band_data])
                 ## resolved per pixel dsf
                 elif setu['dsf_aot_estimate'] == 'resolved':
                     if not setu['resolved_geometry']: gk = '_mean'
@@ -450,7 +495,7 @@ def acolite_l2r(gem,
                     band_data[band_sub] /= gem.bands[b]['tt_gas']
 
                 ## store rhod
-                if setu['dsf_aot_estimate'] in ['fixed', 'tiled']:
+                if setu['dsf_aot_estimate'] in ['fixed', 'tiled', 'segmented']:
                     dsf_rhod[b] = band_data
 
                 ## use band specific geometry if available
@@ -502,19 +547,35 @@ def acolite_l2r(gem,
 
                             ## resample modeled results to current band
                             tmp = ac.shared.rsr_convolute_nd(rhot_aot, lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=1)
-                        else:
-                            tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
-                                                        lutdw[lut]['ipd'][par],
-                                                        gem.data_mem['raa'+gk_raa],
-                                                        gem.data_mem['vza'+gk_vza],
-                                                        gem.data_mem['sza'+gk],
-                                                        gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
-                        tmp = tmp.flatten()
+                            tmp = tmp.flatten()
 
-                        ## interpolate rho path to observation
-                        aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
-                                                           lutdw[lut]['meta']['tau'],
-                                                           left=np.nan, right=np.nan)
+                            ## interpolate rho path to observation
+                            aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
+                                                               lutdw[lut]['meta']['tau'],
+                                                               left=np.nan, right=np.nan)
+                        else:
+                            if len(gem.data_mem['pressure'+gk]) > 1:
+                                for gki in range(len(gem.data_mem['pressure'+gk])):
+                                    tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk][gki],
+                                                                lutdw[lut]['ipd'][par],
+                                                                gem.data_mem['raa'+gk_raa][gki],
+                                                                gem.data_mem['vza'+gk_vza][gki],
+                                                                gem.data_mem['sza'+gk][gki],
+                                                                gem.data_mem['wind'+gk][gki], lutdw[lut]['meta']['tau']))
+                                    tmp = tmp.flatten()
+                                    aot_band[lut][gki] = np.interp(band_data[gki], tmp, lutdw[lut]['meta']['tau'])#, left=np.nan, right=np.nan)
+                            else:
+                                tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
+                                                            lutdw[lut]['ipd'][par],
+                                                            gem.data_mem['raa'+gk_raa],
+                                                            gem.data_mem['vza'+gk_vza],
+                                                            gem.data_mem['sza'+gk],
+                                                            gem.data_mem['wind'+gk], lutdw[lut]['meta']['tau']))
+                                tmp = tmp.flatten()
+
+                                ## interpolate rho path to observation
+                                aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp, lutdw[lut]['meta']['tau'], left=np.nan, right=np.nan)
+
                     tel = time.time()-t0
 
                     if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
@@ -623,6 +684,8 @@ def acolite_l2r(gem,
                             ## get rhod for current band
                             if (setu['dsf_aot_estimate'] == 'resolved'):
                                 rhod_f[aot_sub[0], aot_sub[1], ai] = gem.data(gem.bands[b]['rhot_ds'])[aot_sub]
+                            elif (setu['dsf_aot_estimate'] == 'segmented'):
+                                rhod_f[aot_sub[0], aot_sub[1], ai] = dsf_rhod[b][aot_sub].flatten()
                             else:
                                 rhod_f[aot_sub[0], aot_sub[1], ai] = dsf_rhod[b][aot_sub]
                             ## get rho path for current band
@@ -645,8 +708,15 @@ def acolite_l2r(gem,
                                                                             xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
                                     rhop_f[aot_sub[0], aot_sub[1], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                                 else:
-                                    rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                                    if setu['dsf_aot_estimate'] == 'segmented':
+                                        for gki in range(len(aot_sub[0])):
+                                            rhop_f[aot_sub[0][gki], aot_sub[1][gki], ai] = lutdw[lut]['rgi'][b]((xi[0][aot_sub[0][gki]], lutdw[lut]['ipd'][par],
+                                                            xi[1][aot_sub[0][gki]], xi[2][aot_sub[0][gki]],
+                                                            xi[3][aot_sub[0][gki]], xi[4][aot_sub[0][gki]], aot_stack[lut]['min'][aot_sub][gki]))
+
+                                    else:
+                                        rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
+                                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
                     ## rmsd for current bands
                     cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
                 ## end select with min RMSD
@@ -853,6 +923,10 @@ def acolite_l2r(gem,
         ## reformat & save aot
         if setu['dsf_aot_estimate'] == 'fixed':
             aot_out = np.repeat(aot_sel, gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+        elif setu['dsf_aot_estimate'] == 'segmented':
+            aot_out = np.zeros(gem.gatts['data_dimensions']) + np.nan
+            for sidx, segment in enumerate(segment_data):
+                aot_out[segment_data[segment]['sub']] = aot_sel[sidx]
         elif setu['dsf_aot_estimate'] == 'tiled':
             aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
         else:
@@ -950,6 +1024,10 @@ def acolite_l2r(gem,
                           gem.data_mem['vza'+gk_vza],
                           gem.data_mem['sza'+gk],
                           gem.data_mem['wind'+gk]]
+                    # subset to number of estimates made for this LUT
+                    if len(xi[0]) > 1:
+                        xi = [[x[l] for l in ls[0]] for x in xi]
+
 
                 if hyper:
                     ## compute hyper results and resample later
@@ -990,6 +1068,24 @@ def acolite_l2r(gem,
                 if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                     ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                     target_mask_full=True, smooth=True, kern_size=3, method='linear')
+
+            ## create full scene parameters for segmented processing
+            if setu['dsf_aot_estimate'] == 'segmented':
+                romix_ = romix * 1.0
+                astot_ = astot * 1.0
+                dutott_ = dutott * 1.0
+                romix = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                astot = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                dutott = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                for sidx, segment in enumerate(segment_data):
+                    romix[segment_data[segment]['sub']] = romix_[sidx]
+                    astot[segment_data[segment]['sub']] = astot_[sidx]
+                    dutott[segment_data[segment]['sub']] = dutott_[sidx]
+                if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
+                    ttot_all_ = ttot_all[b] * 1.0
+                    ttot_all[b] = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                    for sidx, segment in enumerate(segment_data):
+                        ttot_all[b][segment_data[segment]['sub']] = ttot_all_[sidx]
 
             ## write ac parameters
             if setu['dsf_write_tiled_parameters']:
@@ -1059,6 +1155,16 @@ def acolite_l2r(gem,
                     rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
                     dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
 
+            ## create full scene parameters for segmented processing
+            if setu['dsf_aot_estimate'] == 'segmented':
+                rorayl_ = rorayl_cur * 1.0
+                dutotr_ = dutotr_cur * 1.0
+                rorayl_cur = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                dutotr_cur = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                for sidx, segment in enumerate(segment_data):
+                    rorayl_cur[segment_data[segment]['sub']] = rorayl_[sidx]
+                    dutotr_cur[segment_data[segment]['sub']] = dutotr_[sidx]
+
                 if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
                     if verbosity > 1: print('Interpolating tiles for rhorc')
                     rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
@@ -1077,7 +1183,6 @@ def acolite_l2r(gem,
         gemo.write(dso, cur_data, ds_att = ds_att)
         cur_data = None
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
-    aot_lut, aot_sel = None, None
 
     ## update outputfile dataset info
     gemo.datasets_read()
@@ -1267,34 +1372,48 @@ def acolite_l2r(gem,
     ## end glint correction
 
     ## alternative glint correction
-    if (ac_opt == 'dsf') & (setu['dsf_residual_glint_correction']) & (setu['dsf_aot_estimate'] == 'fixed') &\
+    if (ac_opt == 'dsf') & (setu['dsf_residual_glint_correction']) & (setu['dsf_aot_estimate'] in ['fixed', 'segmented']) &\
        (setu['dsf_residual_glint_correction_method']=='alternative'):
 
-        ## get geometry
-        #if ('raa' in gem.datasets) & ('sza' in gem.datasets) & ('vza' in gem.datasets) & (setu['resolved_geometry']):
-        if False:
-            raa = gem.data('raa')
-            sza = gem.data('sza')
-            vza = gem.data('vza')
-        else:
+        ## reference aot and wind speed
+        if setu['dsf_aot_estimate'] == 'fixed':
+            gc_aot = max(0.1, gemo.gatts['ac_aot_550'])
+            gc_wind = 20
+            gc_lut = gemo.gatts['ac_model']
+
             raa = gem.gatts['raa']
             sza = gem.gatts['sza']
             vza = gem.gatts['vza']
 
-        ## reference aot and wind speed
-        gc_aot = max(0.1, gemo.gatts['ac_aot_550'])
-        gc_wind = 20
-        gc_lut = gemo.gatts['ac_model']
+            ## get surface reflectance for fixed geometry
+            if len(np.atleast_1d(raa)) == 1:
+                if hyper:
+                    surf = lutdw[gc_lut]['rgi']((gem.gatts['pressure'],lutdw[gc_lut]['ipd']['rsky_s'],
+                                                 lutdw[gc_lut]['meta']['wave'], raa, vza, sza, gc_wind, gc_aot))
+                    surf_res = ac.shared.rsr_convolute_dict(lutdw[gc_lut]['meta']['wave'], surf, rsrd['rsr'])
+                else:
+                    surf_res = {b : lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],lutdw[gc_lut]['ipd']['rsky_s'],
+                                                             raa, vza, sza, gc_wind, gc_aot)) for b in lutdw[gc_lut]['rgi']}
 
-        ## get surface reflectance for fixed geometry
-        if len(np.atleast_1d(raa)) == 1:
-            if hyper:
-                surf = lutdw[gc_lut]['rgi']((gem.gatts['pressure'],lutdw[gc_lut]['ipd']['rsky_s'],
-                                             lutdw[gc_lut]['meta']['wave'], raa, vza, sza, gc_wind, gc_aot))
-                surf_res = ac.shared.rsr_convolute_dict(lutdw[gc_lut]['meta']['wave'], surf, rsrd['rsr'])
-            else:
-                surf_res = {b : lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],lutdw[gc_lut]['ipd']['rsky_s'],
-                                                         raa, vza, sza, gc_wind, gc_aot)) for b in lutdw[gc_lut]['rgi']}
+        if setu['dsf_aot_estimate'] == 'segmented':
+            for sidx, segment in enumerate(segment_data):
+                gc_aot = max(0.1, aot_sel[sidx])
+                gc_wind = 20
+                gc_lut = luts[aot_lut[sidx][0]]
+
+                if sidx == 0: surf_res = {}
+                ## get surface reflectance for segmented geometry
+                #if len(np.atleast_1d(raa)) == 1:
+                if hyper:
+                    surf = lutdw[gc_lut]['rgi']((gem.data_mem['pressure'+gk][sidx],lutdw[gc_lut]['ipd']['rsky_s'],
+                                                 lutdw[gc_lut]['meta']['wave'],
+                                                             gem.data_mem['raa'+gk_raa][sidx],gem.data_mem['vza'+gk_vza][sidx],
+                                                             gem.data_mem['sza'+gk][sidx], gc_wind, gc_aot))
+                    surf_res[segment] = ac.shared.rsr_convolute_dict(lutdw[gc_lut]['meta']['wave'], surf, rsrd['rsr'])
+                else:
+                    surf_res[segment] = {b : lutdw[gc_lut]['rgi'][b]((gem.data_mem['pressure'+gk][sidx],lutdw[gc_lut]['ipd']['rsky_s'],
+                                                            gem.data_mem['raa'+gk_raa][sidx],gem.data_mem['vza'+gk_vza][sidx],
+                                                            gem.data_mem['sza'+gk][sidx], gc_wind, gc_aot)) for b in lutdw[gc_lut]['rgi']}
 
         ## get reference surface reflectance
         gc_ref = None
@@ -1304,12 +1423,20 @@ def acolite_l2r(gem,
             if (gemo.bands[b]['wavelength'] < setu['dsf_residual_glint_wave_range'][0]) |\
                (gemo.bands[b]['wavelength'] > setu['dsf_residual_glint_wave_range'][1]): continue
             print('Reading reference for glint correction from band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
+
+            if setu['dsf_aot_estimate'] == 'fixed':
+                gc_sur_cur = surf_res[b]
+            if setu['dsf_aot_estimate'] == 'segmented':
+                gc_sur_cur = gemo.data(rhos_ds) * np.nan
+                for segment in segment_data:
+                    gc_sur_cur[segment_data[segment]['sub']] = surf_res[segment][b]
+
             if gc_ref is None:
                 gc_ref = gemo.data(rhos_ds)
-                gc_sur = [surf_res[b]]
+                gc_sur = gc_sur_cur
             else:
                 gc_ref = np.dstack((gc_ref, gemo.data(rhos_ds)))
-                gc_sur.append(surf_res[b])
+                gc_sur = np.dstack((gc_sur, gc_sur_cur))
 
         if gc_ref is None:
             print('No bands found between {} and {} nm for glint correction'.format(setu['dsf_residual_glint_wave_range'][0],
@@ -1329,8 +1456,10 @@ def acolite_l2r(gem,
                 gc_ref_mean = gc_ref*1.0
 
             ## compute average modeled surface glint
-            gc_sur_mean = np.nanmean(gc_sur)
-            gc_sur_std = np.nanstd(gc_sur)
+            axis = None
+            if setu['dsf_aot_estimate'] == 'segmented': axis = 2
+            gc_sur_mean = np.nanmean(gc_sur, axis = axis)
+            gc_sur_std = np.nanstd(gc_sur, axis = axis)
 
             ## get subset where to apply glint correction
             gc_sub = np.where(gc_ref_mean<setu['glint_mask_rhos_threshold'])
@@ -1341,31 +1470,20 @@ def acolite_l2r(gem,
                 if rhos_ds not in gemo.datasets: continue
                 print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
 
-                sur = surf_res[b] * 1.0
-
-                if False:
-                    ## compute surface image
-                    if hyper:
-                        sur = surf_res[b]
-                    else:
-                        print(rhos_ds, 'Interpolating LUT')
-                        if (ds.replace('rhos_', 'raa_') in gem.datasets) &\
-                            (ds.replace('rhos_', 'vza_') in gem.datasets) & (setu['resolved_geometry']):
-                            raa_ = gem.data(ds.replace('rhos_', 'raa_'))
-                            vza_ = gem.data(ds.replace('rhos_', 'vza_'))
-                            sur = lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],
-                                                                      lutdw[gc_lut]['ipd']['rsky_s'],
-                                                                      raa_, vza_, sza, gc_wind, gc_aot))
-                        else:
-                            sur = lutdw[gc_lut]['rgi'][b]((gem.gatts['pressure'],
-                                                                      lutdw[gc_lut]['ipd']['rsky_s'],
-                                                                      raa, vza, sza, gc_wind, gc_aot))
-
                 ## estimate current band glint from reference glint image and ratio of interface reflectance
+                if setu['dsf_aot_estimate'] == 'fixed':
+                    sur = surf_res[b] * 1.0
+
+                if setu['dsf_aot_estimate'] == 'segmented':
+                    sur = gc_ref_mean * np.nan
+                    for segment in segment_data:
+                        sur[segment_data[segment]['sub']] = surf_res[segment][b]
+                    sur = sur[gc_sub]
+
                 if len(np.atleast_2d(gc_sur_mean)) == 1:
-                    cur_rhog = gc_ref_mean[gc_sub] * (surf_res[b]/gc_sur_mean)
+                    cur_rhog = gc_ref_mean[gc_sub] * (sur/gc_sur_mean)
                 else:
-                    cur_rhog = gc_ref_mean[gc_sub] * (surf_res[b][gc_sub]/gc_sur_mean[gc_sub])
+                    cur_rhog = gc_ref_mean[gc_sub] * (sur/gc_sur_mean[gc_sub])
 
                 ## remove glint from rhos
                 cur_data = gemo.data(rhos_ds)
@@ -1413,6 +1531,9 @@ def acolite_l2r(gem,
         ob_data = None
         ob = None
     ## end orange band
+
+    ## clear aot results
+    aot_lut, aot_sel = None, None
 
     ## update attributes with latest version
     if output_file: gemo.update_attributes()
