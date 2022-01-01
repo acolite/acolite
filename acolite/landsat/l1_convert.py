@@ -51,7 +51,6 @@ def l1_convert(inputfile, output = None, settings = {},
     ofiles = []
 
     for bundle in inputfile:
-        if output is None: output = os.path.dirname(bundle)
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
         mtl = glob.glob('{}/{}'.format(bundle, '*MTL.txt'))
