@@ -4,6 +4,9 @@
 region_name=
 limit=None
 polygon=None
+polygon_limit=True
+polylakes=False
+polylakes_database=worldlakes
 merge_tiles=False
 merge_zones=True
 extend_region=False

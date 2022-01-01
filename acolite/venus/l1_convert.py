@@ -33,7 +33,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
     for bundle in inputfile:
         sub = None
-        
+
         t0 = time.time()
         meta = ac.venus.metadata_parse(bundle)
         if meta['image_type'] != 'Reflectance':
@@ -61,13 +61,20 @@ def l1_convert(inputfile, output = None, settings = {},
         if output is None: output = setu['output']
 
         ## check if ROI polygon is given
-        poly = setu['polygon']
+        if setu['polylakes']:
+            poly = ac.shared.polylakes(setu['polylakes_database'])
+            setu['polygon_limit'] = False
+        else:
+            poly = setu['polygon']
         clip, clip_mask = False, None
         if poly is not None:
             if os.path.exists(poly):
                 try:
                     limit = ac.shared.polygon_limit(poly)
-                    print('Using limit from polygon envelope: {}'.format(limit))
+                    if setu['polygon_limit']:
+                        print('Using limit from polygon envelope: {}'.format(limit))
+                    else:
+                        limit = setu['limit']
                     clip = True
                 except:
                     print('Failed to import polygon {}'.format(poly))

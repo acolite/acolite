@@ -101,15 +101,22 @@ def l1_convert(inputfile, output = None, settings = {},
             output_geometry=setu['output_geometry']
             vname = setu['region_name']
 
-            ## check if ROI polygon is given
             limit=setu['limit']
-            poly=setu['polygon']
+            ## check if ROI polygon is given
+            if setu['polylakes']:
+                poly = ac.shared.polylakes(setu['polylakes_database'])
+                setu['polygon_limit'] = False
+            else:
+                poly = setu['polygon']
             clip, clip_mask = False, None
             if poly is not None:
                 if os.path.exists(poly):
                     try:
                         limit = ac.shared.polygon_limit(poly)
-                        print('Using limit from polygon envelope: {}'.format(limit))
+                        if setu['polygon_limit']:
+                            print('Using limit from polygon envelope: {}'.format(limit))
+                        else:
+                            limit = setu['limit']
                         clip = True
                     except:
                         print('Failed to import polygon {}'.format(poly))
