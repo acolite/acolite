@@ -46,4 +46,4 @@ from .gauss_response import *
 from .sun_position import *
 from .rsr_hyper import *
 
-from .worldlakes import *
+from .polylakes import *
