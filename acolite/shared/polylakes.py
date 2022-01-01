@@ -19,7 +19,7 @@ def polylakes(database = 'worldlakes', remove_zip = False):
 
     if database.lower() not in ['worldlakes', 'hydrolakes']:
         print('Polylake database {} not recognised, using worldlakes.')
-        database = 'wordlakes'
+        database = 'worldlakes'
 
     ## local worldlakes files
     if database.lower() == 'worldlakes':
