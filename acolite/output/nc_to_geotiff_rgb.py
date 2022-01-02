@@ -8,7 +8,6 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
     import acolite as ac
     import numpy as np
     from osgeo import gdal
-    from osgeo.utils import gdal_merge
     import os, sys, subprocess
 
     creationOptions = None
