@@ -17,7 +17,7 @@ def acolite_l1r(bundle, setu, input_type=None):
     bundle.sort()
     input_type = ac.acolite.identify_bundle(bundle[0])
     if input_type is None:
-        if setu['verbosity'] > 0: print('{} not recognized.'.format(bundle[0]))
+        print('{} not recognized.'.format(bundle[0]))
 
     setu['inputfile'] = bundle
     ## set output directory
