@@ -182,9 +182,7 @@ def acolite_l2r(gem,
     use_revlut = False
     per_pixel_geometry = False
     ## if path reflectance is tiled or resolved, use reverse lut
-    #if setu['dsf_aot_estimate'] != 'fixed': use_revlut = True
     ## no need to use reverse lut if fixed geometry is used
-    #if setu['resolved_geometry']:
     ## we want to use the reverse lut to derive aot if the geometry data is resolved
     for ds in geom_ds:
         if ds not in gem.datasets:
@@ -196,7 +194,6 @@ def acolite_l2r(gem,
             per_pixel_geometry = True
         gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
         gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
-
 
     ## for tiled processing track tile positions and average geometry
     tiles = []
@@ -247,7 +244,10 @@ def acolite_l2r(gem,
         for segment in segments:
             #if segment == 0: continue
             seg_sub = np.where((segment_mask == segment) & (finite_mask))
-            if len(seg_sub[0]) == 0: continue
+            #if len(seg_sub[0]) == 0: continue
+            if len(seg_sub[0]) < max(1, setu['dsf_minimum_segment_size']):
+                if setu['verbosity'] > 4: print('Skipping segment of {} pixels'.format(len(seg_sub[0])))
+                continue
             segment_data[segment] = {'segment': segment, 'sub': seg_sub}
 
         if len(segment_data) <= 1:
@@ -255,9 +255,9 @@ def acolite_l2r(gem,
             print('Proceeding with dsf_aot_estimate=fixed')
             setu['dsf_aot_estimate'] = 'fixed'
         else:
-            print('Found {} segments'.format(len(segment_data)))
+            if setu['verbosity'] > 3: print('Found {} segments'.format(len(segment_data)))
             for segment in segment_data:
-                print('Segment {}/{}: {} pixels'.format(segment, len(segment_data), len(segment_data[segment]['sub'][0])))
+                if setu['verbosity'] > 4: print('Segment {}/{}: {} pixels'.format(segment, len(segment_data), len(segment_data[segment]['sub'][0])))
             ## convert geometry and ancillary data
             for ds in geom_ds:
                 if len(np.atleast_1d(gem.data(ds)))>1: ## if not fixed geometry
@@ -275,16 +275,6 @@ def acolite_l2r(gem,
             if len(np.atleast_1d(gem.data(ds)))!=1: continue
             print('Reshaping {} to {}x{} pixels for resolved processing'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
             gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
-
-    ## for ease of subsetting later, repeat single element datasets to the tile shape
-    #if use_revlut:
-    #    for ds in geom_ds:
-    #        if len(np.atleast_1d(gem.data(ds)))!=1: continue
-    #        gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
-    #else:
-    #    ## if use revlut is False at this point, we don't have resolved geometry
-    #    setu['resolved_geometry'] = False
-    ## end determine revlut
 
     ## read LUTs
     if (setu['dsf_interface_reflectance']) & (setu['dsf_interface_option'] == 'default'):

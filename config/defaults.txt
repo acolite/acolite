@@ -160,6 +160,7 @@ dsf_aot_estimate=tiled
 dsf_spectrum_option=intercept
 dsf_percentile=1
 dsf_intercept_pixels=1000
+dsf_minimum_segment_size=1
 
 ## apply median filter to TOA data
 dsf_filter_toa=False
