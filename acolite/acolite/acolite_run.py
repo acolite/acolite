@@ -126,6 +126,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             if l1r_setu['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r, match_file = l1r_setu['export_geotiff_match_file'],
                                                             cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                             skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
+            if l1r_setu['l1r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(l1r, settings = l1r_setu)
 
             ## do VIS-SWIR atmospheric correction
             if l1r_setu['atmospheric_correction']:
@@ -157,6 +158,9 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                         ac.output.nc_to_geotiff(ncf, match_file = l2r_setu['export_geotiff_match_file'],
                                                 cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                 skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
+
+                        if l2r_setu['l2r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
+
 
                 ## make rgb maps
                 if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:
