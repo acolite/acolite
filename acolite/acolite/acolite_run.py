@@ -128,6 +128,12 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                                                             skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
             if l1r_setu['l1r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(l1r, settings = l1r_setu)
 
+            ## rhot RGB
+            if l1r_setu['rgb_rhot']:
+                l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
+                l1r_setu_['rgb_rhos'] = False
+                ac.acolite.acolite_map(l1r, settings = l1r_setu_, plot_all=False)
+
             ## do VIS-SWIR atmospheric correction
             if l1r_setu['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
@@ -162,10 +168,12 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                         if l2r_setu['l2r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
 
 
-                ## make rgb maps
-                if l2r_setu['rgb_rhot'] | l2r_setu['rgb_rhos']:
+                ## make rgb rhos maps
+                if l2r_setu['rgb_rhos']:
+                    l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
+                    l2r_setu_['rgb_rhot'] = False
                     for ncf in l2r:
-                        ac.acolite.acolite_map(ncf, settings = l2r_setu, plot_all=False)
+                        ac.acolite.acolite_map(ncf, settings = l2r_setu_, plot_all=False)
 
                 ## compute l2w parameters
                 if l2r_setu['l2w_parameters'] is not None:
