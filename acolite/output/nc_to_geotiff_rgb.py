@@ -68,6 +68,8 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
             else:
                 dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds), format=oformat,
                                 creationOptions=creationOptions, options=options)
+            ## set no data value
+            dt.GetRasterBand(1).SetNoDataValue(0)
             tempfiles.append(outfile)
             dt = None
 

@@ -36,16 +36,11 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
             if ds in ['x', 'y', gatts['projection_key']]: continue
             if (skip_geo) & (ds in ['lat', 'lon']): continue
             outfile = '{}_{}{}'.format(out, ds, '.tif')
-            ## masking of np.nan values doesn't work
-            #dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
-            #                    outputType=gdal.GDT_Float32, noData=np.nan, maskBand='mask')
+            ## write geotiff
             dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
                                 format=format, creationOptions=creationOptions)
-            ## this is in effect writing the data twice, but needed to keep the nodata value mask
-            if True:
-                data = ac.shared.nc_data(f, ds)
-                dt.GetRasterBand(1).WriteArray(data)
-                dt.GetRasterBand(1).SetNoDataValue(np.nan)
+            ## set no data value
+            dt.GetRasterBand(1).SetNoDataValue(np.nan)
             dt = None
             print('Wrote {}'.format(outfile))
     else:
