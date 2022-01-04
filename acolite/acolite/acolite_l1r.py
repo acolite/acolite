@@ -72,6 +72,7 @@ def acolite_l1r(bundle, setu, input_type=None):
     ################
     ## WorldView
     if input_type == 'WorldView':
+        if 'inputfile_swir' not in setu: setu['inputfile_swir'] = None
         l1r_files, setu = ac.worldview.l1_convert(bundle, inputfile_swir = setu['inputfile_swir'], settings = setu)
     ## end WorldView
     ################
