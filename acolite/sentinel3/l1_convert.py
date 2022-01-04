@@ -4,6 +4,7 @@
 ## 2021-02-24
 ## modifications: 2021-12-22 (QV) added MERIS processing
 ##                2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -303,7 +304,9 @@ def l1_convert(inputfile, output = None, settings = {},
         if output_geolocation:
             if verbosity > 1: print('Writing geolocation')
             for ds in ['lon', 'lat']:
-                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts)
+                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 new = False
 
         ## output geometry
@@ -315,10 +318,15 @@ def l1_convert(inputfile, output = None, settings = {},
                         ko = 'vza'
                     else:
                         ko = k.lower()
-                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts)
+                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                     new = False
                 elif k in ['sea_level_pressure']:
-                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts)
+                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'],
+                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                     new = False
                 else:
                     continue
@@ -353,7 +361,10 @@ def l1_convert(inputfile, output = None, settings = {},
             ds_att  = {'wavelength':float(wave)}
             for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
 
-            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'],
+                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
             new = False
             d = None

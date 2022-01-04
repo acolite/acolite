@@ -523,13 +523,20 @@ def l1_convert(inputfile, output = None, settings = {},
             raa[mask] = np.nan
             vaa = None
 
-            ac.output.nc_write(ofile, 'raa', raa, replace_nan=True, attributes=gatts, new=new, nc_projection=nc_projection)
+            ac.output.nc_write(ofile, 'raa', raa, replace_nan=True,
+                                    attributes=gatts, new=new, nc_projection=nc_projection,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
             if verbosity > 1: print('Wrote raa {}'.format(raa.shape))
             raa = None
             new = False
-            ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
+            ac.output.nc_write(ofile, 'vza', vza, replace_nan=True,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'])
             if verbosity > 1: print('Wrote vza {}'.format(vza.shape))
-            ac.output.nc_write(ofile, 'sza', sza, replace_nan=True)
+            ac.output.nc_write(ofile, 'sza', sza, replace_nan=True,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'])
             if verbosity > 1: print('Wrote sza {}'.format(sza.shape))
             sza = None
             vza = None
@@ -541,7 +548,9 @@ def l1_convert(inputfile, output = None, settings = {},
                     print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
                     ## band specific view zenith angle
                     vza = ac.shared.warp_from_source(target_file, dct_prj, vza_all[:,:,bi], warp_to=warp_to)
-                    ac.output.nc_write(ofile, 'vza_{}'.format(waves_names[b]), vza, replace_nan=True)
+                    ac.output.nc_write(ofile, 'vza_{}'.format(waves_names[b]), vza, replace_nan=True,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'])
                     vza = None
                     ## band specific view azimuth angle
                     vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa_all[:,:,bi], warp_to=warp_to)
@@ -552,7 +561,9 @@ def l1_convert(inputfile, output = None, settings = {},
                     tmp = np.where(raa>180)
                     raa[tmp]=np.abs(raa[tmp] - 360)
                     raa[mask] = np.nan
-                    ac.output.nc_write(ofile, 'raa_{}'.format(waves_names[b]), raa, replace_nan=True)
+                    ac.output.nc_write(ofile, 'raa_{}'.format(waves_names[b]), raa, replace_nan=True,
+                                       netcdf_compression=setu['netcdf_compression'],
+                                       netcdf_compression_level=setu['netcdf_compression_level'])
                     raa = None
             ## delete sun azimuth & mask
             saa = None
@@ -568,11 +579,16 @@ def l1_convert(inputfile, output = None, settings = {},
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
                 print(lon.shape)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
+                                    nc_projection=nc_projection,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lon = None
                 if verbosity > 1: print('Wrote lon')
                 print(lat.shape)
-                ac.output.nc_write(ofile, 'lat', lat, double=True)
+                ac.output.nc_write(ofile, 'lat', lat, double=True,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lat = None
                 if verbosity > 1: print('Wrote lat')
                 new=False
@@ -586,10 +602,16 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new)
+                ac.output.nc_write(ofile, 'x', x, new=new,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'],
+                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                 x = None
                 if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y)
+                ac.output.nc_write(ofile, 'y', y,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'],
+                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                 y = None
                 if verbosity > 1: print('Wrote y')
                 new=False
@@ -626,7 +648,10 @@ def l1_convert(inputfile, output = None, settings = {},
                             ret = ac.shared.fillnan(ret.reshape(int(gatts['global_dims'][0]), int(gatts['global_dims'][1])))
                             ## write
                             ac.output.nc_write(ofile_aux, '{}_{}'.format(source, an), ret, replace_nan=True,
-                                                attributes=gatts, new = ofile_aux_new, nc_projection=nc_projection)
+                                                attributes=gatts, new = ofile_aux_new, nc_projection=nc_projection,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'],
+                                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                             if verbosity > 1: print('Wrote {}'.format('{}_{}'.format(source, an)))
                             ret = None
                             ofile_aux_new = False
@@ -666,7 +691,10 @@ def l1_convert(inputfile, output = None, settings = {},
 
                     ## write to ms file
                     ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
-                                        dataset_attributes = ds_att, nc_projection=nc_projection)
+                                        dataset_attributes = ds_att, nc_projection=nc_projection,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'],
+                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
             else:

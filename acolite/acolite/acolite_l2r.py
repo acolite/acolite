@@ -304,7 +304,11 @@ def acolite_l2r(gem,
         else:
             ofile = '{}'.format(target_file)
 
-        gemo = ac.gem.gem(ofile, new=True)
+        gemo = ac.gem.gem(ofile, new=True,
+                          netcdf_compression=setu['netcdf_compression'],
+                          netcdf_compression_level=setu['netcdf_compression_level'],
+                          netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+
         gemo.nc_projection = nc_projection
         gemo.bands = gem.bands
         gemo.verbosity = setu['verbosity']

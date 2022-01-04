@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
 ## modifications: 2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output = None, settings = {},
                 limit = None, sub = None,
@@ -171,10 +172,14 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.pleiades.geo.ll(meta, sub=sub)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lon = None
                 if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat, double=True)
+                ac.output.nc_write(ofile, 'lat', lat, double=True,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lat = None
                 if verbosity > 1: print('Wrote lat')
                 new = False
@@ -268,7 +273,11 @@ def l1_convert(inputfile, output = None, settings = {},
                         data_full[tile_row_off*4:tile_row_off*4+cur_shape[0],
                                   tile_col_off*4:tile_col_off*4+cur_shape[1]] = data
                         ## write to netcdf file
-                        ac.output.nc_write(pofile, ds, data_full, replace_nan=True, attributes=gatts, new=new_pan, dataset_attributes = ds_att)
+                        ac.output.nc_write(pofile, ds, data_full, replace_nan=True, attributes=gatts,
+                                            new=new_pan, dataset_attributes = ds_att,
+                                            netcdf_compression=setu['netcdf_compression'],
+                                            netcdf_compression_level=setu['netcdf_compression_level'],
+                                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                         data_full = None
                         new_pan = False
 
@@ -286,7 +295,10 @@ def l1_convert(inputfile, output = None, settings = {},
                     data = None
 
                     ## write to netcdf file
-                    ac.output.nc_write(ofile, ds, data_full, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+                    ac.output.nc_write(ofile, ds, data_full, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'],
+                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data_full.shape))
 

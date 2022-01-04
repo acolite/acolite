@@ -17,7 +17,12 @@ output_geolocation=True
 output_xy=False
 output_geometry=True
 output_rhorc=False
+
+## netcdf options
 netcdf_projection=True
+netcdf_compression=False
+netcdf_compression_level=4
+netcdf_compression_least_significant_digit=None
 
 ## Landsat OLI options
 oli_orange_band=True

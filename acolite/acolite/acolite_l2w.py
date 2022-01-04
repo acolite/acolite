@@ -236,12 +236,19 @@ def acolite_l2w(gem,
         if verbosity > 1: print('Writing {}'.format(cur_par))
         ## add attributes
         for k in att_add: cur_att[k] = att_add[k]
-        ac.output.nc_write(ofile, cur_par, cur_data, dataset_attributes=cur_att, attributes=gem['gatts'], new=new, nc_projection=nc_projection)
+        ac.output.nc_write(ofile, cur_par, cur_data, dataset_attributes=cur_att,
+                           attributes=gem['gatts'], new=new, nc_projection=nc_projection,
+                           netcdf_compression=setu['netcdf_compression'],
+                           netcdf_compression_level=setu['netcdf_compression_level'],
+                           netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
         cur_data = None
         new = False
 
     ## write l2 flags
-    ac.output.nc_write(ofile, 'l2_flags', l2_flags, attributes=gem['gatts'], new=new, nc_projection=nc_projection)
+    ac.output.nc_write(ofile, 'l2_flags', l2_flags, attributes=gem['gatts'], new=new,
+                        nc_projection=nc_projection,
+                        netcdf_compression=setu['netcdf_compression'],
+                        netcdf_compression_level=setu['netcdf_compression_level'])
     if return_gem: gem['data']['l2_flags'] = l2_flags
     new = False
 
@@ -1307,7 +1314,10 @@ def acolite_l2w(gem,
             ## write to NetCDF
             if verbosity > 1: print('Writing {}'.format(cur_ds))
             ac.output.nc_write(ofile, cur_ds, par_data[cur_ds], dataset_attributes=par_atts[cur_ds],
-                               attributes=gem['gatts'], new=new, nc_projection=nc_projection)
+                               attributes=gem['gatts'], new=new, nc_projection=nc_projection,
+                               netcdf_compression=setu['netcdf_compression'],
+                               netcdf_compression_level=setu['netcdf_compression_level'],
+                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             ## we can also add parameter to gem
             if return_gem:
                 gem['data'][cur_ds] = par_data[cur_ds]

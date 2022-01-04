@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-25
 ## modifications: 2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -67,7 +68,7 @@ def l1_convert(inputfile, output = None,
         ## parse sensor specific settings
         setu = ac.acolite.settings.parse(meta['sensor'], settings=settings)
         verbosity = setu['verbosity']
-        inputfile_swir = setu['inputfile_swir']
+        #inputfile_swir = setu['inputfile_swir']
         limit=setu['limit']
         poly=setu['polygon']
         output_geolocation=setu['output_geolocation']
@@ -220,9 +221,13 @@ def l1_convert(inputfile, output = None,
             if verbosity > 1: print('{} - Writing lat/lon'.format(datetime.datetime.now().isoformat()[0:19]))
             if dct is not None: ## compute from projection info
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
-                ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts)
+                ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
                 lat = None
-                ac.output.nc_write(ofile, 'lon', lon)
+                ac.output.nc_write(ofile, 'lon', lon,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
                 lon = None
             else: ## compute from corners given in metadata
                 pcol = [0, global_dims[1], global_dims[1], 0]
@@ -241,8 +246,12 @@ def l1_convert(inputfile, output = None,
                 zlat = scipy.interpolate.interp2d(pcol, prow, plat, kind='linear')
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
-                ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts)
-                ac.output.nc_write(ofile, 'lon', zlon(x, y))
+                ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lon', zlon(x, y),
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'])
                 x = None
                 y = None
                 zlat = None
@@ -318,7 +327,10 @@ def l1_convert(inputfile, output = None,
 
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
-            ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att)
+            ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'],
+                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             new = False
             data_full = None

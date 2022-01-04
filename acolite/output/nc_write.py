@@ -28,10 +28,11 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  metadata=None, dataset_attributes=None, double=False,
                  chunking=True, chunk_tiles=[10,10], chunksizes=None, fillvalue=None,
                  nc_projection = None,
-                 format='NETCDF4', #'NETCDF4_CLASSIC',
-                 nc_compression=False # currently off: file saving takes *much* longer,
-                                      #about 30% file size reduction for Pléiades
-                 ):
+                 format='NETCDF4',
+                 netcdf_compression=False,
+                 netcdf_compression_level=4,
+                 netcdf_compression_least_significant_digit=None):
+
 
     from netCDF4 import Dataset
     import time, os
@@ -175,10 +176,17 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
             else:
                 nc.variables[dataset][offset[1]:offset[1]+dims[0],offset[0]:offset[0]+dims[1]] = data
     else:
-        ## new dataset
+        if dataset in ['lat', 'lon']:
+            netcdf_least_significant_digit = None
+        else:
+            netcdf_least_significant_digit = None if netcdf_compression_least_significant_digit is None else 1 * netcdf_compression_least_significant_digit
+
         var = nc.createVariable(dataset,data.dtype,('y','x'),
                                 fill_value=fillvalue,
-                                zlib=nc_compression,chunksizes=chunksizes)
+                                zlib=netcdf_compression, complevel=netcdf_compression_level,
+                                least_significant_digit=netcdf_least_significant_digit,
+                                chunksizes=chunksizes)
+
         if wavelength is not None: var.setncattr('wavelength', float(wavelength))
         ## set attributes
         if dataset_attributes is not None:

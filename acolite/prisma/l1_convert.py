@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-07-14
 ## modifications: 2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
@@ -157,12 +158,17 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         gatts['band_waves'] = [bands[w]['wave'] for w in bands]
         gatts['band_widths'] = [bands[w]['width'] for w in bands]
 
-        ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts)
-        ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)))
+        ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts,
+                            netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)),
+                            netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
         if os.path.exists(l2file):
-            ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)))
-            ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)))
-            ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)))
+            ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)),
+                                netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)),
+                                netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)),
+                                netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
 
         ## write TOA data
         for bi, b in enumerate(bands):
@@ -193,10 +199,16 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
             if output_lt:
                 ## write toa radiance
                 ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata_radiance)),
-                              dataset_attributes = ds_att)
+                              dataset_attributes = ds_att,
+                              netcdf_compression=setu['netcdf_compression'],
+                              netcdf_compression_level=setu['netcdf_compression_level'],
+                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
 
             ## write toa reflectance
             ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata)),
-                              dataset_attributes = ds_att)
+                              dataset_attributes = ds_att,
+                              netcdf_compression=setu['netcdf_compression'],
+                              netcdf_compression_level=setu['netcdf_compression_level'],
+                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
         ofiles.append(ofile)
     return(ofiles, setu)

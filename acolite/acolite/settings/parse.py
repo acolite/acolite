@@ -46,7 +46,8 @@ def parse(sensor, settings=None, merge=True):
               'rgb_red_wl','rgb_green_wl', 'rgb_blue_wl',
               'geometry_res', 'verbosity', 'map_dpi',
               'dsf_wave_range', 'l2w_mask_negative_wave_range', 'dsf_residual_glint_wave_range',
-              'luts_pressures', 'nechad_range', 'dsf_minimum_segment_size']
+              'luts_pressures', 'nechad_range', 'dsf_minimum_segment_size',
+              'netcdf_compression_level', 'netcdf_compression_least_significant_digit']
 
     float_list = ['min_tgas_aot', 'min_tgas_rho',
 

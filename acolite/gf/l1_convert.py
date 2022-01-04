@@ -4,6 +4,7 @@
 ## 2021-08-09
 ## modifications: 2021-11-20 (QV) reproject file if projection not recognised
 ##                2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -181,10 +182,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if True:
                     if verbosity > 1: print('Computing latitude/longitude')
                     lon, lat = ac.shared.projection_geo(prj, add_half_pixel=True)
-                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'])
                     lon = None
                     if verbosity > 1: print('Wrote lon')
-                    ac.output.nc_write(ofile, 'lat', lat, double=True)
+                    ac.output.nc_write(ofile, 'lat', lat, double=True,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'])
                     lat = None
                     if verbosity > 1: print('Wrote lat')
                     new=False
@@ -209,7 +214,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if output_lt:
                     ## write toa radiance
                     ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                        attributes = gatts, dataset_attributes = bands[b], new = new)
+                                        attributes = gatts, dataset_attributes = bands[b], new = new,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'],
+                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                     new = False
 
                 ## compute reflectance
@@ -217,7 +225,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 cdata_radiance = None
 
                 ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                        attributes = gatts, dataset_attributes = bands[b], new = new)
+                                        attributes = gatts, dataset_attributes = bands[b], new = new,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'],
+                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                 cdata = None
                 new = False
 
@@ -257,12 +268,16 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
                 print('Computing lat')
                 lat = zlat(x, y)
-                ac.output.nc_write(ofile, 'lat', lat, attributes = gatts, new = new)
+                ac.output.nc_write(ofile, 'lat', lat, attributes = gatts, new = new,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lat = None
 
                 print('Computing lon')
                 lon = zlon(x, y)
-                ac.output.nc_write(ofile, 'lon', lon)
+                ac.output.nc_write(ofile, 'lon', lon,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lon = None
                 new = False
 

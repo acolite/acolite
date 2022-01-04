@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-04
 ## modifications:  2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -141,11 +142,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
         ## compute longitude and latitude
         lon, lat = ac.shared.projection_geo(dct_prj)
-        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
+                            netcdf_compression=setu['netcdf_compression'],
+                            netcdf_compression_level=setu['netcdf_compression_level'])
         if verbosity > 1: print('Wrote lon')
         lon = None
 
-        ac.output.nc_write(ofile, 'lat', lat, double=True)
+        ac.output.nc_write(ofile, 'lat', lat, double=True,
+                            netcdf_compression=setu['netcdf_compression'],
+                            netcdf_compression_level=setu['netcdf_compression_level'])
         if verbosity > 1: print('Wrote lat')
         lat = None
         new = False
@@ -171,7 +176,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             ## write toa radiance
             if output_lt:
                 ac.output.nc_write(ofile, 'Lt_{}'.format(ds_att['wave_name']), cdata_radiance,
-                                   attributes = gatts, dataset_attributes = ds_att, new=new)
+                                   attributes = gatts, dataset_attributes = ds_att, new=new,
+                                   netcdf_compression=setu['netcdf_compression'],
+                                   netcdf_compression_level=setu['netcdf_compression_level'],
+                                   netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                 new = False
 
             ## compute toa reflectance
@@ -179,7 +187,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             ## write toa reflectance
             ac.output.nc_write(ofile, 'rhot_{}'.format(ds_att['wave_name']), cdata,
-                               attributes = gatts, dataset_attributes = ds_att, new=new)
+                               attributes = gatts, dataset_attributes = ds_att, new=new,
+                               netcdf_compression=setu['netcdf_compression'],
+                               netcdf_compression_level=setu['netcdf_compression_level'],
+                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             new = False
 
 

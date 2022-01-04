@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-04-08
 ## modifications:  2021-12-31 (QV) new handling of settings
+##                2022-01-04 (QV) added netcdf compression
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -185,10 +186,14 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True)
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lon = None
                 if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat, double=True)
+                ac.output.nc_write(ofile, 'lat', lat, double=True,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 lat = None
                 if verbosity > 1: print('Wrote lat')
                 new=False
@@ -201,11 +206,15 @@ def l1_convert(inputfile, output = None, settings = {},
                 datasets = []
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 ac.output.nc_write(ofile, 'x', x, new=new)
                 x = None
                 if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y)
+                ac.output.nc_write(ofile, 'y', y,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
                 y = None
                 if verbosity > 1: print('Wrote y')
                 new=False
@@ -218,7 +227,9 @@ def l1_convert(inputfile, output = None, settings = {},
                 if k['name'] == 'Cloud_Altitude_Grid':
                     im = k['path']
             cla = ac.shared.read_band(im, idx=1, warp_to=warp_to)
-            ac.output.nc_write(ofile, 'cla', cla, new=new)
+            ac.output.nc_write(ofile, 'cla', cla, new=new,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'])
             cla = None
             if verbosity > 1: print('Wrote cla')
 
@@ -279,7 +290,10 @@ def l1_convert(inputfile, output = None, settings = {},
                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
             ## write to netcdf file
-            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att,
+                            netcdf_compression=setu['netcdf_compression'],
+                            netcdf_compression_level=setu['netcdf_compression_level'],
+                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
