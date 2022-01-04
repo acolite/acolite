@@ -6,7 +6,7 @@
 ##                2021-04-15 (QV) test/parse input files
 
 def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
-    import datetime, os, mimetypes
+    import glob, datetime, os, mimetypes
     import acolite as ac
 
     print('Running ACOLITE processing - {}'.format(ac.version))
@@ -224,5 +224,15 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                             os.remove(panf)
                 ## replace by empty list
                 processed[ni][level] = []
+
+    ## remove log and settings files
+    try:
+        delete_text = l1r_setu['delete_acolite_run_text_files']
+    except:
+        delete_text = False if 'delete_acolite_run_text_files' not in setu_l1r else setu_l1r['delete_acolite_run_text_files']
+    if delete_text:
+        tfiles = glob.glob('{}/acolite_run_{}_*.txt'.format(l1r_setu['output'], l1r_setu['runid']))
+        for tf in tfiles:
+            os.remove(tf)
 
     return(processed)

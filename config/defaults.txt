@@ -266,6 +266,9 @@ l2t_delete_netcdf=False
 l2r_delete_netcdf=False
 l2w_delete_netcdf=False
 
+# delete settings and log files
+delete_acolite_run_text_files=False
+
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2
 luts_pressures=500,750,1013,1100
