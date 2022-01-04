@@ -1159,12 +1159,13 @@ def acolite_l2r(gem,
                     rorayl_cur[segment_data[segment]['sub']] = rorayl_[sidx]
                     dutotr_cur[segment_data[segment]['sub']] = dutotr_[sidx]
 
-                if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
-                    if verbosity > 1: print('Interpolating tiles for rhorc')
-                    rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                                target_mask_full=True, smooth=True, kern_size=3, method='linear')
-                    dutotr_cur = ac.shared.tiles_interp(dutotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+            ## create full scene parameters for tiled processing
+            if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
+                if verbosity > 1: print('Interpolating tiles for rhorc')
+                rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                            target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                dutotr_cur = ac.shared.tiles_interp(dutotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                            target_mask_full=True, smooth=True, kern_size=3, method='linear')
 
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
