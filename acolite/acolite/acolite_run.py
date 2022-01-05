@@ -218,6 +218,25 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                     ncfo = ac.output.reproject_acolite_netcdf(ncf, settings=settings)
                     if ncfo == (): continue
                     reprojected.append(ncfo)
+
+                    ## make rgb  maps
+                    if (otype == 'l1r') & (l1r_setu['rgb_rhot']):
+                        l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
+                        l1r_setu_['rgb_rhos'] = False
+                        ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=False)
+                    ## make rgb  maps
+                    if (otype == 'l2r') & (l1r_setu['rgb_rhos']):
+                        l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
+                        l1r_setu_['rgb_rhot'] = False
+                        ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=False)
+                    ## make other  maps
+                    if (otype == 'l2w') & (l1r_setu['map_l2w']):
+                        l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
+                        l1r_setu_['rgb_rhos'] = False
+                        l1r_setu_['rgb_rhot'] = False
+                        ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=True)
+
+
                     ## output geotiffs
                     if '{}_export_geotiff'.format(otype) in l1r_setu:
                         if l1r_setu['{}_export_geotiff'.format(otype)]:
