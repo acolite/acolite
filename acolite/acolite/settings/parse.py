@@ -47,7 +47,8 @@ def parse(sensor, settings=None, merge=True):
               'geometry_res', 'verbosity', 'map_dpi',
               'dsf_wave_range', 'l2w_mask_negative_wave_range', 'dsf_residual_glint_wave_range',
               'luts_pressures', 'nechad_range', 'dsf_minimum_segment_size',
-              'netcdf_compression_level', 'netcdf_compression_least_significant_digit']
+              'netcdf_compression_level', 'netcdf_compression_least_significant_digit',
+              'output_projection_xrange', 'output_projection_yrange']
 
     float_list = ['min_tgas_aot', 'min_tgas_rho',
 
@@ -65,7 +66,7 @@ def parse(sensor, settings=None, merge=True):
                   'l2w_mask_threshold', 'l2w_mask_cirrus_threshold','l2w_mask_high_toa_threshold',
                   'map_auto_range_percentiles',
                   'rgb_min', 'rgb_max', 'rgb_autoscale_percentiles', 'gains_toa',
-                  'acstar3_max_wavelength', 'nechad_max_rhow_C_factor']
+                  'acstar3_max_wavelength', 'nechad_max_rhow_C_factor', 'output_projection_resolution']
 
     ## convert values to numbers
     for k in setu:

@@ -269,6 +269,20 @@ l2w_delete_netcdf=False
 # delete settings and log files
 delete_acolite_run_text_files=False
 
+# reproject output files
+reproject_outputs=L1R,L2R,L2W
+output_projection=False
+output_projection_name=None
+output_projection_epsg=None
+output_projection_proj4=None
+output_projection_resolution=None
+output_projection_limit=None
+output_projection_metres=False
+output_projection_xrange=None
+output_projection_yrange=None
+output_projection_resolution_align=True
+output_projection_resampling_method=bilinear
+
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2
 luts_pressures=500,750,1013,1100

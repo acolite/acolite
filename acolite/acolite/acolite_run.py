@@ -205,6 +205,30 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         if len(l2r_files) > 0: processed[ni]['l2r'] = l2r_files
         if len(l2t_files) > 0: processed[ni]['l2t'] = l2t_files
         if len(l2w_files) > 0: processed[ni]['l2w'] = l2w_files
+
+    ## reproject data
+    if l1r_setu['output_projection']:
+        for output in l1r_setu['reproject_outputs']:
+            otype = output.lower()
+            for i in processed:
+                reprojected = []
+                if otype not in processed[i]: continue
+                for ncf in processed[i][otype]:
+                    ncfo = ac.output.reproject_acolite_netcdf(ncf, settings=settings)
+                    reprojected.append(ncfo)
+                    ## output geotiffs
+                    if '{}_export_geotiff'.format(otype) in l1r_setu:
+                        if l1r_setu['{}_export_geotiff'.format(otype)]:
+                            ac.output.nc_to_geotiff(ncfo, match_file = l1r_setu['export_geotiff_match_file'],
+                                                                        cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                                        skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
+                    ## output rgb geotiff
+                    if '{}_export_geotiff_rgb'.format(otype) in l1r_setu:
+                        if l1r_setu['{}_export_geotiff_rgb'.format(otype)]:
+                            ac.output.nc_to_geotiff_rgb(ncfo, settings = l1r_setu)
+                processed[i]['{}_reprojected'.format(otype)] = reprojected
+    ## end reproject data
+
     ## end processing loop
     log.__del__()
 
