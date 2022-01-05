@@ -156,6 +156,10 @@ def reproject_acolite_netcdf(ncf, output = None, settings = {}, target_file=None
     if setu['output_projection_resampling_method'] == 'bilinear':
         resampler = NumpyBilinearResampler(source_definition, target_definition, 30e3)
 
+    ## make new output attributes
+    gatts_out = {k:gatts[k] for k in gatts}
+    for k in dct: gatts_out[k] = dct[k]
+
     ## run through datasets
     new = True
     for ds in datasets:
@@ -168,7 +172,7 @@ def reproject_acolite_netcdf(ncf, output = None, settings = {}, target_file=None
         if ds not in ['lat', 'lon', 'vza', 'sza', 'vaa', 'saa', 'raa']:
             lsd = setu['netcdf_compression_least_significant_digit']
 
-        ac.output.nc_write(ncfo, ds, data_out, attributes = att,
+        ac.output.nc_write(ncfo, ds, data_out, attributes = gatts_out,
                            netcdf_compression=setu['netcdf_compression'],
                            netcdf_compression_level=setu['netcdf_compression_level'],
                            netcdf_compression_least_significant_digit=lsd,
