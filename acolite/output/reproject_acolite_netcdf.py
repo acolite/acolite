@@ -15,7 +15,12 @@ def reproject_acolite_netcdf(ncf, output = None, settings = {}, target_file=None
     from pyresample import geometry
 
     ## read gatts
-    gatts = ac.shared.nc_gatts(ncf)
+    try:
+        gatts = ac.shared.nc_gatts(ncf)
+    except:
+        print('Error accessing {}, is this a NetCDF file?'.format(ncf))
+        return()
+
     if ('sensor' not in gatts):
         print('No sensor attribute in file {}'.format(ncf))
         return()

@@ -210,11 +210,13 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     if l1r_setu['output_projection']:
         for output in l1r_setu['reproject_outputs']:
             otype = output.lower()
-            for i in processed:
+            pkeys = processed.keys()
+            for i in pkeys:
                 reprojected = []
                 if otype not in processed[i]: continue
                 for ncf in processed[i][otype]:
                     ncfo = ac.output.reproject_acolite_netcdf(ncf, settings=settings)
+                    if ncfo == (): continue
                     reprojected.append(ncfo)
                     ## output geotiffs
                     if '{}_export_geotiff'.format(otype) in l1r_setu:
