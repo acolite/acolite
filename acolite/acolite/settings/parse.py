@@ -66,7 +66,8 @@ def parse(sensor, settings=None, merge=True):
                   'l2w_mask_threshold', 'l2w_mask_cirrus_threshold','l2w_mask_high_toa_threshold',
                   'map_auto_range_percentiles',
                   'rgb_min', 'rgb_max', 'rgb_autoscale_percentiles', 'gains_toa',
-                  'acstar3_max_wavelength', 'nechad_max_rhow_C_factor', 'output_projection_resolution']
+                  'acstar3_max_wavelength', 'nechad_max_rhow_C_factor',
+                  'output_projection_resolution', 'default_projection_resolution']
 
     ## convert values to numbers
     for k in setu:

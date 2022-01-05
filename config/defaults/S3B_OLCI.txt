@@ -16,3 +16,4 @@ dsf_interface_reflectance=True
 
 l2w_mask_wave=1020
 l2w_mask_threshold=0.05
+default_projection_resolution=300,300

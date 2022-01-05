@@ -282,6 +282,7 @@ output_projection_xrange=None
 output_projection_yrange=None
 output_projection_resolution_align=True
 output_projection_resampling_method=bilinear
+default_projection_resolution=None
 
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2

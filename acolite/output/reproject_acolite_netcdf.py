@@ -34,6 +34,39 @@ def reproject_acolite_netcdf(ncf, output = None, settings = {}, target_file=None
     ## parse settings
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
 
+    if (setu['output_projection_limit'] is None) & (setu['limit'] is not None):
+        setu['output_projection_limit'] = [l for l in setu['limit']]
+
+    if setu['output_projection_resolution'] is not None:
+        if len(setu['output_projection_resolution']) != 2:
+            print('Provide a two element target_pixel_size.')
+            return()
+        else:
+            target_pixel_size = [float(v) for v in setu['output_projection_resolution']]
+    else:
+        if setu['default_projection_resolution'] is not None:
+            target_pixel_size = [float(v) for v in setu['default_projection_resolution']]
+            print('Using default grid size: {}x{}metres'.format(target_pixel_size[0], target_pixel_size[1]))
+
+    if setu['output_projection_limit'] is not None:
+        if len(setu['output_projection_limit']) != 4:
+            print('Provide a four element output_projection_limit.')
+            return()
+        else:
+            limit = [float(v) for v in setu['output_projection_limit']]
+
+        if (setu['output_projection_epsg'] is None) & \
+           (setu['output_projection_proj4'] is None):
+              lon = (limit[1]+limit[3])/2
+              lat = (limit[0]+limit[2])/2
+              utm_zone, epsg = ac.shared.utm_epsg(lon, lat)
+              print(utm_zone, epsg)
+              setu['output_projection_epsg'] = epsg
+    else:
+        if not setu['output_projection_metres']:
+            print('Provide a four element output_projection_limit.')
+            return()
+
     ## projection
     if setu['output_projection_epsg'] is not None:
         #projection = '+init=EPSG:{}'.format(setu['output_projection_epsg'])
@@ -46,24 +79,6 @@ def reproject_acolite_netcdf(ncf, output = None, settings = {}, target_file=None
     else:
         print('No EPSG or proj4 string provided.')
         return()
-
-    if setu['output_projection_limit'] is not None:
-        if len(setu['output_projection_limit']) != 4:
-            print('Provide a four element output_projection_limit.')
-            return()
-        else:
-            limit = [float(v) for v in setu['output_projection_limit']]
-    else:
-        if not setu['output_projection_metres']:
-            print('Provide a four element output_projection_limit.')
-            return()
-
-    if setu['output_projection_resolution'] is not None:
-        if len(setu['output_projection_resolution']) != 2:
-            print('Provide a two element target_pixel_size.')
-            return()
-        else:
-            target_pixel_size = [float(v) for v in setu['output_projection_resolution']]
 
     ## user provided x and yrange
     if setu['output_projection_metres']:
