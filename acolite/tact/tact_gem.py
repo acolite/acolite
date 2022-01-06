@@ -20,7 +20,7 @@ def tact_gem(gem, output_file = True,
              output_intermediate = False,
              copy_datasets = ['lon', 'lat'], verbosity=0):
 
-    import os
+    import os, datetime
     import numpy as np
     import acolite as ac
 
@@ -29,6 +29,12 @@ def tact_gem(gem, output_file = True,
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub)
     gemf = gem['gatts']['gemfile']
+
+    max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
+    if gem['gatts']['isodate'] > max_date:
+        print('File too recent for TACT: after {}'.format(max_date))
+        return()
+
     if 'nc_projection' in gem:
         nc_projection = gem['nc_projection']
     else:
@@ -38,7 +44,7 @@ def tact_gem(gem, output_file = True,
 
     ## detect sensor
     if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
-        if verbosity > 0: print('Processing of {} not supported'.format(gatts['sensor']))
+        if verbosity > 0: print('Processing of {} not supported'.format(gem['gatts']['sensor']))
         return()
 
     if target_file is None:
