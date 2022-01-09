@@ -6,7 +6,8 @@
 ##                2020-04-24 (QV) earthdata login
 ##                2021-05-31 (QV) added local directory creation
 
-def download_file(url, file, auth=None, session=None, parallel=False, verbosity=0):
+def download_file(url, file, auth = None, session = None,
+                    parallel = False, verbosity = 0, verify_ssl = True):
 
     import requests
     import time
@@ -29,7 +30,7 @@ def download_file(url, file, auth=None, session=None, parallel=False, verbosity=
 
     with requests.Session() as session:
             r1 = session.request('get', url)
-            r = session.get(r1.url, auth=auth)
+            r = session.get(r1.url, auth=auth, verify=verify_ssl)
 
             if (r.ok):
                 with open(file_path, 'wb') as f:

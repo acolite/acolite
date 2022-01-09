@@ -128,6 +128,7 @@ dem_pressure=False
 dem_pressure_resolved=True
 dem_pressure_percentile=25
 dem_pressure_write=False
+dem_source=srtm
 
 ## correction for reflectance on air-water interface
 dsf_interface_reflectance=False

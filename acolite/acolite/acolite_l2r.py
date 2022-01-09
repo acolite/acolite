@@ -117,10 +117,11 @@ def acolite_l2r(gem,
     if setu['dem_pressure']:
         if verbosity > 1: print('Extracting SRTM DEM data')
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
-            dem = ac.dem.hgt_lonlat(gem.data('lon'), gem.data('lat'))
+            dem = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
         else:
-            dem = ac.dem.hgt_lonlat(gem.gatts['lon'], gem.gatts['lon'])
+            dem = ac.dem.dem_lonlat(gem.gatts['lon'], gem.gatts['lon'], source = setu['dem_source'])
         dem_pressure = ac.ac.pressure_elevation(dem)
+
         if setu['dem_pressure_resolved']:
             gem.data_mem['pressure'] = dem_pressure
         else:
