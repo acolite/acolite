@@ -31,7 +31,6 @@ def metadata_parse(metafile):
         metadata['sensor'] = "RapidEye"
         metadata['sensor_family']='RapidEye'
         metadata['satellite_prefix'] = 're'
-        bnames = {1:'Blue',2:'Green',3:'Red',4:'RedEdge', 5:'NIR'}
 
     if 'PlanetScope' in metadata['platform']:
         metadata['satellite_id'] = metadata['platform_id'][0:2]
@@ -40,14 +39,43 @@ def metadata_parse(metafile):
         if metadata['satellite_id'] == '0d': metadata['satellite_id'] = "0c"
 
         ## assume 23/24XX doves use the same RSR as the 22XX
-        if metadata['satellite_id'] == '23': metadata['satellite_id'] = "22"
-        if metadata['satellite_id'] == '24': metadata['satellite_id'] = "22"
-
-        metadata['satellite_sensor'] = '{}_{}'.format(metadata['platform'], metadata['platform_id'])
-        metadata['sensor'] = '{}_{}'.format(metadata['platform'], metadata['satellite_id'])
+        if metadata['satellite_id'] >= '22': metadata['satellite_id'] = "22"
         metadata['sensor_family']='PlanetScope'
         metadata['satellite_prefix'] = 'ps'
-        bnames = {1:'Blue',2:'Green',3:'Red',4:'NIR'}
+
+    ## get band data
+    main_tag='{}:bandSpecificMetadata'.format(metadata['satellite_prefix'])
+    bands0 = {}
+    tags = ["{}:bandNumber".format(metadata['satellite_prefix']),
+            '{}:radiometricScaleFactor'.format(metadata['satellite_prefix']),
+            '{}:reflectanceCoefficient'.format(metadata['satellite_prefix'])]
+    tags_out = ["band_idx",'to_radiance', 'to_reflectance']
+    for t in xmldoc.getElementsByTagName(main_tag):
+        band = {}
+        for i,tag in enumerate(tags):
+                node = t.getElementsByTagName(tag)
+                if len(node) > 0:
+                    val = float(node[0].firstChild.nodeValue)
+                    band[tags_out[i]] = val
+        bands0[band['band_idx']] = band
+
+    if metadata['satellite_prefix'] == 'ps':
+        if (metadata['satellite_id'] == '22') & (len(bands0) == 4):
+            bnames = {1:'Blue',2:'Green',3:'Red',4:'NIR'}
+        if (metadata['satellite_id'] == '22') & (len(bands0) == 5):
+            bnames = {1:'Blue',2:'Green_ii',3:'Red',4:'RedEdge', 5:'NIR'}
+            metadata['satellite_id'] = 'SD5'
+        metadata['satellite_sensor'] = '{}_{}'.format(metadata['platform'], metadata['platform_id'])
+        metadata['sensor'] = '{}_{}'.format(metadata['platform'], metadata['satellite_id'])
+
+    if metadata['satellite_prefix'] == 're':
+        bnames = {1:'Blue',2:'Green',3:'Red',4:'RedEdge', 5:'NIR'}
+
+    bands = {bnames[bands0[b]['band_idx']]:bands0[b] for b in bands0}
+    for band in bands:
+        for key in bands[band]:
+            bk='{}-{}'.format(band, key)
+            metadata[bk] = bands[band][key]
 
     ## get acquisition info
     main_tag = 'eop:acquisitionParameters'
@@ -76,28 +104,6 @@ def metadata_parse(metafile):
     metadata['vaa'] = metadata['ViewingAzimuth']
     metadata['raa'] = abs(metadata['saa'] - metadata['vaa'])
     while metadata['raa'] > 180: metadata['raa'] = abs(metadata['raa']-360)
-
-    ## get band data
-    main_tag='{}:bandSpecificMetadata'.format(metadata['satellite_prefix'])
-    bands = {}
-    tags = ["{}:bandNumber".format(metadata['satellite_prefix']),
-            '{}:radiometricScaleFactor'.format(metadata['satellite_prefix']),
-            '{}:reflectanceCoefficient'.format(metadata['satellite_prefix'])]
-    tags_out = ["band_idx",'to_radiance', 'to_reflectance']
-    for t in xmldoc.getElementsByTagName(main_tag):
-        band = {}
-        for i,tag in enumerate(tags):
-                node = t.getElementsByTagName(tag)
-                if len(node) > 0:
-                    val = float(node[0].firstChild.nodeValue)
-                    band[tags_out[i]] = val
-
-        band['band_name']= bnames[band['band_idx']]
-        bands[band['band_name']] = band
-    for band in bands:
-        for key in bands[band]:
-            bk='{}-{}'.format(band, key)
-            metadata[bk] = bands[band][key]
 
     ## get product info
     main_tag = '{}:spatialReferenceSystem'.format(metadata['satellite_prefix'])
