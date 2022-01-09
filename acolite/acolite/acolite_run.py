@@ -210,7 +210,11 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         if len(l2w_files) > 0: processed[ni]['l2w'] = l2w_files
 
     ## reproject data
-    if l1r_setu['output_projection']:
+    try:
+        project = l1r_setu['output_projection']
+    except:
+        project = False
+    if project:
         for output in l1r_setu['reproject_outputs']:
             otype = output.lower()
             pkeys = processed.keys()
