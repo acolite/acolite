@@ -40,7 +40,11 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
             dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
                                 format=format, creationOptions=creationOptions)
             ## set no data value
-            dt.GetRasterBand(1).SetNoDataValue(np.nan)
+            if True:
+                 data = ac.shared.nc_data(f, ds)
+                 dt.GetRasterBand(1).WriteArray(data)
+                 dt.GetRasterBand(1).SetNoDataValue(np.nan)
+
             dt = None
             print('Wrote {}'.format(outfile))
     else:
