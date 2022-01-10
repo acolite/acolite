@@ -222,7 +222,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                 reprojected = []
                 if otype not in processed[i]: continue
                 for ncf in processed[i][otype]:
-                    ncfo = ac.output.reproject_acolite_netcdf(ncf, settings=settings)
+                    ncfo = ac.output.project_acolite_netcdf(ncf, settings=settings)
                     if ncfo == (): continue
                     reprojected.append(ncfo)
 
