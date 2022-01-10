@@ -31,6 +31,9 @@ import os
 code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
 
+## list of hyperspectral sensors
+hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION', 'DESIS_HSI']
+
 ## find config file
 if not os.path.exists('{}{}config'.format(path, os.path.sep)):
     ## check if binary distribution
@@ -53,6 +56,7 @@ else:
 for t in config:
     if t in ['EARTHDATA_u', 'EARTHDATA_p']: continue
     if (os.path.exists(config[t])):
+        config[t] = os.path.abspath(config[t])
         continue
     tmp = path + os.path.sep + config[t]
     config[t] = os.path.abspath(tmp)
