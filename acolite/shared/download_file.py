@@ -29,7 +29,7 @@ def download_file(url, file, auth = None, session = None,
             return()
 
     with requests.Session() as session:
-            r1 = session.request('get', url)
+            r1 = session.request('get', url, verify=verify_ssl)
             r = session.get(r1.url, auth=auth, verify=verify_ssl)
 
             if (r.ok):
