@@ -65,6 +65,11 @@ def metadata_parse(metafile):
         if (metadata['satellite_id'] == '22') & (len(bands0) == 5):
             bnames = {1:'Blue',2:'Green_ii',3:'Red',4:'RedEdge', 5:'NIR'}
             metadata['satellite_id'] = 'SD5'
+        if (metadata['satellite_id'] == '22') & (len(bands0) == 8):
+            bnames = { 1:'Coastal-Blue',  2:'Blue', 3:'Green_i', 4:'Green_ii',
+                       5:'Yellow', 6:'Red', 7:'Red-edge', 8:'NIR'}
+            metadata['satellite_id'] = 'SD8'
+
         metadata['satellite_sensor'] = '{}_{}'.format(metadata['platform'], metadata['platform_id'])
         metadata['sensor'] = '{}_{}'.format(metadata['platform'], metadata['satellite_id'])
 
