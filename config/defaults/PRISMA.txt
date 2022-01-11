@@ -4,6 +4,7 @@
 dsf_aot_estimate=fixed
 dsf_wave_range=800,1020
 dsf_wave_range=500,970
+l2w_mask_negative_wave_range=440,720
 
 l2w_mask_wave=1600
 l2w_mask_threshold=0.03
