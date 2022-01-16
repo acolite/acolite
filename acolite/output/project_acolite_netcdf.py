@@ -13,7 +13,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     import acolite as ac
     import numpy as np
     from pyresample.bilinear import NumpyBilinearResampler
-    from pyresample import geometry
+    from pyresample import image, geometry
 
     ## read gatts
     try:
@@ -154,6 +154,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
     ## set up resampler
     if setu['output_projection_resampling_method'] == 'bilinear':
+        #resampler = NumpyBilinearResampler(source_definition, target_definition, 30e5, neighbours=81)
         resampler = NumpyBilinearResampler(source_definition, target_definition, 30e3)
 
     ## make new output attributes
@@ -169,6 +170,10 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         print('Reprojecting {} to {} {}x{}'.format(ds, projection, nx, ny))
         data_out = resampler.resample(data_in)
         data_in = None
+
+        if setu['output_projection_fillnans']:
+            data_out[data_out == 0] = np.nan
+            data_out = ac.shared.fillnan(data_out)
 
         lsd = None
         if ds not in ['lat', 'lon', 'vza', 'sza', 'vaa', 'saa', 'raa']:
