@@ -67,7 +67,8 @@ def parse(sensor, settings=None, merge=True):
                   'map_auto_range_percentiles',
                   'rgb_min', 'rgb_max', 'rgb_autoscale_percentiles', 'gains_toa',
                   'acstar3_max_wavelength', 'nechad_max_rhow_C_factor',
-                  'output_projection_resolution', 'default_projection_resolution']
+                  'output_projection_resolution', 'default_projection_resolution',
+                  'worldview_reproject_resolution']
 
     ## convert values to numbers
     for k in setu:

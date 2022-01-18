@@ -114,7 +114,6 @@ def l1_convert(inputfile, output = None,
             continue
         if swir_bundle is not None: band_names += [swir_meta['BAND_INFO'][b]['name'] for b in list(swir_meta['BAND_INFO'].keys())]
 
-
         ## get observation geometry
         raa = abs(float(meta['MEANSUNAZ']) - float(meta['MEANSATAZ']))
         while raa >= 180.: raa = np.abs(raa-360)
@@ -163,6 +162,9 @@ def l1_convert(inputfile, output = None,
 
         ## get projection info from tiles
         dct = None
+        nc_projection = None
+        warp_to = None
+
         ## get list of tiles in this bundle
         ntiles = len(meta['TILE_INFO'])
         for ti, tile_mdata in enumerate(meta['TILE_INFO']):
@@ -199,6 +201,18 @@ def l1_convert(inputfile, output = None,
                 if verbosity > 1: print('Could not determine projection from {}'.format(file))
                 pass
 
+        ## set up limit and projection dct so we can warp to target projection when reading data
+        if (dct is None) & (setu['worldview_reproject']):
+            if setu['limit'] is not None:
+                lim = setu['limit']
+            else:
+                bt = list(meta['BAND_INFO'].keys())[0]
+                lons = [meta['BAND_INFO'][bt][k] for k in meta['BAND_INFO'][bt] if 'LON' in k]
+                lats = [meta['BAND_INFO'][bt][k] for k in meta['BAND_INFO'][bt] if 'LAT' in k]
+                lim = [min(lats), min(lons), max(lats), max(lons)]
+            dct, nc_projection, warp_to = ac.shared.projection_utm(lim, setu['worldview_reproject_resolution'], res_method=setu['worldview_reproject_method'])
+            global_dims = dct['ydim'], dct['xdim']
+
         ## final scene dimensions
         if dct is not None:
             ## compute dimensions
@@ -222,10 +236,12 @@ def l1_convert(inputfile, output = None,
             if dct is not None: ## compute from projection info
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
                 ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
+                                                nc_projection = nc_projection,
                                                 netcdf_compression=setu['netcdf_compression'],
                                                 netcdf_compression_level=setu['netcdf_compression_level'])
                 lat = None
                 ac.output.nc_write(ofile, 'lon', lon,
+                                                nc_projection = nc_projection,
                                                 netcdf_compression=setu['netcdf_compression'],
                                                 netcdf_compression_level=setu['netcdf_compression_level'])
                 lon = None
@@ -247,9 +263,11 @@ def l1_convert(inputfile, output = None,
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
                 ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts,
+                                        nc_projection = nc_projection,
                                         netcdf_compression=setu['netcdf_compression'],
                                         netcdf_compression_level=setu['netcdf_compression_level'])
                 ac.output.nc_write(ofile, 'lon', zlon(x, y),
+                                        nc_projection = nc_projection,
                                         netcdf_compression=setu['netcdf_compression'],
                                         netcdf_compression_level=setu['netcdf_compression_level'])
                 x = None
@@ -290,21 +308,20 @@ def l1_convert(inputfile, output = None,
 
                 if 'SWIR' not in band:
                     bt = [bt for bt in meta['BAND_INFO'] if meta['BAND_INFO'][bt]['name'] == band][0]
-                    bd = meta['BAND_INFO'][bt]
-                    d = ac.shared.read_band(file, idx=bd['index'], sub=sub)
+                    d = ac.shared.read_band(file, idx=meta['BAND_INFO'][bt]['index'], sub=sub, warp_to=warp_to)
+                    cf = float(meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
                 else:
                     if swir_file is None:
                         swir_file='{}'.format(file)
                         swir_meta = meta.copy()
                     bt = [bt for bt in swir_meta['BAND_INFO'] if swir_meta['BAND_INFO'][bt]['name'] == band][0]
-                    bd = swir_meta['BAND_INFO'][bt]
-                    d = ac.shared.read_band(swir_file, idx=bd['index'], sub=sub)
+                    d = ac.shared.read_band(swir_file, idx=swir_meta['BAND_INFO'][bt]['index'], sub=sub, warp_to=warp_to)
+                    cf = float(swir_meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(swir_meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
 
                 ## track mask
                 nodata = d == np.uint16(0)
                 ## convert to float and scale to TOA reflectance
-                d = d.astype(np.float32)
-                d *= float(meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
+                d = d.astype(np.float32) * cf
                 d *= (np.pi * gatts['se_distance']**2) / (f0_b[band]/10. * gatts['mus'])
                 ## apply mask
                 d[nodata] = np.nan
@@ -328,6 +345,7 @@ def l1_convert(inputfile, output = None,
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att,
+                                nc_projection = nc_projection,
                                 netcdf_compression=setu['netcdf_compression'],
                                 netcdf_compression_level=setu['netcdf_compression_level'],
                                 netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])

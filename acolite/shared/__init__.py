@@ -11,6 +11,7 @@ from .projection_geo import *
 from .projection_limit import *
 from .projection_read import *
 from .projection_netcdf import *
+from .projection_utm import *
 from .utm_epsg import *
 
 from .geolocation_sub import *
