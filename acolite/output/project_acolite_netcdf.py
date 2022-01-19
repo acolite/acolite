@@ -161,6 +161,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     gatts_out = {k:gatts[k] for k in gatts}
     for k in dct: gatts_out[k] = dct[k]
     gatts_out['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
+    ## update oname in gatts
+    gatts_out['oname'] = oname
 
     ## run through datasets
     new = True
