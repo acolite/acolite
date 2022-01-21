@@ -236,13 +236,13 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                         l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
                         l1r_setu_['rgb_rhot'] = False
                         ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=False)
+
                     ## make other  maps
                     if (otype == 'l2w') & (l1r_setu['map_l2w']):
                         l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
                         l1r_setu_['rgb_rhos'] = False
                         l1r_setu_['rgb_rhot'] = False
                         ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=True)
-
 
                     ## output geotiffs
                     if '{}_export_geotiff'.format(otype) in l1r_setu:
@@ -280,10 +280,13 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     ## remove log and settings files
     try:
         delete_text = l1r_setu['delete_acolite_run_text_files']
+        op, ri = l1r_setu['output'], l1r_setu['runid']
     except:
         delete_text = False if 'delete_acolite_run_text_files' not in setu_l1r else setu_l1r['delete_acolite_run_text_files']
+        op, ri = setu_l1r['output'], setu_l1r['runid']
+
     if delete_text:
-        tfiles = glob.glob('{}/acolite_run_{}_*.txt'.format(l1r_setu['output'], l1r_setu['runid']))
+        tfiles = glob.glob('{}/acolite_run_{}_*.txt'.format(op, ri))
         for tf in tfiles:
             os.remove(tf)
 
