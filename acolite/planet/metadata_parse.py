@@ -59,7 +59,12 @@ def metadata_parse(metafile):
                     band[tags_out[i]] = val
         bands0[band['band_idx']] = band
 
+    bnames = {}
     if metadata['satellite_prefix'] == 'ps':
+        ## default 4B data
+        if (len(bands0) == 4):
+            bnames = {1:'Blue',2:'Green',3:'Red',4:'NIR'}
+
         if (metadata['satellite_id'] == '22') & (len(bands0) == 4):
             bnames = {1:'Blue',2:'Green',3:'Red',4:'NIR'}
         if (metadata['satellite_id'] == '22') & (len(bands0) == 5):
@@ -75,6 +80,9 @@ def metadata_parse(metafile):
 
     if metadata['satellite_prefix'] == 're':
         bnames = {1:'Blue',2:'Green',3:'Red',4:'RedEdge', 5:'NIR'}
+
+    if len(bnames) == 0:
+        print('Error determining bands from metadata')
 
     bands = {bnames[bands0[b]['band_idx']]:bands0[b] for b in bands0}
     for band in bands:
