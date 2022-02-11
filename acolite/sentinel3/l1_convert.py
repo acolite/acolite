@@ -313,9 +313,11 @@ def l1_convert(inputfile, output = None, settings = {},
         if output_geometry:
             if verbosity > 1: print('Writing geometry')
             for k in tpg:
-                if k in ['SZA', 'OZA', 'RAA']:
+                if k in ['SZA', 'OZA', 'RAA', 'SAA', 'OAA']:
                     if k == 'OZA':
                         ko = 'vza'
+                    elif k == 'OAA':
+                        ko = 'vaa'
                     else:
                         ko = k.lower()
                     ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts,
