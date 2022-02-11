@@ -75,7 +75,7 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                     rpcs = src_ds.GetMetadata('RPC')
                     src_ds = None
                 else:
-                    print('File {} not fount. Not outputting GeoTIFF files.'.format(match_file))
+                    print('File {} not found. Not outputting GeoTIFF files.'.format(match_file))
                     return
 
             for ds in datasets_file:
