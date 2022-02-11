@@ -9,7 +9,7 @@
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
                        pressures = [500, 1013, 1100],
-                       base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
+                       base_luts = ['ACOLITE-LUT-202110-MOD1', 'ACOLITE-LUT-202110-MOD2'],
                        rsky_lut = 'ACOLITE-RSKY-202102-82W',
                        get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
     import acolite as ac
