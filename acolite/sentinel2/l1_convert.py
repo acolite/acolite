@@ -140,7 +140,7 @@ def l1_convert(inputfile, output = None, settings = {},
         dct = ac.sentinel2.projection(grmeta, s2_target_res=int(s2_target_res))
         global_dims = dct['dimensions']
 
-        mgrs_tile = meta['PRODUCT_URI'].split('_')[-2]
+        #mgrs_tile = meta['PRODUCT_URI'].split('_')[-2]
         mgrs_tile = grmeta['TILE_ID'].split('_')[-2]
 
         ## scene average geometry
