@@ -1,7 +1,7 @@
 ## About ACOLITE
 ACOLITE combines the atmospheric correction algorithms for aquatic applications of Landsat and Sentinel-2 developed at RBINS. This repository hosts the (more) generic version of ACOLITE with the aim of bringing together the processing of all different sensors. This new generic version was started 4 February 2021, and was released to the public on 21 April 2021. Binary releases from 20210802.0 onward are based on this codebase. Please contact Quinten via email/ACOLITE Forum/GitHub if you find any issues. The settings files are largely compatible with previous versions, but it is recommended to create a new settings file configuring only the settings you want to change.
 
-ACOLITE allows simple and fast processing of imagery from various satellites, including Landsat (5/7/8/9) and Sentinel-2/MSI (A/B), PlanetScope and RapidEye, Venµs, SPOT and Pléiades, QuickBird2, WorldView-2 and -3, Sentinel-3/OLCI (A/B) and ENVISAT/MERIS, as well as several hyperspectral sensors (CHRIS/HYPERION/HICO/PRISMA/DESIS) for coastal and inland water applications. The Dark Spectrum Fitting atmospheric correction algorithm works especially well for turbid and productive waters, but can also be applied over clear waters and land with reasonable success.
+ACOLITE allows simple and fast processing of imagery from various satellites, including Landsat (5/7/8/9) and Sentinel-2/MSI (A/B), PlanetScope (Dove and SuperDove) and RapidEye, Venµs, SPOT and Pléiades, QuickBird2, WorldView-2 and -3, Sentinel-3/OLCI (A/B) and ENVISAT/MERIS, as well as several hyperspectral sensors (CHRIS, HYPERION, HICO, PRISMA, DESIS) for coastal and inland water applications. The Dark Spectrum Fitting atmospheric correction algorithm works especially well for turbid and productive waters, but can also be applied over clear waters and land with reasonable success.
 
 Features include generation of RGB images before and after atmospheric correction, atmospheric correction of water bodies and extraction of regions of interest (defined by bounding coordinates or a polygon file). Level 2 outputs are surface level reflectance (ρs=Rrs⋅π) and derived products that are saved as geolocated datasets in a NetCDF file, and can be exported as PNG maps. The atmospheric correction is image based and needs no external inputs.
 
@@ -38,7 +38,7 @@ TACT performance for Antarctic mountain sites and near shore waters was evaluate
 
 * Vanhellemont et al. 2021a, [Towards physical habitat characterisation in the Antarctic Sør Rondane Mountains using satellite remote sensing](https://doi.org/10.1016/j.rsase.2021.100529)
 
-* Vanhellemont et al. 2021b, [Validation of Landsat 8 high resolution Sea Surface Temperature using surfers](https://doi.org/10.1016/j.ecss.2021.107650)
+* Vanhellemont et al. 2022, [Validation of Landsat 8 high resolution Sea Surface Temperature using surfers](https://doi.org/10.1016/j.ecss.2021.107650)
 
 ## Distribution
 This repository contains all the source code to run ACOLITE in a Python environment. ACOLITE is also distributed as a binary package on the [releases page](https://github.com/acolite/acolite/releases) and is supported on the [ACOLITE forum](http://odnature.naturalsciences.be/remsem/acolite-forum/).

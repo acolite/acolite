@@ -41,7 +41,7 @@ def identify_bundle(bundle, input_type = None):
                 if 'PRODUCT_CONTENTS' in meta: pk = 'IMAGE_ATTRIBUTES'## COLL2
                 elif 'PRODUCT_METADATA' in meta: pk = 'PRODUCT_METADATA'## COLL1
                 spacecraft_id, sensor_id = meta[pk]['SPACECRAFT_ID'],meta[pk]['SENSOR_ID']
-                if (spacecraft_id in ['LANDSAT_5', 'LANDSAT_7', 'LANDSAT_8']) | ((spacecraft_id == 'EO1') & (sensor_id == 'ALI')):
+                if (spacecraft_id in ['LANDSAT_5', 'LANDSAT_7', 'LANDSAT_8', 'LANDSAT_9']) | ((spacecraft_id == 'EO1') & (sensor_id == 'ALI')):
                     input_type = 'Landsat'
                     break ## exit loop
         except:

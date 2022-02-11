@@ -7,8 +7,8 @@
 
 def acolite_luts(sensor = None, hyper = False,
                  get_remote = True, compute_reverse = True,
-                 pressures = [500, 1013, 1100],
-                 base_luts = ['ACOLITE-LUT-202102-MOD1', 'ACOLITE-LUT-202102-MOD2'],
+                 pressures = [500, 750, 1013, 1100],
+                 base_luts = ['ACOLITE-LUT-202110-MOD1', 'ACOLITE-LUT-202110-MOD2'],
                  rsky_lut = 'ACOLITE-RSKY-202102-82W',
                  pars = ['romix', 'romix+rsky_t']):
     import acolite as ac
@@ -49,7 +49,7 @@ def acolite_luts(sensor = None, hyper = False,
     for s in sensors:
         if s is not None:
             if s in ['L5_TM_B6', 'L7_ETM_B6', 'EO1_ALI_ORANGE',
-                     'L8_OLI_ORANGE', 'L8_TIRS']: continue ## skip thermals
+                     'L8_OLI_ORANGE', 'L8_TIRS', 'L9_OLI_ORANGE', 'L9_TIRS']: continue ## skip thermals
             if 'DESIS' in s: continue ## skip DESIS
 
         print('Testing {}'.format('sensor {}'.format(s) if s is not None else 'generic LUT'))

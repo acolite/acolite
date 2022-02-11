@@ -779,13 +779,15 @@ def acstar3(ncf, output=None, settings=None,
                 ac.output.nc_write(ofile, att['rhos_ds'].replace('rhos_', 'rhoe_'), datasa[b], dataset_attributes = att)
 
         ## recompute orange band
-        if (sensor == 'L8_OLI'):
+        if (sensor in ['L8_OLI', 'L9_OLI']):
             if verbosity > 2: print('Recomputing orange band')
             ## load orange band configuration
-            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
-
-            ## read rsr for wavelength name
-            sensor_o = 'L8_OLI_ORANGE'
+            if sensor == 'L8_OLI':
+                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
+                sensor_o = 'L8_OLI_ORANGE'
+            if sensor == 'L9_OLI':
+                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
+                sensor_o = 'L9_OLI_ORANGE'
             rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
             ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
             ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])

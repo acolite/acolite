@@ -438,13 +438,21 @@ def glad_l2r(ncf, output = None, ofile = None,
         ac.output.nc_write(ofile, 'glad_y', glad_y)
 
     ## recompute orange band
-    if (sensor == 'L8_OLI') & ('rhos_613' in datasets):
-        if verbosity > 2: print('Recomputing orange band')
-        ## load orange band configuration
-        ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
+        if (sensor in ['L8_OLI', 'L9_OLI']):
+            if verbosity > 2: print('Recomputing orange band')
+            ## load orange band configuration
+            if sensor == 'L8_OLI':
+                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
+                sensor_o = 'L8_OLI_ORANGE'
+            if sensor == 'L9_OLI':
+                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
+                sensor_o = 'L9_OLI_ORANGE'
 
         ## load orange band data
-        ds = 'rhos_613'
+        rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
+        ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
+        ds = 'rhos_{}'.format(ob['wave_name'])
+
         d, cur_att = ac.shared.nc_data(ncf, ds, attributes=True)
 
         ## write uncorrected data
