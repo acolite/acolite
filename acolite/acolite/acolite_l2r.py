@@ -508,19 +508,19 @@ def acolite_l2r(gem,
 
                     ## reverse lut interpolates rhot directly to aot
                     if use_revlut:
-                        if par == 'romix':
+                        if len(revl[lut]['rgi'][b].grid) == 5:
                             aot_band[lut][band_sub] = revl[lut]['rgi'][b]((gem.data_mem['pressure'+gk][band_sub],
-                                                                           gem.data_mem['raa'+gk_raa][band_sub],
-                                                                           gem.data_mem['vza'+gk_vza][band_sub],
-                                                                           gem.data_mem['sza'+gk][band_sub],
-                                                                           band_data[band_sub]))
+                                                                               gem.data_mem['raa'+gk_raa][band_sub],
+                                                                               gem.data_mem['vza'+gk_vza][band_sub],
+                                                                               gem.data_mem['sza'+gk][band_sub],
+                                                                               band_data[band_sub]))
                         else:
                             aot_band[lut][band_sub] = revl[lut]['rgi'][b]((gem.data_mem['pressure'+gk][band_sub],
-                                                                           gem.data_mem['raa'+gk_raa][band_sub],
-                                                                           gem.data_mem['vza'+gk_vza][band_sub],
-                                                                           gem.data_mem['sza'+gk][band_sub],
-                                                                           gem.data_mem['wind'+gk][band_sub],
-                                                                           band_data[band_sub]))
+                                                                               gem.data_mem['raa'+gk_raa][band_sub],
+                                                                               gem.data_mem['vza'+gk_vza][band_sub],
+                                                                               gem.data_mem['sza'+gk][band_sub],
+                                                                               gem.data_mem['wind'+gk][band_sub],
+                                                                               band_data[band_sub]))
                         # mask out of range aot
                         aot_band[lut][aot_band[lut]<=revl[lut]['minaot']]=np.nan
                         aot_band[lut][aot_band[lut]>=revl[lut]['maxaot']]=np.nan
