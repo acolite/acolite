@@ -1502,17 +1502,17 @@ def acolite_l2r(gem,
     ## end alternative glint correction
 
     ## compute oli orange band
-    if (gemo.gatts['sensor'] in ['L8_OLI', 'EO1_ALI']) & (setu['oli_orange_band']):
+    if (gemo.gatts['sensor'] in ['L8_OLI', 'L9_OLI', 'EO1_ALI']) & (setu['oli_orange_band']):
         if verbosity > 1: print('Computing orange band')
         ## load orange band configuration
         if gemo.gatts['sensor'] == 'L8_OLI':
             ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
             sensor_o = 'L8_OLI_ORANGE'
             panb, greenb, redb = '8', '3', '4'
-        #if gemo.gatts['sensor'] == 'L9_OLI2':
-        #    ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
-        #    sensor_o = 'L9_OLI2_ORANGE'
-        #    panb, greenb, redb = '8', '3', '4'
+        if gemo.gatts['sensor'] == 'L9_OLI':
+            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
+            sensor_o = 'L9_OLI_ORANGE'
+            panb, greenb, redb = '8', '3', '4'
         if gemo.gatts['sensor'] == 'EO1_ALI':
             ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/EO1/ali_orange.cfg')
             sensor_o = 'EO1_ALI_ORANGE'
