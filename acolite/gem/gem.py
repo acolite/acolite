@@ -3,6 +3,7 @@
 ## 2021-04-01
 ## modifications: 2021-04-01 (QV) added some write support
 ##                2021-12-08 (QV) added nc_projection
+##                2022-02-15 (QV) added L9/TIRS
 
 import acolite as ac
 import os, sys
@@ -42,6 +43,9 @@ class gem(object):
             ## detect thermal sensor
             if self.gatts['sensor'] == 'L8_OLI':
                 self.gatts['thermal_sensor'] = 'L8_TIRS'
+                self.gatts['thermal_bands'] = ['10', '11']
+            elif self.gatts['sensor'] == 'L9_OLI':
+                self.gatts['thermal_sensor'] = 'L9_TIRS'
                 self.gatts['thermal_bands'] = ['10', '11']
             elif self.gatts['sensor'] == 'L5_TM':
                 self.gatts['thermal_sensor'] = 'L5_TM'

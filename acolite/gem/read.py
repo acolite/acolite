@@ -3,6 +3,7 @@
 ## 2021-02-28
 ## modifications: 2021-03-09 (QV) made reading data optional
 ##                2021-12-08 (QV) added nc_projection
+##                2022-02-15 (QV) added L9/TIRS
 
 def read(ncf, sub = None, skip_datasets = [], load_data=True):
     import os
@@ -22,6 +23,9 @@ def read(ncf, sub = None, skip_datasets = [], load_data=True):
     ## detect thermal sensor
     if gem['gatts']['sensor'] == 'L8_OLI':
         gem['gatts']['thermal_sensor'] = 'L8_TIRS'
+        gem['gatts']['thermal_bands'] = ['10', '11']
+    elif gem['gatts']['sensor'] == 'L9_OLI':
+        gem['gatts']['thermal_sensor'] = 'L9_TIRS'
         gem['gatts']['thermal_bands'] = ['10', '11']
     elif gem['gatts']['sensor'] == 'L5_TM':
         gem['gatts']['thermal_sensor'] = 'L5_TM'

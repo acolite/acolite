@@ -1,12 +1,16 @@
-## QV 2019-10-02
-##         2019-12-17 renamed, added tact config, and removed dependencies
-##         2021-02-27 (QV) integrated in acolite, added interpolation for target lat lon
+# def tact_limit
+## runs tact for a given limit file
+## written by Quinten Vanhellemont, RBINS
+## 2019-10-02
+## modifications: 2019-12-17 renamed, added tact config, and removed dependencies
+##                2021-02-27 (QV) integrated in acolite, added interpolation for target lat lon
+##                2022-02-15 (QV) added L9/TIRS
 
 def tact_limit(isotime, limit=None,
                   lat = None, lon = None,
                   url_base = 'https://rda.ucar.edu/thredds/dodsC/files/g/ds633.0/e5.oper.an.pl',
                   geo_step = 0.25,
-                  satsens=['L8_TIRS', 'L5_TM', 'L7_ETM'],
+                  satsens=['L9_TIRS', 'L8_TIRS', 'L5_TM', 'L7_ETM'],
                   satsen = 'L8_TIRS', override = False, verbosity = 0, processes = 4):
 
     import netCDF4
