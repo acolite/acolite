@@ -57,6 +57,7 @@ def tact_gem(gem, output_file = True,
         #    output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L1R', '')
+        output_name = output_name.replace(gem['gatts']['sensor'], gem['gatts']['thermal_sensor'])
         odir = output if output is not None else os.path.dirname(gemf)
         ofile = '{}/{}_ST.nc'.format(odir, output_name)
     else:
@@ -137,6 +138,7 @@ def tact_gem(gem, output_file = True,
     if output_file:
         gem['gatts']['acolite_file_type'] = 'L2T'
         gem['gatts']['ofile'] = ofile
+        gem['gatts']['sensor'] = gem['gatts']['thermal_sensor']
 
         new = True
         datasets_ofile = []
