@@ -238,7 +238,7 @@ def identify_bundle(bundle, input_type = None):
         try:
             files_xml, files_tiff = ac.amazonia.bundle_test(bundle)
             meta = ac.amazonia.metadata(files_xml[0])
-            if meta['sensor'] in ['AMAZONIA1_WFI']:
+            if meta['sensor'] in ['AMAZONIA1_WFI', 'CBERS4A_WFI']:
                 input_type = 'AMAZONIA'
                 break ## exit loop
         except:

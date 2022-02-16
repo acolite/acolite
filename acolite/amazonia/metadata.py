@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-01-14
 ## modifications: 2022-02-06 (QV) added vza, attitude and ephemeris data
+##                2022-02-16 (QV) fixed parsing of CBERS4A data which doesn't have camera tags
 
 def metadata(metafile):
     import dateutil.parser
@@ -21,7 +22,15 @@ def metadata(metafile):
     metadata = {}
     for camera in ['leftCamera', 'rightCamera']:
         cmeta = {}
-        ct = xmldoc.getElementsByTagName(camera)[0]
+        ct = xmldoc.getElementsByTagName(camera)
+        if len(ct) == 0:
+            ##CBERS?
+            camera = 'main'
+            ct = xmldoc
+        else:
+            ## AMAZONIA
+            ct = ct[0]
+        if camera in cmeta: continue
 
         main_tag = 'orientationAngle'
         tags = ['degree', 'minute', 'second', 'millisecond']

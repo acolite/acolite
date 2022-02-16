@@ -43,7 +43,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         meta = {}
         bands = []
         for fm in files_xml:
-            band = '{}'.format(os.path.basename(fm)[-5:-4])
+            bbn = os.path.splitext(os.path.basename(fm))[0]
+            band = bbn[bbn.find('BAND')+4:]
             bands.append(band)
             meta[band] = ac.amazonia.metadata(fm)
 
@@ -122,14 +123,23 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
         saa = []
         for band in bands:
-            saa.append(meta[band]['leftCamera']['saa'])
-            saa.append(meta[band]['rightCamera']['saa'])
+            if 'main' in meta[band]:
+                saa.append(meta[band]['main']['saa'])
+            else:
+                saa.append(meta[band]['leftCamera']['saa'])
+                saa.append(meta[band]['rightCamera']['saa'])
         sza = []
         for band in bands:
-            sza.append(meta[band]['leftCamera']['sza'])
-            sza.append(meta[band]['rightCamera']['sza'])
+            if 'main' in meta[band]:
+                sza.append(meta[band]['main']['sza'])
+            else:
+                sza.append(meta[band]['leftCamera']['sza'])
+                sza.append(meta[band]['rightCamera']['sza'])
 
-        vza = meta[band]['leftCamera']['vza']/2 + meta[band]['rightCamera']['vza']/2
+        if 'main' in meta[band]:
+            vza = meta[band]['main']['vza']
+        else:
+            vza = meta[band]['leftCamera']['vza']/2 + meta[band]['rightCamera']['vza']/2
         vaa = 0
 
         gatts = {'sensor':meta['sensor'],
@@ -298,7 +308,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             nodata = data == np.uint16(0)
 
             ## convert to Lt
-            data = data.astype(np.float32) * meta[b]['leftCamera']['{}_absoluteCalibrationCoefficient'.format(b)]
+            if 'main' in meta[b]:
+                data = data.astype(np.float32) * 0.4 #/ meta[b]['main']['{}_absoluteCalibrationCoefficient'.format(b)]
+            else:
+                data = data.astype(np.float32) * meta[b]['leftCamera']['{}_absoluteCalibrationCoefficient'.format(b)]
 
             ## convert to rhot
             f0 = gatts['{}_f0'.format(b)]/10
