@@ -1,0 +1,14 @@
+## ACOLITE default settings for AMAZONIA1_WFI
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=400,2500
+
+l2w_mask_wave=800
+l2w_mask_threshold=0.1
+dsf_tile_dimensions=1000,1000
+
+gains_toa=1,1,1,1
+
+dsf_spectrum_option=percentile
+dsf_percentile=1

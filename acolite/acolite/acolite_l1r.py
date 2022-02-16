@@ -126,5 +126,11 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end GF
     ################
 
+    ################
+    ## AMAZONIA
+    if input_type == 'AMAZONIA':
+        l1r_files, setu = ac.amazonia.l1_convert(bundle, settings = setu)
+    ## end AMAZONIA
+    ################
 
     return(l1r_files, setu)
