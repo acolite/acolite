@@ -309,7 +309,17 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             ## convert to Lt
             if 'main' in meta[b]:
-                data = data.astype(np.float32) * 0.4 #/ meta[b]['main']['{}_absoluteCalibrationCoefficient'.format(b)]
+                #data = data.astype(np.float32) * meta[b]['main']['{}_absoluteCalibrationCoefficient'.format(b)]
+                data = data.astype(np.float32) * 0.4
+
+                if False:
+                    ## table 8 from Pinto et al 2016 doi:10.3390/rs8050405
+                    dn_gain = {'13':0.44, '14':0.47, '15':0.37, '16':0.34}
+                    dn_offset = {'13':-19, '14':8, '15':-4, '16':3}
+                    ## 0 offset
+                    dn_gain = {'13':0.379, '14':0.498, '15':0.360, '16':0.351}
+                    dn_offset = {'13':0, '14':0, '15':0, '16':0}
+                    data = (data.astype(np.float32) * dn_gain[b]) + dn_offset[b]
             else:
                 data = data.astype(np.float32) * meta[b]['leftCamera']['{}_absoluteCalibrationCoefficient'.format(b)]
 
