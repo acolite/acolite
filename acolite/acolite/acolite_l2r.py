@@ -395,7 +395,8 @@ def acolite_l2r(gem,
             aot_dict = {}
             dsf_rhod = {}
             for bi, b in enumerate(gem.bands):
-                if (b in setu['dsf_exclude_bands']): continue
+                if type(setu['dsf_exclude_bands']) is list:
+                    if (b in setu['dsf_exclude_bands']): continue
                 if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
                 if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
 
@@ -405,7 +406,6 @@ def acolite_l2r(gem,
                 ## skip bands according to configuration
                 if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
                 if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
-                if (b in setu['dsf_exclude_bands']): continue
 
                 if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
 
