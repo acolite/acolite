@@ -2,7 +2,7 @@
 ## makes a RGB GeoTIFF from an ACOLITE NetCDF
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-01-02
-## modifications:
+## modifications: 2022-02-17 (QV) fix for paths with spaces
 
 def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff'):
     import acolite as ac
@@ -70,14 +70,14 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
                                 creationOptions=creationOptions, options=options)
             ## set no data value
             dt.GetRasterBand(1).SetNoDataValue(0)
-            tempfiles.append(outfile)
+            tempfiles.append("'{}'".format(outfile))
             dt = None
 
         ## composite to RGB
         outfile = '{}_{}{}'.format(out, '{}_RGB'.format(base), '.tif')
         if os.path.exists(outfile):
             os.remove(outfile)
-        cmd = ['gdal_merge.py',  '-o {}'.format(outfile), '-separate'] + tempfiles
+        cmd = ['gdal_merge.py',  "-o '{}'".format(outfile), '-separate'] + tempfiles
         ret = os.popen(' '.join(cmd)).read()
         #sp = subprocess.run(' '.join(cmd),shell=True, check=True, stdout=subprocess.PIPE)
         if os.path.exists(outfile):
@@ -86,4 +86,4 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
         ## remove tempfiles
         if remove_temp_files:
             for file in tempfiles:
-                os.remove(file)
+                os.remove(file.strip("'"))
