@@ -7,7 +7,7 @@
 ##                                 added in col and row diff check from landsat reader
 
 def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
-                 target_res=None, sub=None):
+                 target_res=None, sub=None, gdal_meta = False):
 
     import os, sys, fnmatch
     from osgeo import gdal
@@ -16,6 +16,12 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
     ds = gdal.Open(file)
     nrows=ds.RasterYSize
     ncols=ds.RasterXSize
+
+    if gdal_meta:
+        try:
+            md = ds.GetMetadata_Dict()
+        except:
+            md = {}
 
     if idx is not None:
         ds = None
@@ -48,7 +54,7 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
 
             #targetAlignedPixels = True
             targetAlignedPixels = False
-            
+
             ## if we don't know target resolution, figure out from the outputBounds
             if target_res is None:
                 xRes = None
@@ -86,4 +92,7 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
                 data = ds.ReadAsArray()
             ds = None
 
-    return(data)
+    if gdal_meta:
+        return(md, data)
+    else:
+        return(data)
