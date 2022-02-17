@@ -12,6 +12,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import dateutil.parser, time
     import numpy as np
     import acolite as ac
+    import re
 
     if 'verbosity' in settings: verbosity = settings['verbosity']
 
@@ -297,6 +298,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 new=False
 
         ## convert bands
+        b_vaa = []
+        b_vza = []
         for bi, b in enumerate(rsr_bands):
             bfile = files_tiff[bi]
             if 'BAND{}'.format(b) not in bfile:
@@ -304,7 +307,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 continue
 
             ## read data
-            data = ac.shared.read_band(bfile, warp_to=warp_to)
+            md, data = ac.shared.read_band(bfile, warp_to=warp_to, gdal_meta=True)
             nodata = data == np.uint16(0)
 
             ## convert to Lt
@@ -333,6 +336,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             ds = 'rhot_{}'.format(waves_names[b])
             ds_att = {'wavelength':waves_mu[b]*1000}
 
+            ## get angles from tiff metadata
+            for k in ['Elevation', 'Azimuth', 'Gain', 'Integration Time']:
+                match = re.search('{} (\d+(?:\.\d+)?)'.format(k), md['TIFFTAG_IMAGEDESCRIPTION'])
+                if match: ds_att[k] = float(match.group(1))
+            ds_att['Zenith'] = 90 - ds_att['Elevation']
+            b_vaa.append(ds_att['Azimuth'])
+            b_vza.append(ds_att['Zenith'])
+
             if gains & (gains_dict is not None):
                 ds_att['toa_gain'] = gains_dict[b]
                 data *= ds_att['toa_gain']
@@ -350,6 +361,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                                 netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
+
+        ## update geometry from band tags
+        gatts['vza'] = np.nanmean(b_vza)
+        gatts['vaa'] = np.nanmean(b_vaa)
+        raa_ave = abs(gatts['saa'] - gatts['vaa'])
+        while raa_ave >= 180: raa_ave = abs(raa_ave-360)
+        gatts['raa'] = raa_ave
+        ## update nc gatts
+        ac.shared.nc_gatts_update(ofile, gatts)
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
