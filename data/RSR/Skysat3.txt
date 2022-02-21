@@ -1,7 +1,7 @@
 ;; Skysat3 RSR
 ;;
 ;; Quinten Vanhellemont 2022-02-19 from Skysat_RSR_Skysat3.csv
-;; normalised to band maximum value
+;; normalised to per channel maximum value
 ;;
 ;; datasets: wavelength, RSR
 ;; Skysat3 Band: Blue

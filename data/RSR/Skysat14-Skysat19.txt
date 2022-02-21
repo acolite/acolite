@@ -1,7 +1,7 @@
 ;; Skysat14-SkySat19 RSR
 ;;
 ;; Quinten Vanhellemont 2022-02-19 from Skysat_RSR_Skysat14-SkySat19.csv
-;; normalised to band maximum value
+;; normalised to per channel maximum value
 ;;
 ;; datasets: wavelength, RSR
 ;; Skysat14-SkySat19 Band: Blue
