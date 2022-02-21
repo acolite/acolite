@@ -755,7 +755,7 @@ def acolite_l2w(gem,
             print('QAA')
             mask = True ## water parameter so apply mask
             sensor = gem['gatts']['sensor']
-            if sensor not in ['L8_OLI', 'S2A_MSI', 'S2B_MSI']:
+            if sensor not in ['L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI']:
                 print('QAA not configured for {}'.format(gem['gatts']['sensor']))
                 continue
 
@@ -971,7 +971,7 @@ def acolite_l2w(gem,
             fait_rgb_limit = float(fait_cfg['fait_rgb_limit'])
             fait_L_limit = float(fait_cfg['fait_L_limit'])
 
-            if gem['gatts']['sensor'] == 'L8_OLI':
+            if gem['gatts']['sensor'] in ['L8_OLI', 'L9_OLI']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_OLI'])
             elif gem['gatts']['sensor'] in ['S2A_MSI', 'S2B_MSI']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_MSI'])
@@ -1194,11 +1194,14 @@ def acolite_l2w(gem,
             par_attributes['algorithm']=''
 
             ### get required datasets
-            if gem['gatts']['sensor'] != 'L8_OLI':
+            if gem['gatts']['sensor'] not in ['L8_OLI', 'L9_OLI', 'EO1_ALI']:
                 print('Parameter {} not configured for {}.'.format(cur_par,gem['gatts']['sensor']))
                 continue
 
-            req_waves = [561,613,655]
+            if gem['gatts']['sensor'] == 'L8_OLI': req_waves = [561,613,655]
+            if gem['gatts']['sensor'] == 'L9_OLI': req_waves = [561,613,654]
+            if gem['gatts']['sensor'] == 'EO1_ALI': req_waves = [561,613,655]
+
             required_datasets = ['rhos_{}'.format(w) for w in req_waves]
 
             ## get data
