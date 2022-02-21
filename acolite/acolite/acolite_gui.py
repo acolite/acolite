@@ -10,6 +10,7 @@
 ##                2020-10-29 (QV) moved multiprocessing Process out of def so it can be pickled, multiprocessing enabled for linux,darwin and win32
 ##                2021-01-05 (QV) added text colour to Buttons so the labels are visible in Mac OS Dark Mode
 ##                2021-04-14 (QV) changed for acolite-generic
+##                2022-02-21 (QV) reset settings when restoring
 
 ## Process class that returns exceptions
 import multiprocessing as mp
@@ -388,8 +389,15 @@ def acolite_gui(*args, version=None):
                 self.settings_file = settings_file
                 try:
                     self.setimport = ac.acolite.settings.parse(None, settings=self.settings_file, merge=False)
+
+                    # set new settings
                     for k in self.setimport.keys():
                         self.acolite_settings[k] = self.setimport[k]
+
+                    # remove previous settings
+                    for k in self.acolite_settings:
+                        if k not in self.setimport:
+                            del self.acolite_settings[k]
                 except:
                     print('Could not restore settings from {}'.format(settings_file))
 
