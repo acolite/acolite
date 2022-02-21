@@ -192,6 +192,9 @@ def acolite_l2r(gem,
         if len(np.atleast_1d(gem.data(ds)))>1:
             use_revlut=True ## if any dataset more than 1 dimension use revlut
             per_pixel_geometry = True
+        else: ## convert floats into arrays
+            gem.data_mem[ds] = np.asarray(gem.data_mem[ds])
+            gem.data_mem[ds].shape+=(1,1)
         gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
         gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
 
