@@ -222,8 +222,15 @@ def identify_bundle(bundle, input_type = None):
 
             ## test files
             files = ac.planet.bundle_test(bundle)
-            metafile = files['metadata']['path']
-            image_file = files['analytic']['path']
+            if 'metadata' in files:
+                metafile = files['metadata']['path']
+            elif 'metadata_json' in files:
+                metafile = files['metadata_json']['path']
+                
+            if 'analytic' in files:
+                image_file = files['analytic']['path']
+            elif 'pansharpened' in files:
+                image_file = files['pansharpened']['path']
             meta = ac.planet.metadata_parse(metafile)
             if 'platform' in meta:
                 input_type = 'Planet'

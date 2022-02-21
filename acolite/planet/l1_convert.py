@@ -5,6 +5,7 @@
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2022-02-21 (QV) added Skysat
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -22,7 +23,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 verbosity = 0, vname = ''):
 
-    import os, zipfile, shutil
+    import os, zipfile, shutil, json
     import dateutil.parser, time
     import numpy as np
     import acolite as ac
@@ -66,12 +67,21 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## test files
         files = ac.planet.bundle_test(bundle)
-        if not (('metadata' in files) & ('analytic' in files)):
+        if (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic' in files))) &\
+           (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))):
             print('Bundle {} not recognised'.format(bundle))
             continue
 
-        metafile = files['metadata']['path']
-        image_file = files['analytic']['path']
+        if 'metadata' in files:
+            metafile = files['metadata']['path']
+        elif 'metadata_json' in files:
+            metafile = files['metadata_json']['path']
+
+        if 'analytic' in files:
+            image_file = files['analytic']['path']
+        elif 'pansharpened' in files:
+            image_file = files['pansharpened']['path']
+
         sr_image_file = None
         if 'sr' in files: sr_image_file = files['sr']['path']
 
@@ -327,21 +337,44 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## convert bands
         for b in rsr_bands:
+            if b in ['PAN']: continue
             idx = int(meta['{}-band_idx'.format(b)])
 
             ## read data
-            data = ac.shared.read_band(image_file, idx=idx, warp_to=warp_to)
+            md, data = ac.shared.read_band(image_file, idx=idx, warp_to=warp_to, gdal_meta = True)
             nodata = data == np.uint16(0)
 
-            ## convert from radiance
-            if  (meta['sensor'] == 'RapidEye') | (from_radiance):
-                data = data.astype(float) * float(meta['{}-{}'.format(b,'to_radiance')])
-                f0 = gatts['{}_f0'.format(b)]/10
-                data *= (np.pi * gatts['se_distance']**2) / (f0 * gatts['mus'])
+            if 'Skysat' in meta['sensor']:
+                ## get reflectance scaling from tiff tags
+                try:
+                    prop = json.loads(md['TIFFTAG_IMAGEDESCRIPTION'])['properties']
+                except:
+                    prop = {}
+
+                if 'reflectance_coefficients' in prop:
+                    ## convert to toa radiance & mask
+                    bi = idx - 1
+                    data = data.astype(float) * prop['reflectance_coefficients'][bi]
+                    data[nodata] = np.nan
+                else:
+                    print('Using fixed 0.01 factor to convert Skysat DN to TOA radiance')
+                    ## convert to toa radiance & mask
+                    data = data.astype(float) * 0.01
+
+                    ## convert to toa reflectance
+                    f0 = gatts['{}_f0'.format(b)]/10
+                    data *= (np.pi * gatts['se_distance']**2) / (f0 * gatts['mus'])
             else:
-                data = data.astype(float) * float(meta['{}-{}'.format(b,'to_reflectance')])
+                ## convert from radiance
+                if  (meta['sensor'] == 'RapidEye') | (from_radiance):
+                    data = data.astype(float) * float(meta['{}-{}'.format(b,'to_radiance')])
+                    f0 = gatts['{}_f0'.format(b)]/10
+                    data *= (np.pi * gatts['se_distance']**2) / (f0 * gatts['mus'])
+                else:
+                    data = data.astype(float) * float(meta['{}-{}'.format(b,'to_reflectance')])
             data[nodata] = np.nan
             print(data.shape)
+
             ## clip to poly
             if clip: data[clip_mask] = np.nan
 

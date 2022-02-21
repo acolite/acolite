@@ -1,0 +1,8 @@
+## ACOLITE default settings for Skysat 3
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=400,2500
+gains_toa=1,1,1,1
+l2w_mask_wave=800
+l2w_mask_threshold=0.1

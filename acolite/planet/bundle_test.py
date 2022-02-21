@@ -7,6 +7,7 @@
 ##                2018-03-19 (QV) added MS files in filtering
 ##                2021-02-24 (QV) new version for acg
 ##                2022-01-11 (QV) added AnalyticMS_8b
+##                2022-02-21 (QV) added Skysat, include support for unzipped API downloads
 
 def bundle_test(bundle_in):
     import os
@@ -16,12 +17,21 @@ def bundle_test(bundle_in):
     else:
         bundle = os.path.dirname(bundle_in)
 
-    files = os.listdir(bundle)
+    ## check files in bundle
+    files = []
+    for f in os.listdir(bundle): files.append(os.path.join(bundle, f))
+    ## include files directory contents
+    files_dir = os.path.join(bundle, 'files')
+    if os.path.exists(files_dir):
+        for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f))
+    files.sort()
+
     datafiles = {}
-    for i, fname in enumerate(files):
+    for i, file in enumerate(files):
+        fname = os.path.basename(file)
         fn,ext = os.path.splitext(fname)
-        if ext == '.json': continue
-        if ext not in ['.tif', '.xml']: continue
+
+        if ext not in ['.json', '.tif', '.xml']: continue
         band,clp=None,''
         if 'clip' in fn:
             clp='_clip'
@@ -29,17 +39,27 @@ def bundle_test(bundle_in):
            ('AnalyticMS_metadata{}.xml'.format(clp) in fname)|\
            ('AnalyticMS_8b_metadata{}.xml'.format(clp) in fname):
             band = 'metadata'
+        if ('metadata.json' in fname):
+            band = 'metadata_json'
         if ('Analytic{}.tif'.format(clp) in fname)|\
            ('AnalyticMS{}.tif'.format(clp) in fname)|\
-           ('AnalyticMS_8b{}.tif'.format(clp) in fname):
+           ('AnalyticMS_8b{}.tif'.format(clp) in fname)|\
+           ('analytic{}.tif'.format(clp) in fname):
             band = 'analytic'
         if ('DN_udm{}.tif'.format(clp) in fname):
             band = 'udm'
+        if ('udm2{}.tif'.format(clp) in fname):
+            band = 'udm2'
+        if ('analytic_dn{}.tif'.format(clp) in fname):
+            band = 'analytic_dn'
+        if ('panchromatic_dn{}.tif'.format(clp) in fname):
+            band = 'pan_dn'
+        if ('pansharpened{}.tif'.format(clp) in fname):
+            band = 'pansharpened'
         if ('Analytic_SR{}.tif'.format(clp) in fname):
             band = 'sr'
 
         if band is None: continue
-        file = '{}/{}'.format(bundle,fname)
         if os.path.isfile(file):
-            datafiles[band] = {"path":file, "fname":fname}
+            datafiles[band] = {"path":file, "fname":fname, "ext": ext}
     return(datafiles)
