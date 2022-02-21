@@ -62,7 +62,8 @@ def acolite_luts(sensor = None, hyper = False,
                                     base_luts = base_luts, rsky_lut = rsky_lut)
 
         ## get reverse LUT
-        if (compute_reverse) & (s is not None) & (s in ['L5_TM', 'L7_ETM', 'L8_OLI', 'S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI']):
+        if (compute_reverse) & (s is not None) & (s in ['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI',
+                                                        'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS']):
             for par in pars:
                 revl = ac.aerlut.reverse_lut(s, get_remote = get_remote, par=par, pressures = pressures,
                                             base_luts = base_luts, rsky_lut = rsky_lut)
