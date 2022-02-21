@@ -385,19 +385,19 @@ def acolite_gui(*args, version=None):
                 initial_dir=os.path.dirname(self.settings_file)
                 initial_file=os.path.basename(self.settings_file)
                 settings_file = filedialog.askopenfilename(title='Select settings file to restore.', initialdir=initial_dir, initialfile=initial_file)
+
             if len(settings_file) > 0:
                 self.settings_file = settings_file
                 try:
                     self.setimport = ac.acolite.settings.parse(None, settings=self.settings_file, merge=False)
 
+                    # remove previous settings
+                    self.acolite_settings = {}
+
                     # set new settings
                     for k in self.setimport.keys():
                         self.acolite_settings[k] = self.setimport[k]
 
-                    # remove previous settings
-                    for k in self.acolite_settings:
-                        if k not in self.setimport:
-                            del self.acolite_settings[k]
                 except:
                     print('Could not restore settings from {}'.format(settings_file))
 
