@@ -179,7 +179,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
 
             ## add rsky if requested
             if add_rsky:
-                rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, sensor=sensor)
+                rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, sensor=sensor, get_remote=get_remote)
                 rlut = rskyd[int(lut[-1])]['lut']
                 rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
                 rskyd = None
