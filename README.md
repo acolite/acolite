@@ -44,15 +44,13 @@ TACT performance for Antarctic mountain sites and near shore waters was evaluate
 This repository contains all the source code to run ACOLITE in a Python environment. ACOLITE is also distributed as a binary package on the [releases page](https://github.com/acolite/acolite/releases) and is supported on the [ACOLITE forum](http://odnature.naturalsciences.be/remsem/acolite-forum/).
 
 ## Dependencies
-ACOLITE is coded in Python 3, and requires the following Python packages to run: `numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib`
+ACOLITE is coded in Python 3, and requires the following Python packages to run: `numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib astropy cartopy`
 
 A suitable Python environment can for example be set up using conda and the packages on conda-forge:
 
             conda create -n acolite -c conda-forge python=3
             conda activate acolite
-            conda install -c conda-forge numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib
-
-Additional dependencies may be needed for experimental features: `astropy cartopy`
+            conda install -c conda-forge numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib astropy cartopy
 
 ## Installation
 * cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
