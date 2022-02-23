@@ -51,6 +51,10 @@ worldview_reproject_method=nearest
 ## Pleiades option
 pleiades_skip_pan=False
 
+## PRISMA options
+prisma_store_l2c=False
+prisma_store_l2c_separate_file=True
+
 ## CHRIS
 chris_interband_calibration=True
 chris_noise_reduction=True
