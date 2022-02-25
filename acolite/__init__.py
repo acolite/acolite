@@ -56,6 +56,11 @@ else:
 ## test whether we can find the relative paths
 for t in config:
     if t in ['EARTHDATA_u', 'EARTHDATA_p']: continue
+
+    ## replace $ACDIR in config by ac.path
+    if '$ACDIR' == config[t][0:6]:
+        config[t] = os.path.join(path, config[t].replace('$ACDIR', ''))
+
     if (os.path.exists(config[t])):
         config[t] = os.path.abspath(config[t])
         continue

@@ -1,32 +1,36 @@
+## ACOLITE general configuration files
+## $ACDIR will be replaced by the absolute path to the acolite directory at run time
+## if you want to move directories to another location, provide the full path here
+
 ## ACOLITE
-defaults=config/defaults.txt
-parameter_labels=config/parameter_labels.txt
-parameter_cf_attributes=config/parameter_cf_attributes.json
+defaults=$ACDIR/config/defaults.txt
+parameter_labels=$ACDIR/config/parameter_labels.txt
+parameter_cf_attributes=$ACDIR/config/parameter_cf_attributes.json
 
 ## EarthData
 EARTHDATA_u=
 EARTHDATA_p=
 
 ## Data directory
-data_dir=data
+data_dir=$ACDIR/data
 
 ## Scratch directory
-scratch_dir=scratch
+scratch_dir=$ACDIR/scratch
 
 ## atmospheric correction LUT data directory
-lut_dir=data/LUT
+lut_dir=$ACDIR/data/LUT
 
 ## DEM SRTM HGT files
-hgt_dir=data/SRTMGL3.003
+hgt_dir=$ACDIR/data/SRTMGL3.003
 
 ## MET files
-met_dir=data/MET
+met_dir=$ACDIR/data/MET
 
 ## SNAP directory
 snap_directory=/Applications/snap
 
 ## TACT support
-grid_dir=data/TACT/grid
+grid_dir=$ACDIR/data/TACT/grid
 
 ## libRadtran directory
-libradtran_dir=external/libRadtran-2.0.2
+libradtran_dir=$ACDIR/external/libRadtran-2.0.2
