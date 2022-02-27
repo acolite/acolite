@@ -1,4 +1,4 @@
-## ACOLITE default settings for Skysat 7
+## ACOLITE default settings for Skysat 1
 
 ## dark spectrum fitting options
 dsf_aot_estimate=fixed
