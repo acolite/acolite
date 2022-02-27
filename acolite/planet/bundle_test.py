@@ -20,10 +20,11 @@ def bundle_test(bundle_in):
     ## check files in bundle
     files = []
     for f in os.listdir(bundle): files.append(os.path.join(bundle, f))
-    ## include files directory contents
-    files_dir = os.path.join(bundle, 'files')
-    if os.path.exists(files_dir):
-        for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f))
+    ## include files/analytic_udm2 directory contents
+    for dname in ['files', 'analytic_udm2']:
+        files_dir = os.path.join(bundle, dname)
+        if os.path.exists(files_dir):
+            for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f))
     files.sort()
 
     datafiles = {}
