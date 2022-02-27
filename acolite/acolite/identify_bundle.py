@@ -122,7 +122,7 @@ def identify_bundle(bundle, input_type = None):
                             break
                 metafile = metafiles[idx]
                 meta = ac.worldview.metadata_parse(metafile)
-                if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2']:
+                if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2', 'GeoEye1']:
                     input_type = 'WorldView'
                     break ## exit loop
         except:
@@ -226,7 +226,7 @@ def identify_bundle(bundle, input_type = None):
                 metafile = files['metadata']['path']
             elif 'metadata_json' in files:
                 metafile = files['metadata_json']['path']
-                
+
             if 'analytic' in files:
                 image_file = files['analytic']['path']
             elif 'pansharpened' in files:

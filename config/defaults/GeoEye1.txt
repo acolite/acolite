@@ -1,0 +1,18 @@
+## ACOLITE default settings for GeoEye1
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=400,2500
+gains_toa=1,1,1,1
+l2w_mask_wave=800
+l2w_mask_threshold=0.1
+dsf_intercept_pixels=1000
+dsf_tile_dimensions=2000,2000
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+dsf_residual_glint_correction=False
+dsf_residual_glint_correction_method=alternative
+dsf_residual_glint_wave_range=800,900
+glint_mask_rhos_wave=800
+glint_mask_rhos_threshold=0.1
