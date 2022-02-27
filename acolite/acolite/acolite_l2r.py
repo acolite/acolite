@@ -79,8 +79,8 @@ def acolite_l2r(gem,
     if gem.gatts['sensor'] in rsrd:
         rsrd = rsrd[gem.gatts['sensor']]
     else:
-        rsrd = None
-        stop
+        print('Could not find {} RSR'.format(gem.gatts['sensor']))
+        return()
 
     ## set defaults
     gem.gatts['uoz'] = setu['uoz_default']

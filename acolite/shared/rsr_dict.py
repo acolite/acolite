@@ -2,7 +2,7 @@
 ## imports rsr file(s)
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-27
-## modifications:
+## modifications: 2022-02-25 (QV) added warning printout
 
 def rsr_dict(sensor = None, rsrd = None):
     import glob, os
@@ -18,6 +18,7 @@ def rsr_dict(sensor = None, rsrd = None):
             sens = glob.glob(ac.config['data_dir']+'/RSR/*.txt')
         else:
             sens = glob.glob(ac.config['data_dir']+'/RSR/{}.txt'.format(sensor))
+            if len(sens) == 0: print('Could not find {} RSR file at {}'.format(sensor, ac.config['data_dir']+'/RSR/'))
 
         rsrd = {}
         for rsrf in sens:
