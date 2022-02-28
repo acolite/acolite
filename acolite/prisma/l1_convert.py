@@ -126,7 +126,12 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         #vaa_ave = np.nanmean(np.abs(vaa))
         sza_ave = h5_gatts['Sun_zenith_angle']
         saa_ave = h5_gatts['Sun_azimuth_angle']
-        cossza = np.cos(sza_ave*(np.pi/180.))
+
+        if setu['prisma_rhot_per_pixel_sza']:
+            cossza = np.cos(np.radians(sza))
+        else:
+            cossza = np.cos(np.radians(sza_ave))
+
         vza_ave = 0
         vaa_ave = 0
 

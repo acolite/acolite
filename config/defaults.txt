@@ -52,6 +52,7 @@ worldview_reproject_method=nearest
 pleiades_skip_pan=False
 
 ## PRISMA options
+prisma_rhot_per_pixel_sza=True
 prisma_store_l2c=False
 prisma_store_l2c_separate_file=True
 
