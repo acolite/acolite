@@ -1248,6 +1248,11 @@ def acolite_l2r(gem,
             vza = gem.data_mem['vza'] * dtor
             raa = gem.data_mem['raa'] * dtor
 
+            ## flatten 1 element arrays
+            if sza.shape == (1,1): sza = sza.flatten()
+            if vza.shape == (1,1): vza = vza.flatten()
+            if raa.shape == (1,1): raa = raa.flatten()
+
             muv = np.cos(vza)
             mus = np.cos(sza)
             cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
@@ -1264,6 +1269,7 @@ def acolite_l2r(gem,
             ## compute where to apply the glint correction
             ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
             gc_mask_data = gemo.data(gc_mask)
+
             if gc_mask_data == (): ## can be an empty tuple for night time images (should not be processed, but this avoids a crash)
                 print('No glint mask could be determined.')
             else:
