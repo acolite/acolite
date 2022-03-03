@@ -138,7 +138,6 @@ def acolite_map(ncf, output = None,
 
                     plt.axis('off')
             else: ## cartopy
-                import cartopy.crs as ccrs
                 axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs)
                 gl = ax.gridlines(draw_labels=True)
                 gl.xlabels_top = False
@@ -214,21 +213,25 @@ def acolite_map(ncf, output = None,
 
     crs = None
     if setu['map_projected']:
-        try:
-            proj4_string = gatts['proj4_string']
-            p = pyproj.Proj(proj4_string)
-            img_extent = gatts['xrange'][0],gatts['xrange'][1],gatts['yrange'][0],gatts['yrange'][1]
-            pcrs = pyproj.CRS(gatts['proj4_string'])
-            uzone = pcrs.coordinate_operation.name.split()[-1]
-            zone = int(uzone[0:2])
-            south = uzone[-1].upper() == 'S'
-            crs = ccrs.UTM(zone, southern_hemisphere=south)
-            image_crs = ccrs.UTM(zone, southern_hemisphere=south)
-        except:
-            print('Could not determine projection for cartopy')
+        if setu['map_cartopy']:
+            try:
+                import cartopy.crs as ccrs
+                proj4_string = gatts['proj4_string']
+                p = pyproj.Proj(proj4_string)
+                img_extent = gatts['xrange'][0],gatts['xrange'][1],gatts['yrange'][0],gatts['yrange'][1]
+                pcrs = pyproj.CRS(gatts['proj4_string'])
+                uzone = pcrs.coordinate_operation.name.split()[-1]
+                zone = int(uzone[0:2])
+                south = uzone[-1].upper() == 'S'
+                crs = ccrs.UTM(zone, southern_hemisphere=south)
+                image_crs = ccrs.UTM(zone, southern_hemisphere=south)
+            except:
+                print('Could not determine projection for cartopy')
+                crs = None
+                if ('lon' in datasets) & ('lat' in datasets): setu['map_pcolormesh'] = True
+        else:
             crs = None
-            if ('lon' in datasets) & ('lat' in datasets):
-                setu['map_pcolormesh'] = True
+            if ('lon' in datasets) & ('lat' in datasets): setu['map_pcolormesh'] = True
 
     rhos_ds = [ds for ds in datasets if 'rhos_' in ds]
     rhos_wv = [int(ds.split('_')[-1]) for ds in rhos_ds]

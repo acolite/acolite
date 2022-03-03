@@ -256,6 +256,7 @@ rgb_autoscale_percentiles=5,95
 map_projected=False
 map_raster=False
 map_pcolormesh=False
+map_cartopy=False
 map_points=None
 
 # GeoTIFF export options
