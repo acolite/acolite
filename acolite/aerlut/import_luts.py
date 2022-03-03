@@ -11,13 +11,14 @@
 ##                     2021-06-08 (QV) added lut par subsetting
 ##                     2021-10-24 (QV) added get_remote as keyword
 ##                     2021-11-09 (QV) added reduce dimensions
+##                     2022-03-03 (QV) increased default reduce dimensions AOT range
 
 def import_luts(pressures = [500, 750, 1013, 1100],
                 base_luts = ['ACOLITE-LUT-202110-MOD1', 'ACOLITE-LUT-202110-MOD2'],
                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
                 lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                 reduce_dimensions = False, return_lut_array = False,
-                vza_range = [0, 16],  aot_range = [0, 1.],
+                vza_range = [0, 16],  aot_range = [0, 1.5],
                 get_remote = True, sensor = None, add_rsky = False, add_dutott = True):
     import scipy.interpolate
     import numpy as np
