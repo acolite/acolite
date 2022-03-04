@@ -4,9 +4,10 @@
 ## 2021-04-01
 ## modifications: 2021-04-14 (QV) added output to settings if not configured
 ##                2021-04-15 (QV) test/parse input files
+##                2022-03-04 (QV) moved inputfile testing to inputfile_test
 
-def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
-    import glob, datetime, os, mimetypes
+def acolite_run(settings):
+    import glob, datetime, os
     import acolite as ac
 
     print('Running ACOLITE processing - {}'.format(ac.version))
@@ -17,12 +18,10 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     ## these are updated with sensor specific settings in acolite_l2r
     setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
-    if 'output' not in setu:
-        if output is None:
-            setu['output'] = os.getcwd()
-        else:
-            setu['output'] = output
+    if 'output' not in setu: setu['output'] = os.getcwd()
+    if 'verbosity' in setu: ac.config['verbosity'] = int(setu['verbosity'])
 
+    ## workaround for outputting rhorc and bt
     if 'l2w_parameters' in setu:
         if setu['l2w_parameters'] is not None:
             for par in setu['l2w_parameters']:
@@ -40,15 +39,6 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
         if len(kv) == 0: continue
         os.environ[k] = kv
 
-    ## parse inputfile
-    if inputfile is not None:
-        if type(inputfile) != list:
-            if type(inputfile) == str:
-                inputfile = inputfile.split(',')
-            else:
-                inputfile = list(inputfile)
-        setu['inputfile'] = inputfile
-
     ## check if we have anything to do
     if 'inputfile' not in setu:
         print('Nothing to do. Did you provide a settings file or inputfile? Exiting.')
@@ -56,43 +46,24 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
     else:
         nscenes = len(setu['inputfile'])
 
-    ## parse output
-    if output is not None: setu['output'] = output
-
     ## get defaults settings for l1r processing
     setu_l1r = ac.acolite.settings.parse(None, settings=setu, merge=False)
 
     ## make list of lists to process, one list if merging tiles
-    if type(setu_l1r['inputfile']) is not list: setu_l1r['inputfile'] = [setu_l1r['inputfile']]
+    inputfile_list = ac.acolite.inputfile_test(setu['inputfile'])
 
-    ## check if a list of files is given
-    tmp_files = setu_l1r['inputfile'] if type(setu_l1r['inputfile']) == list else setu_l1r['inputfile'].split(',')
-    inputfile_list = []
-    for file in tmp_files:
-        if len(file) == 0: continue
-        if not os.path.exists(file): continue
-
-        ##  remove trailing slash
-        if file[-1] == os.sep: file = file[0:-1]
-
-        if os.path.isdir(file):
-            inputfile_list.append(file)
-        else:
-            mime = mimetypes.guess_type(file)
-            if mime[0] != 'text/plain':
-                if os.path.exists(file): inputfile_list.append(file) ## assume we can process this file
-                continue
-            with open(file, 'r') as f:
-                for l in f.readlines():
-                    l = l.strip()
-                    if len(l) == 0: continue
-                    cfiles = []
-                    for fn in l.split(','):
-                        if os.path.exists(fn): cfiles.append(fn)
-                    if len(cfiles)>0: inputfile_list.append(cfiles)
-
-    if 'merge_tiles' in setu_l1r:
-        if setu_l1r['merge_tiles']: inputfile_list = [inputfile_list]
+    ## check if tiles need to be merged
+    if 'merge_tiles' in setu:
+        if setu['merge_tiles']:
+            ## figure out whether multiple sets of tiles are given for merging
+            ## e.g. through a text inputfile with multiple lines of comma separated scenes
+            inputfile = [[]]
+            for i in inputfile_list:
+                if type(i) == list:
+                    inputfile.append(i)
+                else:
+                    inputfile[0].append(i)
+            inputfile_list = [i for i in inputfile if len(i) > 0]
     nruns = len(inputfile_list)
 
     ## track processed scenes
@@ -138,7 +109,7 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             if l1r_setu['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
                     ## run ACOLITE
-                    ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = verbosity)
+                    ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = ac.config['verbosity'])
                     if len(ret) != 2: continue
                     l2r, l2r_setu = ret
                 else:
@@ -149,10 +120,10 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
                     ret = None
                     ## acstar3 adjacency correction
                     if (l2r_setu['adjacency_method']=='acstar3'):
-                        ret = ac.adjacency.acstar3.acstar3(l2r, setu = l2r_setu, verbosity = verbosity)
+                        ret = ac.adjacency.acstar3.acstar3(l2r, setu = l2r_setu, verbosity = ac.config['verbosity'])
                     ## GLAD
                     if (l2r_setu['adjacency_method']=='glad'):
-                        ret = ac.adjacency.glad.glad_l2r(l2r, verbosity = verbosity)
+                        ret = ac.adjacency.glad.glad_l2r(l2r, verbosity = ac.config['verbosity'])
                     l2r = [] if ret is None else ret
 
                 ## if we have multiple l2r files
@@ -193,10 +164,10 @@ def acolite_run(settings, inputfile=None, output=None, limit=None, verbosity=0):
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
                 print(l1r)
-                ret = ac.tact.tact_gem(l1r, verbosity=l1r_setu['verbosity'],
+                ret = ac.tact.tact_gem(l1r, verbosity=ac.config['verbosity'],
                                             output_atmosphere = l1r_setu['tact_output_atmosphere'],
                                             output_intermediate = l1r_setu['tact_output_intermediate'])
-                if ret is not ():
+                if ret != ():
                     l2t_files.append(ret)
                     if l1r_setu['l2t_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l1r_setu['export_geotiff_match_file'],
                                                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],

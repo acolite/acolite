@@ -67,6 +67,8 @@ for t in config:
     tmp = path + os.path.sep + config[t]
     config[t] = os.path.abspath(tmp)
 
+if 'verbosity' not in config: config['verbosity'] = 5
+
 ## read parameter scaling and settings
 param = {'scaling':acolite.parameter_scaling()}
 import json
