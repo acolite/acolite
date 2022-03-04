@@ -6,7 +6,7 @@
 ##                2021-04-15 (QV) test/parse input files
 ##                2022-03-04 (QV) moved inputfile testing to inputfile_test
 
-def acolite_run(settings):
+def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os
     import acolite as ac
 
@@ -38,6 +38,10 @@ def acolite_run(settings):
         kv = setu[k] if k in setu else ac.config[k]
         if len(kv) == 0: continue
         os.environ[k] = kv
+
+    ## set settings from launch_acolite
+    if inputfile is not None: setu['inputfile'] = inputfile
+    if output is not None: setu['output'] = output
 
     ## check if we have anything to do
     if 'inputfile' not in setu:
