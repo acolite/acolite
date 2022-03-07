@@ -37,6 +37,13 @@ def acolite_l2r(gem,
     if 'verbosity' in setu: verbosity = setu['verbosity']
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
 
+    ## convert exclude bands to list
+    if setu['dsf_exclude_bands'] != None:
+        if type(setu['dsf_exclude_bands']) != list:
+            setu['dsf_exclude_bands'] = [setu['dsf_exclude_bands']]
+    else:
+        setu['dsf_exclude_bands'] = []
+        
     ## check blackfill
     if setu['blackfill_skip']:
         rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
@@ -386,7 +393,6 @@ def acolite_l2r(gem,
 
             ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
             gk = '' if use_revlut else '_mean'
-            print(use_revlut)
         ## image derived aot
         else:
             if setu['dsf_spectrum_option'] not in ['darkest', 'percentile', 'intercept']:
@@ -395,11 +401,11 @@ def acolite_l2r(gem,
 
             rhot_aot = None
             ## run through bands to get aot
+            aot_bands = []
             aot_dict = {}
             dsf_rhod = {}
             for bi, b in enumerate(gem.bands):
-                if type(setu['dsf_exclude_bands']) is list:
-                    if (b in setu['dsf_exclude_bands']): continue
+                if (b in setu['dsf_exclude_bands']): continue
                 if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
                 if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
 
@@ -589,22 +595,23 @@ def acolite_l2r(gem,
 
                 ## store current band results
                 aot_dict[b] = aot_band
-
-            ## get and sort keys
-            aot_bands = list(aot_dict.keys())
-            aot_bands.sort()
+                aot_bands.append(b)
 
             ## get min aot per pixel
             aot_stack = {}
             for li, lut in enumerate(luts):
+                aot_band_list = []
                 ## stack aot for this lut
                 for bi, b in enumerate(aot_bands):
                     if b not in aot_dict: continue
+                    aot_band_list.append(b)
                     if lut not in aot_stack:
                         aot_stack[lut] = {'all':  aot_dict[b][lut]*1.0}
                     else:
                         aot_stack[lut]['all'] = np.dstack((aot_stack[lut]['all'],
                                                            aot_dict[b][lut]))
+                aot_stack[lut]['band_list'] = aot_band_list
+
                 ## get minimum and mask of aot
                 aot_stack[lut]['min'] = np.nanmin(aot_stack[lut]['all'], axis=2)
 
@@ -643,13 +650,9 @@ def acolite_l2r(gem,
                 ## store b1 and b2
                 tmp = np.argsort(aot_stack[lut]['all'], axis=2)
                 aot_stack[lut]['b1'] = tmp[:,:,0].astype(int)#.astype(float)
-                #aot_stack[lut]['b1'][aot_stack[lut]['mask']] = np.nan
                 aot_stack[lut]['b1'][aot_stack[lut]['mask']] = -1
-
                 aot_stack[lut]['b2'] = tmp[:,:,1].astype(int)#.astype(float)
-                #aot_stack[lut]['b2'][aot_stack[lut]['mask']] = np.nan
                 aot_stack[lut]['b2'][aot_stack[lut]['mask']] = -1
-
 
                 if setu['dsf_model_selection'] == 'min_dtau':
                     ## array idices
@@ -657,8 +660,6 @@ def acolite_l2r(gem,
                     ## abs difference between first and second band tau
                     aot_stack[lut]['dtau'] = np.abs(aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,0]]-\
                                                     aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,1]])
-                    #return(aot_stack)
-                    #aot_stack[lut]['dtau'] =
                 tmp = None
 
             ## select model based on min rmsd for 2 bands
@@ -736,12 +737,18 @@ def acolite_l2r(gem,
                     aot_lut[aot_stack[lut]['mask']] = -1
                     aot_sel = aot_stack[lut]['min'] * 1.0
                     aot_sel_par = cur_sel_par * 1.0
+                    aot_sel_band1 = aot_stack[lut]['b1'] * 1
+                    aot_sel_band2 = aot_stack[lut]['b2'] * 1
+
                 else:
                     aot_sub = np.where(cur_sel_par<aot_sel_par)
                     if len(aot_sub[0]) == 0: continue
                     aot_lut[aot_sub] = li
                     aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
                     aot_sel_par[aot_sub] = cur_sel_par[aot_sub] * 1.0
+                    aot_sel_band1[aot_sub] = aot_stack[lut]['b1'][aot_sub] * 1
+                    aot_sel_band2[aot_sub] = aot_stack[lut]['b2'][aot_sub] * 1
+
             rhod_f = None
             rhod_p = None
     ### end dark_spectrum_fitting
@@ -919,8 +926,16 @@ def acolite_l2r(gem,
     if (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] == 'fixed'):
         gemo.gatts['ac_aot_550'] = aot_sel[0][0]
         gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
+
         if setu['dsf_fixed_aot'] is None:
+            ## store fitting parameter
             gemo.gatts['ac_fit'] = aot_sel_par[0][0]
+            ## store bands used for DSF
+            gemo.gatts['ac_bands'] = aot_stack[gemo.gatts['ac_model']]['band_list']
+            gemo.gatts['ac_band1_idx'] = aot_sel_band1[0][0]
+            gemo.gatts['ac_band1'] = gemo.gatts['ac_bands'][gemo.gatts['ac_band1_idx']]
+            gemo.gatts['ac_band2_idx'] = aot_sel_band2[0][0]
+            gemo.gatts['ac_band2'] = gemo.gatts['ac_bands'][gemo.gatts['ac_band2_idx']]
 
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
