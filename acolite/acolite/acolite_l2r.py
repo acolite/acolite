@@ -942,8 +942,9 @@ def acolite_l2r(gem,
     ## store ttot for glint correction
     ttot_all = {}
 
-    ### store scene mask
-    #scene_mask = np.zeros(gemo.gatts['data_dimensions'], dtype=np.uint8)
+    ## allow use of per pixel geometry for fixed dsf
+    if (per_pixel_geometry) & (setu['dsf_aot_estimate'] == 'fixed') & (setu['resolved_geometry']):
+        use_revlut = True
 
     ## for ease of subsetting later, repeat single element datasets to the tile shape
     if (use_revlut) & (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] != 'tiled'):
@@ -952,10 +953,8 @@ def acolite_l2r(gem,
             if verbosity > 2: print('Reshaping {} to {}x{}'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
             gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
 
-    ## update attributes with latest version
-    #if output_file: gemo.update_attributes()
-
     print('use_revlut', use_revlut)
+
     hyper_res = None
     ## compute surface reflectances
     for bi, b in enumerate(gem.bands):
@@ -1013,8 +1012,6 @@ def acolite_l2r(gem,
                 ## resolved geometry with fixed path reflectance
                 if (use_revlut) & (setu['dsf_aot_estimate'] == 'fixed'):
                     ls = np.where(cur_data)
-                ## take all pixels if using fixed processing
-                #if aot_lut.shape == (1,1): ls = np.where(gem['data'][dsi])
 
                 if (use_revlut):
                     xi = [gem.data_mem['pressure'+gk][ls],
@@ -1031,7 +1028,6 @@ def acolite_l2r(gem,
                     # subset to number of estimates made for this LUT
                     if len(xi[0]) > 1:
                         xi = [[x[l] for l in ls[0]] for x in xi]
-
 
                 if hyper:
                     ## compute hyper results and resample later
