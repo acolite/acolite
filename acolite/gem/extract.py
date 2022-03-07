@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-26
 ## modifications: 2021-02-28 (QV) added to acolite, new default naming of gems
+##                2022-03-07 (QV) added landsat collection keyword, added L9
 
 def extract(st_lon, st_lat, sdate,
                            use_pid_name=False,
@@ -15,7 +16,8 @@ def extract(st_lon, st_lat, sdate,
                            gem_type = 'nc', # json
                            width = 100, override = False,
                            return_gem = False, return_iml = False,
-                           sources = ['Landsat 5', 'Landsat 7','Landsat 8','Sentinel-2'],
+                           landsat_collection = '02',
+                           sources = ['Landsat 5', 'Landsat 7','Landsat 8','Landsat 9', 'Sentinel-2'],
                            verbosity=0):
 
     import os, sys
@@ -41,11 +43,13 @@ def extract(st_lon, st_lat, sdate,
         if source == 'Sentinel-2':
             collections += ['COPERNICUS/S2']
         if source == 'Landsat 8':
-            collections += ['LANDSAT/LC08/C01/T1_TOA', 'LANDSAT/LC08/C01/T2_TOA']
+            collections += ['LANDSAT/LC08/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LC08/C{}/T2_TOA'.format(landsat_collection)]
+        if source == 'Landsat 9':
+            collections += ['LANDSAT/LC09/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LC09/C{}/T2_TOA'.format(landsat_collection)]
         if source == 'Landsat 5':
-            collections += ['LANDSAT/LT05/C01/T1_TOA', 'LANDSAT/LT05/C01/T2_TOA']
+            collections += ['LANDSAT/LT05/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LT05/C{}/T1_TOA'.format(landsat_collection)]
         if source == 'Landsat 7':
-            collections += ['LANDSAT/LE07/C01/T1_TOA', 'LANDSAT/LE07/C01/T2_TOA']
+            collections += ['LANDSAT/LE07/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LE07/C{}/T1_TOA'.format(landsat_collection)]
 
     ## check width
     width = min(width, 511) ## max allowed pixels is 512x512, since the box is centred on a pixel, the max we can ask is 511
@@ -115,9 +119,11 @@ def extract(st_lon, st_lat, sdate,
             elif satellite == 'L7':
                 sensor = '{}_ETM'.format(satellite)
                 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6_VCID_1', 'B6_VCID_2', 'B7', 'B8']
-            elif satellite == 'L8':
+            elif satellite in ['L8', 'L9']:
                 sensor = '{}_OLI'.format(satellite)
                 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11']
+            if landsat_collection == '02': bands += ['SAA', 'SZA', 'VAA', 'VZA']
+
             refl_mult = np.unique([meta[k] for k in meta if 'REFLECTANCE_MULT' in k])[0]
             refl_add = np.unique([meta[k] for k in meta if 'REFLECTANCE_ADD' in k])[0]
             scale_factor = 1*refl_mult
@@ -214,10 +220,6 @@ def extract(st_lon, st_lat, sdate,
                        ac.shared.azimuth_two_points(x[wi], y[wi], x[si], y[si]))/2
                 vza = 0
 
-            raa = saa-vaa
-            if raa < 0: raa = np.abs(raa)
-            if raa >= 180: raa = np.abs(360 - raa)
-
             ## target band for subsetting projection
             proj = im.select(tar_band).projection().getInfo()
             p = ee.Projection(proj['crs'], proj['transform'])
@@ -262,10 +264,25 @@ def extract(st_lon, st_lat, sdate,
             data = {b:np.asarray(box_data['properties'][b]) for b in bands}
             for b in data:
                 mask = np.where(data[b] == 0)
-                if convert_counts: ## convert from DN if needed
-                    data[b] = (data[b]*scale_factor)+add_factor
-                data[b] = data[b].astype(np.float32)
+                if b in ['SAA', 'SZA', 'VAA', 'VZA']:
+                    data[b] = data[b].astype(np.float32) / 100
+                else:
+                    if convert_counts: ## convert from DN if needed
+                        data[b] = (data[b]*scale_factor)+add_factor
+                    data[b] = data[b].astype(np.float32)
                 data[b][mask] = np.nan
+
+            ## update average geometry
+            if 'SAA' in data: saa = np.nanmean(data['SAA'])
+            if 'VAA' in data: vaa = np.nanmean(data['VAA'])
+            if 'SZA' in data: saa = np.nanmean(data['SZA'])
+            if 'VZA' in data: vaa = np.nanmean(data['VZA'])
+            if ('VAA' in data) & ('SAA' in data):
+                data['RAA'] = np.abs(data['SAA'] - data['VAA'])
+                data['RAA'][data['RAA']>=180] = np.abs(360-data['RAA'][data['RAA']>=180])
+            raa = saa-vaa
+            if raa < 0: raa = np.abs(raa)
+            if raa >= 180: raa = np.abs(360 - raa)
 
             ## get lon and lat
             mp = im.pixelLonLat().reproject(p, None, target_res_default * 1.0)

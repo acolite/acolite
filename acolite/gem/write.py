@@ -42,6 +42,10 @@ def write(gemfile, gem, verbosity=0):
     ac.output.nc_write(ofile, 'lon', gem['data']['lon'], attributes=gatts, new=True)
     ac.output.nc_write(ofile, 'lat', gem['data']['lat'])
 
+    for k in ['SAA', 'SZA', 'VAA', 'VZA', 'RAA']:
+        if k in gem['data']:
+            ac.output.nc_write(ofile, k.lower(), gem['data'][k])
+
     ## get band info
     rsrd = ac.shared.rsr_dict(sensor=gatts['sensor'])
 
@@ -53,13 +57,16 @@ def write(gemfile, gem, verbosity=0):
         ac.output.nc_write(ofile, ds, gem['data'][btag], attributes=gatts, dataset_attributes=ds_att)
 
     ## write thermal bands
-    if gem['sensor'] in ['L5_TM', 'L7_ETM', 'L8_OLI']:
+    if gem['sensor'] in ['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI']:
         if  gem['sensor'] == 'L5_TM':
             thermal_bands = ['B6']
         if  gem['sensor'] == 'L7_ETM':
             thermal_bands = ['B6_VCID_1', 'B6_VCID_2']
         if  gem['sensor'] == 'L8_OLI':
             thermal_bands = ['B10', 'B11']
+        if  gem['sensor'] == 'L9_OLI':
+            thermal_bands = ['B10', 'B11']
+
         for btag in thermal_bands:
             if btag in gem['data']:
                 ds = 'bt{}'.format(btag[1:].lower())
