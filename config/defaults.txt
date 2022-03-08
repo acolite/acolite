@@ -221,7 +221,9 @@ exp_output_intermediate=False
 
 ## gain settings
 gains=False
+gains_parameter=radiance
 gains_toa=None
+offsets_toa=None
 
 # output RGB / L2W maps
 rgb_rhot=True

@@ -3,7 +3,24 @@
 ## dark spectrum fitting options
 dsf_aot_estimate=fixed
 dsf_wave_range=400,900
+
+## gains
+gains=True
+gains_parameter=radiance
+
+## band order COASTAL,BLUE,GREEN,YELLOW,RED,REDEDGE,NIR1,NIR2,PAN
+## unity gains
 gains_toa=1,1,1,1,1,1,1,1,1
+offsets_toa=0,0,0,0,0,0,0,0,0
+
+## 2016v0 from Michele Kuester
+gains_toa=1.151,0.988,0.936,0.949,0.952,0.974,0.961,1.002,0.942
+offsets_toa=-7.478,-5.736,-3.546,-3.564,-2.512,-4.120,-3.300,-2.891,-2.704
+
+## 2018v0 from Michele Kuester
+gains_toa=1.203,1.002,0.953,0.946,0.955,0.980,0.966,1.010,0.949
+offsets_toa=-11.839,-9.835,-7.218,-5.675,-5.046,-6.114,-5.096,-4.059,-5.523
+
 l2w_mask_wave=800
 l2w_mask_threshold=0.1
 dsf_intercept_pixels=1000

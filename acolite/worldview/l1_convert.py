@@ -132,6 +132,18 @@ def l1_convert(inputfile, output = None,
         waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
         waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
 
+        gains = None
+        if setu['gains']:
+            if (len(setu['gains_toa']) == len(rsr_bands)) &\
+               (len(setu['offsets_toa']) == len(rsr_bands)):
+               gains = {}
+               for bi, band in enumerate(rsr_bands):
+                   gains[band] = {'gain': float(setu['gains_toa'][bi]),
+                                'offset': float(setu['offsets_toa'][bi])}
+            else:
+                print('Use of gains requested, but provided number of gain ({}) or offset ({}) values does not match number of bands in RSR ({})'.format(len(setu['gains_toa']), len(setu['offsets_toa']), len(rsr_bands)))
+                print('Provide gains in band order: {}'.format(','.join(rsr_bands)))
+
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get()
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
@@ -322,7 +334,14 @@ def l1_convert(inputfile, output = None,
                 nodata = d == np.uint16(0)
                 ## convert to float and scale to TOA reflectance
                 d = d.astype(np.float32) * cf
+                if (gains != None) & (setu['gains_parameter'] == 'radiance'):
+                    print('Applying gain {} and offset {} to TOA radiance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
+                    d = gains[band]['gain'] * d + gains[band]['offset']
                 d *= (np.pi * gatts['se_distance']**2) / (f0_b[band]/10. * gatts['mus'])
+                if (gains != None) & (setu['gains_parameter'] == 'reflectance'):
+                    print('Applying gain {} and offset {} to TOA reflectance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
+                    d = gains[band]['gain'] * d + gains[band]['offset']
+
                 ## apply mask
                 d[nodata] = np.nan
 
@@ -337,7 +356,11 @@ def l1_convert(inputfile, output = None,
             ds = 'rhot_{}'.format(waves_names[band])
             if atmospherically_corrected: ds = ds.replace('rhot_', 'rhos_acomp_')
 
-            ds_att = {'wavelength':waves_mu[band]*1000}
+            ds_att = {'wavelength':waves_mu[band]*1000, 'band_name': band}
+            if gains != None:
+                ds_att['gain'] = gains[band]['gain']
+                ds_att['offset'] = gains[band]['offset']
+                ds_att['gains_parameter'] = setu['gains_parameter']
             if percentiles_compute:
                 ds_att['percentiles'] = percentiles
                 ds_att['percentiles_data'] = np.nanpercentile(data_full, percentiles)
