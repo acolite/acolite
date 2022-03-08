@@ -5,7 +5,7 @@ dsf_aot_estimate=fixed
 dsf_wave_range=400,900
 
 ## gains
-gains=True
+gains=False
 gains_parameter=radiance
 
 ## band order COASTAL,BLUE,GREEN,YELLOW,RED,REDEDGE,NIR1,NIR2,SWIR1,SWIR2,SWIR3,SWIR4,SWIR5,SWIR6,SWIR7,SWIR8,PAN
