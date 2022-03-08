@@ -356,7 +356,7 @@ def l1_convert(inputfile, output = None,
             ds = 'rhot_{}'.format(waves_names[band])
             if atmospherically_corrected: ds = ds.replace('rhot_', 'rhos_acomp_')
 
-            ds_att = {'wavelength':waves_mu[band]*1000, 'band_name': band}
+            ds_att = {'wavelength': waves_mu[band]*1000, 'band_name': band, 'f0': f0_b[band]/10.}
             if gains != None:
                 ds_att['gain'] = gains[band]['gain']
                 ds_att['offset'] = gains[band]['offset']
