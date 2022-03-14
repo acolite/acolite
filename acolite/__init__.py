@@ -59,7 +59,9 @@ for t in config:
 
     ## replace $ACDIR in config by ac.path
     if '$ACDIR' == config[t][0:6]:
-        config[t] = os.path.join(path, config[t].replace('$ACDIR', ''))
+        #config[t] = os.path.join(path, config[t].replace('$ACDIR', ''))
+        # os.path.join did not give the intended result on Windows
+        config[t] = path + '/' + config[t].replace('$ACDIR', '')
 
     if (os.path.exists(config[t])):
         config[t] = os.path.abspath(config[t])
