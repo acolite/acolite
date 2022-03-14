@@ -59,15 +59,16 @@ for t in config:
 
     ## replace $ACDIR in config by ac.path
     if '$ACDIR' == config[t][0:6]:
-        #config[t] = os.path.join(path, config[t].replace('$ACDIR', ''))
         # os.path.join did not give the intended result on Windows
         config[t] = path + '/' + config[t].replace('$ACDIR', '')
+        config[t] = config[t].replace('/', os.sep)
+
+        ## make acolite dirs if they do not exist
+        if not (os.path.exists(config[t])):
+            os.makedirs(config[t])
 
     if (os.path.exists(config[t])):
         config[t] = os.path.abspath(config[t])
-        continue
-    tmp = path + os.path.sep + config[t]
-    config[t] = os.path.abspath(tmp)
 
 if 'verbosity' not in config: config['verbosity'] = 5
 
