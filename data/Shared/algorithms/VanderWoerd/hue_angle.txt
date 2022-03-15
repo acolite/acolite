@@ -1,9 +1,11 @@
-;; Coefficients for the Hue Angle algorithm (Van der Woerd et al.,2018)
+;; Coefficients for the Hue Angle algorithm (Van der Woerd et al., 2018 https://doi.org/10.3390/rs10020180)
 ;;
 ;; tabulated by QV 2018-04-18
 ;;
 ;; updated polynomials for S2A and S2B provided by Hans in April 2018
 ;; QV updated 2018-09-12 with nominal wavelengths and adding the 705 after feedback from HVDW
+;; QV updated 2022-03-07 L9_OLI is placeholder with same coeffs as L8_OLI
+;; QV updated 2022-03-15 L9_OLI coefficients received from Hans, same for L8 except polynomial is updated using L9 RSR https://landsat.gsfc.nasa.gov/sites/landsat/files/2021-10/L9_OLI2_Ball_FPM_RSR.v1.0.xlsx
 ;;
 sensor=L8_OLI
 req_waves=443,483,561,655
@@ -12,6 +14,14 @@ X=2.217,11.053,6.950,51.135,34.457,0.852
 Y=0.082,1.320,21.053,66.023,18.034,0.311
 Z=10.745,58.038,34.931,2.606,0.016,0.000
 coef=-52.16,373.81,-981.83,1134.19,-533.61,76.72
+;;
+sensor=L9_OLI
+req_waves=443,483,561,655
+lambda=400,443,483,561,655,710
+X=2.217,11.053,6.950,51.135,34.457,0.852
+Y=0.082,1.320,21.053,66.023,18.034,0.311
+Z=10.745,58.038,34.931,2.606,0.016,0.000
+coef=-53.232,381.976,-1005.402,1165.186,-551.152,80.401
 ;;
 sensor=S2A_MSI
 req_waves=443,492,560,665,704
