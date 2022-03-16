@@ -237,9 +237,9 @@ def acolite_run(settings, inputfile=None, output=None):
     ## remove files
     for ni in processed:
         for level in ['l1r', 'l2r', 'l2t', 'l2w']:
+            if level not in processed[ni]: continue
             if '{}_delete_netcdf'.format(level) not in l1r_setu: continue
             if l1r_setu['{}_delete_netcdf'.format(level)]:
-                if level not in processed[ni]: continue
                 ## run through images and delete them
                 for f in processed[ni][level]:
                     os.remove(f)

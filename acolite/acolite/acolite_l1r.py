@@ -24,6 +24,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     if 'output' not in setu:
         setu['output'] = os.path.dirname(setu['inputfile'][0])
 
+    if 'limit' in setu:
+        if setu['limit'] is not None:
+            if len(setu['limit']) != 4:
+                print('ROI limit should be four elements in decimal degrees: limit=S,W,N,E')
+                print('Provided in the settings:', setu['limit'])
+                return()
+
     ################
     ## ACOLITE
     if input_type == 'ACOLITE':
