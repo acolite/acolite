@@ -4,6 +4,7 @@
 ## 2021-02-26
 ## modifications: 2021-02-28 (QV) added to acolite, new default naming of gems
 ##                2022-03-07 (QV) added landsat collection keyword, added L9
+##                2022-03-16 (QV) update for S2 PB4 offsets
 
 def extract(st_lon, st_lat, sdate,
                            use_pid_name=False,
@@ -103,12 +104,22 @@ def extract(st_lon, st_lat, sdate,
             bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B10', 'B11', 'B12']
             scale_factor = 0.0001
             add_factor = 0
+
+            ## for some PB4 products the add offset values are missing
+            if meta['PROCESSING_BASELINE'][1]>='4': add_factor = -1000
+
+            ## find band offsets introduces in PB4
+            offsets = []
+            for b in bands:
+                if 'RADIO_ADD_OFFSET_{}'.format(b) in meta:
+                    offsets.append(float(meta['RADIO_ADD_OFFSET_{}'.format(b)]))
+            if len(offsets) > 0: add_factor = offsets[0]
+
             convert_counts = True ## S2 data still as counts on GEE
             target_res_default = 10
             tar_band = 'B2'
             dtime = [k for k in meta['GRANULE_ID'].split('_') if len(k) == 15][0]
             tile_name = '{}'.format(meta['MGRS_TILE'])
-
         elif 'LANDSAT_PRODUCT_ID' in meta: ## Landsat image
             fkey = 'LANDSAT_PRODUCT_ID'
             pid = meta[fkey]
@@ -246,7 +257,10 @@ def extract(st_lon, st_lat, sdate,
                 if convert_counts:
                     for b in pdata:
                         mask = np.where(pdata[b] == 0)
-                        pdata[b] = (pdata[b]*scale_factor)+add_factor
+                        if sensor in ['S2A_MSI', 'S2B_MSI']:
+                            pdata[b] = (pdata[b]+add_factor)*scale_factor
+                        else:
+                            pdata[b] = (pdata[b]*scale_factor)+add_factor
                         pdata[b][mask] = np.nan
 
             ## use pixel coordinates from image to make new subset
@@ -268,7 +282,10 @@ def extract(st_lon, st_lat, sdate,
                     data[b] = data[b].astype(np.float32) / 100
                 else:
                     if convert_counts: ## convert from DN if needed
-                        data[b] = (data[b]*scale_factor)+add_factor
+                        if sensor in ['S2A_MSI', 'S2B_MSI']:
+                            data[b] = (data[b]+add_factor)*scale_factor
+                        else:
+                            data[b] = (data[b]*scale_factor)+add_factor
                     data[b] = data[b].astype(np.float32)
                 data[b][mask] = np.nan
 
