@@ -103,6 +103,18 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None, box_size = 1,
     dct = {}
     dct['gatts'] = gatts
     dct['data'] = sub
+
+    ## store common spectral datasets and centre wavelengths
+    dct['datasets'] = list(dct['data'].keys())
+    dct['rhot_datasets'] = [ds for ds in dct['datasets'] if 'rhot_' in ds]
+    dct['rhot_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhot_datasets']]
+    dct['rhos_datasets'] = [ds for ds in dct['datasets'] if 'rhos_' in ds]
+    dct['rhos_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhos_datasets']]
+    dct['rhow_datasets'] = [ds for ds in dct['datasets'] if 'rhow_' in ds]
+    dct['rhow_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhow_datasets']]
+    dct['Rrs_datasets'] = [ds for ds in dct['datasets'] if 'Rrs_' in ds]
+    dct['Rrs_wave'] = [int(ds.split('_')[-1]) for ds in dct['Rrs_datasets']]
+
     if box_size > 1:
         dct['mean'] = {ds: np.nanmean(dct['data'][ds]) for ds in dct['data']}
         dct['std'] = {ds: np.nanstd(dct['data'][ds]) for ds in dct['data']}
