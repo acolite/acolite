@@ -410,11 +410,16 @@ def l1_convert(inputfile, output = None, settings = {},
                                                       target_mask = det_mask, target_mask_full=False, method='linear')
 
                 ## use target band so we can just do the 60 metres geometry
-                sza = ac.shared.warp_from_source(target_file, dct_prj, sza, warp_to=warp_to) # alt (dct, dct_prj, sza)
-                saa = ac.shared.warp_from_source(target_file, dct_prj, saa, warp_to=warp_to)
-                vza = ac.shared.warp_from_source(target_file, dct_prj, vza, warp_to=warp_to)
-                vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa, warp_to=warp_to)
-                mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+                if os.path.exists(target_file):
+                    sza = ac.shared.warp_from_source(target_file, dct_prj, sza, warp_to=warp_to) # alt (dct, dct_prj, sza)
+                    saa = ac.shared.warp_from_source(target_file, dct_prj, saa, warp_to=warp_to)
+                    vza = ac.shared.warp_from_source(target_file, dct_prj, vza, warp_to=warp_to)
+                    vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa, warp_to=warp_to)
+                    mask = (vaa == 0) * (vza == 0) * (saa == 0) * (sza == 0)
+                else:
+                    print('Could not access {}'.format(target_file))
+                    print('Path length {} greater than the recommended path length on Windows'.format(len(target_file)))
+                    return(ofiles, setu)
 
                 ## compute band specific geometry
                 if geometry_per_band:

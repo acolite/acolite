@@ -17,6 +17,9 @@ def warp_from_source(source, dct, data, warp_to = None):
             gt = g.GetGeoTransform()
             pr = osr.SpatialReference(wkt=g.GetProjection()).ExportToProj4()
             g = None
+        else:
+            print('Could not access {}'.format(source))
+            return()
     elif type(source) is dict:
         xSrc = source['xdim']
         ySrc = source['ydim']
@@ -49,14 +52,6 @@ def warp_from_source(source, dct, data, warp_to = None):
                           dct['pixel_size'][0], dct['pixel_size'][1],'average')
     else:
         warp_to_region = warp_to
-
-    ## target geotransform
-    #target_gt = dct_prj['region']['xrange'][0], dct_prj['region']['pixel_size'][0], 0.0,\
-    #            dct_prj['region']['yrange'][0], 0.0, dct_prj['region']['pixel_size'][1]
-    #
-    #target_ds = drv.Create('', dct_prj['region']['xdim'], dct_prj['region']['ydim'], 1,  gdal.GDT_Byte)
-    #target_ds.SetGeoTransform(target_gt)
-    #target_ds.SetProjection(wkt)
 
     ## warp the data
     if True:
