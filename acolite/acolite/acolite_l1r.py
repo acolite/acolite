@@ -7,19 +7,32 @@
 
 def acolite_l1r(bundle, setu, input_type=None):
     import acolite as ac
-    import os
+    import os, sys
 
     ## set up l1r_files list
     l1r_files = []
 
-    ## identify bundle
+    ## make bundle a list even if only one is provided
     if type(bundle) != list: bundle = [bundle]
     bundle.sort()
-    input_type = ac.acolite.identify_bundle(bundle[0])
-    if input_type is None:
+    setu['inputfile'] = bundle
+
+    ## test path lengths on windows
+    if 'win' in sys.platform:
+        input_lengths = [len(b) for b in bundle]
+        if any([i >= 256 - 82 for i in input_lengths]): ## 82 chars is the granule band data relative to .SAFE
+            print('Warning: Rather long input filename ({} characters)'.format(max(input_lengths)))
+            print('This may give issues in Windows due to path length limitations, file(s):')
+            for b in bundle: print(len(b), b)
+
+    ## identify bundle
+    input_types = [ac.acolite.identify_bundle(b) for b in bundle]
+    input_type = input_types[0]
+    if not all([i == input_type for i in input_types]):
+        print('Warning: Multiple input types given: {}'.format(input_types))
+    if input_type == None:
         print('{} not recognized.'.format(bundle[0]))
 
-    setu['inputfile'] = bundle
     ## set output directory
     if 'output' not in setu:
         setu['output'] = os.path.dirname(setu['inputfile'][0])
