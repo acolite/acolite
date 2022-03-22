@@ -9,6 +9,7 @@
 ##                2021-02-11 (QV) disabled half pixel offset option, need to check Landsat
 ##                2021-11-20 (QV) added match_file to extract projection from (esp if data is using RPC for geolocation?)
 ##                2021-12-08 (QV) added support for the netcdf projection
+##                2022-03-22 (QV) added support for match_file with GCP
 
 def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimized_geotiff=False):
     import acolite as ac
@@ -72,7 +73,10 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                     projection = src_ds.GetProjection()
                     dimx, dimy = src_ds.RasterXSize, src_ds.RasterYSize
                     ## get RPC data
-                    rpcs = src_ds.GetMetadata('RPC')
+                    RPCs = src_ds.GetMetadata('RPC')
+                    ## get GCP data
+                    GCPs = src_ds.GetGCPs()
+                    GCPProjection = src_ds.GetGCPProjection()
                     src_ds = None
                 else:
                     print('File {} not found. Not outputting GeoTIFF files.'.format(match_file))
@@ -100,11 +104,15 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                 else:
                     driver = gdal.GetDriverByName('GTiff')
                     dataset = driver.Create(outfile, dimx, dimy, 1, dt)
-                    dataset.SetGeoTransform(transform)
-                    dataset.SetProjection(projection)
-                    #dataset = driver.CreateCopy(outfile, src_ds, 0 )
                     ## write RPC data
-                    dataset.SetMetadata(rpcs ,'RPC')
+                    if len(RPCs) > 0:
+                        dataset.SetMetadata(RPCs ,'RPC')
+                    ## write GCP data
+                    if len(GCPs) > 0:
+                        dataset.SetGCPs(GCPs, GCPProjection)
+                    else:
+                        dataset.SetGeoTransform(transform)
+                        dataset.SetProjection(projection)
                     src_ds = None
 
                 dataset.GetRasterBand(1).WriteArray(data)
