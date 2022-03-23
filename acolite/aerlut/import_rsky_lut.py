@@ -44,15 +44,9 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                     unzipped = True
                 ## end extract bz2 files
 
-                nc = Dataset(lutnc)
-                meta = {}
-                for attr in nc.ncattrs():
-                    attdata = getattr(nc,attr)
-                    if isinstance(attdata,str): attdata = attdata.split(',')
-                    meta[attr]=attdata
-                lut = nc.variables['lut'][:]
+                ## read LUT
+                lut, meta = ac.shared.lutnc_import(lutnc)
                 lut = np.flip(lut, axis=1) ## flip raa
-                nc.close()
                 if unzipped: os.remove(lutnc) ## clear unzipped LUT
 
                 dim = [meta['wave'], meta['azi'], meta['thv'], meta['ths'], meta['tau']]
@@ -121,16 +115,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
 
                 ## lutfile was already resampled
                 if os.path.isfile(lutnc_s):
-                    nc = Dataset(lutnc_s)
-                    meta = {}
-                    for attr in nc.ncattrs():
-                        attdata = getattr(nc,attr)
-                        if isinstance(attdata,str): attdata = attdata.split(',')
-                        meta[attr]=attdata
-                    lut_sensor = {}
-                    for band in rsr_bands:
-                        lut_sensor[band] = nc.variables[band][:]
-                    nc.close()
+                    lut_sensor, meta = ac.shared.lutnc_import(lutnc_s)
                     dim = [meta['azi'], meta['thv'], meta['ths'], meta['wind'], meta['tau']]
                     rgi_sensor = {}
                     for band in rsr_bands:

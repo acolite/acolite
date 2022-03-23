@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
-## modifications:
+## modifications: 2022-03-23 (QV) added sensor specific lut support
 
 def lutnc_import(lutnc):
     import acolite as ac
@@ -18,7 +18,17 @@ def lutnc_import(lutnc):
             attdata = getattr(nc,attr)
             if isinstance(attdata,str): attdata = attdata.split(',')
             meta[attr]=attdata
-        lut = nc.variables['lut'][:]
+
+        ## read lut
+        datasets = list(nc.variables.keys())
+        if (len(datasets) == 1) & (datasets == ['lut']):
+            ## generic lut
+            lut = nc.variables['lut'][:]
+        else:
+            ## sensor specific lut with multiple luts (per band)
+            lut = {}
+            for dataset in datasets:
+                lut[dataset] = nc.variables[dataset][:]
         nc.close()
     except:
         print(sys.exc_info()[0])

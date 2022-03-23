@@ -13,7 +13,7 @@
 ##                  2021-10-22 (QV) compute ttot if not in LUT
 
 def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
-               override = False, sensor = None, get_remote = True, 
+               override = False, sensor = None, get_remote = True,
                remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
 
     import os, sys
@@ -47,16 +47,7 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
 
         ## read dataset from NetCDF
         try:
-            if os.path.isfile(lutnc):
-                from netCDF4 import Dataset
-                nc = Dataset(lutnc)
-                meta=dict()
-                for attr in nc.ncattrs():
-                    attdata = getattr(nc,attr)
-                    if isinstance(attdata,str): attdata = attdata.split(',')
-                    meta[attr]=attdata
-                lut = nc.variables['lut'][:]
-                nc.close()
+            lut, meta = ac.shared.lutnc_import(lutnc)
         except:
             print(sys.exc_info()[0])
             print('Failed to open LUT data from NetCDF (id='+lutid+')')
@@ -175,21 +166,7 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
         ## read dataset from NetCDF
         if os.path.isfile(lutnc_s):
             try:
-                from netCDF4 import Dataset
-                nc = Dataset(lutnc_s)
-                ## read in metadata
-                meta=dict()
-                for attr in nc.ncattrs():
-                    attdata = getattr(nc,attr)
-                    if isinstance(attdata,str): attdata = attdata.split(',')
-                    meta[attr]=attdata
-                ## read in LUT
-                lut_sensor = dict()
-                datasets = list(nc.variables.keys())
-                for dataset in datasets:
-                    lut_sensor[dataset] = nc.variables[dataset][:]
-                nc.close()
-                nc = None
+                lut_sensor, meta = ac.shared.lutnc_import(lutnc_s)
             except:
                 print(sys.exc_info()[0])
                 print('Failed to open LUT data from NetCDF (id='+lutid+')')
