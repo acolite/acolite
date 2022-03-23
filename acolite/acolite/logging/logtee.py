@@ -25,8 +25,7 @@ class LogTee(object):
             self.stdout.write(data)
             data = data.strip()
             if len(data) > 0:
-                self.file = open(self.name, self.mode)
-                self.file.write('{}: {}\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),data))
-                self.file.close()
+                with open(self.name, self.mode) as self.file:
+                    self.file.write('{}: {}\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),data))
         def flush(self):
             pass
