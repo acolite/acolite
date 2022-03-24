@@ -123,6 +123,10 @@ min_tgas_aot=0.85
 ## minimum gas transmittance to allow surface reflectance retrieval in that band
 min_tgas_rho=0.70
 
+## cirrus correction (testing - do not use)
+cirrus_correction=False
+cirrus_range=1350,1390
+
 ## generic options
 resolved_geometry=False
 ancillary_data=True
