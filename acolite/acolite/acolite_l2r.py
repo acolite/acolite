@@ -43,7 +43,7 @@ def acolite_l2r(gem,
             setu['dsf_exclude_bands'] = [setu['dsf_exclude_bands']]
     else:
         setu['dsf_exclude_bands'] = []
-        
+
     ## check blackfill
     if setu['blackfill_skip']:
         rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
@@ -1538,20 +1538,27 @@ def acolite_l2r(gem,
             sensor_o = 'EO1_ALI_ORANGE'
             panb, greenb, redb = '1', '4', '5'
 
-        ## read rsr for wavelength name
-        rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
-        ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
-        ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])
-        ob['wavelength'] = ob['wave_nm']
-        gemo.bands['O'] = ob
+        ## do we have the required bands
+        compute_orange = True
+        for b in [panb, greenb, redb]:
+            if gemo.bands[b]['rhos_ds'] not in gemo.datasets:
+                print('{} not present, skipping orange band computation'.format(gemo.bands[b]['rhos_ds']))
+                compute_orange=False
 
-        ## compute orange band
-        ob_data = gemo.data(gemo.bands[panb]['rhos_ds'])*float(ob_cfg['pf'])
-        ob_data += gemo.data(gemo.bands[greenb]['rhos_ds'])*float(ob_cfg['gf'])
-        ob_data += gemo.data(gemo.bands[redb]['rhos_ds'])*float(ob_cfg['rf'])
-        gemo.write(ob['rhos_ds'], ob_data, ds_att = ob)
-        ob_data = None
-        ob = None
+        if compute_orange:
+            ## read rsr for wavelength name
+            rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
+            ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
+            ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])
+            ob['wavelength'] = ob['wave_nm']
+            gemo.bands['O'] = ob
+            ## compute orange band
+            ob_data = gemo.data(gemo.bands[panb]['rhos_ds'])*float(ob_cfg['pf'])
+            ob_data += gemo.data(gemo.bands[greenb]['rhos_ds'])*float(ob_cfg['gf'])
+            ob_data += gemo.data(gemo.bands[redb]['rhos_ds'])*float(ob_cfg['rf'])
+            gemo.write(ob['rhos_ds'], ob_data, ds_att = ob)
+            ob_data = None
+            ob = None
     ## end orange band
 
     ## clear aot results
