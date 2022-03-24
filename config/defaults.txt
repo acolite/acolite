@@ -121,7 +121,7 @@ aerosol_correction=dark_spectrum
 ## minimum gas transmittance to allow aot retrieval in that band
 min_tgas_aot=0.85
 ## minimum gas transmittance to allow surface reflectance retrieval in that band
-min_tgas_rho=0.75
+min_tgas_rho=0.70
 
 ## generic options
 resolved_geometry=False
