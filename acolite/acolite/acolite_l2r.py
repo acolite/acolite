@@ -1021,8 +1021,8 @@ def acolite_l2r(gem,
 
         ## apply cirrus correction
         if setu['cirrus_correction']:
-            g = 1.0
-            if gem.bands[b]['wave_nm'] > 1000: g *= 0.5
+            g = setu['cirrus_g_vnir'] * 1.0
+            if gem.bands[b]['wave_nm'] > 1000: g = setu['cirrus_g_swir'] * 1.0
             cur_data -= (rho_cirrus * g)
 
         t0 = time.time()

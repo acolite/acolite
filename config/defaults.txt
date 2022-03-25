@@ -126,6 +126,8 @@ min_tgas_rho=0.70
 ## cirrus correction (testing - do not use)
 cirrus_correction=False
 cirrus_range=1350,1390
+cirrus_g_vnir=1.0
+cirrus_g_swir=0.5
 
 ## generic options
 resolved_geometry=False

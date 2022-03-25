@@ -61,7 +61,7 @@ def parse(sensor, settings=None, merge=True):
                   'dem_pressure_percentile', 'elevation',
                   'uoz_default', 'uwv_default',
                   'wind_default', 'wind',
-                  'cirrus_range',
+                  'cirrus_range', 'cirrus_g_vnir', 'cirrus_g_swir',
 
                   'blackfill_max', 'glint_mask_rhos_threshold',
                   'l2w_mask_threshold', 'l2w_mask_cirrus_threshold','l2w_mask_high_toa_threshold',
