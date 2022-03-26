@@ -1,5 +1,10 @@
 ## ACOLITE default settings for PRISMA
 
+## PRISMA options
+prisma_rhot_per_pixel_sza=True
+prisma_store_l2c=False
+prisma_store_l2c_separate_file=True
+
 ## dark spectrum fitting options
 dsf_aot_estimate=fixed
 dsf_wave_range=800,1020
@@ -15,3 +20,11 @@ dsf_spectrum_option=percentile
 dsf_percentile=1
 
 dsf_residual_glint_correction_method=alternative
+
+## cirrus options
+## default range 1350,1390 seems less noisy
+## maybe 1840-1880 is less sensitive to surface signals
+#cirrus_correction=True
+#cirrus_range=1840,1880
+#cirrus_g_vnir=1.0
+#cirrus_g_swir=1.0
