@@ -979,16 +979,28 @@ def acolite_l2r(gem,
               gem.data_mem['sza'+'_mean'][0][0],
               gem.data_mem['wind'+'_mean'][0][0]]
 
+        ## compute Rayleigh reflectance for hyperspectral sensors
+        if hyper:
+            rorayl_hyp = lutdw[luts[0]]['rgi']((xi[0], lutdw[luts[0]]['ipd'][par],
+                         lutdw[luts[0]]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], 0.001)).flatten()
+
         ## find cirrus bands
         for bi, b in enumerate(gem.bands):
             if ('rhot_ds' not in gem.bands[b]): continue
+            if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
             if (gem.bands[b]['wave_nm'] < setu['cirrus_range'][0]): continue
             if (gem.bands[b]['wave_nm'] > setu['cirrus_range'][1]): continue
+
             ## compute Rayleigh reflectance
-            rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
+            if hyper:
+                rorayl_cur = ac.shared.rsr_convolute_nd(rorayl_hyp, lutdw[luts[0]]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+            else:
+                rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
+
             ## cirrus reflectance = rho_t - rho_Rayleigh
             cur_data = gem.data(gem.bands[b]['rhot_ds']) - rorayl_cur
-            if rho_cirrus == None:
+
+            if rho_cirrus is None:
                 rho_cirrus = cur_data * 1.0
             else:
                 rho_cirrus = np.dstack((rho_cirrus, cur_data))
@@ -997,7 +1009,9 @@ def acolite_l2r(gem,
         if rho_cirrus is None:
             setu['cirrus_correction'] = False
         else:
-            if len(rho_cirrus.shape) == 3: rho_cirrus = np.nanmean(rho_cirrus, axis=2)
+            ## compute mean from several bands
+            if len(rho_cirrus.shape) == 3:
+                rho_cirrus = np.nanmean(rho_cirrus, axis=2)
             ## write cirrus mean
             gemo.write('rho_cirrus', rho_cirrus)
     print('use_revlut', use_revlut)
