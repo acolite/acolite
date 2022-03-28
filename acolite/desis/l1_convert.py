@@ -217,7 +217,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             cube = ac.shared.read_band(imagefile, sub = sub, warp_to = warp_to).astype(np.float32)
             cube[cube == header['data ignore value']] = np.nan
             print(cube.shape)
-            if settings['desis_mask_ql']:
+            if setu['desis_mask_ql']:
                 ## read QL data
                 mask_cube = ac.shared.read_band(qlfile, sub = sub, warp_to = warp_to)
                 ## mask cube data, assume any non zero is bad
@@ -234,7 +234,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             else:
                 cdata_radiance = ac.shared.read_band(imagefile, bi+1, sub=sub, warp_to = warp_to).astype(np.float32)
                 cdata_radiance[cdata_radiance == header['data ignore value']] = np.nan
-                if settings['desis_mask_ql']:
+                if setu['desis_mask_ql']:
                     ## read QL data
                     mask_data = ac.shared.read_band(qlfile, bi+1, sub = sub, warp_to = warp_to)
                     ## mask cube data, assume any non zero is bad
