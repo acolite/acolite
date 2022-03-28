@@ -60,6 +60,9 @@ prisma_store_l2c_separate_file=True
 chris_interband_calibration=True
 chris_noise_reduction=True
 
+## DESIS
+desis_mask_ql=True
+
 ## GF settings
 clear_scratch=True
 gf_reproject_to_utm=False

@@ -14,3 +14,6 @@ dsf_percentile=1
 
 dsf_residual_glint_correction_method=alternative
 dsf_residual_glint_wave_range=865,1000
+
+## DESIS
+desis_mask_ql=True
