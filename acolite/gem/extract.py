@@ -11,6 +11,7 @@ def extract(st_lon, st_lat, sdate,
                            edate = None, # end date - if None sdate + 1 day will be used
                            st_name = None,
                            check_dates = None, # list of fyears to compare found images to
+                           check_tiles = None,
                            max_diff_h = 3, # max difference between image time and fyear in check_dates
                            return_scene_list = False,
                            output = None,
@@ -27,6 +28,10 @@ def extract(st_lon, st_lat, sdate,
     from pyproj import Proj
 
     import acolite as ac
+
+    if check_tiles is not None:
+        if type(check_tiles) is not list:
+            check_tiles = list(check_tiles)
 
     ## set up ee
     try:
@@ -147,6 +152,9 @@ def extract(st_lon, st_lat, sdate,
             row = '{}'.format(meta['WRS_ROW']).zfill(3)
             path = '{}'.format(meta['WRS_PATH']).zfill(3)
             tile_name = '{}{}'.format(path, row)
+
+        if check_tiles is not None:
+            if tile_name not in check_tiles: continue
 
         ## parse date time
         dt = dateutil.parser.parse(dtime)
