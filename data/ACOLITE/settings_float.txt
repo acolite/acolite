@@ -1,0 +1,37 @@
+## list of settings that will be converted to integers
+## do not edit!
+##
+min_tgas_aot
+min_tgas_rho
+dsf_percentile
+dsf_filter_percentile
+dsf_min_tile_aot
+dsf_min_tile_cover
+exp_swir_threshold
+exp_fixed_epsilon_percentile
+exp_fixed_aerosol_reflectance_percentile
+dem_pressure_percentile
+elevation
+uoz_default
+uwv_default
+wind_default
+wind
+cirrus_range
+cirrus_g_vnir
+cirrus_g_swir
+blackfill_max
+glint_mask_rhos_threshold
+l2w_mask_threshold
+l2w_mask_cirrus_threshold
+l2w_mask_high_toa_threshold
+map_auto_range_percentiles
+rgb_min
+rgb_max
+rgb_autoscale_percentiles
+gains_toa
+offsets_toa
+acstar3_max_wavelength
+nechad_max_rhow_C_factor
+output_projection_resolution
+default_projection_resolution
+worldview_reproject_resolution

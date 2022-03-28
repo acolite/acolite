@@ -2,7 +2,7 @@
 ## parses acolite settings files and merges with defaults
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-09
-## modifications:
+## modifications: 2022-03-28 (QV) moved int and float lists to external files
 
 
 def parse(sensor, settings=None, merge=True):
@@ -35,42 +35,9 @@ def parse(sensor, settings=None, merge=True):
     if 'luts' in setu:
         if type(setu['luts']) is not list: setu['luts'] = [setu['luts']]
 
-    ## convert values from settings file into numbers
-    int_list = ['s2_target_res', 'map_max_dim',
-              'dsf_filter_box', 'dsf_tile_dimensions', 'dsf_intercept_pixels', 'dsf_smooth_box',
-              'blackfill_wave', 'l2w_mask_wave', 'l2w_mask_cirrus_wave',
-              'glint_force_band', 'glint_mask_rhos_wave', 'exp_wave1',  'exp_wave2',
-              'l2w_mask_smooth_sigma',
-              'flag_exponent_swir', 'flag_exponent_cirrus','flag_exponent_toa',
-              'flag_exponent_negative', 'flag_exponent_outofscene',
-              'rgb_red_wl','rgb_green_wl', 'rgb_blue_wl',
-              'geometry_res', 'verbosity', 'map_dpi',
-              'dsf_wave_range', 'l2w_mask_negative_wave_range', 'dsf_residual_glint_wave_range',
-              'luts_pressures', 'nechad_range', 'dsf_minimum_segment_size',
-              'netcdf_compression_level', 'netcdf_compression_least_significant_digit',
-              'output_projection_xrange', 'output_projection_yrange']
-
-    float_list = ['min_tgas_aot', 'min_tgas_rho',
-
-                  'dsf_percentile', 'dsf_filter_percentile',
-                  'dsf_min_tile_aot', 'dsf_min_tile_cover',
-
-                  'exp_swir_threshold', 'exp_fixed_epsilon_percentile',
-                  'exp_fixed_aerosol_reflectance_percentile',
-
-                  'dem_pressure_percentile', 'elevation',
-                  'uoz_default', 'uwv_default',
-                  'wind_default', 'wind',
-                  'cirrus_range', 'cirrus_g_vnir', 'cirrus_g_swir',
-
-                  'blackfill_max', 'glint_mask_rhos_threshold',
-                  'l2w_mask_threshold', 'l2w_mask_cirrus_threshold','l2w_mask_high_toa_threshold',
-                  'map_auto_range_percentiles',
-                  'rgb_min', 'rgb_max', 'rgb_autoscale_percentiles',
-                  'gains_toa', 'offsets_toa',
-                  'acstar3_max_wavelength', 'nechad_max_rhow_C_factor',
-                  'output_projection_resolution', 'default_projection_resolution',
-                  'worldview_reproject_resolution']
+    ## import settings that need to be converted to ints and floats
+    int_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_int.txt')
+    float_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_float.txt')
 
     ## convert values to numbers
     for k in setu:
