@@ -4,6 +4,7 @@
 ## 2021-08-10
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2022-03-28 (QV) added masking using QL data, updated crop subsetting
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -46,7 +47,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     for bundle in inputfile:
         ## identify files
         metafile, imagefile = ac.desis.bundle_test(bundle)
-        headerfile = imagefile.replace('.tif', '.hdr')
+        dn = os.path.dirname(imagefile)
+        bn = os.path.basename(imagefile)
+        headerfile = '{}/{}'.format(dn, bn.replace('.tif', '.hdr'))
+        qlfile = '{}/{}'.format(dn, bn.replace('SPECTRAL_IMAGE', 'QL_QUALITY'))
 
         ## read metadata
         header = ac.desis.hdr(headerfile)
@@ -78,12 +82,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             else:
                 dct_prj = {k:dct_sub[k] for k in dct_sub}
 
-                xyr = [dct_prj['xrange'][0]-dct_prj['pixel_size'][0],
-                       dct_prj['yrange'][1]+dct_prj['pixel_size'][1],
-                       dct_prj['xrange'][1],#-dct_prj['pixel_size'][0],
-                       dct_prj['yrange'][0],#-dct_prj['pixel_size'][1],
+                ## updated 2022-03-28
+                xyr = [min(dct_prj['xrange']),
+                       min(dct_prj['yrange']),
+                       max(dct_prj['xrange']),
+                       max(dct_prj['yrange']),
                        dct_prj['proj4_string']]
-
 
                 ## warp settings for read_band
                 res_method = 'near'
@@ -213,6 +217,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             cube = ac.shared.read_band(imagefile, sub = sub, warp_to = warp_to).astype(np.float32)
             cube[cube == header['data ignore value']] = np.nan
             print(cube.shape)
+            ## read QL data
+            mask_cube = ac.shared.read_band(qlfile, sub = sub, warp_to = warp_to)
+            ## mask cube data, assume any non zero is bad
+            cube[mask_cube > 0] = np.nan
 
         ## write TOA data
         for bi, b in enumerate(bands):
@@ -225,6 +233,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             else:
                 cdata_radiance = ac.shared.read_band(imagefile, bi+1, sub=sub, warp_to = warp_to).astype(np.float32)
                 cdata_radiance[cdata_radiance == header['data ignore value']] = np.nan
+                ## read QL data
+                mask_data = ac.shared.read_band(qlfile, bi+1, sub = sub, warp_to = warp_to)
+                ## mask cube data, assume any non zero is bad
+                cdata_radiance[mask_data > 0] = np.nan
 
             ## compute radiance
             cdata_radiance = cdata_radiance.astype(np.float32) * header['data gain values'][bi]
