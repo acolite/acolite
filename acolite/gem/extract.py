@@ -19,6 +19,7 @@ def extract(st_lon, st_lat, sdate,
                            width = 100, override = False,
                            return_gem = False, return_iml = False,
                            landsat_collection = '02',
+                           surface_reflectance = False,
                            sources = ['Landsat 5', 'Landsat 7','Landsat 8','Landsat 9', 'Sentinel-2'],
                            verbosity=0):
 
@@ -47,15 +48,30 @@ def extract(st_lon, st_lat, sdate,
     collections = []
     for source in sources:
         if source == 'Sentinel-2':
-            collections += ['COPERNICUS/S2']
+            if surface_reflectance:
+                collections += ['COPERNICUS/S2_SR']
+            else:
+                collections += ['COPERNICUS/S2']
         if source == 'Landsat 8':
-            collections += ['LANDSAT/LC08/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LC08/C{}/T2_TOA'.format(landsat_collection)]
+            if surface_reflectance:
+                collections += ['LANDSAT/LC08/C{}/T1_L2'.format(landsat_collection), 'LANDSAT/LC08/C{}/T2_L2'.format(landsat_collection)]
+            else:
+                collections += ['LANDSAT/LC08/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LC08/C{}/T2_TOA'.format(landsat_collection)]
         if source == 'Landsat 9':
-            collections += ['LANDSAT/LC09/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LC09/C{}/T2_TOA'.format(landsat_collection)]
+            if surface_reflectance:
+                collections += ['LANDSAT/LC09/C{}/T1_L2'.format(landsat_collection), 'LANDSAT/LC09/C{}/T2_L2'.format(landsat_collection)]
+            else:
+                collections += ['LANDSAT/LC09/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LC09/C{}/T2_TOA'.format(landsat_collection)]
         if source == 'Landsat 5':
-            collections += ['LANDSAT/LT05/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LT05/C{}/T1_TOA'.format(landsat_collection)]
+            if surface_reflectance:
+                collections += ['LANDSAT/LT05/C{}/T1_L2'.format(landsat_collection), 'LANDSAT/LT05/C{}/T2_L2'.format(landsat_collection)]
+            else:
+                collections += ['LANDSAT/LT05/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LT05/C{}/T2_TOA'.format(landsat_collection)]
         if source == 'Landsat 7':
-            collections += ['LANDSAT/LE07/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LE07/C{}/T1_TOA'.format(landsat_collection)]
+            if surface_reflectance:
+                collections += ['LANDSAT/LE07/C{}/T1_L2'.format(landsat_collection), 'LANDSAT/LE07/C{}/T2_L2'.format(landsat_collection)]
+            else:
+                collections += ['LANDSAT/LE07/C{}/T1_TOA'.format(landsat_collection), 'LANDSAT/LE07/C{}/T2_TOA'.format(landsat_collection)]
 
     ## check width
     width = min(width, 511) ## max allowed pixels is 512x512, since the box is centred on a pixel, the max we can ask is 511
@@ -74,6 +90,7 @@ def extract(st_lon, st_lat, sdate,
     loc_name = '_'.join(['{}'.format(abs(st_lat)).replace('.','N' if st_lat >=0 else 'S'),\
                      '{}'.format(abs(st_lon)).replace('.','E' if st_lon >=0 else 'W'), '{}px'.format(width)])
     if st_name is not None: loc_name = '{}_{}'.format(st_name, loc_name)
+    if surface_reflectance: loc_name+='_SR'
     obase = '{}/{}'.format(output if output is not None else os.getcwd(), loc_name)
 
     ## search collections
@@ -107,6 +124,8 @@ def extract(st_lon, st_lat, sdate,
             satellite = pid[0:3]
             sensor = '{}_MSI'.format(satellite)
             bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B10', 'B11', 'B12']
+            if surface_reflectance:
+                bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
             scale_factor = 0.0001
             add_factor = 0
 
@@ -132,21 +151,36 @@ def extract(st_lon, st_lat, sdate,
             if satellite == 'L5':
                 sensor = '{}_TM'.format(satellite)
                 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7']
+                if surface_reflectance:
+                    bands = ['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7']
             elif satellite == 'L7':
                 sensor = '{}_ETM'.format(satellite)
                 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6_VCID_1', 'B6_VCID_2', 'B7', 'B8']
+                if surface_reflectance:
+                    bands = ['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7']
             elif satellite in ['L8', 'L9']:
                 sensor = '{}_OLI'.format(satellite)
                 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11']
-            if landsat_collection == '02': bands += ['SAA', 'SZA', 'VAA', 'VZA']
+                if surface_reflectance:
+                    bands = ['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B6', 'SR_B7', 'ST_B10']
+
+            if (landsat_collection == '02') & (not surface_reflectance): bands += ['SAA', 'SZA', 'VAA', 'VZA']
 
             refl_mult = np.unique([meta[k] for k in meta if 'REFLECTANCE_MULT' in k])[0]
             refl_add = np.unique([meta[k] for k in meta if 'REFLECTANCE_ADD' in k])[0]
             scale_factor = 1*refl_mult
             add_factor = 1*refl_add
             convert_counts = False ## Landsat data already converted on GEE
+
+            if surface_reflectance:
+                convert_counts = True
+                scale_factor = 0.0000275
+                add_factor = -0.2
+                scale_factor_thermal = 0.00341802
+                add_factor_thermal = -0.2149
+
             target_res_default = 30
-            tar_band = 'B1'
+            tar_band = bands[0]
             dtime = meta['DATE_ACQUIRED']+'T'+meta['SCENE_CENTER_TIME']
 
             row = '{}'.format(meta['WRS_ROW']).zfill(3)
@@ -168,6 +202,8 @@ def extract(st_lon, st_lat, sdate,
             gemfile = '{}/{}_GEM.bz2'.format(obase, bname)
         elif gem_type == 'nc':
             gemfile = '{}/{}_GEM_L1R.nc'.format(obase, bname)
+            if surface_reflectance:
+                gemfile = '{}/{}_GEM_L2A.nc'.format(obase, bname)
 
         ## check time difference
         ## dates is a list of fractional years
@@ -268,7 +304,10 @@ def extract(st_lon, st_lat, sdate,
                         if sensor in ['S2A_MSI', 'S2B_MSI']:
                             pdata[b] = (pdata[b]+add_factor)*scale_factor
                         else:
-                            pdata[b] = (pdata[b]*scale_factor)+add_factor
+                            if 'ST_' in b:
+                                pdata[b] = (pdata[b]*scale_factor_thermal)+add_factor_thermal
+                            else:
+                                pdata[b] = (pdata[b]*scale_factor)+add_factor
                         pdata[b][mask] = np.nan
 
             ## use pixel coordinates from image to make new subset
@@ -293,7 +332,10 @@ def extract(st_lon, st_lat, sdate,
                         if sensor in ['S2A_MSI', 'S2B_MSI']:
                             data[b] = (data[b]+add_factor)*scale_factor
                         else:
-                            data[b] = (data[b]*scale_factor)+add_factor
+                            if 'ST_' in b:
+                                data[b] = (data[b]*scale_factor_thermal)+add_factor_thermal
+                            else:
+                                data[b] = (data[b]*scale_factor)+add_factor
                     data[b] = data[b].astype(np.float32)
                 data[b][mask] = np.nan
 
@@ -386,6 +428,7 @@ def extract(st_lon, st_lat, sdate,
                    'isodate':isodate, 'fyear': fyear,
                    'pid':pid, 'sensor':sensor,
                    'vza':vza, 'sza':sza, 'raa':raa, 'saa':saa, 'vaa': vaa}
+            if surface_reflectance: gem['level'] = 'L2A'
             if return_gem: return(gem)
 
             if gem_type == 'json':

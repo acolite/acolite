@@ -52,7 +52,14 @@ def write(gemfile, gem, verbosity=0):
     ## write bands
     for ib, b in enumerate(rsrd[gatts['sensor']]['rsr_bands']):
         btag = 'B{}'.format(b)
+        btag_sr = 'SR_B{}'.format(b)
+        if btag not in gem['data']:
+            if btag_sr not in gem['data']: continue
+            btag = btag_sr
         ds = 'rhot_{}'.format(rsrd[gatts['sensor']]['wave_name'][b])
+        if 'level' in gem:
+            if gem['level'] == 'L2A':
+                ds = 'rhos_l2a_{}'.format(rsrd[gatts['sensor']]['wave_name'][b])
         ds_att  = {'wavelength':rsrd[gatts['sensor']]['wave_nm'][b]}
         ac.output.nc_write(ofile, ds, gem['data'][btag], attributes=gatts, dataset_attributes=ds_att)
 
