@@ -42,7 +42,7 @@ def write(gemfile, gem, verbosity=0):
     ac.output.nc_write(ofile, 'lon', gem['data']['lon'], attributes=gatts, new=True)
     ac.output.nc_write(ofile, 'lat', gem['data']['lat'])
 
-    for k in ['SAA', 'SZA', 'VAA', 'VZA', 'RAA']:
+    for k in ['SAA', 'SZA', 'VAA', 'VZA', 'RAA', 'SCL']:
         if k in gem['data']:
             ac.output.nc_write(ofile, k.lower(), gem['data'][k])
 

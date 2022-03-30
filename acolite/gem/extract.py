@@ -125,7 +125,7 @@ def extract(st_lon, st_lat, sdate,
             sensor = '{}_MSI'.format(satellite)
             bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B10', 'B11', 'B12']
             if surface_reflectance:
-                bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
+                bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12', 'SCL']
             scale_factor = 0.0001
             add_factor = 0
 
@@ -246,6 +246,7 @@ def extract(st_lon, st_lat, sdate,
                 geometry = {}
                 for b in bands:
                     if 'QA' in b: continue
+                    if 'SCL' in b: continue
                     if 'MEAN_INCIDENCE_AZIMUTH_ANGLE_{}'.format(b) in meta:
                         vaa = meta['MEAN_INCIDENCE_AZIMUTH_ANGLE_{}'.format(b)]#im.get('MEAN_INCIDENCE_AZIMUTH_ANGLE_{}'.format(b)).getInfo()
                     else: continue
@@ -300,6 +301,7 @@ def extract(st_lon, st_lat, sdate,
                 pdata = {b:np.asarray(pix_data['properties'][b]) for b in bands}
                 if convert_counts:
                     for b in pdata:
+                        if 'SCL' in b: continue
                         mask = np.where(pdata[b] == 0)
                         if sensor in ['S2A_MSI', 'S2B_MSI']:
                             pdata[b] = (pdata[b]+add_factor)*scale_factor
@@ -328,6 +330,7 @@ def extract(st_lon, st_lat, sdate,
                 if b in ['SAA', 'SZA', 'VAA', 'VZA']:
                     data[b] = data[b].astype(np.float32) / 100
                 else:
+                    if 'SCL' in b: continue
                     if convert_counts: ## convert from DN if needed
                         if sensor in ['S2A_MSI', 'S2B_MSI']:
                             data[b] = (data[b]+add_factor)*scale_factor
