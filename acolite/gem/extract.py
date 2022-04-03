@@ -278,7 +278,10 @@ def extract(st_lon, st_lat, sdate,
 
             ## target band for subsetting projection
             proj = im.select(tar_band).projection().getInfo()
-            p = ee.Projection(proj['crs'], proj['transform'])
+            if 'crs' in proj:
+                p = ee.Projection(proj['crs'], proj['transform'])
+            elif 'wkt' in proj:
+                    p = ee.Projection(proj['wkt'], proj['transform'])
             scale = p.nominalScale().getInfo()
 
             ## get pixel coordinates in x/y
@@ -375,7 +378,10 @@ def extract(st_lon, st_lat, sdate,
             ## for some versions of pyproj this fails, then get utm zone from epsg
             t = proj['transform']
             try:
-                p = Proj(proj['crs'])
+                if 'crs' in proj:
+                    p = Proj(proj['crs'])
+                elif 'wkt' in proj:
+                    p = Proj(proj['wkt'])
                 proj4_string = p.crs.to_proj4()
             except:
                 epsg = int(proj['crs'].split(':')[1])
