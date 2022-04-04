@@ -76,6 +76,8 @@ def write(gemfile, gem, verbosity=0):
 
         for btag in thermal_bands:
             if btag in gem['data']:
+                if 'K1_CONSTANT_BAND_{}'.format(btag[1:]) not in gem['meta']: continue
+                if 'K2_CONSTANT_BAND_{}'.format(btag[1:]) not in gem['meta']: continue
                 ds = 'bt{}'.format(btag[1:].lower())
                 ds_att  = {'K1': gem['meta']['K1_CONSTANT_BAND_{}'.format(btag[1:])],
                            'K2': gem['meta']['K2_CONSTANT_BAND_{}'.format(btag[1:])]}
