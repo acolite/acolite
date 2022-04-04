@@ -140,10 +140,24 @@ def acolite_l2r(gem,
         dem = None
         dem_pressure = None
 
+    ## which LUT data to read
+    if (setu['dsf_interface_reflectance']):
+        if (setu['dsf_interface_option'] == 'default'):
+            par = 'romix+rsky_t'
+        elif (setu['dsf_interface_option']  == '6sv'):
+            par = 'romix+rsurf'
+            print(par)
+    else:
+        par = 'romix'
+
     ## set wind to wind range
     if gem.gatts['wind'] is None: gem.gatts['wind'] = setu['wind_default']
-    gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
-    gem.gatts['wind'] = min(20, gem.gatts['wind'])
+    if par == 'romix+rsurf':
+        gem.gatts['wind'] = max(2, gem.gatts['wind'])
+        gem.gatts['wind'] = min(20, gem.gatts['wind'])
+    else:
+        gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
+        gem.gatts['wind'] = min(20, gem.gatts['wind'])
 
     ## get mean average geometry
     geom_ds = ['sza', 'vza', 'raa', 'pressure', 'wind']
@@ -286,11 +300,6 @@ def acolite_l2r(gem,
             print('Reshaping {} to {}x{} pixels for resolved processing'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
             gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
 
-    ## read LUTs
-    if (setu['dsf_interface_reflectance']) & (setu['dsf_interface_option'] == 'default'):
-        par = 'romix+rsky_t'
-    else:
-        par = 'romix'
 
     ## set output directory
     if setu['output'] is not None:
@@ -368,7 +377,9 @@ def acolite_l2r(gem,
     ## load reverse lut romix -> aot
     if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, base_luts=setu['luts'])
     ## load aot -> atmospheric parameters lut
-    lutdw = ac.aerlut.import_luts(add_rsky=True, sensor=None if hyper else gem.gatts['sensor'],
+    ## QV 2022-04-04 interface reflectance is always loaded since we include wind in the interpolation below
+    ## not necessary for runs with par == romix, to be fixed
+    lutdw = ac.aerlut.import_luts(add_rsky=True, par=(par if par == 'romix+rsurf' else 'romix+rsky_t'), sensor=None if hyper else gem.gatts['sensor'],
                                   base_luts=setu['luts'], pressures = setu['luts_pressures'],
                                   reduce_dimensions=setu['luts_reduce_dimensions'])
     luts = list(lutdw.keys())

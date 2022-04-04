@@ -18,6 +18,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                 rsky_lut = 'ACOLITE-RSKY-202102-82W',
                 lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                 reduce_dimensions = False, return_lut_array = False,
+                par = 'romix',
                 vza_range = [0, 16],  aot_range = [0, 1.5],
                 get_remote = True, sensor = None, add_rsky = False, add_dutott = True):
     import scipy.interpolate
@@ -27,9 +28,12 @@ def import_luts(pressures = [500, 750, 1013, 1100],
     ## indices for reducing LUT size
     vza_sub = [0, -1]
     aot_sub = [0, -1]
+    print(par, add_rsky)
 
     if add_rsky:
-        for k in ['utott', 'dtott', 'astot', 'romix']:
+        klist = ['utott', 'dtott', 'astot', 'romix']
+        if par == 'romix+rsurf': klist += ['rsurf']
+        for k in klist:
             if k not in lut_par: lut_par.append(k)
     if add_dutott:
         for k in ['utott', 'dtott']:
@@ -45,12 +49,14 @@ def import_luts(pressures = [500, 750, 1013, 1100],
             if sensor is None:
                 ## indices for reducing LUT size
                 vza_idx, aot_idx = 4, 7
+                if not add_rsky: aot_idx = 6
 
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
                 lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par, get_remote = get_remote)
             else:
                 ## indices for reducing LUT size
                 vza_idx, aot_idx = 3, 6
+                if not add_rsky: aot_idx = 5
 
                 ## sensor specific lut
                 #lut_data_dict, lut_meta = ac.aerlut.import_lut_sensor(sensor, None, lutid, override=0, lutdir=lutdir)
@@ -97,7 +103,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
             lut_dict[lut]['lut'] = np.stack(lutd)
             ipd = lut_dict[lut]['ipd']
 
-            if add_rsky:
+            if (add_rsky) & (par == 'romix+rsky_t'):
                 tlut = lut_dict[lut]['lut']
                 rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, get_remote = get_remote)
                 rlut = rskyd[int(lut[-1])]['lut']
@@ -145,7 +151,25 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                        np.asarray(rsky_winds),
                        lut_dict[lut]['meta']['tau']]
                 lut_dict[lut]['dim'] = dim
-                ## end add rsky
+                ## end add rsky romix+rsky_t
+            elif (add_rsky) & (par == 'romix+rsurf'):
+                ax = len(ipd)
+                tmp = lut_dict[lut]['lut'][:, ipd['romix'],:,:,:,:,:] + lut_dict[lut]['lut'][:, ipd['rsurf'],:,:,:,:,:]
+                lut_dict[lut]['lut'] = np.insert(lut_dict[lut]['lut'], (ax), tmp, axis=1)
+                tmp = None
+                lut_dict[lut]['meta']['par'] += ['romix+rsurf']
+                lut_dict[lut]['ipd'] = {p:i for i,p in enumerate(lut_dict[lut]['meta']['par'])}
+                lut_dict[lut]['dim'][1]+= [ax]
+                ## create new dim with winds
+                dim = [np.asarray(pressures),
+                       np.asarray(lut_dict[lut]['dim'][1]),
+                       lut_dict[lut]['meta']['wave'],
+                       lut_dict[lut]['meta']['azi'],
+                       lut_dict[lut]['meta']['thv'],
+                       lut_dict[lut]['meta']['ths'],
+                       lut_dict[lut]['meta']['wnd'],
+                       lut_dict[lut]['meta']['tau']]
+                lut_dict[lut]['dim'] = dim
 
             ## reduce dimensions / memory use
             if reduce_dimensions:
@@ -166,6 +190,8 @@ def import_luts(pressures = [500, 750, 1013, 1100],
 
             ## set up LUT interpolator
             if add_rsky:
+                print(lut_dict[lut]['dim'])
+                print(lut_dict[lut]['lut'].shape)
                 lut_dict[lut]['rgi'] = scipy.interpolate.RegularGridInterpolator(lut_dict[lut]['dim'],
                                                                              lut_dict[lut]['lut'][:,:,:,:,:,:,:,:],
                                                                              bounds_error=False, fill_value=np.nan)
@@ -179,7 +205,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                 lut_dict[lut]['lut'][band] = np.stack(lut_dict[lut]['lut'][band])
 
             ## add rsky if requested
-            if add_rsky:
+            if (add_rsky) & (par == 'romix+rsky_t'):
                 rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, sensor=sensor, get_remote=get_remote)
                 rlut = rskyd[int(lut[-1])]['lut']
                 rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
@@ -230,6 +256,28 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                        lut_dict[lut]['meta']['tau']]
                 lut_dict[lut]['dim'] = dim
                 ## end add rsky
+            elif (add_rsky) & (par == 'romix+rsurf'):
+                ## current pars
+                ipd = {p:i for i,p in enumerate(lut_dict[lut]['meta']['par'])}
+                ax = len(ipd)
+
+                ## run through bands
+                for band in lut_dict[lut]['lut']:
+                    tmp = lut_dict[lut]['lut'][band][:, ipd['romix'],:,:,:,:] + lut_dict[lut]['lut'][band][:, ipd['rsurf'],:,:,:,:]
+                    lut_dict[lut]['lut'][band] = np.insert(lut_dict[lut]['lut'][band], (ax), tmp, axis=1)
+                    tmp = None
+                lut_dict[lut]['meta']['par'] += ['romix+rsurf']
+                lut_dict[lut]['ipd'] = {p:i for i,p in enumerate(lut_dict[lut]['meta']['par'])}
+                lut_dict[lut]['dim'][1]+= [ax]
+                ## create new dim with winds
+                dim = [np.asarray(pressures),
+                       np.asarray(lut_dict[lut]['dim'][1]),
+                       lut_dict[lut]['meta']['azi'],
+                       lut_dict[lut]['meta']['thv'],
+                       lut_dict[lut]['meta']['ths'],
+                       lut_dict[lut]['meta']['wnd'],
+                       lut_dict[lut]['meta']['tau']]
+                lut_dict[lut]['dim'] = dim
 
             ## reduce dimensions / memory use
             if reduce_dimensions:
