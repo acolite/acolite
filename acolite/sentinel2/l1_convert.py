@@ -525,6 +525,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                         attributes=gatts, new=new, nc_projection=nc_projection,
                                                 netcdf_compression=setu['netcdf_compression'],
                                                 netcdf_compression_level=setu['netcdf_compression_level'])
+                new = False
                 if verbosity > 1: print('Wrote vaa {}'.format(vaa.shape))
 
             if setu['s2_write_saa']:
@@ -532,6 +533,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                         attributes=gatts, new=new, nc_projection=nc_projection,
                                                 netcdf_compression=setu['netcdf_compression'],
                                                 netcdf_compression_level=setu['netcdf_compression_level'])
+                new = False
                 if verbosity > 1: print('Wrote saa {}'.format(saa.shape))
 
             ## compute relative azimuth angle
