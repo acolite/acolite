@@ -520,6 +520,20 @@ def l1_convert(inputfile, output = None, settings = {},
                 vza[clip_mask] = np.nan
                 vaa[clip_mask] = np.nan
 
+            if setu['s2_write_vaa']:
+                ac.output.nc_write(ofile, 'vaa', vaa, replace_nan=True,
+                                        attributes=gatts, new=new, nc_projection=nc_projection,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote vaa {}'.format(vaa.shape))
+
+            if setu['s2_write_saa']:
+                ac.output.nc_write(ofile, 'saa', saa, replace_nan=True,
+                                        attributes=gatts, new=new, nc_projection=nc_projection,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote saa {}'.format(saa.shape))
+
             ## compute relative azimuth angle
             raa = np.abs(saa-vaa)
             ## raa along 180 degree symmetry
@@ -559,7 +573,11 @@ def l1_convert(inputfile, output = None, settings = {},
                     vza = None
                     ## band specific view azimuth angle
                     vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa_all[:,:,bi], warp_to=warp_to)
-                    #ac.output.nc_write(ofile, 'vaa_{}'.format(waves_names[b]), vaa, replace_nan=True)
+                    if setu['s2_write_vaa']:
+                        ac.output.nc_write(ofile, 'vaa_{}'.format(waves_names[b]), vaa, replace_nan=True,
+                                                attributes=gatts, new=new, nc_projection=nc_projection,
+                                                        netcdf_compression=setu['netcdf_compression'],
+                                                        netcdf_compression_level=setu['netcdf_compression_level'])
                     ## compute relative azimuth angle
                     raa = np.abs(saa-vaa)
                     vaa = None

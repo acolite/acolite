@@ -1,5 +1,10 @@
 ## ACOLITE default settings for S2B_MSI
 
+## copy datasets from L1R to L2R
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+s2_write_vaa=False
+s2_write_saa=False
+
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
 dsf_spectrum_option=intercept
