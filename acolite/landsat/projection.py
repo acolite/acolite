@@ -90,13 +90,14 @@ def projection(meta):
            'xrange': xrange, 'yrange': yrange,
            'proj4_string':proj4_string, 'dimensions':dimensions,
            'pixel_size': pixel_size, 'utm': is_utm, 'ps': is_ps}
-    if is_utm: dct['zone'] : zone
-    if is_ps:
-        dct['vertical_lon'] : vertical_lon
-        dct['lat_ts'] : lat_ts
-        dct['false_e'] : false_e
-        dct['false_n'] : false_n
-        dct['lat_0'] : lat_0
+    if is_utm:
+        dct['zone'] = zone
+    elif is_ps:
+        dct['vertical_lon'] = vertical_lon
+        dct['lat_ts'] = lat_ts
+        dct['false_e'] = false_e
+        dct['false_n'] = false_n
+        dct['lat_0'] = lat_0
 
     dct['xdim'] = int((dct['xrange'][1]-dct['xrange'][0])/dct['pixel_size'][0])#+1
     dct['ydim'] = int((dct['yrange'][1]-dct['yrange'][0])/dct['pixel_size'][1])#+1
