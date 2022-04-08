@@ -43,9 +43,13 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                 if (get_remote):
                     remote_lut = '{}/{}-Reverse/{}/{}.nc'.format(remote_base, '-'.join(lut.split('-')[0:3]), sensor, slut)
                     try:
+                        print('Getting remote LUT {}'.format(remote_lut))
                         ac.shared.download_file(remote_lut, lutnc)
+                        print('Testing LUT {}'.format(lutnc))
+                        lutb, meta = ac.shared.lutnc_import(lutnc) # test LUT
                     except:
                         print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
+                        if os.path.exists(lutnc): os.remove(lutnc)
 
                 ## generate LUT if download did not work
                 if (not os.path.exists(lutnc)):

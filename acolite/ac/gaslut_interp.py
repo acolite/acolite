@@ -16,7 +16,7 @@ def gaslut_interp(sza, vza, pressure = 1013,
     import numpy as np
 
     ## identify LUT file
-    lut_path = '{}/LUT/Gas'.format(ac.config['data_dir'])
+    lut_path = '{}/Gas'.format(ac.config['lut_dir'])
     lut_id = 'Gas_{}'.format(lutconfig)
     lutnc = '{}/{}.nc'.format(lut_path,lut_id)
 
@@ -24,9 +24,14 @@ def gaslut_interp(sza, vza, pressure = 1013,
     if (not os.path.isfile(lutnc)):
         remote_lut = '{}/Gas/{}'.format(remote_base, os.path.basename(lutnc))
         try:
+            print('Getting remote LUT {}'.format(remote_lut))
             ac.shared.download_file(remote_lut, lutnc)
+            print('Testing LUT {}'.format(lutnc))
+            lut, meta = ac.shared.lutnc_import(lutnc) # test LUT
         except:
             print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
+            if os.path.exists(lutnc): os.remove(lutnc)
+
 
     ## import LUT
     if os.path.exists(lutnc):

@@ -33,9 +33,11 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
         if (not os.path.isfile(lutnc)) & (not os.path.isfile(lutncbz2)) & (get_remote):
             remote_lut = '{}/{}/{}'.format(remote_base, '-'.join(lutid.split('-')[0:3]), os.path.basename(lutncbz2))
             try:
+                print('Getting remote LUT {}'.format(remote_lut))
                 ac.shared.download_file(remote_lut, lutncbz2)
             except:
                 print('Could not download remote lut {} to {}'.format(remote_lut, lutncbz2))
+                if os.path.exists(lutncbz2): os.remove(lutncbz2)
 
         ## extract bz LUT
         if (not os.path.isfile(lutnc)) & (os.path.isfile(lutncbz2)):
@@ -111,9 +113,13 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
                 slut = '{}_{}'.format(lutid, sensor)
                 remote_lut = '{}/{}/{}/{}.nc'.format(remote_base, '-'.join(lutid.split('-')[0:3]), sensor, slut)
                 try:
+                    print('Getting remote LUT {}'.format(remote_lut))
                     ac.shared.download_file(remote_lut, lutnc_s)
+                    print('Testing LUT {}'.format(lutnc_s))
+                    lut, meta = ac.shared.lutnc_import(lutnc_s) # test LUT
                 except:
                     print('Could not download remote lut {} to {}'.format(remote_lut, lutnc_s))
+                    if os.path.exists(lutnc_s): os.remove(lutnc_s)
 
             ## otherwise to local resampling
             if (not os.path.isfile(lutnc_s)):
