@@ -4,6 +4,7 @@
 ## 2021-07-26
 ## modifications:
 ##                2021-10-24 (QV) added LUT identifiers and pressures, get_remote keyword
+##                2022-04-12 (QV) add par parameter to import_luts
 
 def acolite_luts(sensor = None, hyper = False,
                  get_remote = True, compute_reverse = True,
@@ -58,7 +59,7 @@ def acolite_luts(sensor = None, hyper = False,
         tg_dict = ac.ac.gas_transmittance(0, 0, uoz=0.3, uwv=1.6, rsr=None if s is None else rsrd[s]['rsr'])
 
         ## get sensor LUT
-        tmp = ac.aerlut.import_luts(sensor = s, get_remote = get_remote, pressures = pressures,
+        tmp = ac.aerlut.import_luts(sensor = s, get_remote = get_remote, pressures = pressures, par=pars[-1],
                                     base_luts = base_luts, rsky_lut = rsky_lut)
 
         ## get reverse LUT
