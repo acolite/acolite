@@ -14,6 +14,7 @@ from acolite import desis
 
 from acolite import gf
 from acolite import amazonia
+from acolite import formosat
 
 from acolite import ac
 from acolite import aerlut

@@ -153,4 +153,11 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end AMAZONIA
     ################
 
+    ################
+    ## FORMOSAT
+    if input_type == 'FORMOSAT':
+        l1r_files, setu = ac.formosat.l1_convert(bundle, settings = setu)
+    ## end FORMOSAT
+    ################
+
     return(l1r_files, setu)
