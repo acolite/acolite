@@ -5,6 +5,7 @@
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-03-28 (QV) added masking using QL data, updated crop subsetting
+##                2022-04-15 (QV) fixed polygon masking
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -122,6 +123,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             pkeys = ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'zone']
             for k in pkeys:
                 if k in dct_prj: gatts[k] = copy.copy(dct_prj[k])
+
+            ## if we are clipping to a given polygon get the clip_mask here
+            if clip:
+                clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+                clip_mask = clip_mask.astype(bool) == False
 
         ## make rsr and bands dataset
         # rsr = {'{}'.format(bi): ac.shared.gauss_response(gatts['band_waves'][bi], gatts['band_widths'][bi], step=0.1)
@@ -243,6 +249,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             ## compute radiance
             cdata_radiance = cdata_radiance.astype(np.float32) * header['data gain values'][bi]
             cdata_radiance += header['data offset values'][bi]
+
+            if (clip) & (clip_mask is not None): cdata_radiance[clip_mask] = np.nan
 
             if output_lt:
                 ## write toa radiance
