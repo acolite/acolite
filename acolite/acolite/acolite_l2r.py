@@ -1337,8 +1337,11 @@ def acolite_l2r(gem,
             refri = ac.ac.refri()
             refri_sen = ac.shared.rsr_convolute_dict(refri['wave']/1000, refri['n'], rsrd['rsr'])
 
-            ## compute fresnel reflectance for each n
-            Rf_sen = {b: ac.ac.sky_refl(omega, n_w=refri_sen[b]) for b in refri_sen}
+            ## compute fresnel reflectance for the reference bands
+            Rf_sen = {}
+            for b in [gc_swir1_b, gc_swir2_b, gc_user_b]:
+                if b is None: continue
+                Rf_sen[b] = ac.ac.sky_refl(omega, n_w=refri_sen[b])
 
             ## compute where to apply the glint correction
             ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
@@ -1385,19 +1388,23 @@ def acolite_l2r(gem,
                     ## subset if 2d
                     T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
 
+                    ## get current band Fresnel reflectance
+                    Rf_sen_cur = ac.ac.sky_refl(omega, n_w=refri_sen[b])
+
                     ## get gc factors for this band
                     if gc_user is None:
-                        if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
-                            gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
-                            gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b][sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
+                        if len(np.atleast_2d(Rf_sen[gc_swir1_b]))>1: ## if resolved angles
+                            gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen_cur[sub_gc]/Rf_sen[gc_swir1_b][sub_gc])
+                            gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen_cur[sub_gc]/Rf_sen[gc_swir2_b][sub_gc])
                         else:
-                            gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen[b]/Rf_sen[gc_swir1_b])
-                            gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen[b]/Rf_sen[gc_swir2_b])
+                            gc_SWIR1 = (T_cur_sub/T_SWIR1) * (Rf_sen_cur/Rf_sen[gc_swir1_b])
+                            gc_SWIR2 = (T_cur_sub/T_SWIR2) * (Rf_sen_cur/Rf_sen[gc_swir2_b])
                     else:
-                        if len(np.atleast_2d(Rf_sen[b]))>1: ## if resolved angles
-                            gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b][sub_gc]/Rf_sen[gc_user_b][sub_gc])
+                        if len(np.atleast_2d(Rf_sen[gc_user_b]))>1: ## if resolved angles
+                            gc_USER = (T_cur_sub/T_USER) * (Rf_sen_cur[sub_gc]/Rf_sen[gc_user_b][sub_gc])
                         else:
-                            gc_USER = (T_cur_sub/T_USER) * (Rf_sen[b]/Rf_sen[gc_user_b])
+                            gc_USER = (T_cur_sub/T_USER) * (Rf_sen_cur/Rf_sen[gc_user_b])
+                    Rf_sen_cur = None
 
                     ## choose glint correction band (based on first band results)
                     if gc_choice is False:
