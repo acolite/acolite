@@ -8,3 +8,6 @@ l2w_mask_wave=800
 l2w_mask_threshold=0.1
 dsf_intercept_pixels=1000
 dsf_tile_dimensions=2000,2000
+
+## set max rhow to 1 * C for PlanetScope
+nechad_max_rhow_C_factor=1.0
