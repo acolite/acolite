@@ -1,5 +1,8 @@
 ## ACOLITE default settings for L8_OLI
 
+## copy datasets from L1R to L2R
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
 dsf_wave_range=400,2500
