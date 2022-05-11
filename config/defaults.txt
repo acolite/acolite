@@ -181,6 +181,12 @@ acstar3_mask_edges=True
 
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
+## number of bands to compute fit or aot / mean
+dsf_nbands=2
+dsf_nbands_fit=2
+## how to compute aot from bands (min/mean/median)
+dsf_aot_compute=min
+
 ## options darkest, percentile, intercept
 dsf_spectrum_option=intercept
 dsf_percentile=1

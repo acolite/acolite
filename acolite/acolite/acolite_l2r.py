@@ -623,20 +623,39 @@ def acolite_l2r(gem,
                                                            aot_dict[b][lut]))
                 aot_stack[lut]['band_list'] = aot_band_list
 
-                ## get minimum and mask of aot
-                aot_stack[lut]['min'] = np.nanmin(aot_stack[lut]['all'], axis=2)
+                ## sort aot per pixel
+                tmp = np.argsort(aot_stack[lut]['all'], axis=2)
+                ay, ax = np.meshgrid(np.arange(tmp.shape[1]), np.arange(tmp.shape[0]))
+
+                ## identify number of bands
+                if setu['dsf_nbands']<2: setu['dsf_nbands'] = 2
+                if setu['dsf_nbands']>tmp.shape[2]: setu['dsf_nbands'] = tmp.shape[2]
+                if setu['dsf_nbands_fit']<2: setu['dsf_nbands_fit'] = 2
+                if setu['dsf_nbands_fit']>tmp.shape[2]: setu['dsf_nbands_fit'] = tmp.shape[2]
+
+                ## get minimum or average aot
+                if setu['dsf_aot_compute'] == 'mean':
+                    ## stack n lowest bands
+                    for ai in range(setu['dsf_nbands']):
+                        if ai == 0:
+                            tmp_aot = aot_stack[lut]['all'][ax, ay, tmp[ax,ay,ai]] * 1.0
+                        else:
+                            tmp_aot = np.dstack((tmp_aot, aot_stack[lut]['all'][ax, ay, tmp[ax,ay,ai]] * 1.0))
+                    ## compute mean over stack
+                    aot_stack[lut]['aot'] = np.nanmean(tmp_aot, axis=2)
+                    tmp_aot = None
+                else:
+                    aot_stack[lut]['aot'] = aot_stack[lut]['all'][ax,ay,tmp[ax,ay,0]] #np.nanmin(aot_stack[lut]['all'], axis=2)
 
                 ## if minimum for fixed retrieval is nan, set it to 0.01
                 if setu['dsf_aot_estimate'] == 'fixed':
-                    if np.isnan(aot_stack[lut]['min']):
-                        aot_stack[lut]['min'][0][0] = 0.01
-
-                aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['min'])
+                    if np.isnan(aot_stack[lut]['aot']): aot_stack[lut]['aot'][0][0] = 0.01
+                aot_stack[lut]['mask'] = ~np.isfinite(aot_stack[lut]['aot'])
 
                 ## apply percentile filter
                 if (setu['dsf_filter_aot']) & (setu['dsf_aot_estimate'] == 'resolved'):
-                    aot_stack[lut]['min'] = \
-                        scipy.ndimage.percentile_filter(aot_stack[lut]['min'],
+                    aot_stack[lut]['aot'] = \
+                        scipy.ndimage.percentile_filter(aot_stack[lut]['aot'],
                                                         setu['dsf_filter_percentile'],
                                                         size=setu['dsf_filter_box'])
                 ## apply gaussian kernel smoothing
@@ -644,26 +663,24 @@ def acolite_l2r(gem,
                     ## for gaussian smoothing of aot
                     from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
                     from astropy.convolution import convolve
-                    aot_stack[lut]['min'] = \
-                        convolve(aot_stack[lut]['min'],
+                    aot_stack[lut]['aot'] = \
+                        convolve(aot_stack[lut]['aot'],
                                  Gaussian2DKernel(x_stddev=setu['dsf_smooth_box'][0], y_stddev=setu['dsf_smooth_box'][1]),
                                  boundary='extend')
 
                 ## mask aot
-                aot_stack[lut]['min'][aot_stack[lut]['mask']] = np.nan
+                aot_stack[lut]['aot'][aot_stack[lut]['mask']] = np.nan
 
                 ## fill nan tiles with closest values
                 #if (setu['dsf_aot_estimate'] == 'tiled'):
                 #    ind = scipy.ndimage.distance_transform_edt(aot_stack[lut]['mask'],
                 #                                               return_distances=False, return_indices=True)
-                #    aot_stack[lut]['min'] = aot_stack[lut]['min'][tuple(ind)]
+                #    aot_stack[lut]['aot'] = aot_stack[lut]['aot'][tuple(ind)]
 
-                ## store b1 and b2
-                tmp = np.argsort(aot_stack[lut]['all'], axis=2)
-                aot_stack[lut]['b1'] = tmp[:,:,0].astype(int)#.astype(float)
-                aot_stack[lut]['b1'][aot_stack[lut]['mask']] = -1
-                aot_stack[lut]['b2'] = tmp[:,:,1].astype(int)#.astype(float)
-                aot_stack[lut]['b2'][aot_stack[lut]['mask']] = -1
+                ## store bands for fitting rmsd
+                for bbi in range(setu['dsf_nbands_fit']):
+                    aot_stack[lut]['b{}'.format(bbi+1)] = tmp[:,:,bbi].astype(int)#.astype(float)
+                    aot_stack[lut]['b{}'.format(bbi+1)][aot_stack[lut]['mask']] = -1
 
                 if setu['dsf_model_selection'] == 'min_dtau':
                     ## array idices
@@ -671,19 +688,18 @@ def acolite_l2r(gem,
                     ## abs difference between first and second band tau
                     aot_stack[lut]['dtau'] = np.abs(aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,0]]-\
                                                     aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,1]])
+                ## remove sorted indices
                 tmp = None
-
             ## select model based on min rmsd for 2 bands
-            if verbosity > 1: print('Choosing best fitting model: {}'.format(setu['dsf_model_selection']))
+            if verbosity > 1: print('Choosing best fitting model: {} ({} bands)'.format(setu['dsf_model_selection'], setu['dsf_nbands']))
 
-            ## run through model results, get rhod and rhop for two lowest bands
+            ## run through model results, get rhod and rhop for n lowest bands
             for li, lut in enumerate(luts):
-
-                ## select model based on minimum rmsd between two best fitting bands
+                ## select model based on minimum rmsd between n best fitting bands
                 if setu['dsf_model_selection'] == 'min_drmsd':
                     if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
-                    rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2), dtype=np.float32) + np.nan
-                    rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],2), dtype=np.float32) + np.nan
+                    rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],setu['dsf_nbands_fit']), dtype=np.float32) + np.nan
+                    rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],setu['dsf_nbands_fit']), dtype=np.float32) + np.nan
                     for bi, b in enumerate(aot_bands):
 
                         ## use band specific geometry if available
@@ -695,7 +711,8 @@ def acolite_l2r(gem,
                             gk_vza = '_{}'.format(gem.bands[b]['wave_name'])+gk_vza
 
                         ## run through two best fitting bands
-                        for ai, ab in enumerate(['b1', 'b2']):
+                        fit_bands = ['b{}'.format(bbi+1) for bbi in range(setu['dsf_nbands_fit'])]
+                        for ai, ab in enumerate(fit_bands):
                             aot_sub = np.where(aot_stack[lut][ab]==bi)
                             ## get rhod for current band
                             if (setu['dsf_aot_estimate'] == 'resolved'):
@@ -721,20 +738,21 @@ def acolite_l2r(gem,
                                 if hyper:
                                     ## get hyperspectral results and resample to band
                                     res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
-                                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
                                     rhop_f[aot_sub[0], aot_sub[1], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                                 else:
                                     if setu['dsf_aot_estimate'] == 'segmented':
                                         for gki in range(len(aot_sub[0])):
                                             rhop_f[aot_sub[0][gki], aot_sub[1][gki], ai] = lutdw[lut]['rgi'][b]((xi[0][aot_sub[0][gki]], lutdw[lut]['ipd'][par],
                                                             xi[1][aot_sub[0][gki]], xi[2][aot_sub[0][gki]],
-                                                            xi[3][aot_sub[0][gki]], xi[4][aot_sub[0][gki]], aot_stack[lut]['min'][aot_sub][gki]))
+                                                            xi[3][aot_sub[0][gki]], xi[4][aot_sub[0][gki]], aot_stack[lut]['aot'][aot_sub][gki]))
 
                                     else:
                                         rhop_f[aot_sub[0], aot_sub[1], ai] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par],
-                                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['min'][aot_sub]))
+                                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
                     ## rmsd for current bands
                     cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
+                    if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1): print('Computing RMSD for model {}: {:.4e}'.format(lut, cur_sel_par[0][0]))
                 ## end select with min RMSD
 
                 ## select model based on minimum delta tau between two lowest aot bands
@@ -744,24 +762,28 @@ def acolite_l2r(gem,
 
                 ## store minimum info
                 if li == 0:
-                    aot_lut = np.zeros(aot_stack[lut]['min'].shape, dtype=np.float32).astype(int)
+                    aot_lut = np.zeros(aot_stack[lut]['aot'].shape, dtype=np.float32).astype(int)
                     aot_lut[aot_stack[lut]['mask']] = -1
-                    aot_sel = aot_stack[lut]['min'] * 1.0
+                    aot_sel = aot_stack[lut]['aot'] * 1.0
                     aot_sel_par = cur_sel_par * 1.0
-                    aot_sel_band1 = aot_stack[lut]['b1'] * 1
-                    aot_sel_band2 = aot_stack[lut]['b2'] * 1
-
+                    if setu['dsf_aot_estimate'] == 'fixed':
+                        aot_sel_lut = '{}'.format(lut)
+                        aot_sel_bands = [aot_stack[lut]['{}'.format(bb)][0][0] for bb in fit_bands]
                 else:
                     aot_sub = np.where(cur_sel_par<aot_sel_par)
                     if len(aot_sub[0]) == 0: continue
                     aot_lut[aot_sub] = li
-                    aot_sel[aot_sub] = aot_stack[lut]['min'][aot_sub]*1.0
+                    aot_sel[aot_sub] = aot_stack[lut]['aot'][aot_sub]*1.0
                     aot_sel_par[aot_sub] = cur_sel_par[aot_sub] * 1.0
-                    aot_sel_band1[aot_sub] = aot_stack[lut]['b1'][aot_sub] * 1
-                    aot_sel_band2[aot_sub] = aot_stack[lut]['b2'][aot_sub] * 1
+                    if setu['dsf_aot_estimate'] == 'fixed':
+                        aot_sel_lut = '{}'.format(lut)
+                        aot_sel_bands = [aot_stack[lut]['{}'.format(bb)][0][0] for bb in fit_bands]
 
             rhod_f = None
             rhod_p = None
+        if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1):
+            print('Selected model {}: aot {:.3f}, RMSD {:.2e}'.format(aot_sel_lut, aot_sel[0][0], aot_sel_par[0][0]))
+
     ### end dark_spectrum_fitting
 
     ## exponential
@@ -942,11 +964,12 @@ def acolite_l2r(gem,
             ## store fitting parameter
             gemo.gatts['ac_fit'] = aot_sel_par[0][0]
             ## store bands used for DSF
-            gemo.gatts['ac_bands'] = aot_stack[gemo.gatts['ac_model']]['band_list']
-            gemo.gatts['ac_band1_idx'] = aot_sel_band1[0][0]
-            gemo.gatts['ac_band1'] = gemo.gatts['ac_bands'][gemo.gatts['ac_band1_idx']]
-            gemo.gatts['ac_band2_idx'] = aot_sel_band2[0][0]
-            gemo.gatts['ac_band2'] = gemo.gatts['ac_bands'][gemo.gatts['ac_band2_idx']]
+            gemo.gatts['ac_bands'] = ','.join(aot_stack[gemo.gatts['ac_model']]['band_list'])
+            gemo.gatts['ac_nbands_fit'] = setu['dsf_nbands']
+            for bbi, bn in enumerate(aot_sel_bands):
+                gemo.gatts['ac_band{}_idx'.format(bbi+1)] = aot_sel_bands[bbi]
+                gemo.gatts['ac_band{}'.format(bbi+1)] = aot_stack[gemo.gatts['ac_model']]['band_list'][bbi]
+
 
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):

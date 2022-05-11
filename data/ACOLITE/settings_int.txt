@@ -7,6 +7,8 @@ dsf_filter_box
 dsf_tile_dimensions
 dsf_intercept_pixels
 dsf_smooth_box
+dsf_nbands
+dsf_nbands_fit
 blackfill_wave
 l2w_mask_wave
 l2w_mask_cirrus_wave
