@@ -968,8 +968,7 @@ def acolite_l2r(gem,
             gemo.gatts['ac_nbands_fit'] = setu['dsf_nbands']
             for bbi, bn in enumerate(aot_sel_bands):
                 gemo.gatts['ac_band{}_idx'.format(bbi+1)] = aot_sel_bands[bbi]
-                gemo.gatts['ac_band{}'.format(bbi+1)] = aot_stack[gemo.gatts['ac_model']]['band_list'][bbi]
-
+                gemo.gatts['ac_band{}'.format(bbi+1)] = aot_stack[gemo.gatts['ac_model']]['band_list'][aot_sel_bands[bbi]]
 
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
