@@ -373,9 +373,6 @@ def l1_convert(inputfile, output = None, settings = {},
                     else:
                         print('No footprint files found')
                         continue
-
-                    #bands = list(grmeta['VIEW_DET'].keys())
-                    #bands.sort()
                     bands = [str(bi) for bi, b in enumerate(rsr_bands)]
 
                     ## set vza and vaa size to geometry res target size
@@ -388,6 +385,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         ## compute detector average geometry
                         if verbosity>2:print('Detector {}'.format(bv))
                         for b in bands:
+                            if '{}'.format(bv) not in grmeta['VIEW_DET'][b]: continue
                             bza = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Zenith']
                             baa = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Azimuth']
                             bza = ac.sentinel2.grid_extend(bza, iterations=1, crop=False)
