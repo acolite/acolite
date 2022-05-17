@@ -9,6 +9,7 @@
 ##                2018-10-01 (QV) removed obsolete bits
 ##                2021-02-11 (QV) adapted for acolite-gen, renamed from scene_meta
 ##                2021-10-13 (QV) adapted for new processing baseline which includes TOA offsets
+##                2022-05-17 (QV) adapted for processing older N0201 files
 
 def metadata_scene(metafile):
     import dateutil.parser
@@ -65,6 +66,14 @@ def metadata_scene(metafile):
             rsr = [float(rs) for rs in tag[0].getElementsByTagName('VALUES')[0].firstChild.nodeValue.split(' ')]
             wave = np.linspace(banddata['Wavelength'][band]['MIN'],banddata['Wavelength'][band]['MAX'], int((banddata['Wavelength'][band]['MAX']-banddata['Wavelength'][band]['MIN'])/step)+1)
         banddata['RSR'][band] = {'response':rsr, 'wave':wave}
+
+    ## workaround for N0201 data
+    if len(banddata['BandNames']) == 0:
+        tdom = xmldoc.getElementsByTagName('BAND_NAME')
+        for ti, t in enumerate(tdom):
+            bandi = '{}'.format(ti)
+            band = t.firstChild.nodeValue
+            banddata['BandNames'][bandi] = band
 
     tdom = xmldoc.getElementsByTagName('SOLAR_IRRADIANCE')
     for t in tdom:
