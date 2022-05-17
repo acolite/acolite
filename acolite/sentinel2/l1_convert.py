@@ -384,28 +384,32 @@ def l1_convert(inputfile, output = None, settings = {},
                         if bv == 0: continue ## fill value in new format
                         ## compute detector average geometry
                         if verbosity>2:print('Detector {}'.format(bv))
+                        ave_vza = None
+                        ave_vaa = None
                         for b in bands:
                             if '{}'.format(bv) not in grmeta['VIEW_DET'][b]: continue
                             bza = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Zenith']
                             baa = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Azimuth']
                             bza = ac.sentinel2.grid_extend(bza, iterations=1, crop=False)
                             baa = ac.sentinel2.grid_extend(baa, iterations=1, crop=False)
-                            if b == bands[0]:
+                            if ave_vaa is None:
                                 ave_vza = bza
                                 ave_vaa = baa
                             else:
                                 ave_vza = np.dstack((ave_vza, bza))
                                 ave_vaa = np.dstack((ave_vaa, baa))
-                        ave_vza = np.nanmean(ave_vza, axis=2)
-                        ave_vaa = np.nanmean(ave_vaa, axis=2)
-                        ## end compute detector average geometry
-                        ## interpolate grids to current detector
-                        det_mask = dfoo==bv
-                        ## add +1 to xnew and ynew since we are not cropping the extended grid
-                        vza[det_mask] = ac.shared.tiles_interp(ave_vza, xnew+1, ynew+1, smooth=False, fill_nan=True,
-                                                      target_mask = det_mask, target_mask_full=False, method='linear')
-                        vaa[det_mask] = ac.shared.tiles_interp(ave_vaa, xnew+1, ynew+1, smooth=False, fill_nan=True,
-                                                      target_mask = det_mask, target_mask_full=False, method='linear')
+
+                        if ave_vza is not None:
+                            ave_vza = np.nanmean(ave_vza, axis=2)
+                            ave_vaa = np.nanmean(ave_vaa, axis=2)
+                            ## end compute detector average geometry
+                            ## interpolate grids to current detector
+                            det_mask = dfoo==bv
+                            ## add +1 to xnew and ynew since we are not cropping the extended grid
+                            vza[det_mask] = ac.shared.tiles_interp(ave_vza, xnew+1, ynew+1, smooth=False, fill_nan=True,
+                                                          target_mask = det_mask, target_mask_full=False, method='linear')
+                            vaa[det_mask] = ac.shared.tiles_interp(ave_vaa, xnew+1, ynew+1, smooth=False, fill_nan=True,
+                                                          target_mask = det_mask, target_mask_full=False, method='linear')
 
                 ## use target band so we can just do the 60 metres geometry
                 if os.path.exists(target_file):
