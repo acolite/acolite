@@ -245,6 +245,7 @@ offsets_toa=None
 # output RGB / L2W maps
 rgb_rhot=True
 rgb_rhos=True
+rgb_rhow=False
 map_l2w=False
 
 # mapping options
@@ -313,6 +314,10 @@ output_projection_resolution_align=True
 output_projection_resampling_method=bilinear
 default_projection_resolution=None
 output_projection_fillnans=False
+
+# reproject input tif files if projection cannot be determined
+reproject_inputfile=False
+reproject_inputfile_force=False
 
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2

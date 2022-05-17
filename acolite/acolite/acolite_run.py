@@ -113,12 +113,12 @@ def acolite_run(settings, inputfile=None, output=None):
             if l1r_setu['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
                     ## run ACOLITE
-                    ret = ac.acolite.acolite_l2r(l1r, settings = setu, verbosity = ac.config['verbosity'])
+                    ret = ac.acolite.acolite_l2r(l1r, settings = l1r_setu, verbosity = ac.config['verbosity'])
                     if len(ret) != 2: continue
                     l2r, l2r_setu = ret
                 else:
                     l2r = '{}'.format(l1r)
-                    l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=setu)
+                    l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=l1r_setu)
 
                 if (l2r_setu['adjacency_correction']):
                     ret = None
@@ -127,7 +127,7 @@ def acolite_run(settings, inputfile=None, output=None):
                         ret = ac.adjacency.acstar3.acstar3(l2r, setu = l2r_setu, verbosity = ac.config['verbosity'])
                     ## GLAD
                     if (l2r_setu['adjacency_method']=='glad'):
-                        ret = ac.adjacency.glad.glad_l2r(l2r, verbosity = ac.config['verbosity'])
+                        ret = ac.adjacency.glad.glad_l2r(l2r, verbosity = ac.config['verbosity'], settings=l2r_setu)
                     l2r = [] if ret is None else ret
 
                 ## if we have multiple l2r files
@@ -164,6 +164,12 @@ def acolite_run(settings, inputfile=None, output=None):
                             ## make l2w maps
                             if l2r_setu['map_l2w']:
                                 ac.acolite.acolite_map(ret, settings=l2r_setu)
+                            ## make l2w rgb
+                            if l2r_setu['rgb_rhow']:
+                                l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
+                                l2r_setu_['rgb_rhot'] = False
+                                l2r_setu_['rgb_rhos'] = False
+                                ac.acolite.acolite_map(ret, settings=l2r_setu_, plot_all=False)
 
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:

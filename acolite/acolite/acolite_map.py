@@ -250,6 +250,7 @@ def acolite_map(ncf, output = None,
     if plot_all: plot_parameters = [k for k in datasets if k not in plot_skip]
     if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
     if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
+    if setu['rgb_rhow']: plot_parameters+=['rgb_rhow']
 
     ## handle wildcards
     for par in plot_parameters:
@@ -269,7 +270,7 @@ def acolite_map(ncf, output = None,
 
         cparl = cpar.lower()
         ## RGB
-        if (cpar == 'rgb_rhot') | (cpar == 'rgb_rhos'):
+        if (cpar == 'rgb_rhot') | (cpar == 'rgb_rhos') | (cpar == 'rgb_rhow'):
             ## find datasets for RGB compositing
             rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
             if cpar == 'rgb_rhot':
@@ -282,6 +283,12 @@ def acolite_map(ncf, output = None,
                 ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhos_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhos_'
+                else:
+                    ds_base = '_'.join(ds_base[0]) + '_'
+            if cpar == 'rgb_rhow':
+                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhow_' in ds]
+                if len(ds_base) == 0:
+                    ds_base = 'rhow_'
                 else:
                     ds_base = '_'.join(ds_base[0]) + '_'
 
