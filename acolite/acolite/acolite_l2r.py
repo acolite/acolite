@@ -634,7 +634,7 @@ def acolite_l2r(gem,
                 if setu['dsf_nbands_fit']>tmp.shape[2]: setu['dsf_nbands_fit'] = tmp.shape[2]
 
                 ## get minimum or average aot
-                if setu['dsf_aot_compute'] == 'mean':
+                if setu['dsf_aot_compute'] in ['mean', 'median']:
                     ## stack n lowest bands
                     for ai in range(setu['dsf_nbands']):
                         if ai == 0:
@@ -642,7 +642,8 @@ def acolite_l2r(gem,
                         else:
                             tmp_aot = np.dstack((tmp_aot, aot_stack[lut]['all'][ax, ay, tmp[ax,ay,ai]] * 1.0))
                     ## compute mean over stack
-                    aot_stack[lut]['aot'] = np.nanmean(tmp_aot, axis=2)
+                    if setu['dsf_aot_compute'] == 'mean': aot_stack[lut]['aot'] = np.nanmean(tmp_aot, axis=2)
+                    if setu['dsf_aot_compute'] == 'median': aot_stack[lut]['aot'] = np.nanmedian(tmp_aot, axis=2)
                     tmp_aot = None
                 else:
                     aot_stack[lut]['aot'] = aot_stack[lut]['all'][ax,ay,tmp[ax,ay,0]] #np.nanmin(aot_stack[lut]['all'], axis=2)
