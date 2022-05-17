@@ -74,6 +74,10 @@ def metadata_scene(metafile):
             bandi = '{}'.format(ti)
             band = t.firstChild.nodeValue
             banddata['BandNames'][bandi] = band
+    ## if still empty
+    if len(banddata['BandNames']) == 0:
+        banddata['BandNames'] = {'0': 'B1', '1': 'B2', '2': 'B3', '3': 'B4', '4': 'B5', '5': 'B6', '6': 'B7',
+                                 '7': 'B8', '8': 'B8A', '9': 'B9', '10': 'B10', '11': 'B11', '12': 'B12'}
 
     tdom = xmldoc.getElementsByTagName('SOLAR_IRRADIANCE')
     for t in tdom:
