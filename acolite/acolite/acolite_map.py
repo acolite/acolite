@@ -299,7 +299,11 @@ def acolite_map(ncf, output = None,
             for iw, w in enumerate(rgb_wave):
                 wi, ww = ac.shared.closest_idx(rho_wv, w)
                 data = ac.shared.nc_data(ncf, '{}{}'.format(ds_base,ww))
-                tmp = ac.shared.datascl(data.data, dmin=setu['rgb_min'][iw], dmax=setu['rgb_max'][iw])
+                if setu['rgb_autoscale']:
+                    prc = np.nanpercentile(data.data, setu['rgb_autoscale_percentiles'])
+                    tmp = ac.shared.datascl(data.data, dmin=prc[0], dmax=prc[1])
+                else:
+                    tmp = ac.shared.datascl(data.data, dmin=setu['rgb_min'][iw], dmax=setu['rgb_max'][iw])
                 tmp[data.mask] = 255
                 if iw == 0:
                     im = tmp
