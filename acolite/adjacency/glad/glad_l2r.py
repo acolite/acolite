@@ -9,6 +9,7 @@
 
 
 def glad_l2r(ncf, output = None, ofile = None,
+                settings = {},
                 copy_datasets = ['lat', 'lon'],
                 write_rhot = True,
                 glad_correction = True,
@@ -44,7 +45,7 @@ def glad_l2r(ncf, output = None, ofile = None,
     nc_projection = ac.shared.nc_read_projection(ncf)
     sensor = gatts['sensor']
 
-    sensors = ['L5_TM', 'L7_ETM', 'L8_OLI', 'S2A_MSI','S2B_MSI']
+    sensors = ['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI','S2B_MSI']
     if sensor not in sensors:
         print('GLAD for {} not supported'.format(sensor))
         print('Supported sensors: {}'.format(', '.join(sensors)))
@@ -64,10 +65,16 @@ def glad_l2r(ncf, output = None, ofile = None,
     pressure = gatts['pressure']
     wind = gatts['wind']
 
+    ## copy settings for loading LUT
+    setu = {k:settings[k] for k in settings}
+
     ## read LUT with required parameters
-    lut_par = ['romix', 'dtott', 'utott', 'astot', 'ttot']
-    lutdw = ac.aerlut.import_luts(add_rsky=True, add_dutott=True,
-                                  sensor=sensor, base_luts = [lut], lut_par = lut_par)
+    #lut_par = ['romix', 'dtott', 'utott', 'astot', 'ttot']
+    #lutdw = ac.aerlut.import_luts(add_rsky=True, #, add_dutott=True, pressures = setu['luts_pressures'],
+    #                              sensor=sensor, base_luts = [lut], lut_par = lut_par)
+    lutdw = ac.aerlut.import_luts(add_rsky=True, par='romix+rsky_t',
+                                    sensor=sensor, base_luts=[lut], pressures = setu['luts_pressures'],
+                                    reduce_dimensions=setu['luts_reduce_dimensions'])
 
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(sza, vza, uoz=gatts['uoz'], uwv=gatts['uwv'], rsr=rsrd[sensor]['rsr'])
@@ -126,7 +133,7 @@ def glad_l2r(ncf, output = None, ofile = None,
     update_attributes, new = True, True
     for ds in copy_datasets:
         if ds not in datasets: continue
-        if (nc_projection is not None) & (ds in ['x', 'y', gatts['projection_key']]): continue
+        if (nc_projection is not None) & (ds in ['x', 'y']): continue #gatts['projection_key']
         d, a = ac.shared.nc_data(ncf, ds, attributes=True)
         ac.output.nc_write(ofile, ds, d, dataset_attributes = a,
                            nc_projection = nc_projection,
