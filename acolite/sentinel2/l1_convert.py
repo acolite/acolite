@@ -84,6 +84,8 @@ def l1_convert(inputfile, output = None, settings = {},
 
             gains = setu['gains']
             gains_toa = setu['gains_toa']
+            offsets = setu['offsets']
+            offsets_toa = setu['offsets_toa']
 
             s2_target_res=setu['s2_target_res']
 
@@ -163,6 +165,12 @@ def l1_convert(inputfile, output = None, settings = {},
         if gains & (gains_toa is not None):
             if len(gains_toa) == len(rsr_bands):
                 gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
+
+        ## offsets
+        offsets_dict = None
+        if offsets & (offsets_toa is not None):
+            if len(offsets_toa) == len(rsr_bands):
+                offsets_dict = {b: float(offsets_toa[ib]) for ib, b in enumerate(rsr_bands)}
 
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get()
@@ -710,6 +718,10 @@ def l1_convert(inputfile, output = None, settings = {},
                         ds_att['toa_gain'] = gains_dict[b]
                         data *= ds_att['toa_gain']
                         if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
+                    if offsets & (offsets_dict is not None):
+                        ds_att['toa_offset'] = offsets_dict[b]
+                        data *= ds_att['toa_offset']
+                        if verbosity > 1: print('Converting bands: Applied TOA offset {} to {}'.format(ds_att['toa_gain'], ds))
 
                     #for k in band_data: ds_att[k] = band_data[k][b]
                     if percentiles_compute:

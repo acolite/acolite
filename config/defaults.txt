@@ -240,6 +240,7 @@ exp_output_intermediate=False
 gains=False
 gains_parameter=radiance
 gains_toa=None
+offsets=False
 offsets_toa=None
 
 # output RGB / L2W maps
