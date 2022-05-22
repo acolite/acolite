@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-28
 ## modifications: 2021-02-28 (QV) allow gem to be a dict
+##                2022-03-22 (QV) added check whether thermal bands are in input gem
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -30,6 +31,15 @@ def tact_gem(gem, output_file = True,
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub)
     gemf = gem['gatts']['gemfile']
+
+    ## check if we need to run tact
+    run_tact = False
+    for b in gem['gatts']['thermal_bands']:
+        dsi = 'bt{}'.format(b)
+        if dsi in gem['datasets']: run_tact = True
+    if not run_tact:
+        print('No thermal bands for {} (bands {}) in {}'.format(gem['gatts']['sensor'], ','.join(gem['gatts']['thermal_bands']), gemf))
+        return()
 
     max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
     if gem['gatts']['isodate'] > max_date:
