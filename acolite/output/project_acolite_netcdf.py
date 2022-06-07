@@ -38,6 +38,9 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     if (setu['output_projection_limit'] is None) & (setu['limit'] is not None):
         setu['output_projection_limit'] = [l for l in setu['limit']]
 
+    if (setu['output_projection_limit'] is None) & (setu['polygon'] is not None):
+        setu['output_projection_limit'] = ac.shared.polygon_limit(setu['polygon'])
+
     if setu['output_projection_resolution'] is not None:
         if len(setu['output_projection_resolution']) != 2:
             print('Provide a two element target_pixel_size.')
