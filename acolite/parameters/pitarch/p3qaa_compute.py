@@ -1,5 +1,7 @@
 ## function to compute Jaime's 3 band QAA
 ## QV 2021-02-15
+## modifications:
+##                2022-06-07 (QV)  added Lee 2018 KPAR=1.48/zSD (https://doi.org/10.1002/lno.10940)
 
 def p3qaa_compute(sensor, b, g, r, cfg=None):
     import acolite as ac
@@ -107,4 +109,4 @@ def p3qaa_compute(sensor, b, g, r, cfg=None):
 
     z_SD = wscaled(z_SD_biased)
 
-    return({'a':a,'bb':bb,'Kd':Kd,'zSD':z_SD,'zSD_biased':z_SD_biased, 'eta':eta})
+    return({'a':a,'bb':bb,'Kd':Kd,'zSD':z_SD,'zSD_biased':z_SD_biased, 'eta':eta, 'KPAR':1.48/z_SD})
