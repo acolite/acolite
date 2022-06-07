@@ -15,6 +15,11 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
 
     ## get attributes and datasets
     gatts = ac.shared.nc_gatts(f)
+    tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
+    if ('projection_key' not in gatts) or (~all([t in gatts for t in tags])):
+        print('Unprojected data {}. Not outputting GeoTIFF files'.format(f))
+        return()
+
     datasets_file = ac.shared.nc_datasets(f)
     if 'ofile' in gatts:
         out = gatts['ofile'].replace('.nc', '')

@@ -120,4 +120,4 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                 dataset.FlushCache()
                 print('Wrote {}'.format(outfile))
         else:
-            print('File {} not recognised. Not outputting GeoTIFF files.'.format(f))
+            print('Unprojected data {}. Not outputting GeoTIFF files.'.format(f))
