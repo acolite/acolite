@@ -15,7 +15,7 @@ def libradtran_run(runfile):
     os.chdir(binpath)
     outputfile = runfile.replace('.inp', '.out')
 
-    cmd = ['./{}'.format(binary),'< {}'.format(runfile),'> {}'.format(outputfile)]
+    cmd = ['./{}'.format(binary),'< "{}"'.format(runfile),'> "{}"'.format(outputfile)]
     cmd = ' '.join(cmd)
     p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
     os.chdir(current_path)
