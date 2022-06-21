@@ -88,6 +88,22 @@ def acolite_run(settings, inputfile=None, output=None):
         l1r_files, l1r_setu = ret
         processed[ni]['l1r'] = l1r_files
 
+        ## project before a/c
+        try:
+            project = l1r_setu['output_projection']
+        except:
+            project = False
+        if (project) & (l1r_setu['reproject_before_ac']):
+            rep = []
+            for ncf in processed[ni]['l1r']:
+                ncfo = ac.output.project_acolite_netcdf(ncf, settings=settings)
+                if ncfo == (): continue
+                rep.append(ncfo)
+            if len(rep) > 0:
+                processed[ni]['l1r_swath'] = [ncf for ncf in processed[ni]['l1r']]
+                l1r_files = [ncf for ncf in rep]
+                processed[ni]['l1r'] = l1r_files
+
         ## save all used settings
         settings_file = '{}/acolite_run_{}_l1r_settings.txt'.format(l1r_setu['output'],l1r_setu['runid'])
         ac.acolite.settings.write(settings_file, l1r_setu)
@@ -191,7 +207,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## reproject data
     try:
-        project = l1r_setu['output_projection']
+        project = (l1r_setu['output_projection']) & (~l1r_setu['reproject_before_ac'])
     except:
         project = False
     if project:
