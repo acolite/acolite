@@ -5,6 +5,7 @@
 ## modifications: 2021-03-11 (QV) RGB outputs
 ##                2021-03-15 (QV) large update, including other parameters and mapping with pcolormesh
 ##                2021-04-01 (QV) changed plot_all option
+##                2022-06-21 (QV) changed handling of l2_flags (if not int)
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -196,9 +197,14 @@ def acolite_map(ncf, output = None,
 
     scene_mask = None
     if 'l2_flags' in datasets:
-        scene_mask = (ac.shared.nc_data(ncf, 'l2_flags') & (2**setu['flag_exponent_outofscene'])).astype(np.float32)
-        scene_mask[scene_mask != (2**setu['flag_exponent_outofscene'])] = np.nan
+        scene_mask = ac.shared.nc_data(ncf, 'l2_flags')
+        ## convert scene mask to int if it is not (e.g. after reprojection)
+        if scene_mask.dtype not in [np.int16, np.int32]: scene_mask = scene_mask.astype(int)
+        scene_mask = (scene_mask & (2**setu['flag_exponent_outofscene']))
+        scene_mask[scene_mask != (2**setu['flag_exponent_outofscene'])] = 0 #np.nan
         scene_mask[scene_mask == (2**setu['flag_exponent_outofscene'])] = 1
+        scene_mask = scene_mask.astype(np.float32)
+        scene_mask[scene_mask==0] = np.nan
 
     ## get output limit
     limit = None
