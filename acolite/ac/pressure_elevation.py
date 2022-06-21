@@ -28,6 +28,6 @@ def pressure_elevation(x, ratio=False, temperature=None, to_elevation=False):
         if ratio: return(pressure / 1013.25)
         else: return(pressure)
     else:
-        p1 = float(h) * 100 ## pressure is given instead of elevation
+        p1 = h.astype(float) * 100 ## pressure is given instead of elevation
         h = h0 * np.log(p0/p1)
         return(h)
