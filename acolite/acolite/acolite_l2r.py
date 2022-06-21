@@ -5,6 +5,7 @@
 ## modifications: 2021-03-11 (QV) forked from acolite_gem
 ##                2021-12-08 (QV) added nc_projection
 ##                2022-01-01 (QV) added segmented dsf option
+##                2022-06-21 (QV) moved orange band to separate function
 
 def acolite_l2r(gem,
                 output = None,
@@ -1616,42 +1617,7 @@ def acolite_l2r(gem,
 
     ## compute oli orange band
     if (gemo.gatts['sensor'] in ['L8_OLI', 'L9_OLI', 'EO1_ALI']) & (setu['oli_orange_band']):
-        if verbosity > 1: print('Computing orange band')
-        ## load orange band configuration
-        if gemo.gatts['sensor'] == 'L8_OLI':
-            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
-            sensor_o = 'L8_OLI_ORANGE'
-            panb, greenb, redb = '8', '3', '4'
-        if gemo.gatts['sensor'] == 'L9_OLI':
-            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
-            sensor_o = 'L9_OLI_ORANGE'
-            panb, greenb, redb = '8', '3', '4'
-        if gemo.gatts['sensor'] == 'EO1_ALI':
-            ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/EO1/ali_orange.cfg')
-            sensor_o = 'EO1_ALI_ORANGE'
-            panb, greenb, redb = '1', '4', '5'
-
-        ## do we have the required bands
-        compute_orange = True
-        for b in [panb, greenb, redb]:
-            if gemo.bands[b]['rhos_ds'] not in gemo.datasets:
-                print('{} not present, skipping orange band computation'.format(gemo.bands[b]['rhos_ds']))
-                compute_orange=False
-
-        if compute_orange:
-            ## read rsr for wavelength name
-            rsrd_o = ac.shared.rsr_dict(sensor_o)[sensor_o]
-            ob = {k:rsrd_o[k]['O'] for k in ['wave_mu', 'wave_nm', 'wave_name']}
-            ob['rhos_ds'] = 'rhos_{}'.format(ob['wave_name'])
-            ob['wavelength'] = ob['wave_nm']
-            gemo.bands['O'] = ob
-            ## compute orange band
-            ob_data = gemo.data(gemo.bands[panb]['rhos_ds'])*float(ob_cfg['pf'])
-            ob_data += gemo.data(gemo.bands[greenb]['rhos_ds'])*float(ob_cfg['gf'])
-            ob_data += gemo.data(gemo.bands[redb]['rhos_ds'])*float(ob_cfg['rf'])
-            gemo.write(ob['rhos_ds'], ob_data, ds_att = ob)
-            ob_data = None
-            ob = None
+        ac.parameters.castagna.orange(gemo)
     ## end orange band
 
     ## clear aot results
