@@ -395,6 +395,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         ave_vza = None
                         ave_vaa = None
                         for b in bands:
+                            if b not in grmeta['VIEW_DET']: continue
                             if '{}'.format(bv) not in grmeta['VIEW_DET'][b]: continue
                             bza = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Zenith']
                             baa = grmeta['VIEW_DET'][b]['{}'.format(bv)]['Azimuth']
