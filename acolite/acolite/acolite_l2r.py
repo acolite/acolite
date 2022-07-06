@@ -122,7 +122,7 @@ def acolite_l2r(gem,
 
     ## dem pressure
     if setu['dem_pressure']:
-        if verbosity > 1: print('Extracting SRTM DEM data')
+        if verbosity > 1: print('Extracting {} DEM data'.format(setu['dem_source']))
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
             dem = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
         else:

@@ -23,6 +23,9 @@ lut_dir=$ACDIR/data/LUT
 ## DEM SRTM HGT files
 hgt_dir=$ACDIR/data/SRTMGL3.003
 
+## Copernicus DEM files
+copernicus_dem_dir=$ACDIR/data/
+
 ## MET files
 met_dir=$ACDIR/data/MET
 
