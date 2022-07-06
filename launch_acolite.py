@@ -33,10 +33,6 @@ def launch_acolite():
         import matplotlib
         matplotlib.use("Agg")
 
-    ## ignore numpy errors
-    import numpy as np
-    olderr = np.seterr(all='ignore')
-
     ## run command line if --cli provided, otherwise use gui
     parser = argparse.ArgumentParser(description='ACOLITE')
     parser.add_argument('--settings', help='settings file', default=None)

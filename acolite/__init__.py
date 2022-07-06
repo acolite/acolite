@@ -29,6 +29,10 @@ from acolite import adjacency
 from acolite import gem
 from acolite import parameters
 
+## ignore numpy errors
+import numpy as np
+olderr = np.seterr(all='ignore')
+
 import os
 code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
