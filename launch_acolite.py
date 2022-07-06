@@ -5,6 +5,7 @@
 ##                    QV 2021-01-05 added freeze_support call for binary GUI
 ##                    QV 2021-04-01 updated for generic ACOLITE
 ##                    QV 2021-05-19 added print of import errors
+##                    QV 2022-04-14 added agh
 
 def launch_acolite():
     ## need to run freeze_support for PyInstaller binary generation
@@ -39,6 +40,7 @@ def launch_acolite():
     ## run command line if --cli provided, otherwise use gui
     parser = argparse.ArgumentParser(description='ACOLITE')
     parser.add_argument('--settings', help='settings file', default=None)
+    parser.add_argument('--settings_agh', help='settings file for agh', default=None)
     parser.add_argument('--inputfile', help='list of images', default=None)
     parser.add_argument('--output', help='output directory', default=None)
     parser.add_argument('--sensor', help='comma separated sensor list for LUT retrieval', default=None)
@@ -46,6 +48,12 @@ def launch_acolite():
 
     if '--retrieve_luts' in sys.argv:
         ac.acolite.acolite_luts(sensor=args.sensor)
+        return()
+
+    ## run AGH
+    if args.settings_agh is not None:
+        import acolite.gee
+        acolite.gee.agh_run(settings=args.settings_agh, acolite_settings=args.settings)
         return()
 
     ## command line processing, run acolite_run directly

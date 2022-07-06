@@ -38,3 +38,13 @@ netcdf_compression_level
 netcdf_compression_least_significant_digit
 output_projection_xrange
 output_projection_yrange
+
+
+## GEE
+percentiles
+pidx
+nbands
+task_check_sleep
+day_range
+minimum_crop_size
+output_scale

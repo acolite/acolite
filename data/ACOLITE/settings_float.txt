@@ -35,3 +35,12 @@ nechad_max_rhow_C_factor
 output_projection_resolution
 default_projection_resolution
 worldview_reproject_resolution
+
+## GEE
+st_lon
+st_lat
+st_box
+target_scale
+glint_min
+glint_max
+glint_wind

@@ -1,0 +1,66 @@
+## target point or ROI
+## if ROI is given scene is cropped to ROI
+## target station longitude and latitude
+st_lon=None
+st_lat=None
+st_box=3 # box size around station to retrieve (approximate in km)
+st_crop=True # crop to box around station
+region_name=None # region name for this run
+region_name_add_box=True # add box size to region name
+add_region_name_output=True # create extra directory level with region name
+limit=None # S,W,N,E ROI limits, will be replaced by station box if st_crop and st_lon and st_lat are provided
+output_scale=None
+
+## check minimum dimension (skip very narrow images)
+minimum_crop_size=None
+
+## dates to check
+## if end date is None, day_range days will be added to start date
+isodate_start=None
+isodate_end=None
+day_range=1
+
+## sensors to check, an Image Collection will be made containing all listed
+sensors=L5_TM,L7_ETM,L8_OLI,L9_OLI,S2A_MSI,S2B_MSI
+filter_tiles=None
+
+## processing settings
+run_hybrid_dsf=True # run DSF online on GEE data
+run_offline_dsf=False # run DSF on downloaded data (currently only if hybrid is off)
+subset_aot=True # compute aot over subset (True) or over full scene (False)
+
+## hybrid DSF settings
+rhop_par=romix
+percentiles=0,1,5,50,95,99,100
+pidx=0 # percentile index
+nbands=3 # number of bands to fit model
+sel_par=taua_cv # parameter to select model
+## optional glint correction using OSOAA lut
+glint_correction=False
+glint_min=0
+glint_max=0.08
+glint_wind=20
+
+## default atmosphere
+uwv_default=1.5
+uoz_default=0.3
+pressure=None
+elevation=None
+wind=None
+ancillary_data=False
+
+## output options
+output=None # target directory
+convert_output=True # convert downloaded subsets
+clear_output_zip_files=True # remove downloaded subsets
+store_output_google_drive=False
+store_output_locally=True
+store_rhot=True
+store_rhos=True
+store_geom=True
+use_scene_name=False
+target_scale=None
+
+## output options Google Drive
+drive_output=ACOLITE # Google Drive output folder named
+task_check_sleep=20 # sleep time in seconds between checks for Drive outputs
