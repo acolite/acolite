@@ -21,6 +21,9 @@ dsf_percentile=1
 
 dsf_residual_glint_correction_method=alternative
 
+## default resolution
+default_projection_resolution=30,30
+
 ## cirrus options
 ## default range 1350,1390 seems less noisy
 ## maybe 1840-1880 is less sensitive to surface signals
