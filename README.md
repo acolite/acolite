@@ -57,7 +57,9 @@ A suitable Python environment can for example be set up using conda and the pack
 * cd into the new acolite directory `cd acolite`
 * run `python launch_acolite.py`
 
-## Ancillary and SRTM DEM data download
+## Ancillary and DEM data download
+ACOLITE can automatically retrieve Copernicus DEM data (30 or 90 metre resolution) from the Amazon Web Services Public Datasets (e.g. https://registry.opendata.aws/copernicus-dem/). No account is necessary. The Copernicus 30 metre DEM is now the default DEM, but the use of a DEM needs to be set by dem_pressure=True.
+
 ACOLITE can automatically retrieve ancillary data (ozone, water vapour, pressure and wind speed) from the servers of the Ocean Biology Processing Group (OBPG) at NASA (https://oceandata.sci.gsfc.nasa.gov) and SRTM DEM data from NASA's Land Processes Distributed Active Archive Center (LP DAAC) at the USGS Earth Resources Observation and
 Science (EROS) Center (https://e4ftl01.cr.usgs.gov/MEASURES/) for both resources an EarthData account is required: https://urs.earthdata.nasa.gov/users/new
 
