@@ -32,14 +32,23 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         print('No lat/lon found in file {}'.format(ncf))
         return()
 
+    lon = None
+    lat = None
+
     ## parse settings
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
-
     if (setu['output_projection_limit'] is None) & (setu['limit'] is not None):
         setu['output_projection_limit'] = [l for l in setu['limit']]
 
     if (setu['output_projection_limit'] is None) & (setu['polygon'] is not None):
         setu['output_projection_limit'] = ac.shared.polygon_limit(setu['polygon'])
+
+    if (setu['output_projection_limit'] is None):
+        ## read lat/lon
+        lat = ac.shared.nc_data(ncf, 'lat')
+        lon = ac.shared.nc_data(ncf, 'lon')
+        setu['output_projection_limit'] = [np.nanmin(lat), np.nanmin(lon), np.nanmax(lat), np.nanmax(lon)]
+        print('Output limit from lat/lon', setu['output_projection_limit'])
 
     if setu['output_projection_resolution'] is not None:
         if len(setu['output_projection_resolution']) != 2:
@@ -61,9 +70,9 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
         if (setu['output_projection_epsg'] is None) & \
            (setu['output_projection_proj4'] is None):
-              lon = (limit[1]+limit[3])/2
-              lat = (limit[0]+limit[2])/2
-              utm_zone, epsg = ac.shared.utm_epsg(lon, lat)
+              lon_ = (limit[1]+limit[3])/2
+              lat_ = (limit[0]+limit[2])/2
+              utm_zone, epsg = ac.shared.utm_epsg(lon_, lat_)
               print(utm_zone, epsg)
               setu['output_projection_epsg'] = epsg
     else:
@@ -149,8 +158,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
                                           projection, nx, ny, [xrange[0],yrange[1],xrange[1],yrange[0]])
 
     ## read lat/lon
-    lat = ac.shared.nc_data(ncf, 'lat')
-    lon = ac.shared.nc_data(ncf, 'lon')
+    if lat is None: lat = ac.shared.nc_data(ncf, 'lat')
+    if lon is None: lon = ac.shared.nc_data(ncf, 'lon')
 
     ## set up source definition
     source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
@@ -172,8 +181,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     for ds in datasets:
         data_in, att = ac.shared.nc_data(ncf, ds, attributes=True)
         if len(data_in.shape) != 2: continue
-        print('Reprojecting {} to {} {}x{}'.format(ds, projection, nx, ny))
-        data_out = resampler.resample(data_in)
+        print('Reprojecting {} {}x{} to {} {}x{}'.format(ds, data_in.shape[0], data_in.shape[1], projection, nx, ny))
+        data_out = resampler.resample(data_in, fill_value=np.nan)
         data_in = None
 
         if setu['output_projection_fillnans']:
