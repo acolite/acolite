@@ -4,16 +4,19 @@
 ## 2022-01-04
 ## modifications: 2022-01-05 (QV) acolite function, changed handling provided x and y ranges
 ##                2022-01-10 (QV) renamed from reproject_acolite_netcdf
+##                2022-07-05 (QV) determine projection limit from lat lon if none given
+##                2022-07-06 (QV) simultaneous reprojection of multiple datasets (much faster!)
 
 def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
-    import os
+    import os, time
     from pyproj import Proj
 
     import acolite as ac
     import numpy as np
     from pyresample.bilinear import NumpyBilinearResampler
-    from pyresample import image, geometry
+    #from pyresample import image, geometry
+    from pyresample import geometry
 
     ## read gatts
     try:
@@ -176,30 +179,47 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     ## update oname in gatts
     gatts_out['oname'] = oname
 
-    ## run through datasets
-    new = True
+    ## read in data to be reprojected
+    data_in_stack = None
+    datasets_out = []
+    datasets_att = {}
     for ds in datasets:
         data_in, att = ac.shared.nc_data(ncf, ds, attributes=True)
         if len(data_in.shape) != 2: continue
-        print('Reprojecting {} {}x{} to {} {}x{}'.format(ds, data_in.shape[0], data_in.shape[1], projection, nx, ny))
-        data_out = resampler.resample(data_in, fill_value=np.nan)
+        if setu['verbosity'] > 2: print('Reading {} {}x{}'.format(ds, data_in.shape[0], data_in.shape[1]))
+        if data_in_stack is None:
+            data_in_stack = data_in
+        else:
+            data_in_stack = np.dstack((data_in_stack, data_in))
+        datasets_out.append(ds)
+        datasets_att[ds] = att
         data_in = None
 
-        if setu['output_projection_fillnans']:
-            data_out[data_out == 0] = np.nan
-            data_out = ac.shared.fillnan(data_out)
+    ## reproject dataset
+    t0 = time.time()
+    print('Projecting datasets {}x{}x{} to {} {}x{}x{}'.format(data_in_stack.shape[0], data_in_stack.shape[1], len(datasets_out),\
+                                                projection, nx, ny, len(datasets_out)))
+    data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
+    data_in_stack = None
+    if setu['output_projection_fillnans']:
+        data_out_stack[data_out_stack == 0] = np.nan
+        data_out_stack = ac.shared.fillnan(data_out_stack)
+    t1 = time.time()
+    print('Reprojection of {} datasets took {:.1f} seconds'.format(len(datasets_out),t1-t0))
 
+    ## write results
+    new = True
+    for di, ds in enumerate(datasets_out):
+        if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
         lsd = None
         if ds not in ['lat', 'lon', 'vza', 'sza', 'vaa', 'saa', 'raa']:
             lsd = setu['netcdf_compression_least_significant_digit']
-
-        ac.output.nc_write(ncfo, ds, data_out, attributes = gatts_out,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'],
-                           netcdf_compression_least_significant_digit=lsd,
-                           nc_projection = nc_projection,
-                           dataset_attributes = att, new = new)
-        data_out = None
+        ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], attributes = gatts_out,
+                            netcdf_compression=setu['netcdf_compression'],
+                            netcdf_compression_level=setu['netcdf_compression_level'],
+                            netcdf_compression_least_significant_digit=lsd,
+                            nc_projection = nc_projection,
+                            dataset_attributes = datasets_att[ds], new = new)
         new = False
     print('Wrote {}'.format(ncfo))
     return(ncfo)
