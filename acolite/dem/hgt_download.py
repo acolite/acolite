@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-04-21
 ## modifications: 2022-01-01 (QV) check if retrieved zipfile is valid
+##                2022-07-06 (QV) check if file exists before deleting
 
 def hgt_download(tile,
                  hgt_dir = None, override = False,
@@ -28,9 +29,12 @@ def hgt_download(tile,
         with zipfile.ZipFile(f_local, mode='r') as f:
             data_read = f.read(zfile)
     except:
-        print('SRTM DEM: {} not a zipfile'.format(f_local))
-        print('SRTM DEM: Likely incomplete download. Removing {}'.format(f_local))
-        os.remove(f_local)
+        if os.path.exists(f_local):
+            print('SRTM DEM: {} not a zipfile'.format(f_local))
+            print('SRTM DEM: Likely incomplete download. Removing {}'.format(f_local))
+            os.remove(f_local)
+        else:
+            print('SRTM DEM: {} does not exist'.format(f_local))
 
     if os.path.exists(f_local):
         return(f_local)
