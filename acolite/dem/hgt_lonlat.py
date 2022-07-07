@@ -5,9 +5,9 @@
 ## modifications: 2018-12-04 QV added printing of url to download (USGS server requires login so presently not automated)
 ##                2021-04-07 (QV) added to generic acolite
 ##                2021-04-21 (QV) removed return if tiles are missing (this is also possible since hgt_find does not know which tiles exist)
+##                2022-07-07 (QV) added SRTM1 DEM
 
-def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
-                url_base='http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'):
+def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None, source = 'srtmgl3'):
 
     import os
     import acolite as ac
@@ -15,6 +15,13 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
     import numpy as np
 
     if hgt_dir is None: hgt_dir = ac.config['hgt_dir']
+
+    if source == 'srtmgl3':
+        url_base = 'http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'
+        hgt_dir+='/SRTMGL3/'
+    elif source == 'srtmgl1':
+        url_base = 'https://e4ftl01.cr.usgs.gov/DP133/SRTM/SRTMGL1.003/2000.02.11/{}.SRTMGL1.hgt.zip'
+        hgt_dir+='/SRTMGL1/'
 
     ## find dem files
     limit=[0,0,0,0]
@@ -32,7 +39,7 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
         limit[0]=lat1.min()
         limit[2]=lat1.max()
 
-    hgt_files, hgt_required = ac.dem.hgt_find(limit, required=True, hgt_dir=hgt_dir)
+    hgt_files, hgt_required = ac.dem.hgt_find(limit, required=True, hgt_dir=hgt_dir, hgt_url=url_base)
 
     #if len(hgt_files) != len(hgt_required):
     #    print('DEM files not found in {}'.format(hgt_dir))
@@ -44,7 +51,7 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None,
     #    #return(0)
 
     dem = np.asarray(0.0)
-    
+
     ## run through dem files and reproject data to target lat,lon
     for i, hgt_file in enumerate(hgt_files):
         ## read hgt data and geolocation

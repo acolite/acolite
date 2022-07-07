@@ -21,7 +21,8 @@ scratch_dir=$ACDIR/scratch
 lut_dir=$ACDIR/data/LUT
 
 ## DEM SRTM HGT files
-hgt_dir=$ACDIR/data/SRTMGL3.003
+## separate directories for GL1 and GL3 will be created
+hgt_dir=$ACDIR/data/SRTM/
 
 ## Copernicus DEM files
 copernicus_dem_dir=$ACDIR/data/

@@ -6,6 +6,7 @@
 ##                2020-04-24 (QV) earthdata login
 ##                2021-05-31 (QV) added local directory creation
 ##                2022-04-08 (QV) download to scratch directory first
+##                2022-07-07 (QV) added SRTM1 DEM
 
 def download_file(url, file, auth = None, session = None,
                     parallel = False, verbosity = 0, verify_ssl = True):
@@ -24,7 +25,9 @@ def download_file(url, file, auth = None, session = None,
 
     start = time.time()
 
-    if ('https://oceandata.sci.gsfc.nasa.gov/' in url) or ('MEASURES/SRTMGL3.003/2000.02.11' in url):
+    if ('https://oceandata.sci.gsfc.nasa.gov/' in url) \
+            or ('MEASURES/SRTMGL3.003/2000.02.11' in url)\
+            or ('DP133/SRTM/SRTMGL1.003/2000.02.11' in url) :
         if ('EARTHDATA_u' in os.environ) & ('EARTHDATA_p' in os.environ):
             username = os.environ['EARTHDATA_u']
             password = os.environ['EARTHDATA_p']

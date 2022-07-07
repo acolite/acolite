@@ -5,12 +5,14 @@
 ##                2019-04-24 (QV) added support for zip files
 ##                2021-04-07 (QV) changed numpy import
 ##                2021-04-21 (QV) added download
+##                2022-07-07 (QV) added SRTM1 DEM
 
-def hgt_find(limit, required=False, hgt_dir=None, hgt_ext='.SRTMGL3.hgt.gz'):
+def hgt_find(limit, required=False, hgt_dir=None, hgt_url = 'http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'):
     import os
     import numpy as np
     import acolite as ac
 
+    hgt_ext = os.path.basename(hgt_url)[2:]
     hgt_limit = [int(np.floor(limit[0])),
                  int(np.floor(limit[1])),
                  int(np.ceil(limit[2])),
@@ -42,14 +44,14 @@ def hgt_find(limit, required=False, hgt_dir=None, hgt_ext='.SRTMGL3.hgt.gz'):
         hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext)
         ## try downloading if we don't have the tile
         ## note that some tiles do not exist
-        if not os.path.exists(hgt_path): ac.dem.hgt_download(hgt_file, hgt_dir=hgt_dir)
+        if not os.path.exists(hgt_path): ac.dem.hgt_download(hgt_file, hgt_url, hgt_dir=hgt_dir)
 
         if os.path.exists(hgt_path): hgt_files.append(hgt_path)
         else:
             hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext.replace('.gz','.zip'))
             if os.path.exists(hgt_path): hgt_files.append(hgt_path)
             else:
-                hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext.replace('.SRTMGL3.hgt.gz','.hgt'))
+                hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext.replace(hgt_ext,'.hgt'))
                 if os.path.exists(hgt_path): hgt_files.append(hgt_path)
 
     if required:

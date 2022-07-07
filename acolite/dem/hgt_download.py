@@ -4,11 +4,9 @@
 ## 2021-04-21
 ## modifications: 2022-01-01 (QV) check if retrieved zipfile is valid
 ##                2022-07-06 (QV) check if file exists before deleting
+##                2022-07-07 (QV) added SRTM1 DEM
 
-def hgt_download(tile,
-                 hgt_dir = None, override = False,
-                 url_base = 'http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'):
-
+def hgt_download(tile, url_base, hgt_dir = None, override = False):
     import zipfile, os
     import acolite as ac
     if hgt_dir is None: hgt_dir = ac.config['hgt_dir']
@@ -16,6 +14,9 @@ def hgt_download(tile,
 
     f_url = url_base.format(tile)
     f_local = '{}/{}'.format(hgt_dir,os.path.basename(f_url))
+
+    print(f_url)
+    print(f_local)
 
     if not os.path.exists(f_local):
         try:
