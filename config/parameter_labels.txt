@@ -11,6 +11,7 @@ rhow_*,0,0.1,False,Greys_r,$\rho_{w}$,-
 rrs_*,0,0.03,False,Greys_r,$Rrs$,$sr^{-1}$
 rhog_*,0,0.02,False,Greys_r,$\rho_{g}$,-
 rhoe_*,0,0.02,False,Greys_r,$\rho_{e}$,-
+rho_cirrus,0,0.05,False,Greys_r,$\rho_{cirrus}$,-
 #
 ## AOT
 #
@@ -39,9 +40,10 @@ tur_nechadave_*,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
 #
 ## T Dogliotti with generic option
 #
-tur_dogliotti,1,100,True,Planck_Parchment_RGB,T Dogliotti,FNU
-tur_dogliotti_*,1,100,True,Planck_Parchment_RGB,T Dogliotti,FNU
-tur_dogliotti2015,1,100,True,Planck_Parchment_RGB,T Dogliotti,FNU
+tur_dogliotti,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
+tur_dogliotti_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
+tur_dogliotti2015,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
+tur_dogliotti2022_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2022,FNU
 #
 ## CHL_OC
 #
@@ -84,7 +86,8 @@ st11,270,300,False,Planck_Parchment_RGB,ST11,K
 ##
 #
 ## Hue Angle
-hue_angle,40,240,False,Calgae255,Hue Angle,°
+hue_angle,0,360,False,hsv,Hue Angle (Van der Woerd),°
+hue_angle_pitarch,0,360,False,hsv,Hue Angle (Pitarch),°
 #
 ## OLH
 olh,0,0.04,False,Calgae255,OLH,-
@@ -112,3 +115,6 @@ p3qaa_zsd,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$,$m$
 p3qaa_zsd_biased,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$ biased,$m$
 p3qaa_eta,0.5,0.7,False,default,P3QAA $\eta$,-
 #
+## DEM
+dem,0,1000,False,Planck_Parchment_RGB,DEM,m
+dem_pressure,950,1020,False,Planck_Parchment_RGB,DEM Pressure,hPa
