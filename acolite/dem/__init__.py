@@ -13,3 +13,5 @@ from .dem_lonlat import dem_lonlat
 from .copernicus_dem_download import copernicus_dem_download
 from .copernicus_dem_find import copernicus_dem_find
 from .copernicus_dem_lonlat import copernicus_dem_lonlat
+
+from .hillshade_nc import hillshade_nc
