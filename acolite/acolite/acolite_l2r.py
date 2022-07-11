@@ -179,11 +179,12 @@ def acolite_l2r(gem,
                         sza[high_sza] = setu['sza_limit']
                         print('Mean SZA after replacing SZA > {}: {:.3f}'.format(setu['sza_limit'],np.nanmean(sza)))
     geom_mean = {k: np.nanmean(gem.data(k)) if k in gem.datasets else gem.gatts[k] for k in geom_ds}
-    if (geom_mean['sza'] > setu['sza_limit']) & (setu['sza_limit_replace']):
+    if (geom_mean['sza'] > setu['sza_limit']):
         print('Warning: SZA out of LUT range')
         print('Mean SZA: {:.3f}'.format(geom_mean['sza']))
-        geom_mean['sza'] = setu['sza_limit']
-        print('Mean SZA after replacing SZA > {}: {:.3f}'.format(setu['sza_limit'],geom_mean['sza']))
+        if  (setu['sza_limit_replace']):
+            geom_mean['sza'] = setu['sza_limit']
+            print('Mean SZA after replacing SZA > {}: {:.3f}'.format(setu['sza_limit'],geom_mean['sza']))
 
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
