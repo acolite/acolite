@@ -150,14 +150,14 @@ def acolite_run(settings, inputfile=None, output=None):
                 if type(l2r) is not list: l2r = [l2r]
                 l2r_files+=l2r
 
-                if l2r_setu['l2r_export_geotiff']:
-                    for ncf in l2r:
+                for ncf in l2r:
+                    if l2r_setu['l2r_export_geotiff']:
                         ac.output.nc_to_geotiff(ncf, match_file = l2r_setu['export_geotiff_match_file'],
                                                 cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                 skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
 
-                        if l2r_setu['l2r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
-
+                    if l2r_setu['l2r_export_geotiff_rgb']:
+                        ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
 
                 ## make rgb rhos maps
                 if l2r_setu['rgb_rhos']:
