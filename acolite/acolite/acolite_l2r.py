@@ -401,7 +401,9 @@ def acolite_l2r(gem,
 
             aot_sel = np.array(float(setu['dsf_fixed_aot']))
             aot_sel.shape+=(1,1) ## make 1,1 dimensions
-            print('User specified aot {} and model {}'.format(aot_sel[0][0], luts[aot_lut[0][0]]))
+            aot_sel_lut = luts[aot_lut[0][0]]
+            aot_sel_par = np.nan
+            print('User specified aot {} and model {}'.format(aot_sel[0][0], aot_sel_lut))
 
             ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
             gk = '' if use_revlut else '_mean'
