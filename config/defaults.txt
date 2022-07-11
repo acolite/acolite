@@ -128,6 +128,10 @@ min_tgas_aot=0.85
 ## minimum gas transmittance to allow surface reflectance retrieval in that band
 min_tgas_rho=0.70
 
+## replace high SZA to fall within LUT
+sza_limit_replace=False
+sza_limit=79.999
+
 ## cirrus correction (testing - do not use)
 cirrus_correction=False
 cirrus_range=1350,1390

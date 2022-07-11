@@ -3,6 +3,7 @@
 ##
 min_tgas_aot
 min_tgas_rho
+sza_limit
 dsf_percentile
 dsf_filter_percentile
 dsf_min_tile_aot
