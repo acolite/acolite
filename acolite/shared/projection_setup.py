@@ -1,16 +1,17 @@
-## def projection_utm
+## def projection_setup
 ## sets up a suitable utm projection based on SWNE limit
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-01-18
-## modifications:
+## modifications: 2022-07-12 (QV) changed name from projection_utm
 
-def projection_utm(limit, resolution, res_method = 'bilinear'):
+def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=None):
     from pyproj import Proj
     import acolite as ac
 
-    lon = (limit[1]+limit[3])/2
-    lat = (limit[0]+limit[2])/2
-    utm_zone, epsg = ac.shared.utm_epsg(lon, lat)
+    if (utm) and (epsg is None):
+        lon = (limit[1]+limit[3])/2
+        lat = (limit[0]+limit[2])/2
+        utm_zone, epsg = ac.shared.utm_epsg(lon, lat)
 
     projection = 'EPSG:{}'.format(epsg)
 
@@ -37,7 +38,7 @@ def projection_utm(limit, resolution, res_method = 'bilinear'):
 
     ## set up projection dict and nc_projection
     dct = {'xrange': xrange, 'yrange': yrange, 'p': p,
-           'pixel_size': target_pixel_size, 'xdim': nx, 'ydim': ny}
+           'pixel_size': target_pixel_size, 'xdim': nx, 'ydim': ny, 'epsg':projection}
     nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=True)
 
     xyr = [min(dct['xrange']),
