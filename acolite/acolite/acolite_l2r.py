@@ -457,8 +457,10 @@ def acolite_l2r(gem,
 
                 ## apply TOA filter
                 if setu['dsf_filter_toa']:
+                    if verbosity > 1: print('Filtered {} using {}th percentile in {}x{} pixel box'.format(gem.bands[b]['rhot_ds'],
+                                                    setu['dsf_filter_percentile'], setu['dsf_filter_box'][0], setu['dsf_filter_box'][1]))
                     band_data[mask] = np.nanmedian(band_data) ## fill mask with median
-                    band_data = scipy.ndimage.median_filter(band_data, size=setu['dsf_filter_box'])
+                    #band_data = scipy.ndimage.median_filter(band_data, size=setu['dsf_filter_box'])
                     band_data = scipy.ndimage.percentile_filter(band_data, setu['dsf_filter_percentile'], size=setu['dsf_filter_box'])
                     band_data[mask] = np.nan
                 band_sub = np.where(valid)

@@ -197,10 +197,10 @@ dsf_percentile=1
 dsf_intercept_pixels=1000
 dsf_minimum_segment_size=1
 
-## apply median filter to TOA data
+## apply percentile filter to TOA data
 dsf_filter_toa=False
-dsf_filter_percentile=5
-dsf_filter_box=5,5
+dsf_filter_percentile=50
+dsf_filter_box=10,10
 dsf_filter_aot=False
 
 # smooth retrieved aot for resolved processing
