@@ -4,7 +4,7 @@
 ## 2022-03-30
 ## modifications: 2022-07-12 (QV) added RPC dem option
 
-def warp_inputfile(file, target=None, dct=None, rpc_dem=None):
+def warp_inputfile(file, target=None, dct=None, rpc_dem=None, resampleAlg = 'average'):
     from osgeo import gdal
     import os
 
@@ -34,7 +34,6 @@ def warp_inputfile(file, target=None, dct=None, rpc_dem=None):
     rpc = True if len(RPCs) > 0 else False
     errorThreshold = 0
     targetAlignedPixels = False
-    resampleAlg = 'average'
 
     ## add transformeroptions
     transformerOptions = []
