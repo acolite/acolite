@@ -6,6 +6,7 @@
 ##                2021-12-08 (QV) added nc_projection
 ##                2022-01-01 (QV) added segmented dsf option
 ##                2022-06-21 (QV) moved orange band to separate function
+##                2022-07-15 (QV) added option to select most common model for non-fixed DSF
 
 def acolite_l2r(gem,
                 output = None,
@@ -684,7 +685,7 @@ def acolite_l2r(gem,
                 ## apply gaussian kernel smoothing
                 if (setu['dsf_smooth_aot']) & (setu['dsf_aot_estimate'] == 'resolved'):
                     ## for gaussian smoothing of aot
-                    from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
+                    from astropy.convolution import Gaussian2DKernel
                     from astropy.convolution import convolve
                     aot_stack[lut]['aot'] = \
                         convolve(aot_stack[lut]['aot'],
@@ -805,8 +806,26 @@ def acolite_l2r(gem,
             rhod_f = None
             rhod_p = None
         if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1) & (aot_sel_par is not None):
-                print('Selected model {}: aot {:.3f}, RMSD {:.2e}'.format(aot_sel_lut, aot_sel[0][0], aot_sel_par[0][0]))
+            print('Selected model {}: aot {:.3f}, RMSD {:.2e}'.format(aot_sel_lut, aot_sel[0][0], aot_sel_par[0][0]))
 
+        ## check variable aot, use most common LUT
+        if (setu['dsf_aot_estimate'] != 'fixed') & (setu['dsf_aot_most_common_model']):
+            print('Selecting most common model for processing.')
+            n_aot = len(np.where(aot_lut != -1)[0])
+            n_sel = 0
+            for li, lut in enumerate(luts):
+                sub = np.where(aot_lut == li)
+                n_cur = len(sub[0])
+                print('{}: {:.1f}%: mean aot of subset = {:.2f}'.format(lut, 100*n_cur/n_aot, np.nanmin(aot_sel[sub])))
+                if n_cur >= n_sel:
+                    n_sel = n_cur
+                    li_sel = li
+                    aot_sel_lut = '{}'.format(lut)
+            ## set selected model
+            aot_lut[:] = li_sel
+            aot_sel[:] = aot_stack[aot_sel_lut]['aot'][:]*1.0
+            aot_sel_par[:] = np.nan # to do
+            print('Selected {}, mean aot = {:.2f}'.format(aot_sel_lut, np.nanmean(aot_sel)))
     ### end dark_spectrum_fitting
 
     ## exponential

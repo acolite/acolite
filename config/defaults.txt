@@ -201,14 +201,17 @@ dsf_minimum_segment_size=1
 dsf_filter_toa=False
 dsf_filter_percentile=50
 dsf_filter_box=10,10
-dsf_filter_aot=False
 
+## filter applied to AOT retrieval
+dsf_filter_aot=False
 # smooth retrieved aot for resolved processing
-dsf_smooth_aot=True
-dsf_smooth_box=20,20
+dsf_smooth_aot=False
+dsf_smooth_box=10,10
 
 # fill nans in resolved aot (e.g. over very bright targets)
 dsf_aot_fillnan=True
+# use single most common model retrieved in resolved aot
+dsf_aot_most_common_model=True
 
 # more dsf options
 dsf_model_selection=min_drmsd
