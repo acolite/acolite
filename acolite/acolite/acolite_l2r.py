@@ -419,8 +419,7 @@ def acolite_l2r(gem,
             aot_sel = np.array(float(setu['dsf_fixed_aot']))
             aot_sel.shape+=(1,1) ## make 1,1 dimensions
             aot_sel_lut = luts[aot_lut[0][0]]
-            aot_sel_par = np.array(np.nan)
-            aot_sel_par.shape+=(1,1) ## make 1,1 dimensions
+            aot_sel_par = None
             print('User specified aot {} and model {}'.format(aot_sel[0][0], aot_sel_lut))
 
             ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
@@ -805,8 +804,8 @@ def acolite_l2r(gem,
 
             rhod_f = None
             rhod_p = None
-        if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1):
-            print('Selected model {}: aot {:.3f}, RMSD {:.2e}'.format(aot_sel_lut, aot_sel[0][0], aot_sel_par[0][0]))
+        if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1) & (aot_sel_par is not None):
+                print('Selected model {}: aot {:.3f}, RMSD {:.2e}'.format(aot_sel_lut, aot_sel[0][0], aot_sel_par[0][0]))
 
     ### end dark_spectrum_fitting
 
