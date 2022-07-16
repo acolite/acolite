@@ -685,21 +685,10 @@ def acolite_l2r(gem,
                 ## apply gaussian kernel smoothing
                 if (setu['dsf_smooth_aot']) & (setu['dsf_aot_estimate'] == 'resolved'):
                     ## for gaussian smoothing of aot
-                    from astropy.convolution import Gaussian2DKernel
-                    from astropy.convolution import convolve
-                    aot_stack[lut]['aot'] = \
-                        convolve(aot_stack[lut]['aot'],
-                                 Gaussian2DKernel(x_stddev=setu['dsf_smooth_box'][0], y_stddev=setu['dsf_smooth_box'][1]),
-                                 boundary='extend')
+                    aot_stack[lut]['aot'] = scipy.ndimage.gaussian_filter(aot_stack[lut]['aot'], setu['dsf_smooth_box'], order=0, mode='nearest')
 
                 ## mask aot
                 aot_stack[lut]['aot'][aot_stack[lut]['mask']] = np.nan
-
-                ## fill nan tiles with closest values
-                #if (setu['dsf_aot_estimate'] == 'tiled'):
-                #    ind = scipy.ndimage.distance_transform_edt(aot_stack[lut]['mask'],
-                #                                               return_distances=False, return_indices=True)
-                #    aot_stack[lut]['aot'] = aot_stack[lut]['aot'][tuple(ind)]
 
                 ## store bands for fitting rmsd
                 for bbi in range(setu['dsf_nbands_fit']):
