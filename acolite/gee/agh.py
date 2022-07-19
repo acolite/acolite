@@ -9,6 +9,7 @@
 ##                2022-04-14 (QV) added glint correction
 ##                2022-04-15 (QV) added ancillary data
 ##                2022-05-22 (QV) added download of BT data from Landsat, added metadata copy
+##                2022-07-18 (QV) added check for existing files & override setting
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, dateutil.parser, requests
@@ -46,6 +47,19 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         rname = ''
 
     fkey, pid = image[0], image[1]
+
+    ## output file names
+    ext = ''
+    if len(rname) >= 0: ext = '_{}'.format(rname)
+    rhot_file = pid+'_rhot'+ext
+    rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
+    rhos_file = pid+'_rhos'+ext
+    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
+    geom_file = pid+'_geom'+ext
+    geom_file_local = '{}/{}.zip'.format(output,geom_file)
+
+    file_type = 'L1R_GEE'
+    if settings['run_hybrid_dsf']: file_type = 'L2R_GEE_HYBRID'
 
     ## select product
     i = imColl.filter(ee.Filter.eq(fkey, pid)).first()
@@ -86,6 +100,16 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     ## parse datetime
     dt = dateutil.parser.parse(dtime)
+
+    if settings['use_scene_name']:
+        ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
+    else:
+        obase  = '{}_{}_{}_{}{}'.format(sensor,  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
+        ofile = '{}/{}.nc'.format(os.path.dirname(rhot_file_local), obase)
+
+    if os.path.exists(ofile) & (settings['override'] is False):
+        print('AGH file {} exists, set override=True to replace'.format(ofile))
+        return()
 
     ## get projection info
     tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
@@ -378,15 +402,15 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         tiles = [[0,odim[0], 0,odim[1],'']]
     print('Running download with {} tiles'.format(len(tiles)))
 
-    ## output file names
-    ext = ''
-    if len(rname) >= 0: ext = '_{}'.format(rname)
-    rhot_file = pid+'_rhot'+ext
-    rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
-    rhos_file = pid+'_rhos'+ext
-    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
-    geom_file = pid+'_geom'+ext
-    geom_file_local = '{}/{}.zip'.format(output,geom_file)
+#    ## output file names
+#    ext = ''
+#    if len(rname) >= 0: ext = '_{}'.format(rname)
+#    rhot_file = pid+'_rhot'+ext
+#    rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
+#    rhos_file = pid+'_rhos'+ext
+#    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
+#    geom_file = pid+'_geom'+ext
+#    geom_file_local = '{}/{}.zip'.format(output,geom_file)
 
     ## set output config for rhot
     output_config = {'description': rhot_file, 'scale': scale,  'folder':'ACOLITE'}
@@ -443,12 +467,12 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 rect = ee.Geometry.Rectangle(mins.cat(maxs), p, True, False)#.transform("EPSG:4326")
                 output_config['region'] = rect
             ## set output names
-            rhot_file = pid+'_rhot'+ext
-            rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
-            rhos_file = pid+'_rhos'+ext
-            rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
-            geom_file = pid+'_geom'+ext
-            geom_file_local = '{}/{}.zip'.format(output,geom_file)
+            #rhot_file = pid+'_rhot'+ext
+            #rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
+            #rhos_file = pid+'_rhos'+ext
+            #rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
+            #geom_file = pid+'_geom'+ext
+            #geom_file_local = '{}/{}.zip'.format(output,geom_file)
 
             ## write rhot (tile)
             if settings['store_rhot']:
@@ -578,7 +602,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         for k in property_keys: gatts[k] = im['properties'][k]
         ## add geometry average
         for k in geometry: gatts[k] = geometry[k]
-        file_type = 'L1R_GEE'
+        #file_type = 'L1R_GEE'
 
         if settings['run_hybrid_dsf']:
             gatts['acolite_type'] = 'l2r_gee_hybrid'
@@ -588,13 +612,13 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             gatts['ac_aot_550'] = sel_aot
             gatts['ac_model'] = sel_lut
             gatts['ac_var'] = sel_val
-            file_type = 'L2R_GEE'
+            #file_type = 'L2R_GEE_HYBRID'
 
         ## output file names
-        ext = ''
-        if len(rname) >= 0: ext = '_{}'.format(rname)
-        rhot_file = pid+'_rhot'+ext
-        rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
+        #ext = ''
+        #if len(rname) >= 0: ext = '_{}'.format(rname)
+        #rhot_file = pid+'_rhot'+ext
+        #rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
         if settings['use_scene_name']:
             ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
         else:

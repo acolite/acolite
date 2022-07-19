@@ -1,3 +1,6 @@
+## override existing files
+override=False
+
 ## target point or ROI
 ## if ROI is given scene is cropped to ROI
 ## target station longitude and latitude
