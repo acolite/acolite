@@ -805,7 +805,10 @@ def acolite_l2r(gem,
             for li, lut in enumerate(luts):
                 sub = np.where(aot_lut == li)
                 n_cur = len(sub[0])
-                print('{}: {:.1f}%: mean aot of subset = {:.2f}'.format(lut, 100*n_cur/n_aot, np.nanmin(aot_sel[sub])))
+                if n_cur == 0:
+                    print('{}: {:.1f}%'.format(lut, 100*n_cur/n_aot))
+                else:
+                    print('{}: {:.1f}%: mean aot of subset = {:.2f}'.format(lut, 100*n_cur/n_aot, np.nanmean(aot_sel[sub])))
                 if n_cur >= n_sel:
                     n_sel = n_cur
                     li_sel = li
