@@ -180,7 +180,7 @@ def acolite_map(ncf, output = None,
                     cbar.ax._visible = False
 
             if map_save:
-                plt.savefig(ofile, dpi=setu['map_dpi'], bbox_inches='tight')
+                plt.savefig(ofile, dpi=setu['map_dpi'], bbox_inches='tight', facecolor='white')
                 if setu['verbosity']>1: print('Wrote {}'.format(ofile))
             if map_show:
                 plt.show()
