@@ -7,7 +7,7 @@
 ##                2022-03-04 (QV) moved inputfile testing to inputfile_test
 
 def acolite_run(settings, inputfile=None, output=None):
-    import glob, datetime, os
+    import glob, datetime, os, shutil
     import acolite as ac
 
     print('Running ACOLITE processing - {}'.format(ac.version))
@@ -85,7 +85,12 @@ def acolite_run(settings, inputfile=None, output=None):
         ## run l1 convert
         ret = ac.acolite.acolite_l1r(bundle, setu_l1r)
         if len(ret) == 0: continue
-        l1r_files, l1r_setu = ret
+        if len(ret[0]) == 0: continue
+
+        l1r_files, l1r_setu, l1_bundle = ret
+        if processed[ni]['input'] != l1_bundle:
+            processed[ni]['input_original'] = '{}'.format(processed[ni]['input'])
+            processed[ni]['input'] = l1_bundle
         processed[ni]['l1r'] = l1r_files
 
         ## project before a/c
@@ -264,17 +269,31 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## remove files
     for ni in processed:
+        ## remove extracted data
+        if 'input_original' in processed[ni]:
+            if l1r_setu['delete_extracted_input']:
+                for f in processed[ni]['input']:
+                    if os.path.exists(f):
+                        print('Deleting {}'.format(f))
+                        shutil.rmtree(f)
+                ## replace by empty list
+                processed[ni]['input'] = []
+
+        ## remove output netcdfs
         for level in ['l1r', 'l2r', 'l2r_pans', 'l2t', 'l2w']:
             if level not in processed[ni]: continue
             if '{}_delete_netcdf'.format(level) not in l1r_setu: continue
             if l1r_setu['{}_delete_netcdf'.format(level)]:
                 ## run through images and delete them
                 for f in processed[ni][level]:
-                    os.remove(f)
+                    if os.path.exists(f):
+                        print('Deleting {}'.format(f))
+                        os.remove(f)
                     ## also delete pan file if it exists
                     if level == 'l1r':
                         panf = f.replace('_L1R.nc', '_L1R_pan.nc')
                         if os.path.exists(panf):
+                            print('Deleting {}'.format(panf))
                             os.remove(panf)
                 ## replace by empty list
                 processed[ni][level] = []

@@ -25,17 +25,21 @@ def acolite_l1r(bundle, setu, input_type=None):
             print('This may give issues in Windows due to path length limitations, file(s):')
             for b in bundle: print(len(b), b)
 
+    ## set output directory
+    if 'output' not in setu:
+        setu['output'] = os.path.dirname(setu['inputfile'][0])
+
     ## identify bundle
-    input_types = [ac.acolite.identify_bundle(b) for b in bundle]
+    orig_bundle = [b for b in bundle]
+    identification = [ac.acolite.identify_bundle(b, output=setu['output']) for b in bundle]
+    input_types = [i[0] for i in identification]
+    bundle = [i[1] for i in identification]
+
     input_type = input_types[0]
     if not all([i == input_type for i in input_types]):
         print('Warning: Multiple input types given: {}'.format(input_types))
     if input_type == None:
         print('{} not recognized.'.format(bundle[0]))
-
-    ## set output directory
-    if 'output' not in setu:
-        setu['output'] = os.path.dirname(setu['inputfile'][0])
 
     if 'limit' in setu:
         if setu['limit'] is not None:
@@ -160,4 +164,4 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end FORMOSAT
     ################
 
-    return(l1r_files, setu)
+    return(l1r_files, setu, bundle)

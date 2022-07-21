@@ -3,17 +3,27 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-10
 ## modifications: 2021-04-08 (QV) added VENUS
+##                2022-07-21 (QV) added check for tar and zip files
 
-def identify_bundle(bundle, input_type = None):
+def identify_bundle(bundle, input_type = None, output = None):
     import os, glob, shutil, zipfile
     import acolite as ac
 
     zipped = False
+    orig_bundle = '{}'.format(bundle)
 
     while input_type is None:
         if not os.path.exists(bundle):
             print('Input file {} does not exist'.format(bundle))
             break ## exit loop if path does not exist
+
+        ## test if zip/tar file
+        if os.path.isfile(bundle):
+            targ_bundle = ac.shared.extract_bundle(bundle, output=output, verbosity=2)
+            if targ_bundle is not None:
+                print(targ_bundle)
+                bundle = '{}'.format(targ_bundle)
+                zipped = True
 
         ################
         ## ACOLITE
@@ -196,16 +206,6 @@ def identify_bundle(bundle, input_type = None):
         ## Planet data
         ## unzip files if needed
         try:
-            if bundle[-4:] == '.zip':
-                zipped = True
-                bundle_orig = '{}'.format(bundle)
-                bundle,ext = os.path.splitext(bundle_orig)
-                zip_ref = zipfile.ZipFile(bundle_orig, 'r')
-                for z in zip_ref.infolist():
-                    z.filename = os.path.basename(z.filename)
-                    zip_ref.extract(z, bundle)
-                zip_ref.close()
-
             ## test files
             files = ac.planet.bundle_test(bundle)
             if 'metadata' in files:
@@ -270,10 +270,10 @@ def identify_bundle(bundle, input_type = None):
         ################
         break ## exit loop
 
-    ## remove the extracted bundle
-    if (zipped) & (os.path.exists(bundle)):
+    ## remove the extracted bundle if it could not be identified
+    if (input_type is None) & (zipped) & (os.path.exists(bundle)) & (bundle != orig_bundle):
         shutil.rmtree(bundle)
-        bundle = '{}'.format(bundle_orig)
+        bundle = '{}'.format(orig_bundle)
 
     ## return input_type
-    return(input_type)
+    return(input_type, bundle)
