@@ -159,6 +159,12 @@ def acolite_run(settings, inputfile=None, output=None):
                     if l2r_setu['l2r_export_geotiff_rgb']:
                         ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
 
+                    if l2r_setu['pans']:
+                        pr = ac.acolite.acolite_pans(ncf, settings = l2r_setu)
+                        if pr != ():
+                            if 'l2r_pans' not in processed[ni]: processed[ni]['l2r_pans']=[]
+                            processed[ni]['l2r_pans'].append(pr)
+
                 ## make rgb rhos maps
                 if l2r_setu['rgb_rhos']:
                     l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
@@ -258,7 +264,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## remove files
     for ni in processed:
-        for level in ['l1r', 'l2r', 'l2t', 'l2w']:
+        for level in ['l1r', 'l2r', 'l2r_pans', 'l2t', 'l2w']:
             if level not in processed[ni]: continue
             if '{}_delete_netcdf'.format(level) not in l1r_setu: continue
             if l1r_setu['{}_delete_netcdf'.format(level)]:

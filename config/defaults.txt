@@ -280,6 +280,16 @@ rgb_max=0.15,0.15,0.15
 rgb_autoscale=False
 rgb_autoscale_percentiles=5,95
 
+# PAN sharpening options
+pans=False
+pans_method=panr
+pans_output=rgb
+pans_bgr=480,560,655
+pans_rgb_rhot=True
+pans_rgb_rhos=True
+pans_export_geotiff_rgb=False
+pans_sensors=L7_ETM,L8_OLI,L9_OLI
+
 # more mapping options - under development
 map_projected=False
 map_raster=False
@@ -302,6 +312,7 @@ l2r_export_geotiff_rgb=False
 l1r_delete_netcdf=False
 l2t_delete_netcdf=False
 l2r_delete_netcdf=False
+l2r_pans_delete_netcdf=False
 l2w_delete_netcdf=False
 
 # delete settings and log files

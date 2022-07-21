@@ -2,6 +2,8 @@ from .acolite_l1r import *
 from .acolite_l2r import *
 from .acolite_l2w import *
 
+from .acolite_pans import *
+
 from .acolite_run import *
 from .acolite_map import *
 from .acolite_gui import *
