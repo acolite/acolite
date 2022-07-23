@@ -33,7 +33,7 @@ from acolite import parameters
 import numpy as np
 olderr = np.seterr(all='ignore')
 
-import os
+import os, datetime
 code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
 
@@ -57,6 +57,26 @@ if 'version' in config:
     version = 'Generic Version {}'.format(config['version'])
 else:
     version = 'Generic GitHub Clone'
+
+    gitdir = '{}/.git'.format(path)
+    gd = {}
+    if os.path.exists(gitdir):
+        gitfiles = os.listdir(gitdir)
+
+        for f in ['ORIG_HEAD', 'FETCH_HEAD', 'HEAD']:
+            gf = '{}/{}'.format(gitdir, f)
+            if not os.path.exists(gf): continue
+            st = os.stat(gf)
+            dt = datetime.datetime.fromtimestamp(st.st_mtime)
+            gd[f] = dt.isoformat()[0:19]
+
+        version_long = ''
+        if 'HEAD' in gd:
+            version_long+='clone {}'.format(gd['HEAD'])
+            version = 'Generic GitHub Clone c{}'.format(gd['HEAD'])
+        if 'FETCH_HEAD' in gd:
+            version_long+=' pull {}'.format(gd['FETCH_HEAD'])
+            version = 'Generic GitHub Clone p{}'.format(gd['FETCH_HEAD'])
 
 ## test whether we can find the relative paths
 for t in config:
