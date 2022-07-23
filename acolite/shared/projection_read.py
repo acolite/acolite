@@ -37,4 +37,5 @@ def projection_read(file):
            'proj4_string':proj4_string,
            'dimensions':(dimx, dimy),
            'pixel_size': pixel_size}
+    dct['projection'] = 'EPSG:{}'.format(dct['epsg'])
     return(dct)

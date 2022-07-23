@@ -7,11 +7,14 @@
 def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=None):
     from pyproj import Proj
     import acolite as ac
+    import numpy as np
 
     if (utm) and (epsg is None):
         lon = (limit[1]+limit[3])/2
         lat = (limit[0]+limit[2])/2
         utm_zone, epsg = ac.shared.utm_epsg(lon, lat)
+    if (~utm) and (epsg is None):
+        epsg = 4326
 
     projection = 'EPSG:{}'.format(epsg)
 
@@ -32,9 +35,9 @@ def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=
     yrange = (yrange_region[0]-y_grid_off[0]), (yrange_region[1]+(target_pixel_size[0]-y_grid_off[1]))
 
     ## pixel sizes
-    ny = int((yrange[0] - yrange[1])/target_pixel_size[1])
-    nx = int((xrange[1] - xrange[0])/target_pixel_size[0])
-    ny = int((yrange[1] - yrange[0])/target_pixel_size[1])
+    #ny = int((yrange[0] - yrange[1])/target_pixel_size[1])
+    nx = int(np.round((xrange[1] - xrange[0])/target_pixel_size[0]))
+    ny = int(np.round((yrange[1] - yrange[0])/target_pixel_size[1]))
 
     ## set up projection dict and nc_projection
     dct = {'xrange': xrange, 'yrange': yrange, 'p': p,

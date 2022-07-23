@@ -6,6 +6,7 @@
 ##                2021-10-28 (QV) fix for negative pixel indices and scene grid offset
 
 def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
+    import numpy as np
 
     ## input dict has pixel size (x, y)
     ## dimensions (y, x)
@@ -23,19 +24,22 @@ def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
         xrange_raw, yrange_raw = dct['p']((limit[1],limit[1],limit[3],limit[3]),
                                           (limit[0],limit[2],limit[2],limit[0]))
         xrange_raw = (min(xrange_raw), max(xrange_raw))
-        yrange_raw = (min(yrange_raw), max(yrange_raw))
+        yrange_raw = (max(yrange_raw), min(yrange_raw))
+
     else:
         xrange_raw, yrange_raw = dct['p']([limit[1],limit[3]],[limit[0],limit[2]])
 
     if target_pixel_size is None:
-        xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
-        yrange = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
+        xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), \
+                  xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
+        yrange = [yrange_raw[0] - (yrange_raw[0] % pixel_size[1]), \
+                  yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1])]
         ## compute whether we are off from the nominal grid
         x_grid_off = xscene[0]%pixel_size[0], xscene[1]%pixel_size[0]
         y_grid_off = yscene[0]%pixel_size[1], yscene[1]%pixel_size[1]
     else:
         xrange = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
-        yrange = [yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2), yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2)]
+        yrange = [yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2), yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2)]
         ## compute whether we are off from the nominal grid
         x_grid_off = xscene[0]%target_pixel_size[0], xscene[1]%target_pixel_size[0]
         y_grid_off = yscene[0]%target_pixel_size[1], yscene[1]%target_pixel_size[1]
@@ -62,11 +66,11 @@ def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
     xrange = [max((xrange_region[0], xscene[0])), min((xrange_region[1], xscene[1]))]
     yrange = [min((yrange_region[0], yscene[0])), max((yrange_region[1], yscene[1]))]
 
-    xsize = int(xrange[1]-xrange[0])
-    ysize = int(yrange[1]-yrange[0])
+    xsize = int(np.round(xrange[1]-xrange[0]))
+    ysize = int(np.round(yrange[1]-yrange[0]))
 
-    xsize_pix = int(xsize/pixel_size[0])
-    ysize_pix = int(ysize/pixel_size[1])
+    xsize_pix = int(np.round(xsize/pixel_size[0]))
+    ysize_pix = int(np.round(ysize/pixel_size[1]))
 
     ## if pixel indices are negative remove an extra pixel after converting to int to handle coordinate being "left" or "above" the scene
     xregion = [((i - xscene[0])/pixel_size[0]) for i in xrange_region]
@@ -76,21 +80,21 @@ def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
     yregion[0] = int(yregion[0]) if yregion[0] > 0 else int(yregion[0])
     yregion[1] = int(yregion[1]) #if yregion[1] > 0 else int(yregion[1])-1
 
-    xsize_region = int(xrange_region[1]-xrange_region[0])
-    ysize_region = int(yrange_region[1]-yrange_region[0])
+    xsize_region = int(np.round(xrange_region[1]-xrange_region[0]))
+    ysize_region = int(np.round(yrange_region[1]-yrange_region[0]))
 
-    xsize_region_pix = int(xsize_region/pixel_size[0])
-    ysize_region_pix = int(ysize_region/pixel_size[1])
+    xsize_region_pix = int(np.round(xsize_region/pixel_size[0]))
+    ysize_region_pix = int(np.round(ysize_region/pixel_size[1]))
 
     #xpos = [int((i - xscene[0])/pixel_size[0]) for i in xrange]
-    xpos = [(i - xscene[0])/pixel_size[0] for i in xrange]
+    xpos = [np.round((i - xscene[0])/pixel_size[0]) for i in xrange]
     if xpos[0] < 0: xpos[0]=0
     else: xpos[0] = int(xpos[0])
     if xpos[1] >= xdim: xpos[1]=xdim
     else: xpos[1] = int(xpos[1])
 
     #ypos = [int((i - yscene[0])/pixel_size[1]) for i in yrange]
-    ypos = [(i - yscene[0])/pixel_size[1] for i in yrange]
+    ypos = [np.round((i - yscene[0])/pixel_size[1])for i in yrange]
     if ypos[0] < 0: ypos[0]=0
     else: ypos[0] = int(ypos[0])
     if ypos[1] >= ydim: ypos[1]=ydim
