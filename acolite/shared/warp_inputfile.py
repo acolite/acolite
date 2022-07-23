@@ -3,6 +3,8 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-03-30
 ## modifications: 2022-07-12 (QV) added RPC dem option
+##                2022-07-21 (QV) create directory if it doesnt exist
+##                2022-07-22 (QV) added EPSG to srs if missing
 
 def warp_inputfile(file, target=None, dct=None, rpc_dem=None, resampleAlg = 'average'):
     from osgeo import gdal
@@ -46,25 +48,30 @@ def warp_inputfile(file, target=None, dct=None, rpc_dem=None, resampleAlg = 'ave
         outputBounds = (min(dct['xrange']), min(dct['yrange'])+dct['pixel_size'][1],
                         max(dct['xrange'])+dct['pixel_size'][0],max(dct['yrange']))
         if 'epsg' in dct:
-            outputBoundsSRS = dct['epsg']
-            dstSRS = dct['epsg']
+            epsg = str(dct['epsg'])
+            if 'epsg' not in epsg.lower(): epsg = 'EPSG:{}'.format(epsg)
+            outputBoundsSRS = epsg
+            dstSRS = epsg
         else:
             outputBoundsSRS = dct['proj4_string']
             dstSRS = dct['proj4_string']
-
         wopt = gdal.WarpOptions(rpc=rpc, errorThreshold=errorThreshold,
                                 xRes = xRes, yRes = yRes,
                                 outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
                                 dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
                                 resampleAlg=resampleAlg, transformerOptions=transformerOptions)
     else:
-        wopt = gdal.WarpOptions(rpc=rpc, errorThreshold=errorThreshold, resampleAlg=resampleAlg,
-                                transformerOptions=transformerOptions)
+        wopt = gdal.WarpOptions(rpc=rpc, errorThreshold=errorThreshold,
+                                resampleAlg=resampleAlg, transformerOptions=transformerOptions)
 
     if target is None:
         ofile = '{}/{}_warped{}'.format(dn, bn, ext)
     else:
         ofile = '{}'.format(target)
+
+    ## create directory
+    if not os.path.exists(os.path.dirname(ofile)):
+        os.makedirs(os.path.dirname(ofile))
 
     print('Reprojecting {} to {}'.format(file, ofile))
     if os.path.exists(ofile): os.remove(ofile)
