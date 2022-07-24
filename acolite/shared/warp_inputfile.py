@@ -45,8 +45,9 @@ def warp_inputfile(file, target=None, dct=None, rpc_dem=None, resampleAlg = 'ave
     if dct is not None:
         xRes = dct['pixel_size'][0]
         yRes = dct['pixel_size'][1]
-        outputBounds = (min(dct['xrange']), min(dct['yrange'])+dct['pixel_size'][1],
-                        max(dct['xrange'])+dct['pixel_size'][0],max(dct['yrange']))
+        outputBounds = (min(dct['xrange']), min(dct['yrange']),
+                        max(dct['xrange']), max(dct['yrange']))
+
         if 'epsg' in dct:
             epsg = str(dct['epsg'])
             if 'epsg' not in epsg.lower(): epsg = 'EPSG:{}'.format(epsg)
