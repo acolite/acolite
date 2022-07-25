@@ -5,9 +5,10 @@
 ## modifications: 2021-04-14 (QV) added output to settings if not configured
 ##                2021-04-15 (QV) test/parse input files
 ##                2022-03-04 (QV) moved inputfile testing to inputfile_test
+##                2022-07-25 (QV) avoid deleting original inputfiles
 
 def acolite_run(settings, inputfile=None, output=None):
-    import glob, datetime, os, shutil
+    import glob, datetime, os, shutil, copy
     import acolite as ac
 
     print('Running ACOLITE processing - {}'.format(ac.version))
@@ -89,8 +90,11 @@ def acolite_run(settings, inputfile=None, output=None):
 
         l1r_files, l1r_setu, l1_bundle = ret
         if processed[ni]['input'] != l1_bundle:
-            processed[ni]['input_original'] = '{}'.format(processed[ni]['input'])
-            processed[ni]['input'] = l1_bundle
+            processed[ni]['input_original'] = copy.copy(processed[ni]['input'])
+            if type(processed[ni]['input_original']) != list:
+                processed[ni]['input_original'] = [processed[ni]['input_original']]
+            if len(l1_bundle) > 0:
+                processed[ni]['input'] = l1_bundle
         processed[ni]['l1r'] = l1r_files
 
         ## project before a/c
@@ -270,14 +274,13 @@ def acolite_run(settings, inputfile=None, output=None):
     ## remove files
     for ni in processed:
         ## remove extracted data
-        if 'input_original' in processed[ni]:
-            if l1r_setu['delete_extracted_input']:
+        if ('input_original' in processed[ni]):
+            if (l1r_setu['delete_extracted_input']):
                 for f in processed[ni]['input']:
-                    if os.path.exists(f):
+                    if os.path.exists(f) & (f not in processed[ni]['input_original']):
                         print('Deleting {}'.format(f))
                         shutil.rmtree(f)
-                ## replace by empty list
-                processed[ni]['input'] = []
+                        processed[ni]['input'].remove(f)
 
         ## remove output netcdfs
         for level in ['l1r', 'l2r', 'l2r_pans', 'l2t', 'l2w']:
@@ -289,14 +292,13 @@ def acolite_run(settings, inputfile=None, output=None):
                     if os.path.exists(f):
                         print('Deleting {}'.format(f))
                         os.remove(f)
+                        processed[ni][level].remove(f)
                     ## also delete pan file if it exists
                     if level == 'l1r':
                         panf = f.replace('_L1R.nc', '_L1R_pan.nc')
                         if os.path.exists(panf):
                             print('Deleting {}'.format(panf))
                             os.remove(panf)
-                ## replace by empty list
-                processed[ni][level] = []
 
     ## remove log and settings files
     try:
