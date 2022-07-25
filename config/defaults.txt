@@ -319,7 +319,7 @@ l2w_delete_netcdf=False
 delete_acolite_run_text_files=False
 
 # delete extracted L1 file
-delete_extracted_input=True
+delete_extracted_input=False
 
 # reproject output files
 reproject_outputs=L1R,L2R,L2W
