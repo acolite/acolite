@@ -307,6 +307,7 @@ def acolite_l2r(gem,
                     gem.data_mem['{}_segmented'.format(ds)] = [np.nanmean(gem.data(ds)[segment_data[segment]['sub']]) for segment in segment_data]
                 else:
                     gem.data_mem['{}_segmented'.format(ds)] = [1.0 * gem.data(ds) for segment in segment_data]
+                gem.data_mem['{}_segmented'.format(ds)] = np.asarray(gem.data_mem['{}_segmented'.format(ds)]).flatten()
     ## end segmenting
 
     if (not setu['resolved_geometry']) & (setu['dsf_aot_estimate'] != 'tiled'): use_revlut = False
@@ -806,7 +807,7 @@ def acolite_l2r(gem,
                 sub = np.where(aot_lut == li)
                 n_cur = len(sub[0])
                 if n_cur == 0:
-                    print('{}: {:.1f}%'.format(lut, 100*n_cur/n_aot))
+                    print('{}: {:.1f}%'.format(lut, 0))
                 else:
                     print('{}: {:.1f}%: mean aot of subset = {:.2f}'.format(lut, 100*n_cur/n_aot, np.nanmean(aot_sel[sub])))
                 if n_cur >= n_sel:
@@ -1119,6 +1120,7 @@ def acolite_l2r(gem,
 
             ## shape of atmospheric datasets
             atm_shape = aot_sel.shape
+
             ## if path reflectance is resolved, but resolved geometry available
             if (use_revlut) & (setu['dsf_aot_estimate'] == 'fixed'):
                 atm_shape = cur_data.shape
@@ -1160,6 +1162,7 @@ def acolite_l2r(gem,
                           gem.data_mem['sza'+gk],
                           gem.data_mem['wind'+gk]]
                     # subset to number of estimates made for this LUT
+                    ## QV 2022-07-28 maybe not needed any more?
                     if len(xi[0]) > 1:
                         xi = [[x[l] for l in ls[0]] for x in xi]
 
