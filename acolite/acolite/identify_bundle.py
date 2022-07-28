@@ -18,7 +18,8 @@ def identify_bundle(bundle, input_type = None, output = None):
             break ## exit loop if path does not exist
 
         ## test if zip/tar file
-        if os.path.isfile(bundle):
+        bn, ext = os.path.splitext(bundle)
+        if os.path.isfile(bundle) & (ext in ['.zip', '.tar', '.gz', '.tgz']):
             targ_bundle = ac.shared.extract_bundle(bundle, output=output, verbosity=2)
             if targ_bundle is not None:
                 print(targ_bundle)
