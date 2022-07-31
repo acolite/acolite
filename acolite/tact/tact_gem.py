@@ -4,6 +4,7 @@
 ## 2021-02-28
 ## modifications: 2021-02-28 (QV) allow gem to be a dict
 ##                2022-03-22 (QV) added check whether thermal bands are in input gem
+##                2022-07-31 (QV) skip loading of datasets that are not required
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -26,10 +27,21 @@ def tact_gem(gem, output_file = True,
     import numpy as np
     import acolite as ac
 
+    ## determine datasets to skip
+    if type(gem) is str:
+        datasets = ac.shared.nc_datasets(gem)
+    else:
+        datasets = gem['datasets']
+    skip_datasets = []
+    for ds in datasets:
+        if ds in ['lat', 'lon']: continue
+        if ds[0:2] == 'bt': continue
+        skip_datasets.append(ds)
+
     ## read gem file if NetCDF
     if type(gem) is str:
         gemf = '{}'.format(gem)
-        gem = ac.gem.read(gem, sub=sub)
+        gem = ac.gem.read(gem, sub=sub, skip_datasets=skip_datasets)
     gemf = gem['gatts']['gemfile']
 
     ## check if we need to run tact
