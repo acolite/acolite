@@ -1,4 +1,9 @@
 ## ACOLITE default settings for S2A_MSI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
 
 ## copy datasets from L1R to L2R
 copy_datasets=lon,lat,sza,vza,raa,rhot_*
@@ -12,7 +17,7 @@ dsf_wave_range=400,900
 s2_target_res=10
 resolved_geometry=True
 gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1
-offsets_toa=0,0,0,0,0,0,0,0,0,0,0,0.0,0
+offsets_toa=0,0,0,0,0,0,0,0,0,0,0,0,0
 
 dsf_intercept_pixels=200
 dsf_tile_dimensions=600,600

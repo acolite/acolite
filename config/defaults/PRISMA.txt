@@ -1,4 +1,9 @@
 ## ACOLITE default settings for PRISMA
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
 
 ## PRISMA options
 prisma_rhot_per_pixel_sza=True

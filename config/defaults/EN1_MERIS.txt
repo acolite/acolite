@@ -1,4 +1,9 @@
 ## ACOLITE default settings for EN1_MERIS
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
 
 ## for subsetting using tpg seems to give poor results
 use_tpg=False

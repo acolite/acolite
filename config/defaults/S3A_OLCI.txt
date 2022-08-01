@@ -1,4 +1,9 @@
 ## ACOLITE default settings for S3A_OLCI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
 
 ## copy datasets from L1R to L2R
 copy_datasets=lon,lat,sza,vza,saa,vaa,raa,rhot_*

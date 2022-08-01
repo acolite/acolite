@@ -1,4 +1,13 @@
 ## ACOLITE default settings
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+## Settings in this defaults file have the lowest priority, they will be
+## overwritten by sensor specific defaults, and they will be over written
+## by user provided settings.
+##
 
 ## settings for cropping
 region_name=
