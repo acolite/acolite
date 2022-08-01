@@ -7,7 +7,7 @@
 ##
 ## function written by Quinten Vanhellemont, RBINS
 ## 2022-07-06
-## modifications:
+## modifications: 2022-07-30 (QV) added dem_tile check
 
 def copernicus_dem_lonlat(lon1, lat1, sea_level=0, source='copernicus30', nearest=False, dem_min = -500.0):
 
@@ -19,18 +19,23 @@ def copernicus_dem_lonlat(lon1, lat1, sea_level=0, source='copernicus30', neares
     limit = np.nanmin(lat1), np.nanmin(lon1), np.nanmax(lat1), np.nanmax(lon1)
     dem_tiles = ac.dem.copernicus_dem_find(limit, source = source)
 
+    dem = None
     ## run through dem files and reproject data to target lat,lon
     for i, dem_tile in enumerate(dem_tiles):
+        if len(dem_tile) < 21: continue
+        if not os.path.exists(dem_tile):
+            print('{} does not exist.'.format(dem_tile))
+            continue
+
         cdm = ac.shared.read_band(dem_tile)
         dct = ac.shared.projection_read(dem_tile)
         lon0, lat0 = ac.shared.projection_geo(dct)
 
         result = ac.shared.reproject2(cdm, lon0, lat0, lon1, lat1, nearest=nearest)
-        if i == 0:
+        if dem is None:
             dem = result
         else:
             dem[result > dem_min] = result[result > dem_min]
-
-    dem[dem<=dem_min] = sea_level
+    if dem is not None: dem[dem<=dem_min] = sea_level
 
     return(dem)
