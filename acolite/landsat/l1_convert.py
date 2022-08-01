@@ -50,7 +50,8 @@ def l1_convert(inputfile, output = None, settings = {},
 
     ofile = None
     ofiles = []
-
+    setu = {}
+    
     for bundle in inputfile:
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
