@@ -1,5 +1,10 @@
 # def tact_profiles_gdas1
 ## gets and reformats gdas1 profiles for a given limit and dataset
+##
+## more info on this dataset at RDA UCAR
+## https://rda.ucar.edu/datasets/ds083.3/
+## ds083.3 | DOI: 10.5065/D65Q4T4Z
+##
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-02
 ## modifications:

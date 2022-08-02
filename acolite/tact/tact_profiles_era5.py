@@ -1,5 +1,10 @@
 # def tact_profiles_era5
 ## gets and reformats era5 profiles for a given limit and dataset
+##
+## more info on this dataset at RDA UCAR
+## https://rda.ucar.edu/datasets/ds633.0/
+## ds633.0 | DOI: 10.5065/BH6N-5N20
+##
 ## written by Quinten Vanhellemont, RBINS
 ## 2019-10-02
 ## modifications: 2022-08-02 (QV) split off from tact_limit.py
