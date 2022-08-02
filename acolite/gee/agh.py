@@ -48,15 +48,12 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     fkey, pid = image[0], image[1]
 
-    ## output file names
+    ## output file names for combined file
+    ## used to determine NetCDF name
     ext = ''
     if len(rname) >= 0: ext = '_{}'.format(rname)
     rhot_file = pid+'_rhot'+ext
     rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
-    rhos_file = pid+'_rhos'+ext
-    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
-    geom_file = pid+'_geom'+ext
-    geom_file_local = '{}/{}.zip'.format(output,geom_file)
 
     file_type = 'L1R_GEE'
     if settings['run_hybrid_dsf']: file_type = 'L2R_GEE_HYBRID'
@@ -466,58 +463,59 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 ## set output region to this tile
                 rect = ee.Geometry.Rectangle(mins.cat(maxs), p, True, False)#.transform("EPSG:4326")
                 output_config['region'] = rect
-            ## set output names
-            #rhot_file = pid+'_rhot'+ext
-            #rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
-            #rhos_file = pid+'_rhos'+ext
-            #rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
-            #geom_file = pid+'_geom'+ext
-            #geom_file_local = '{}/{}.zip'.format(output,geom_file)
+
+            ## set output names for this tile
+            rhot_file_tile = pid+'_rhot'+ext
+            rhot_file_tile_local = '{}/{}.zip'.format(output,rhot_file_tile)
+            rhos_file_tile = pid+'_rhos'+ext
+            rhos_file_tile_local = '{}/{}.zip'.format(output,rhos_file_tile)
+            geom_file_tile = pid+'_geom'+ext
+            geom_file_tile_local = '{}/{}.zip'.format(output,geom_file_tile)
 
             ## write rhot (tile)
             if settings['store_rhot']:
-                output_config['description'] = rhot_file
+                output_config['description'] = rhot_file_tile
                 url = i_rhot.getDownloadUrl({
                         'name': output_config['description'],
                         'bands': obands_rhot,
                         'region': output_config['region'],
                         'scale': output_config['scale'],
                         'filePerBand': False})
-                print('Downloading {}'.format(rhot_file))
+                print('Downloading {}'.format(rhot_file_tile))
                 response = requests.get(url)
-                with open(rhot_file_local, 'wb') as f:
+                with open(rhot_file_tile_local, 'wb') as f:
                     f.write(response.content)
-                rhot_files.append(rhot_file_local)
+                rhot_files.append(rhot_file_tile_local)
 
             ## write geometry (tile)
             if settings['store_geom'] & (i_geom is not None):
-                output_config['description'] = geom_file
+                output_config['description'] = geom_file_tile
                 url = i_geom.getDownloadUrl({
                     'name': output_config['description'],
                     'bands': obands_geom,
                     'region': output_config['region'],
                     'scale': output_config['scale'],
                     'filePerBand': False})
-                print('Downloading {}'.format(geom_file))
+                print('Downloading {}'.format(geom_file_tile))
                 response = requests.get(url)
-                with open(geom_file_local, 'wb') as f:
+                with open(geom_file_tile_local, 'wb') as f:
                     f.write(response.content)
-                geom_files.append(geom_file_local)
+                geom_files.append(geom_file_tile_local)
 
             ## write rhos (tile)
             if settings['store_rhos'] & settings['run_hybrid_dsf']:
-                output_config['description'] = rhos_file
+                output_config['description'] = rhos_file_tile
                 url = i_rhos.getDownloadUrl({
                     'name': output_config['description'],
                     'bands': obands_rhos,
                     'region': output_config['region'],
                     'scale': output_config['scale'],
                     'filePerBand': False})
-                print('Downloading {}'.format(rhos_file))
+                print('Downloading {}'.format(rhos_file_tile))
                 response = requests.get(url)
-                with open(rhos_file_local, 'wb') as f:
+                with open(rhos_file_tile_local, 'wb') as f:
                     f.write(response.content)
-                rhos_files.append(rhos_file_local)
+                rhos_files.append(rhos_file_tile_local)
     ## end store local files
 
     ## output to ACOLITE style NetCDF
@@ -615,8 +613,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             #file_type = 'L2R_GEE_HYBRID'
 
         ## output file names
-        #ext = ''
-        #if len(rname) >= 0: ext = '_{}'.format(rname)
+        ext = ''
+        if len(rname) >= 0: ext = '_{}'.format(rname)
         #rhot_file = pid+'_rhot'+ext
         #rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
         if settings['use_scene_name']:
@@ -624,6 +622,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         else:
             obase  = '{}_{}_{}_{}{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
             ofile = '{}/{}.nc'.format(os.path.dirname(rhot_file_local), obase)
+        print(ofile)
 
         ## convert dct info into nc_projection and lat, lon
         #dct = ac.shared.projection_read(rhot_image_file)
