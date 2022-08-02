@@ -5,6 +5,7 @@
 ## modifications: 2021-02-28 (QV) allow gem to be a dict
 ##                2022-03-22 (QV) added check whether thermal bands are in input gem
 ##                2022-07-31 (QV) skip loading of datasets that are not required
+##                2022-08-02 (QV) added source keyword
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -21,7 +22,7 @@ def tact_gem(gem, output_file = True,
              sub = None,
              output_atmosphere = False,
              output_intermediate = False,
-             copy_datasets = ['lon', 'lat'], verbosity=0):
+             copy_datasets = ['lon', 'lat'], source = 'era5', verbosity=0):
 
     import os, datetime
     import numpy as np
@@ -53,10 +54,13 @@ def tact_gem(gem, output_file = True,
         print('No thermal bands for {} (bands {}) in {}'.format(gem['gatts']['sensor'], ','.join(gem['gatts']['thermal_bands']), gemf))
         return()
 
-    max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
-    if gem['gatts']['isodate'] > max_date:
-        print('File too recent for TACT: after {}'.format(max_date))
-        return()
+    if source == 'era5':
+        max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
+
+        if gem['gatts']['isodate'] > max_date:
+            print('File too recent for TACT with {} profiles: after {}'.format(source, max_date))
+            print('Run with tact_source=gdas1 for NRT processing')
+            return()
 
     if 'nc_projection' in gem:
         nc_projection = gem['nc_projection']
@@ -93,7 +97,7 @@ def tact_gem(gem, output_file = True,
     thd, simst, lonc, latc = ac.tact.tact_limit(gem['gatts']['isodate'],
                                                 lon=gem['data']['lon'],
                                                 lat=gem['data']['lat'],
-                                                satsen=gem['gatts']['thermal_sensor'])
+                                                satsen=gem['gatts']['thermal_sensor'], source = source)
     for ds in thd:
         gem['data'][ds] = thd[ds]
         ## output atmosphere parameters
