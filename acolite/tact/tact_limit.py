@@ -53,7 +53,6 @@ def tact_limit(isotime, limit=None,
         cells, to_run = ac.tact.tact_profiles_era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source == 'gdas1':
         cells, to_run = ac.tact.tact_profiles_gdas1(isotime, limit, obase = obase, override = override, verbosity = verbosity)
-        print(obase, to_run)
 
     ## space/time cells
     lat_cells, lon_cells, time_cells = cells
@@ -62,7 +61,6 @@ def tact_limit(isotime, limit=None,
     with multiprocessing.Pool(processes=processes) as pool:
         results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None,
                                                 pdate='', rsr_data=rsr_data, obase=None), to_run)
-
 
     ## read simulation outputs
     sims = None
@@ -94,7 +92,6 @@ def tact_limit(isotime, limit=None,
                         sims = {s: np.zeros((len(lat_cells),len(lon_cells), len(time_cells))) for s in sim}
                     for s in sim:
                         sims[s][i,j,k] = sim[s]
-
 
     ## time interpolation
     ## calculate the time weighting
