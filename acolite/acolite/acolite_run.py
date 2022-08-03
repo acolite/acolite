@@ -205,6 +205,8 @@ def acolite_run(settings, inputfile=None, output=None):
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
                 ret = ac.tact.tact_gem(l1r, output = l1r_setu['output'],
+                                            emissivity = l1r_setu['tact_emissivity'],
+                                            emissivity_file = l1r_setu['tact_emissivity_file'],
                                             source = l1r_setu['tact_profile_source'],
                                             verbosity=ac.config['verbosity'],
                                             output_atmosphere = l1r_setu['tact_output_atmosphere'],

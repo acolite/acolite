@@ -6,6 +6,7 @@
 ##                2022-03-22 (QV) added check whether thermal bands are in input gem
 ##                2022-07-31 (QV) skip loading of datasets that are not required
 ##                2022-08-02 (QV) added source keyword
+##                2022-08-03 (QV) added external emissivity files
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -14,17 +15,13 @@ def tact_gem(gem, output_file = True,
              output = None,
              to_celcius = False,
              emissivity = 'water', # 'unity' / 'water' / 'eminet' / 'user'
-             em_water = {'L5_TM':{'6': 0.9904561594813298},
-                         'L7_ETM':{'6': 0.9909058218284508},
-                         'L8_TIRS':{'10': 0.9926494385655781, '11': 0.9877384047023862},
-                         'L9_TIRS':{'10': 0.9925715715215025, '11': 0.9876691339772199}},
-             em_user = 1.0,
+             emissivity_file = None,
              sub = None,
              output_atmosphere = False,
              output_intermediate = False,
              copy_datasets = ['lon', 'lat'], source = 'era5', verbosity=0):
 
-    import os, datetime
+    import os, datetime, json
     import numpy as np
     import acolite as ac
 
@@ -44,6 +41,23 @@ def tact_gem(gem, output_file = True,
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub, skip_datasets=skip_datasets)
     gemf = gem['gatts']['gemfile']
+
+    ## load emissivity data
+    if emissivity_file is not None:
+        if not os.path.exists(emissivity_file):
+            print('Could not file {}'.format(emissivity_file))
+            emissivity_file = None
+    if emissivity_file is None:
+        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
+        if not os.path.exists(emissivity_file):
+            print('Could not file {}'.format(emissivity_file))
+            emissivity_file = None
+    if emissivity_file is not None:
+        em = json.load(open(emissivity_file, 'r'))
+        print('Loaded emissivity file {}'.format(emissivity_file))
+        print(em)
+    else:
+        em = None
 
     ## check if we need to run tact
     run_tact = False
@@ -125,15 +139,17 @@ def tact_gem(gem, output_file = True,
             #gem['data'][btk][mask] = np.nan
 
             bk = b.split('_')[0]
-            if emissivity == 'unity':
-                e = 1.0
-            elif emissivity == 'water':
-                e = em_water[gem['gatts']['thermal_sensor']][bk]
-            elif emissivity == 'eminet':
+            e = None
+            if em is not None:
+                e = em[gem['gatts']['thermal_sensor']][bk]
+                #print(e, gem['gatts']['thermal_sensor'], bk)
+
+            if emissivity == 'eminet':
                 print('Emissivity from eminet to be implemented')
-            elif emissivity == 'user':
-                e = em_user
-            else:
+
+            if e is None:
+                print('Emissivity for {} {} not configured.'.format(gem['gatts']['thermal_sensor'], bk))
+                print('Ls and ST will not be computed for {} {}.'.format(gem['gatts']['thermal_sensor'], bk))
                 continue
 
             ## shape emissivity to tile dimensions
