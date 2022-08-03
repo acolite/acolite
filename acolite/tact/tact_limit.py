@@ -27,7 +27,7 @@ def tact_limit(isotime, limit=None,
     c_time = dt.hour + dt.minute/60 + dt.second/3600
 
     source_default = 'era5'
-    if source not in ['era5', 'gdas1']:
+    if source not in ['era5', 'gdas1', 'ncep.reanalysis2']: # 'ncep.reanalysis',
         print('Source {} not configured. Using {}.'.format(source, source_default))
         source = '{}'.format(source_default)
 
@@ -53,6 +53,8 @@ def tact_limit(isotime, limit=None,
         cells, to_run = ac.tact.tact_profiles_era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source == 'gdas1':
         cells, to_run = ac.tact.tact_profiles_gdas1(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+    if source in ['ncep.reanalysis', 'ncep.reanalysis2']:
+        cells, to_run = ac.tact.tact_profiles_ncep(isotime, limit, obase = obase, override = override, verbosity = verbosity, source = source)
 
     ## space/time cells
     lat_cells, lon_cells, time_cells = cells
