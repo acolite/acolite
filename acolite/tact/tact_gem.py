@@ -140,12 +140,21 @@ def tact_gem(gem, output_file = True,
 
             bk = b.split('_')[0]
             e = None
-            if em is not None:
-                e = em[gem['gatts']['thermal_sensor']][bk]
-                #print(e, gem['gatts']['thermal_sensor'], bk)
+            if emissivity == 'ged':
+                ged = None
+                if ged is None:
+                    ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14])
+                if b == '11':
+                    e = ged[:,:,1]
+                else:
+                    e = ged[:,:,0]
 
             if emissivity == 'eminet':
                 print('Emissivity from eminet to be implemented')
+
+            if (e is None) & (em is not None):
+                e = em[gem['gatts']['thermal_sensor']][bk]
+                #print(e, gem['gatts']['thermal_sensor'], bk)
 
             if e is None:
                 print('Emissivity for {} {} not configured.'.format(gem['gatts']['thermal_sensor'], bk))
