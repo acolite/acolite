@@ -27,7 +27,8 @@ def ged_download(tile, url_base, ged_dir = None, override = False):
         if not os.path.exists(f_local):
             try:
                 ret = ac.shared.download_file(f_url, f_local)
-                print('Downloaded {}'.format(f_local))
+                if os.path.exists(f_local):
+                    print('Downloaded {}'.format(f_local))
             except BaseException as err:
                 print(f"Download error {err=}, {type(err)=}")
                 print('Downloading {} failed'.format(f_local))
