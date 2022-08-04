@@ -33,6 +33,10 @@ met_dir=$ACDIR/data/MET
 ## SNAP directory
 snap_directory=/Applications/snap
 
+## ASTER GED files
+## separate directories for AG100.003 will be created
+ged_dir=$ACDIR/data/GED/
+
 ## TACT support
 grid_dir=$ACDIR/data/TACT/grid
 

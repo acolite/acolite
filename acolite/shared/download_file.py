@@ -7,9 +7,10 @@
 ##                2021-05-31 (QV) added local directory creation
 ##                2022-04-08 (QV) download to scratch directory first
 ##                2022-07-07 (QV) added SRTM1 DEM
+##                2022-08-04 (QV) added GED and retry option
 
 def download_file(url, file, auth = None, session = None,
-                    parallel = False, verbosity = 0, verify_ssl = True):
+                    parallel = False, verbosity = 0, verify_ssl = True, retry = 1):
 
     import requests, time, os, shutil
     import acolite as ac
@@ -27,7 +28,8 @@ def download_file(url, file, auth = None, session = None,
 
     if ('https://oceandata.sci.gsfc.nasa.gov/' in url) \
             or ('MEASURES/SRTMGL3.003/2000.02.11' in url)\
-            or ('DP133/SRTM/SRTMGL1.003/2000.02.11' in url) :
+            or ('DP133/SRTM/SRTMGL1.003/2000.02.11' in url)\
+            or ('e4ftl01.cr.usgs.gov' in url) or ('opendap.cr.usgs.gov' in url):
         if ('EARTHDATA_u' in os.environ) & ('EARTHDATA_p' in os.environ):
             username = os.environ['EARTHDATA_u']
             password = os.environ['EARTHDATA_p']
@@ -39,6 +41,7 @@ def download_file(url, file, auth = None, session = None,
     with requests.Session() as session:
             r1 = session.request('get', url, verify=verify_ssl)
             r = session.get(r1.url, auth=auth, verify=verify_ssl)
+            time.sleep(1)
 
             if (r.ok):
                 with open(temp_file, 'wb') as f:
@@ -47,7 +50,13 @@ def download_file(url, file, auth = None, session = None,
                             f.write(chunk)
             else:
                 if verbosity > 2: print(r.text)
-                raise Exception("File download failed")
+                if retry > 0:
+                    retry -= 1
+                    print('Retrying...')
+                    ac.shared.download_file(url, file, auth = auth, session = session,
+                                                parallel = parallel, verbosity = verbosity, verify_ssl = verify_ssl, retry = retry)
+                if not os.path.exists(file):
+                    raise Exception("File download failed {}".format(r.text))
 
     ## copy temp file
     if os.path.exists(temp_file):
