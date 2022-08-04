@@ -47,7 +47,7 @@ def tact_gem(gem, output_file = True,
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None
-    if emissivity_file is None:
+    if (emissivity_file is None) & (emissivity not in ['ged']):
         emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
@@ -144,10 +144,13 @@ def tact_gem(gem, output_file = True,
                 ged = None
                 if ged is None:
                     ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14])
-                if b == '11':
-                    e = ged[:,:,1]
+                if ged is None:
+                    print('Could not extract GED emissivity.')
                 else:
-                    e = ged[:,:,0]
+                    if b == '11':
+                        e = ged[:,:,1]
+                    else:
+                        e = ged[:,:,0]
 
             if emissivity == 'eminet':
                 print('Emissivity from eminet to be implemented')
