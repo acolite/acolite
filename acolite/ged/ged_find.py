@@ -4,6 +4,7 @@
 ## 2022-08-03
 ## modifications: 2022-08-04 (QV) added tile list
 ##                                switch to usgs opendap server, faster and smaller files
+##                                fix latitude in ged_limit
 
 def ged_find(limit, required = False,
              ged_dir = None,
@@ -26,9 +27,10 @@ def ged_find(limit, required = False,
 
     tile_base = 'AG100.v003.{}{}.{}{}.0001.h5'
 
-    ged_limit = [int(np.floor(limit[0])),
+    ## add one to lat to get correct tile
+    ged_limit = [int(np.floor(limit[0]))+1,
                  int(np.floor(limit[1])),
-                 int(np.ceil(limit[2])),
+                 int(np.ceil(limit[2]))+1,
                  int(np.ceil(limit[3]))]
 
     if ged_limit[2] > limit[2]: ged_limit[2]+= -1
