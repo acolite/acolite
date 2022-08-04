@@ -120,6 +120,7 @@ def tact_gem(gem, output_file = True,
 
 
     ## read bands and do thermal a/c
+    ged = None
     for b in gem['gatts']['thermal_bands']:
         dsi = 'bt{}'.format(b)
 
@@ -141,7 +142,6 @@ def tact_gem(gem, output_file = True,
             bk = b.split('_')[0]
             e = None
             if emissivity == 'ged':
-                ged = None
                 if ged is None:
                     ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14])
                 if ged is None:
