@@ -11,7 +11,7 @@
 ## 2022-08-04
 ## modifications:
 
-def ged_lonlat(lon1, lat1, bands = [10, 11, 12, 13, 14], nearest=False):
+def ged_lonlat(lon1, lat1, bands = [10, 11, 12, 13, 14], nearest = False, fill = True):
 
     import os
     import acolite as ac
@@ -23,6 +23,7 @@ def ged_lonlat(lon1, lat1, bands = [10, 11, 12, 13, 14], nearest=False):
 
     ##
     bands_all = [10, 11, 12, 13, 14]
+    bands = [b for b in bands if b in bands_all]
 
     ged = None
     ## run through dem files and reproject data to target lat,lon
@@ -56,5 +57,26 @@ def ged_lonlat(lon1, lat1, bands = [10, 11, 12, 13, 14], nearest=False):
             ged = cstack
         else:
             ged[cstack>0] = cstack[cstack>0]
+
+    ## fill holes
+    ## nans are dilated a few iterations, then filled with closest values
+    ## some holes in the middle of water have low emissivity pixels on their edges
+    if fill:
+        import scipy.ndimage
+        struct = scipy.ndimage.generate_binary_structure(2, 2)
+        if ged is not None:
+            if len(ged.shape) == 3:
+                for i in range(ged.shape[2]):
+                    if len(np.where(np.isnan(ged[:,:,i]))[0]) > 0:
+                        print('Filling GED holes: B{}'.format(bands[i]))
+                        tmp = scipy.ndimage.binary_dilation(np.isnan(ged[:,:,i]), structure=struct, iterations=5)
+                        ged[:,:,i][tmp] = np.nan
+                        ged[:,:,i] = ac.shared.fillnan(ged[:,:,i])
+            else:
+                if len(np.where(np.isnan(ged))[0]) > 0:
+                    print('Filling GED holes: B{}'.format(bands[0]))
+                    tmp = scipy.ndimage.binary_dilation(np.isnan(ged), structure=struct, iterations=5)
+                    ged[tmp] = np.nan
+                    ged = ac.shared.fillnan(ged)
 
     return(ged)
