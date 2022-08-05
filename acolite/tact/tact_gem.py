@@ -42,22 +42,10 @@ def tact_gem(gem, output_file = True,
         gem = ac.gem.read(gem, sub=sub, skip_datasets=skip_datasets)
     gemf = gem['gatts']['gemfile']
 
-    ## load emissivity data
-    if emissivity_file is not None:
-        if not os.path.exists(emissivity_file):
-            print('Could not file {}'.format(emissivity_file))
-            emissivity_file = None
-    if (emissivity_file is None) & (emissivity not in ['ged']):
-        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
-        if not os.path.exists(emissivity_file):
-            print('Could not file {}'.format(emissivity_file))
-            emissivity_file = None
-    if emissivity_file is not None:
-        em = json.load(open(emissivity_file, 'r'))
-        print('Loaded emissivity file {}'.format(emissivity_file))
-        print(em)
-    else:
-        em = None
+    ## detect sensor
+    if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
+        if verbosity > 0: print('TACT Processing of {} not supported'.format(gem['gatts']['sensor']))
+        return()
 
     ## check if we need to run tact
     run_tact = False
@@ -76,17 +64,29 @@ def tact_gem(gem, output_file = True,
             print('Run with tact_source=gdas1 for NRT processing')
             return()
 
+    ## load emissivity data
+    if emissivity_file is not None:
+        if not os.path.exists(emissivity_file):
+            print('Could not file {}'.format(emissivity_file))
+            emissivity_file = None
+    if (emissivity_file is None) & (emissivity not in ['ged']):
+        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
+        if not os.path.exists(emissivity_file):
+            print('Could not file {}'.format(emissivity_file))
+            emissivity_file = None
+    if emissivity_file is not None:
+        em = json.load(open(emissivity_file, 'r'))
+        print('Loaded emissivity file {}'.format(emissivity_file))
+        print(em)
+    else:
+        em = None
+
     if 'nc_projection' in gem:
         nc_projection = gem['nc_projection']
     else:
         nc_projection = None
 
     if verbosity > 0: print('Running tact for {}'.format(gemf))
-
-    ## detect sensor
-    if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
-        if verbosity > 0: print('Processing of {} not supported'.format(gem['gatts']['sensor']))
-        return()
 
     if target_file is None:
         #if 'output_name' in gem['gatts']:
