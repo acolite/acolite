@@ -52,7 +52,7 @@ class gem(object):
                 self.gatts['thermal_bands'] = ['6']
             elif self.gatts['sensor'] == 'L7_ETM':
                 self.gatts['thermal_sensor'] = 'L7_ETM'
-                self.gatts['thermal_bands'] = ['6_vcid_1', '6_vcid_2']
+                self.gatts['thermal_bands'] = ['6_vcid_1', '6_vcid_2', '6_VCID_1', '6_VCID_2']
 
         def datasets_read(self):
             self.datasets = ac.shared.nc_datasets(self.file)

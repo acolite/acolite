@@ -32,7 +32,7 @@ def read(ncf, sub = None, skip_datasets = [], load_data=True):
         gem['gatts']['thermal_bands'] = ['6']
     elif gem['gatts']['sensor'] == 'L7_ETM':
         gem['gatts']['thermal_sensor'] = 'L7_ETM'
-        gem['gatts']['thermal_bands'] = ['6_vcid_1', '6_vcid_2']
+        gem['gatts']['thermal_bands'] = ['6_vcid_1', '6_vcid_2', '6_VCID_1', '6_VCID_2']
 
     if 'projection_key' in gem['gatts']:
         gem['nc_projection'] = ac.shared.nc_read_projection(ncf)
