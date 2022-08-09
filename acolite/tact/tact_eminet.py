@@ -11,7 +11,7 @@
 def tact_eminet(gemf, model_path = None,
                       water_fill = True, water_threshold = 0.0215,
                       fill = True, fill_dilate = False,
-                      model_version = '20220809', netname = 'Net1', verbosity = 5):
+                      model_base = 'EMINET_{}_{}_64x4.h5', model_version = '20220809', netname = 'Net1', verbosity = 5):
 
     import os, json
     import acolite as ac
@@ -35,7 +35,7 @@ def tact_eminet(gemf, model_path = None,
     ## select model
     if model_path is None:
         model_dir = ac.config['data_dir'] + '/EMINET'
-        model_file = 'ECOSTRESS_{}_{}_64x4.h5'.format(satsen, netname)
+        model_file = model_base.format(satsen, netname)
         model_path = '{}/{}/{}'.format(model_dir, model_version, model_file)
 
     ## open model
