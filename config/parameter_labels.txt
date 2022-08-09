@@ -74,15 +74,70 @@ ndvi_rhot,-0.5,0.5,False,default,NDVI $\rho_t$,-
 #
 slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),-
 #
-## BT
+## Thermal BT
 #
+bt6,270,300,False,default,BT6,K
+bt6_vcid_1,270,300,False,default,BT6 VCID1,K
+bt6_vcid_2,270,300,False,default,BT6 VCID2,K
 bt10,270,300,False,default,BT10,K
 bt11,270,300,False,default,BT11,K
-lt10,0,12,False,default,LT10,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
-lt11,0,12,False,default,LT11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
-## TACT surface temperatures
+#
+## Thermal Emissivity
+#
+em6,0.94,1.0,False,Planck_Parchment_RGB,Emissivity B6,1
+em6_vcid_1,0.94,1.0,False,Planck_Parchment_RGB,Emissivity B6 VCID1,1
+em6_vcid_2,0.94,1.0,False,Planck_Parchment_RGB,Emissivity B6 VCID2,1
+em10,0.94,1.0,False,Planck_Parchment_RGB,Emissivity B10,1
+em11,0.94,1.0,False,Planck_Parchment_RGB,Emissivity B11,1
+#
+## Thermal transmittance
+#
+tau6,0.6,1.0,False,Planck_Parchment_RGB,$\tau$ B6,1
+tau6_vcid_1,0.6,1.0,False,Planck_Parchment_RGB,$\tau$ B6 VCID1,1
+tau6_vcid_2,0.6,1.0,False,Planck_Parchment_RGB,$\tau$ B6 VCID2,1
+tau10,0.6,1.0,False,Planck_Parchment_RGB,$\tau$ B10,1
+tau11,0.6,1.0,False,Planck_Parchment_RGB,$\tau$ B11,1
+#
+## Thermal Lt
+#
+lt6,0,12,False,default,Lt6,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lt6_vcid_1,0,12,False,default,Lt6 VCID1,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lt6_vcid_2,0,12,False,default,Lt6 VCID2,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lt10,0,12,False,default,Lt10,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lt11,0,12,False,default,Lt11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+#
+## Thermal Ls
+#
+ls6,0,12,False,default,Ls6,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ls6_vcid_1,0,12,False,default,Ls6 VCID1,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ls6_vcid_2,0,12,False,default,Ls6 VCID2,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ls10,0,12,False,default,Ls10,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ls11,0,12,False,default,Ls11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+#
+## Thermal Ld
+#
+ld6,0,12,False,default,Ls6,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ld6_vcid_1,0,12,False,default,Ld6 VCID1,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ld6_vcid_2,0,12,False,default,Ld6 VCID2,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ld10,0,3,False,default,Ld10,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+ld11,0,3,False,default,Ld11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+#
+## Thermal Lu
+#
+lu6,0,12,False,default,Lu6,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lu6_vcid_1,0,12,False,default,Lu6 VCID1,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lu6_vcid_2,0,12,False,default,Lu6 VCID2,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lu10,0,6,False,default,Lu10,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+lu11,0,6,False,default,Lu11,W $m^{-2}$ $sr^{-1}$ $\mu m^{-1}$
+#
+## Thermal surface temperatures
+#
+st6,270,300,False,Planck_Parchment_RGB,ST6,K
+st6_vcid_1,270,300,False,Planck_Parchment_RGB,ST6 VCID1,K
+st6_vcid_2,270,300,False,Planck_Parchment_RGB,ST6 VCID2,K
 st10,270,300,False,Planck_Parchment_RGB,ST10,K
 st11,270,300,False,Planck_Parchment_RGB,ST11,K
+#
 ##
 #
 ## Hue Angle
