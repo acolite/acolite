@@ -155,7 +155,7 @@ def tact_gem(gem, output_file = True,
             e = None
             if emissivity == 'ged':
                 if ged is None:
-                    ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14])
+                    ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14], fill = setu['ged_fill'])
                 if ged is None:
                     print('Could not extract GED emissivity.')
                 else:
