@@ -76,11 +76,11 @@ slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),-
 #
 ## Thermal BT
 #
-bt6,270,300,False,default,BT6,K
-bt6_vcid_1,270,300,False,default,BT6 VCID1,K
-bt6_vcid_2,270,300,False,default,BT6 VCID2,K
-bt10,270,300,False,default,BT10,K
-bt11,270,300,False,default,BT11,K
+bt6,270,300,False,Planck_Parchment_RGB,BT6,K
+bt6_vcid_1,270,300,False,Planck_Parchment_RGB,BT6 VCID1,K
+bt6_vcid_2,270,300,False,Planck_Parchment_RGB,BT6 VCID2,K
+bt10,270,300,False,Planck_Parchment_RGB,BT10,K
+bt11,270,300,False,Planck_Parchment_RGB,BT11,K
 #
 ## Thermal Emissivity
 #
