@@ -87,6 +87,14 @@ tact_output_atmosphere=False
 tact_output_intermediate=False
 tact_map=True
 
+## EMINET settings
+eminet_water_default=True
+eminet_water_threshold=0.0215
+eminet_model_version=20220809
+eminet_netname=Net1
+eminet_fill=True
+eminet_fill_dilate=False
+
 ## printout verbosity
 verbosity=5
 

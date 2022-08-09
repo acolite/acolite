@@ -204,13 +204,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
-                ret = ac.tact.tact_gem(l1r, output = l1r_setu['output'],
-                                            emissivity = l1r_setu['tact_emissivity'],
-                                            emissivity_file = l1r_setu['tact_emissivity_file'],
-                                            source = l1r_setu['tact_profile_source'],
-                                            verbosity=ac.config['verbosity'],
-                                            output_atmosphere = l1r_setu['tact_output_atmosphere'],
-                                            output_intermediate = l1r_setu['tact_output_intermediate'])
+                ret = ac.tact.tact_gem(l1r, settings = l1r_setu, verbosity = ac.config['verbosity'])
                 if ret != ():
                     l2t_files.append(ret)
                     if l1r_setu['l2t_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l1r_setu['export_geotiff_match_file'],

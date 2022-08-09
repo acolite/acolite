@@ -12,14 +12,16 @@ def tact_gem(gem, output_file = True,
              return_data = False,
              target_file = None,
              target_file_append = False,
-             output = None,
+             #output = None,
              to_celcius = False,
-             emissivity = 'water', # 'unity' / 'water' / 'eminet' / 'user'
-             emissivity_file = None,
+             #emissivity = 'water', # 'unity' / 'water' / 'eminet' / 'user'
+             #emissivity_file = None,
              sub = None,
-             output_atmosphere = False,
-             output_intermediate = False,
-             copy_datasets = ['lon', 'lat'], source = 'era5', verbosity=0):
+             #output_atmosphere = False,
+             #output_intermediate = False,
+             copy_datasets = ['lon', 'lat'],
+             #source = 'era5',
+             settings = {}, verbosity=0):
 
     import os, datetime, json
     import numpy as np
@@ -30,6 +32,7 @@ def tact_gem(gem, output_file = True,
         datasets = ac.shared.nc_datasets(gem)
     else:
         datasets = gem['datasets']
+
     skip_datasets = []
     for ds in datasets:
         if ds in ['lat', 'lon']: continue
@@ -41,6 +44,15 @@ def tact_gem(gem, output_file = True,
         gemf = '{}'.format(gem)
         gem = ac.gem.read(gem, sub=sub, skip_datasets=skip_datasets)
     gemf = gem['gatts']['gemfile']
+
+    ## settings from settings dict
+    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
+    output = setu['output']
+    emissivity = setu['tact_emissivity']
+    emissivity_file = setu['tact_emissivity_file']
+    source = setu['tact_profile_source']
+    output_atmosphere = setu['tact_output_atmosphere']
+    output_intermediate = setu['tact_output_intermediate']
 
     ## detect sensor
     if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
@@ -69,7 +81,7 @@ def tact_gem(gem, output_file = True,
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None
-    if (emissivity_file is None) & (emissivity not in ['ged']):
+    if (emissivity_file is None) & (emissivity not in ['ged', 'eminet']):
         emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
@@ -120,7 +132,7 @@ def tact_gem(gem, output_file = True,
 
 
     ## read bands and do thermal a/c
-    ged = None
+    ged, eminet = None, None
     for b in gem['gatts']['thermal_bands']:
         dsi = 'bt{}'.format(b)
 
@@ -153,7 +165,18 @@ def tact_gem(gem, output_file = True,
                         e = ged[:,:,0]
 
             if emissivity == 'eminet':
-                print('Emissivity from eminet to be implemented')
+                if eminet is None:
+                    eminet = ac.tact.tact_eminet(gemf, water_fill = setu['eminet_water_fill'],
+                                                       water_threshold = setu['eminet_water_threshold'],
+                                                       model_version = setu['eminet_model_version'],
+                                                       netname = setu['eminet_netname'],
+                                                       fill = setu['eminet_fill'],
+                                                       fill_dilate = setu['eminet_fill_dilate'])
+
+                if eminet is None:
+                    print('Could not get EMINET emissivity.')
+                else:
+                    e = eminet[bk]
 
             if (e is None) & (em is not None):
                 e = em[gem['gatts']['thermal_sensor']][bk]

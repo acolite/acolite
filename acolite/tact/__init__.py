@@ -12,3 +12,4 @@ from .tact_profiles_gdas1 import *
 from .tact_profiles_ncep import *
 
 from .tact_gem import *
+from .tact_eminet import *
