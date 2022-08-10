@@ -81,7 +81,7 @@ def tact_gem(gem, output_file = True,
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None
-    if (emissivity_file is None) & (emissivity not in ['ged', 'eminet']):
+    if (emissivity_file is None) & (emissivity not in ['ged', 'eminet', 'ndvi']):
         emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
@@ -132,7 +132,7 @@ def tact_gem(gem, output_file = True,
 
 
     ## read bands and do thermal a/c
-    ged, eminet = None, None
+    em_ged, em_eminet, em_ndvi = None, None, None
     for b in gem['gatts']['thermal_bands']:
         dsi = 'bt{}'.format(b)
 
@@ -154,29 +154,37 @@ def tact_gem(gem, output_file = True,
             bk = b.split('_')[0]
             e = None
             if emissivity == 'ged':
-                if ged is None:
-                    ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14], fill = setu['ged_fill'])
-                if ged is None:
+                if em_ged is None:
+                    em_ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14], fill = setu['ged_fill'])
+                if em_ged is None:
                     print('Could not extract GED emissivity.')
                 else:
                     if b == '11':
-                        e = ged[:,:,1]
+                        e = em_ged[:,:,1]
                     else:
-                        e = ged[:,:,0]
+                        e = em_ged[:,:,0]
 
             if emissivity == 'eminet':
-                if eminet is None:
-                    eminet = ac.tact.tact_eminet(gemf, water_fill = setu['eminet_water_fill'],
+                if em_eminet is None:
+                    em_eminet = ac.tact.tact_eminet(gemf, water_fill = setu['eminet_water_fill'],
                                                        water_threshold = setu['eminet_water_threshold'],
                                                        model_version = setu['eminet_model_version'],
                                                        netname = setu['eminet_netname'],
                                                        fill = setu['eminet_fill'],
                                                        fill_dilate = setu['eminet_fill_dilate'])
 
-                if eminet is None:
+                if em_eminet is None:
                     print('Could not get EMINET emissivity.')
                 else:
-                    e = eminet[bk]
+                    e = em_eminet[bk]
+
+            if emissivity == 'ndvi':
+                if em_ndvi is None:
+                    em_ndvi = ac.tact.ndvi_emissivity(gemf, ndvi_toa=True)
+                if em_ndvi is None:
+                    print('Could not get NDVI derived emissivity.')
+                else:
+                    e = em_ndvi[bk]
 
             if (e is None) & (em is not None):
                 e = em[gem['gatts']['thermal_sensor']][bk]
