@@ -2,7 +2,7 @@
 ## gets projection dict from target image file
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-24
-## modifications:
+## modifications: 2022-08-06 (QV) added Wkt, set up Proj from Wkt
 
 def projection_read(file):
     from pyproj import Proj
@@ -18,8 +18,9 @@ def projection_read(file):
     ## get projection info
     src = osr.SpatialReference()
     src.ImportFromWkt(projection)
+    Wkt = src.ExportToWkt()
     proj4_string = src.ExportToProj4()
-    p = Proj(proj4_string)
+    p = Proj(Wkt)
 
     ## derive projection extent
     x0 = transform[0]
@@ -32,6 +33,7 @@ def projection_read(file):
 
     ## make acolite generic dict
     dct = {'p': p, 'epsg': p.crs.to_epsg(),
+           'Wkt': Wkt,
            'xrange': xrange, 'yrange': yrange,
            'xdim':dimx, 'ydim': dimy,
            'proj4_string':proj4_string,
