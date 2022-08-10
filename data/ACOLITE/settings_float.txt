@@ -36,6 +36,7 @@ nechad_max_rhow_C_factor
 output_projection_resolution
 default_projection_resolution
 worldview_reproject_resolution
+eminet_water_threshold
 
 ## GEE
 st_lon

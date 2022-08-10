@@ -89,7 +89,7 @@ tact_map=True
 ged_fill=True
 
 ## EMINET settings
-eminet_water_default=True
+eminet_water_fill=True
 eminet_water_threshold=0.0215
 eminet_model_version=20220809
 eminet_netname=Net2

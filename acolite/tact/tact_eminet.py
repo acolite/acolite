@@ -24,7 +24,7 @@ def tact_eminet(gemf, model_path = None,
     ncf = '{}/{}'.format(dn, bn.replace('_L1R', '_L2R'))
 
     if not os.path.exists(ncf):
-        print('ACOLITE L2R file required for EMINET {} not found.')
+        print('ACOLITE L2R file required for EMINET {} not found.'.format(ncf))
         return(None)
 
     gatts = ac.shared.nc_gatts(ncf)
