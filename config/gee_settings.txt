@@ -12,6 +12,7 @@ region_name=None # region name for this run
 region_name_add_box=True # add box size to region name
 add_region_name_output=True # create extra directory level with region name
 limit=None # S,W,N,E ROI limits, will be replaced by station box if st_crop and st_lon and st_lat are provided
+strict_subset=False # If True crop strict lat/lon rectangle which may not be aligned with image projection
 output_scale=None
 
 ## check minimum dimension (skip very narrow images)

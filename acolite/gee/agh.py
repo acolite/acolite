@@ -40,8 +40,9 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     if 'output' in settings: output = settings['output']
     if not os.path.exists(output): os.makedirs(output)
 
+    tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
+
     if limit is not None:
-        region = ee.Geometry.BBox(limit[1], limit[0], limit[3], limit[2])
         rname = 'crop' if region_name is None else region_name
     else:
         rname = ''
@@ -49,17 +50,54 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     fkey, pid = image[0], image[1]
 
     ## output file names for combined file
-    ## used to determine NetCDF name
+    ## used to determine NetCDF name, also for Google Drive outputs
     ext = ''
     if len(rname) >= 0: ext = '_{}'.format(rname)
     rhot_file = pid+'_rhot'+ext
     rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
+    rhos_file = pid+'_rhos'+ext
+    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
+    geom_file = pid+'_geom'+ext
+    geom_file_local = '{}/{}.zip'.format(output,geom_file)
 
     file_type = 'L1R_GEE'
     if settings['run_hybrid_dsf']: file_type = 'L2R_GEE_HYBRID'
 
     ## select product
     i = imColl.filter(ee.Filter.eq(fkey, pid)).first()
+
+    ## get projection info
+    ## get projection
+    proj = i.select(tar_band).projection().getInfo()
+    if 'crs' in proj:
+        proj_crs = proj['crs']
+    elif 'wkt' in proj:
+        proj_crs = proj['wkt']
+    p = ee.Projection(proj_crs, proj['transform'])
+    scale = p.nominalScale().getInfo()
+    if settings['output_scale'] is not None: scale = settings['output_scale']
+
+    if limit is not None:
+        if settings['strict_subset']:
+            ## determin strict lat/lon rectangle box
+            region = ee.Geometry.BBox(limit[1], limit[0], limit[3], limit[2])
+        else:
+            ## determine image bounding box
+            imx = []
+            imy = []
+            for ii in [[1,0], [1,2], [3,0], [3,2]]:
+                ## make point geometry
+                pt = ee.Geometry.Point([limit[ii[0]], limit[ii[1]]])
+
+                ## get pixel coordinates in x/y
+                tmp = ee.Image.clip(i.pixelCoordinates(i.select(tar_band).projection()),pt)
+                ret = ee.Image.reduceRegion(tmp, ee.Reducer.toList()).getInfo()
+                imx.append(ret['x'][0])
+                imy.append(ret['y'][0])
+
+            ## use pixel coordinates from image to make new subset
+            eesub = ee.List([min(imx), min(imy), max(imx), max(imy)])
+            region = ee.Geometry.Rectangle(eesub, p, True, False)
 
     ## subset here if local aot is to be computed
     if (limit is not None) & (settings['subset_aot']): i = i.clip(region)
@@ -107,17 +145,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     if os.path.exists(ofile) & (settings['override'] is False):
         print('AGH file {} exists, set override=True to replace'.format(ofile))
         return()
-
-    ## get projection info
-    tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
-    ## get projection
-    proj = i.select(tar_band).projection().getInfo()
-    if 'crs' in proj:
-        p = ee.Projection(proj['crs'], proj['transform'])
-    elif 'wkt' in proj:
-        p = ee.Projection(proj['wkt'], proj['transform'])
-    scale = p.nominalScale().getInfo()
-    if settings['output_scale'] is not None: scale = settings['output_scale']
 
     ## get ancillary
     if settings['ancillary_data']:
@@ -412,6 +439,10 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## set output config for rhot
     output_config = {'description': rhot_file, 'scale': scale,  'folder':'ACOLITE'}
 
+    ## test if setting crs works
+    output_config['crs'] = proj_crs
+    output_config['crs_transform'] = proj['transform']
+
     ## set output dir
     if settings['drive_output'] is not None: output_config['folder'] = settings['drive_output']
     if limit is not None:
@@ -480,6 +511,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         'bands': obands_rhot,
                         'region': output_config['region'],
                         'scale': output_config['scale'],
+                        'crs': output_config['crs'],
+                        'crs_transform': output_config['crs_transform'],
                         'filePerBand': False})
                 print('Downloading {}'.format(rhot_file_tile))
                 response = requests.get(url)
@@ -495,6 +528,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     'bands': obands_geom,
                     'region': output_config['region'],
                     'scale': output_config['scale'],
+                    'crs': output_config['crs'],
+                    'crs_transform': output_config['crs_transform'],
                     'filePerBand': False})
                 print('Downloading {}'.format(geom_file_tile))
                 response = requests.get(url)
@@ -510,6 +545,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     'bands': obands_rhos,
                     'region': output_config['region'],
                     'scale': output_config['scale'],
+                    'crs': output_config['crs'],
+                    'crs_transform': output_config['crs_transform'],
                     'filePerBand': False})
                 print('Downloading {}'.format(rhos_file_tile))
                 response = requests.get(url)
