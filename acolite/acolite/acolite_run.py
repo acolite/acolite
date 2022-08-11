@@ -139,13 +139,15 @@ def acolite_run(settings, inputfile=None, output=None):
                 if gatts['acolite_file_type'] == 'L1R':
                     ## run ACOLITE
                     ret = ac.acolite.acolite_l2r(l1r, settings = l1r_setu, verbosity = ac.config['verbosity'])
-                    if len(ret) != 2: continue
-                    l2r, l2r_setu = ret
+                    if len(ret) != 2:
+                        l2r, l2r_setu = [], {k:l1r_setu[k] for k in l1r_setu}
+                    else:
+                        l2r, l2r_setu = ret
                 else:
                     l2r = '{}'.format(l1r)
                     l2r_setu = ac.acolite.settings.parse(gatts['sensor'], settings=l1r_setu)
 
-                if (l2r_setu['adjacency_correction']):
+                if (l2r_setu['adjacency_correction']) & (len(l2r) > 0):
                     ret = None
                     ## acstar3 adjacency correction
                     if (l2r_setu['adjacency_method']=='acstar3'):
@@ -156,51 +158,52 @@ def acolite_run(settings, inputfile=None, output=None):
                     l2r = [] if ret is None else ret
 
                 ## if we have multiple l2r files
-                if type(l2r) is not list: l2r = [l2r]
-                l2r_files+=l2r
+                if (len(l2r) > 0):
+                    if type(l2r) is not list: l2r = [l2r]
+                    l2r_files+=l2r
 
-                for ncf in l2r:
-                    if l2r_setu['l2r_export_geotiff']:
-                        ac.output.nc_to_geotiff(ncf, match_file = l2r_setu['export_geotiff_match_file'],
-                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
-                                                skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
-
-                    if l2r_setu['l2r_export_geotiff_rgb']:
-                        ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
-
-                    if l2r_setu['pans']:
-                        pr = ac.acolite.acolite_pans(ncf, settings = l2r_setu)
-                        if pr != ():
-                            if 'l2r_pans' not in processed[ni]: processed[ni]['l2r_pans']=[]
-                            processed[ni]['l2r_pans'].append(pr)
-
-                ## make rgb rhos maps
-                if l2r_setu['rgb_rhos']:
-                    l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
-                    l2r_setu_['rgb_rhot'] = False
                     for ncf in l2r:
-                        ac.acolite.acolite_map(ncf, settings = l2r_setu_, plot_all=False)
+                        if l2r_setu['l2r_export_geotiff']:
+                            ac.output.nc_to_geotiff(ncf, match_file = l2r_setu['export_geotiff_match_file'],
+                                                    cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                    skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
 
-                ## compute l2w parameters
-                if l2r_setu['l2w_parameters'] is not None:
-                    if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
-                    for ncf in l2r:
-                        ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
-                        if ret is not None:
-                            if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
-                                                                            cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
-                                                                            skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
-                            l2w_files.append(ret)
+                        if l2r_setu['l2r_export_geotiff_rgb']:
+                            ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
 
-                            ## make l2w maps
-                            if l2r_setu['map_l2w']:
-                                ac.acolite.acolite_map(ret, settings=l2r_setu)
-                            ## make l2w rgb
-                            if l2r_setu['rgb_rhow']:
-                                l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
-                                l2r_setu_['rgb_rhot'] = False
-                                l2r_setu_['rgb_rhos'] = False
-                                ac.acolite.acolite_map(ret, settings=l2r_setu_, plot_all=False)
+                        if l2r_setu['pans']:
+                            pr = ac.acolite.acolite_pans(ncf, settings = l2r_setu)
+                            if pr != ():
+                                if 'l2r_pans' not in processed[ni]: processed[ni]['l2r_pans']=[]
+                                processed[ni]['l2r_pans'].append(pr)
+
+                    ## make rgb rhos maps
+                    if l2r_setu['rgb_rhos']:
+                        l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
+                        l2r_setu_['rgb_rhot'] = False
+                        for ncf in l2r:
+                            ac.acolite.acolite_map(ncf, settings = l2r_setu_, plot_all=False)
+
+                    ## compute l2w parameters
+                    if l2r_setu['l2w_parameters'] is not None:
+                        if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
+                        for ncf in l2r:
+                            ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
+                            if ret is not None:
+                                if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
+                                                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                                                skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
+                                l2w_files.append(ret)
+
+                                ## make l2w maps
+                                if l2r_setu['map_l2w']:
+                                    ac.acolite.acolite_map(ret, settings=l2r_setu)
+                                ## make l2w rgb
+                                if l2r_setu['rgb_rhow']:
+                                    l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
+                                    l2r_setu_['rgb_rhot'] = False
+                                    l2r_setu_['rgb_rhos'] = False
+                                    ac.acolite.acolite_map(ret, settings=l2r_setu_, plot_all=False)
 
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
