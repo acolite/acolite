@@ -93,6 +93,7 @@ def glad_l2r(ncf, output = None, ofile = None,
 
     ## retrieve required atmospheric parameters
     atm = {'tt_gas': tg_dict['tt_gas']}
+    lut_par = list(lutdw[lut]['ipd'].keys())
     for par in lut_par:
         atm[par] = {b: float(lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd'][par], raa, vza, sza, wind, aot))) \
                     for b in rsrd[sensor]['rsr_bands']}
