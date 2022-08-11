@@ -53,6 +53,7 @@ def tact_gem(gem, output_file = True,
     source = setu['tact_profile_source']
     output_atmosphere = setu['tact_output_atmosphere']
     output_intermediate = setu['tact_output_intermediate']
+    reptran = setu['tact_reptran']
 
     ## detect sensor
     if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
@@ -123,7 +124,8 @@ def tact_gem(gem, output_file = True,
     thd, simst, lonc, latc = ac.tact.tact_limit(gem['gatts']['isodate'],
                                                 lon=gem['data']['lon'],
                                                 lat=gem['data']['lat'],
-                                                satsen=gem['gatts']['thermal_sensor'], source = source)
+                                                satsen=gem['gatts']['thermal_sensor'],
+                                                reptran = reptran, source = source)
     for ds in thd:
         gem['data'][ds] = thd[ds]
         ## output atmosphere parameters

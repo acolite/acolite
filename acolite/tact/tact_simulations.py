@@ -1,8 +1,11 @@
 ## QV Jul 2019
 ##         2019-12-17 renamed, integrated in tact
 ##         2021-02-27 (QV) integrated in acolite renamed from run_thermal_sim
+##         2022-08-11 (QV) extended wave_range for resampling, added reptran if available
 
 def tact_simulations(sonde, atmosphere="../data/atmmod/afglss.dat", obase=None,
+                    reptran = 'medium',
+                    wave_range = [7,14], wave_step = 0.05,
                     pdate=None, rsr_data=None, brightness = False, override = False):
     import os
     import datetime
@@ -60,6 +63,7 @@ def tact_simulations(sonde, atmosphere="../data/atmmod/afglss.dat", obase=None,
                              brightness=brightness,
                              parameters=parameters,
                              radiosonde=sonde,
+                             reptran = reptran,
                              albedo=1-e, thv=0, phi=0, phi0=0)
 
 
@@ -114,22 +118,22 @@ def tact_simulations(sonde, atmosphere="../data/atmmod/afglss.dat", obase=None,
                 ret_wave = ac.shared.rsr_convolute_dict(muwave,
                                                     muwave,
                                                     rsr_data[satsen]['rsr'],
-                                                    wave_range=[9,14], wave_step=0.05)
+                                                    wave_range=wave_range, wave_step=wave_step)
 
                 ret_tau = ac.shared.rsr_convolute_dict(muwave,
                                                      tau,
                                                      rsr_data[satsen]['rsr'],
-                                                     wave_range=[9,14], wave_step=0.05)
+                                                     wave_range=wave_range, wave_step=wave_step)
 
                 ret_Lu = ac.shared.rsr_convolute_dict(muwave,
                                                      Lu,
                                                      rsr_data[satsen]['rsr'],
-                                                     wave_range=[9,14], wave_step=0.05)
+                                                     wave_range=wave_range, wave_step=wave_step)
 
                 ret_Ld = ac.shared.rsr_convolute_dict(muwave,
                                                       Ld,
                                                       rsr_data[satsen]['rsr'],
-                                                     wave_range=[9,14], wave_step=0.05)
+                                                     wave_range=wave_range, wave_step=wave_step)
 
                 with open(ofile, 'w') as f:
                     f.write('{}\n'.format('# LibRadtran results {} - {}'.format(sim, satsen)))

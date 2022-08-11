@@ -6,11 +6,12 @@
 ##                2021-02-27 (QV) integrated in acolite, added interpolation for target lat lon
 ##                2022-02-15 (QV) added L9/TIRS
 ##                2022-08-02 (QV) moved era5 profiles to separate function, added gdas1 profile option
+##                2022-08-11 (QV) added ecostress and reptran
 
 def tact_limit(isotime, limit=None,
                   lat = None, lon = None,
-                  source = 'era5',
-                  satsens = ['L9_TIRS', 'L8_TIRS', 'L5_TM', 'L7_ETM'],
+                  source = 'era5', reptran = 'medium',
+                  satsens = ['L9_TIRS', 'L8_TIRS', 'L5_TM', 'L7_ETM', 'ISS_ECOSTRESS'],
                   satsen = 'L8_TIRS', override = False, verbosity = 0, processes = 4):
 
     import netCDF4
@@ -40,10 +41,10 @@ def tact_limit(isotime, limit=None,
     ## read thermal band RSR
     rsr_data = {}
     for sen in satsens:
-        if 'TIRS' in sen:
-            rsr_file = "{}/RSR/{}.txt".format(ac.config['data_dir'], sen)
-        else:
+        if sen in ['L5_TM', 'L7_ETM']:
             rsr_file = "{}/RSR/{}_B6.txt".format(ac.config['data_dir'], sen)
+        else:
+            rsr_file = "{}/RSR/{}.txt".format(ac.config['data_dir'], sen)
         r_, b_ = ac.shared.rsr_read(rsr_file)
         rsr_data[sen]={'rsr':r_, 'bands':b_}
 
@@ -61,7 +62,7 @@ def tact_limit(isotime, limit=None,
 
     ## run stuff in multiprocessing
     with multiprocessing.Pool(processes=processes) as pool:
-        results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None,
+        results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran,
                                                 pdate='', rsr_data=rsr_data, obase=None), to_run)
 
     ## read simulation outputs

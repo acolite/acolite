@@ -81,6 +81,7 @@ gf_reproject_to_utm=False
 ## TACT settings
 tact_run=False
 tact_profile_source=era5
+tact_reptran=medium
 tact_emissivity=water
 tact_emissivity_file=None
 tact_output_atmosphere=False

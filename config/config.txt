@@ -38,6 +38,7 @@ snap_directory=/Applications/snap
 ged_dir=$ACDIR/data/GED/
 
 ## TACT support
+tact_dir=$ACDIR/data/TACT
 grid_dir=$ACDIR/data/TACT/grid
 
 ## libRadtran directory

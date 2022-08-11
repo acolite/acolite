@@ -1,12 +1,14 @@
 ## QV Jul 2019
 ##         2019-12-17 renamed, integrated in tact
 ##         2021-02-27 (QV) integrated in acolite renamed from cfg_create
+##         2022-08-11 (QV) extended wavelength range, added option to use reptran if available
 
 def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
                ths=0.0, phi=0.0, phi0=0.0, atmosphere=None,
-               zout = ['SUR', 'TOA'], parameters = ['lambda','eup','uu'],
+               reptran = 'medium', zout = ['SUR', 'TOA'], parameters = ['lambda','eup','uu'],
                radiosonde = None, sur_temperature=None, brightness=False, runfile=None):
 
+        import os
         import numpy as np
         import acolite as ac
 
@@ -15,7 +17,7 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
         config=[
             "data_files_path {}/data".format(ac.config['libradtran_dir']),
             'source thermal',
-            'wavelength 8000 14000',
+            'wavelength 7000 14000',
             'albedo {}'.format(albedo),
             'rte_solver disort',
             'zout {}'.format(' '.join(zout)),
@@ -26,6 +28,10 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
             'output_user {}'.format(' '.join(parameters)),
             'quiet'
         ]
+
+        ## add reptran if exists
+        repdir = ac.config['libradtran_dir'] + '/data/correlated_k/reptran'
+        if os.path.exists(repdir): config.insert(2, 'mol_abs_param reptran {}'.format(reptran))
 
         if sur_temperature is not None: config += ['sur_temperature {}'.format(sur_temperature)]
         if atmosphere is not None: config +=['atmosphere_file {}'.format(atmosphere)]
