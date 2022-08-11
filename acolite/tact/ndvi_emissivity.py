@@ -55,6 +55,11 @@ def ndvi_emissivity(gemf, ndvi_toa=True):
     red = ac.shared.nc_data(ncf, datasets_found[0])
     nir = ac.shared.nc_data(ncf, datasets_found[1])
     ndvi = (nir-red)/(nir+red)
+
+    if len(np.where(np.isfinite(ndvi))[0]) == 0:
+        print('Not computing NDVI based emissivity: Empty VSWIR data in {}'.format(ncf))
+        return(None)
+
     ndvi[np.abs(ndvi)>1]=np.nan
     nir = None
 
