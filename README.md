@@ -82,6 +82,11 @@ By default ACOLITE expects the libRadtran (v2.0.2) to be in external/libRadtran-
             make
             make check
 
+ACOLITE/TACT can use reptran data if it is present. To get reptran, dowload and extract it in the libRadtran-2.0.2 directory:
+            cd external/libRadtran-2.0.2
+            wget "http://www.meteo.physik.uni-muenchen.de/~libradtran/lib/exe/fetch.php?media=download:reptran_2017_all.tar.gz" -O reptran_2017_all.tar.gz
+            tar -xvf reptran_2017_all.tar
+
 ## TACT configuration
 **2021-11-22 QV I believe this next section is no longer required**
 
