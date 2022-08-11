@@ -40,14 +40,15 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     if 'output' in settings: output = settings['output']
     if not os.path.exists(output): os.makedirs(output)
 
-    tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
-
     if limit is not None:
         rname = 'crop' if region_name is None else region_name
     else:
         rname = ''
 
     fkey, pid = image[0], image[1]
+
+    tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
+    if ('LANDSAT' in fkey) & (pid[0:3] == 'LT0'): tar_band = 'B10' ## TIRS only data
 
     ## output file names for combined file
     ## used to determine NetCDF name, also for Google Drive outputs
