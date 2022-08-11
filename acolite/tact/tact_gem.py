@@ -37,6 +37,7 @@ def tact_gem(gem, output_file = True,
     for ds in datasets:
         if ds in ['lat', 'lon']: continue
         if ds[0:2] == 'bt': continue
+        if ds[0:2] == 'lt': continue
         skip_datasets.append(ds)
 
     ## read gem file if NetCDF
@@ -159,15 +160,25 @@ def tact_gem(gem, output_file = True,
             e = None
             if emissivity == 'ged':
                 if em_ged is None:
-                    em_ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=[13, 14], fill = setu['ged_fill'])
+                    ## determine bands
+                    if gem['gatts']['thermal_sensor'] in ['L8_TIRS', 'L9_TIRS']:
+                        bands = [13, 14]
+                        bkeys = {'10':0, '11':1}
+                    elif gem['gatts']['thermal_sensor'] in ['L5_TM', 'L7_ETM']:
+                        bands = [13]
+                        bkeys = {'6':0}
+                    elif gem['gatts']['thermal_sensor'] in ['ISS_ECOSTRESS']:
+                        bands = [10, 11, 12, 13, 14]
+                        bkeys = {'1':0, '2':1, '3':2, '4':3, '5':4}
+                    ## load GED emissivity
+                    em_ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=bands, fill = setu['ged_fill'])
                 if em_ged is None:
                     print('Could not extract GED emissivity.')
                 else:
-                    if b == '11':
-                        e = em_ged[:,:,1]
+                    if len(em_ged.shape) == 3:
+                        e = em_ged[:,:,bkeys[b]]
                     else:
-                        e = em_ged[:,:,0]
-
+                        e = em_ged * 1.0
             if emissivity == 'eminet':
                 if em_eminet is None:
                     em_eminet = ac.tact.tact_eminet(gemf, water_fill = setu['eminet_water_fill'],
@@ -176,7 +187,6 @@ def tact_gem(gem, output_file = True,
                                                        netname = setu['eminet_netname'],
                                                        fill = setu['eminet_fill'],
                                                        fill_dilate = setu['eminet_fill_dilate'])
-
                 if em_eminet is None:
                     print('Could not get EMINET emissivity.')
                 else:
@@ -208,10 +218,11 @@ def tact_gem(gem, output_file = True,
             k1 = float(gem['gatts']['K1_CONSTANT_BAND_{}'.format(b.upper())])
             k2 = float(gem['gatts']['K2_CONSTANT_BAND_{}'.format(b.upper())])
 
-            ## compute lt from bt
-            #bt = k2/(np.log(k1/lt)+1)
-            #lt = k1/(np.exp(k2/bt)-1)
-            gem['data'][ltk] = k1/(np.exp(k2/gem['data'][btk])-1)
+            if ltk not in gem['data']:
+                ## compute lt from bt
+                #bt = k2/(np.log(k1/lt)+1)
+                #lt = k1/(np.exp(k2/bt)-1)
+                gem['data'][ltk] = k1/(np.exp(k2/gem['data'][btk])-1)
 
             ## get surface radiance
             #ls = (((lt-thd['Lu{}'.format(bk)])/thd['tau{}'.format(bk)])-((1-e)*thd['Ld{}'.format(bk)]))/e
