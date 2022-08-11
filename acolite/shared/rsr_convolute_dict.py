@@ -9,7 +9,7 @@ def rsr_convolute_dict(wave_data, data, rsr, wave_range=[0.2,2.4], wave_step=0.0
     import numpy as np
 
     ## set up wavelength space
-    wave_hyper = np.linspace(wave_range[0],wave_range[1],int(((wave_range[1]-wave_range[0])/wave_step)+2))
+    wave_hyper = np.linspace(wave_range[0],wave_range[1],int(((wave_range[1]-wave_range[0])/wave_step)+1))
 
     ## interpolate RSR to same dimensions
     rsr_hyper = dict()
