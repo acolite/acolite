@@ -116,6 +116,8 @@ def tact_gem(gem, output_file = True,
     else:
         ofile = '{}'.format(target_file)
 
+    print('Running ACOLITE/TACT for {}'.format(gemf))
+
     ## datasets to write
     output_datasets = []
     for ds in copy_datasets: output_datasets.append(ds)
