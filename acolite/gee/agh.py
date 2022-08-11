@@ -591,6 +591,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     if rhot_data is None: rhot_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
                     rhot_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
                 ds = None
+                rhot_data[rhot_data==0.0] = np.nan
 
             ## read geom data
             if len(geom_files) == num_tiles:
@@ -619,7 +620,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         if rhos_data is None: rhos_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
                         rhos_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
-
+                rhos_data[rhos_data==0.0] = np.nan
 
         ## image file in zip
         #rhot_image_file = '/vsizip/{}/{}.tif'.format(rhot_file_local, rhot_file)
