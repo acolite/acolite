@@ -6,7 +6,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-09
-## modifications:
+## modifications: 2022-08-11 (QV) don't attempt to run with missing bands
 
 def tact_eminet(gemf, model_path = None,
                       water_fill = True, water_threshold = 0.0215,
@@ -76,12 +76,18 @@ def tact_eminet(gemf, model_path = None,
     spect = None
     for ds in datasets_needed:
         data = ac.shared.nc_data(ncf,ds)
+        if len(np.where(np.isfinite(data))[0]) == 0: break
         if spect is None:
             data_dim = data.shape
             edge = np.isnan(data)
             spect = data.flatten()
         else:
             spect = np.vstack((spect, data.flatten()))
+
+    ## Maybe not needed if L1R is empty L2R will be missing
+    if spect is None:
+        print('Not running EMINET: Empty VSWIR data in {}'.format(ncf))
+        return(None)
 
     ## transpose to n,7
     spect = spect.T
