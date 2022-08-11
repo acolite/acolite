@@ -219,7 +219,7 @@ def identify_bundle(bundle, input_type = None, output = None):
             elif 'pansharpened' in files:
                 image_file = files['pansharpened']['path']
             meta = ac.planet.metadata_parse(metafile)
-            if 'platform' in meta:
+            if ('platform' in meta) & (os.path.exists(image_file)):
                 input_type = 'Planet'
                 break  ## exit loop
         except:
@@ -266,6 +266,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         except:
             pass ## continue to next sensor
         ## end FORMOSAT
+        ################
+
+        ################
+        ## ECOSTRESS
+        try:
+            meta = ac.ecostress.attributes(bundle)
+            if (meta['InstrumentShortName'] == 'ECOSTRESS') & (meta['ProcessingLevelID'] == 'L1B'):
+                input_type = 'ECOSTRESS'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end ECOSTRESS
         ################
 
         ################

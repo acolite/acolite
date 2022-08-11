@@ -164,4 +164,11 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end FORMOSAT
     ################
 
+    ################
+    ## ECOSTRESS
+    if input_type == 'ECOSTRESS':
+        l1r_files, setu = ac.ecostress.l1_convert(bundle, settings = setu)
+    ## end ECOSTRESS
+    ################
+
     return(l1r_files, setu, bundle)

@@ -1,0 +1,162 @@
+## def l1_convert
+## converts ECOSTRESS L1B data to l1r NetCDF for acolite
+## written by Quinten Vanhellemont, RBINS
+## 2022-08-11
+## modifications:
+
+def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
+    import os, h5py, json
+    import numpy as np
+    import dateutil.parser, datetime
+    import acolite as ac
+    
+    ## read rsr
+    sensor = 'ISS_ECOSTRESS'
+    rsrd = ac.shared.rsr_dict(sensor, wave_range=[7,14], wave_step=0.05)[sensor]
+
+    ## parse input
+    setu = ac.acolite.settings.parse(sensor, settings=settings)
+    if 'verbosity' in setu: verbosity = setu['verbosity']
+    if output is None: output = setu['output']
+
+    limit, sub = None, None
+    if 'polygon' in setu:
+        poly = setu['polygon']
+        if poly is not None:
+            limit = ac.shared.polygon_limit(poly)
+            if setu['polygon_limit']:
+                print('Using limit from polygon envelope: {}'.format(limit))
+            else:
+                limit = setu['limit']
+
+    ## parse inputfile
+    if type(inputfile) != list:
+        if type(inputfile) == str:
+            inputfile = inputfile.split(',')
+        else:
+            inputfile = list(inputfile)
+    nscenes = len(inputfile)
+    if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+
+    ofiles = []
+    for bundle in inputfile:
+        dn = os.path.dirname(bundle)
+        bn, ext = os.path.splitext(os.path.basename(bundle))
+
+        if output is None:
+            odir = '{}'.format(dn)
+        else:
+            odir = output
+
+        ## read metadata
+        meta = ac.ecostress.attributes(bundle)
+
+        sdate = dateutil.parser.parse(meta['RangeBeginningDate']+'T'+meta['RangeBeginningTime'])
+        edate = dateutil.parser.parse(meta['RangeEndingDate']+'T'+meta['RangeEndingTime'])
+        tdiff = (edate - sdate)
+        dt = sdate + datetime.timedelta(days=tdiff.days/2, seconds=tdiff.seconds/2)
+        isodate = dt.isoformat()[0:19]
+
+        use_bt_lut = False
+        ## read BT LUT
+        if use_bt_lut: btlut = ac.ecostress.bt_lut()
+
+        ## read thermal coefficients
+        tcfile = ac.config['data_dir']+'/ECOSTRESS/ECOSTRESS_thermal_coefficients.json'
+        coeffs = json.load(open(tcfile, 'r'))
+
+        ## set up global attributes
+        gatts = {'sensor': sensor, 'isodate': isodate,
+                 'thermal_sensor': sensor, 'thermal_bands': ['1', '2', '3', '4', '5']}
+        for bk in coeffs['thermal_coefficients']:
+            for k in coeffs['thermal_coefficients'][bk]:
+                gatts['{}_CONSTANT_BAND_{}'.format(k, bk)] = coeffs['thermal_coefficients'][bk][k]
+
+        ## output file name
+        oname = '{}_{}'.format(gatts['sensor'], dt.strftime('%Y_%m_%d_%H_%M_%S'))
+
+
+        f = h5py.File(bundle, mode='r')
+
+        datasets = {'latitude': 'lat', 'longitude':'lon',
+                    'height': 'altitude', 'solar_azimuth':'saa', 'solar_zenith':'sza',
+                    'view_azimuth':'vaa', 'view_zenith':'vza',
+                   }
+
+        ## find crop
+        if limit is not None:
+            lat = f['Mapped']['latitude'][()]
+            lon = f['Mapped']['longitude'][()]
+
+            sub = ac.shared.geolocation_sub(lat, lon, limit)
+            lat = None
+            lon = None
+
+        ncfo = '{}/{}_L1R.nc'.format(odir, oname)
+        new = True
+        for ds in datasets:
+            if sub is None:
+                data = f['Mapped'][ds][()]
+            else:
+                data = f['Mapped'][ds][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+            #if ds not in ['latitude', 'longitude', 'height']:
+            #    data[data<0] = np.nan
+            ds_att = {'name': ds}
+            print('Writing {}'.format(datasets[ds]))
+            ac.output.nc_write(ncfo, datasets[ds], data, dataset_attributes=ds_att, attributes=gatts, new=new, )
+            new = False
+
+        ## run through bands
+        for b in range(1, 6):
+            bk = '{}'.format(b)
+            ds = 'Lt{}'.format(b)
+            if sub is None:
+                Lt = f['Mapped']['radiance_{}'.format(b)][()]
+            else:
+                Lt = f['Mapped']['radiance_{}'.format(b)][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+
+            ds_att = {'name': 'radiance_{}'.format(b)}
+            for k in rsrd:
+                if 'rsr' in k: continue
+                if bk in rsrd[k].keys():
+                    ds_att[k] = rsrd[k][bk]
+            for k in coeffs['thermal_coefficients'][bk]:
+                ds_att[k] = coeffs['thermal_coefficients'][bk][k]
+
+            if len(np.where(Lt > 0)[0]) == 0:
+                print('Skipping B{}'.format(bk))
+                continue
+
+            if use_bt_lut:
+                flat = Lt.flatten()
+                flat = np.where(np.logical_and(0 <= flat, flat <= 60), flat, 0)  # Filter fill values
+                idx = np.int32(flat / 0.001)
+
+                # interpolate LUT data and compute BT
+                # from https://git.earthdata.nasa.gov/projects/LPDUR/repos/ecostress_swath2grid (accessed 2022-08-11)
+                Lt_x0 = idx * 0.001
+                Lt_x1 = Lt_x0 + 0.001
+                factor0 = (Lt_x1 - flat) / 0.001
+                factor1 = (flat - Lt_x0) / 0.001
+                bt = (factor0 * btlut[bk][idx]) + (factor1 * btlut[bk][idx + 1])
+                bt = np.where((flat != 0), bt, np.nan)
+                bt = bt.reshape(Lt.shape)
+            else:
+                bt = ds_att['K2']/(np.log(ds_att['K1']/Lt)+1)
+
+            Lt[Lt<0] = np.nan
+            bt[bt<0] = np.nan
+
+            print('Writing {}'.format('lt{}'.format(b)))
+            ac.output.nc_write(ncfo, 'lt{}'.format(b), Lt, dataset_attributes=ds_att, attributes=gatts, new=new)
+            Lt = None
+            new = False
+
+            print('Writing {}'.format('bt{}'.format(b)))
+            ac.output.nc_write(ncfo, 'bt{}'.format(b), bt, dataset_attributes=ds_att, attributes=gatts, new=new)
+            bt = None
+            new = False
+        if limit is not None: sub = None
+        if ncfo not in ofiles: ofiles.append(ncfo)
+
+    return(ofiles, setu)
