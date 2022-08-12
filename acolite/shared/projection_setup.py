@@ -25,14 +25,14 @@ def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=
                                (limit[0],limit[2],limit[2],limit[0]))
     xrange_raw = (min(xrange_raw), max(xrange_raw))
     yrange_raw = (min(yrange_raw), max(yrange_raw))
+
     xrange_region = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
     yrange_region = [yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2), yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2)]
-
 
     x_grid_off = xrange_region[0]%target_pixel_size[0], xrange_region[1]%target_pixel_size[0]
     y_grid_off = yrange_region[0]%target_pixel_size[1], yrange_region[1]%target_pixel_size[1]
     xrange = (xrange_region[0]-x_grid_off[0]), (xrange_region[1]+(target_pixel_size[0]-x_grid_off[1]))
-    yrange = (yrange_region[0]-y_grid_off[0]), (yrange_region[1]+(target_pixel_size[0]-y_grid_off[1]))
+    yrange = (yrange_region[0]-y_grid_off[0]), (yrange_region[1]+(target_pixel_size[1]-y_grid_off[1]))
 
     ## pixel sizes
     #ny = int((yrange[0] - yrange[1])/target_pixel_size[1])

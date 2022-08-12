@@ -24,31 +24,40 @@ def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
         xrange_raw, yrange_raw = dct['p']((limit[1],limit[1],limit[3],limit[3]),
                                           (limit[0],limit[2],limit[2],limit[0]))
         xrange_raw = (min(xrange_raw), max(xrange_raw))
-        yrange_raw = (max(yrange_raw), min(yrange_raw))
-
+        yrange_raw = (min(yrange_raw), max(yrange_raw))
     else:
         xrange_raw, yrange_raw = dct['p']([limit[1],limit[3]],[limit[0],limit[2]])
+        xrange_raw = (min(xrange_raw), max(xrange_raw))
+        yrange_raw = (min(yrange_raw), max(yrange_raw))
 
     if target_pixel_size is None:
-        xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), \
-                  xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
-        yrange = [yrange_raw[0] - (yrange_raw[0] % pixel_size[1]), \
-                  yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1])]
-        ## compute whether we are off from the nominal grid
-        x_grid_off = xscene[0]%pixel_size[0], xscene[1]%pixel_size[0]
-        y_grid_off = yscene[0]%pixel_size[1], yscene[1]%pixel_size[1]
-    else:
-        xrange = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
-        yrange = [yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2), yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2)]
-        ## compute whether we are off from the nominal grid
-        x_grid_off = xscene[0]%target_pixel_size[0], xscene[1]%target_pixel_size[0]
-        y_grid_off = yscene[0]%target_pixel_size[1], yscene[1]%target_pixel_size[1]
+        xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]*2), \
+                  xrange_raw[1]+pixel_size[0]*2-(xrange_raw[1] % pixel_size[0]*2)]
+        yrange = [yrange_raw[1]+pixel_size[1]*2-(yrange_raw[1] % pixel_size[1]*2), \
+                  yrange_raw[0] - (yrange_raw[0] % pixel_size[1]*2)]
 
-    ## remove pixel grid offsets
-    xrange[0]+=x_grid_off[0]
-    xrange[1]+=x_grid_off[1]
-    yrange[0]+=y_grid_off[0]
-    yrange[1]+=y_grid_off[1]
+        ## compute whether we are off from the nominal grid
+        x_grid_off = xrange[0]%pixel_size[0], xrange[1]%pixel_size[0]
+        y_grid_off = yrange[0]%pixel_size[1], yrange[1]%pixel_size[1]
+
+        ## remove pixel grid offsets
+        xrange = (xrange[0]-x_grid_off[0]), (xrange[1]+(pixel_size[0]-x_grid_off[1]))
+        yrange = (yrange[0]-y_grid_off[0]), (yrange[1]+(pixel_size[1]-y_grid_off[1]))
+
+
+    else:
+        xrange = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), \
+                  xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
+        yrange = [yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2), \
+                  yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2)]
+
+        ## compute whether we are off from the nominal grid
+        x_grid_off = xrange[0]%target_pixel_size[0], xrange[1]%target_pixel_size[0]
+        y_grid_off = yrange[0]%target_pixel_size[1], yrange[1]%target_pixel_size[1]
+
+        ## remove pixel grid offsets
+        xrange = (xrange[0]-x_grid_off[0]), (xrange[1]+(target_pixel_size[0]-x_grid_off[1]))
+        yrange = (yrange[0]-y_grid_off[0]), (yrange[1]+(target_pixel_size[1]-y_grid_off[1]))
 
     if (xrange[1] < xscene[0]) or (xrange[0] > xscene[1]):
         out_lon = True
