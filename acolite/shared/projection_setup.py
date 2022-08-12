@@ -4,7 +4,7 @@
 ## 2022-01-18
 ## modifications: 2022-07-12 (QV) changed name from projection_utm
 
-def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=None):
+def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=None, add_half_pixel=False):
     from pyproj import Proj
     import acolite as ac
     import numpy as np
@@ -26,13 +26,19 @@ def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=
     xrange_raw = (min(xrange_raw), max(xrange_raw))
     yrange_raw = (min(yrange_raw), max(yrange_raw))
 
-    xrange_region = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]*2), xrange_raw[1]+target_pixel_size[0]*2-(xrange_raw[1] % target_pixel_size[0]*2)]
-    yrange_region = [yrange_raw[1]+target_pixel_size[1]*2-(yrange_raw[1] % target_pixel_size[1]*2), yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1]*2)]
+    xrange_region = [xrange_raw[0] - (xrange_raw[0] % target_pixel_size[0]), \
+                     xrange_raw[1]+target_pixel_size[0]-(xrange_raw[1] % target_pixel_size[0])]
+    yrange_region = [yrange_raw[1]+target_pixel_size[1]-(yrange_raw[1] % target_pixel_size[1]), \
+                     yrange_raw[0] - (yrange_raw[0] % target_pixel_size[1])]
 
     x_grid_off = xrange_region[0]%target_pixel_size[0], xrange_region[1]%target_pixel_size[0]
     y_grid_off = yrange_region[0]%target_pixel_size[1], yrange_region[1]%target_pixel_size[1]
     xrange = (xrange_region[0]-x_grid_off[0]), (xrange_region[1]+(target_pixel_size[0]-x_grid_off[1]))
     yrange = (yrange_region[0]-y_grid_off[0]), (yrange_region[1]+(target_pixel_size[1]-y_grid_off[1]))
+
+    if add_half_pixel:
+        xrange = xrange[0]-(target_pixel_size[0]/2), xrange[1]-(target_pixel_size[0]/2)
+        yrange = yrange[0]-(target_pixel_size[1]/2), yrange[1]-(target_pixel_size[1]/2)
 
     ## pixel sizes
     #ny = int((yrange[0] - yrange[1])/target_pixel_size[1])
