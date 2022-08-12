@@ -21,6 +21,7 @@ def inputfile_test(inputfile):
     inputfile_list = []
     for file in tmp_files:
         if len(file) == 0: continue
+        file = file.strip() ## strip spaces
         if not os.path.exists(file):
             if ac.config['verbosity'] > 0: print('Path {} does not exist.'.format(file))
             continue
