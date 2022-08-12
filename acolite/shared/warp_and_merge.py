@@ -15,8 +15,10 @@ def warp_and_merge(tiles, output = None, limit = None,
     import acolite as ac
 
     from osgeo import gdal, gdalconst
-    from osgeo.utils import gdal_merge
-
+    if gdal.__version__ < '3.3':
+        from osgeo.utils import gdal_merge
+    else:
+        from osgeo_utils import gdal_merge
     if output is None: output = '{}/{}'.format(ac.config['scratch_dir'])
     if type(tiles) is not list: tiles = [tiles]
 
