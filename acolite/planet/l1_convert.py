@@ -81,6 +81,7 @@ def l1_convert(inputfile, output = None, settings = {},
             image_file = files['analytic']['path']
         elif 'pansharpened' in files:
             image_file = files['pansharpened']['path']
+        image_file_original = '{}'.format(image_file)
 
         sr_image_file = None
         if 'sr' in files: sr_image_file = files['sr']['path']
@@ -200,7 +201,20 @@ def l1_convert(inputfile, output = None, settings = {},
             gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
 
-        dct = ac.shared.projection_read(image_file)
+        try:
+            dct = ac.shared.projection_read(image_file)
+        except:
+            print('Cannot determine image projection of {}, reprojecting.'.format(image_file))
+            ret = ac.shared.warp_and_merge(image_file_original, output = output,
+                                     limit = limit, resolution = setu['default_projection_resolution'])
+            if len(ret) == 3:
+                image_file = ret[0]
+                dct = ret[1]
+                dct_limit = ret[2]
+            else:
+                print('Image projection unsuccesful.')
+                continue
+
         gatts['scene_xrange'] = dct['xrange']
         gatts['scene_yrange'] = dct['yrange']
         gatts['scene_proj4_string'] = dct['proj4_string']
