@@ -43,6 +43,7 @@ from .import_config import *
 from .common_dir import *
 from .extract_bundle import *
 
+from .warp_and_merge import *
 from .warp_from_source import *
 from .warp_inputfile import *
 from .polygon_crop import *
