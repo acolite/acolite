@@ -3,13 +3,13 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-07-22
 ## modifications: 2022-07-23 (QV) added dem
+##                2022-08-13 (QV) added estimate of image extent and resolution
 
 def warp_and_merge(tiles, output = None, limit = None,
                    use_tile_projection = True,
                    delete_warped_tiles = True,
                    rpc_dem = None, find_dem = True,
-                   dct = None, resolution = None, utm = True):
-
+                   decimals = 0, dct = None, resolution = None, utm = True):
     import os
     import numpy as np
     import acolite as ac
@@ -19,8 +19,33 @@ def warp_and_merge(tiles, output = None, limit = None,
         from osgeo.utils import gdal_merge
     else:
         from osgeo_utils import gdal_merge
-    if output is None: output = '{}/{}'.format(ac.config['scratch_dir'])
+    if output is None: output = '{}/'.format(ac.config['scratch_dir'])
     if type(tiles) is not list: tiles = [tiles]
+
+    ## find tile extent in geographic coordinates
+    tile_extents = []
+    tile_resolutions = []
+    for tile in tiles:
+        try:
+            tile_limit, (xdim, ydim), corners = ac.shared.image_extent(tile)
+            tile_extents.append(tile_limit)
+            res = ac.shared.image_resolution((tile_limit, (xdim, ydim), corners), decimals=decimals)
+            tile_resolutions.append(res)
+        except:
+            pass
+    image_limit = None
+    image_resolution = None
+    if len(tile_extents) > 0:
+        for ti, t in enumerate(tile_extents):
+            if image_limit is None:
+                image_limit = t
+            else:
+                if t[0] < image_limit[0]: image_limit[0] = t[0]
+                if t[1] < image_limit[1]: image_limit[1] = t[1]
+                if t[2] > image_limit[2]: image_limit[2] = t[2]
+                if t[3] > image_limit[3]: image_limit[3] = t[3]
+    if len(tile_resolutions) > 0:
+        image_resolution = np.mean(tile_resolutions)
 
     ## find if tiles are projected
     dct_tiles = None
@@ -56,22 +81,33 @@ def warp_and_merge(tiles, output = None, limit = None,
         dct_tiles['xdim'] = int(np.round((dct_tiles['xrange'][1]-dct_tiles['xrange'][0])/dct_tiles['pixel_size'][0]))
         dct_tiles['ydim'] = int(np.round((dct_tiles['yrange'][1]-dct_tiles['yrange'][0])/dct_tiles['pixel_size'][1]))        #stop
 
+    ## set image limit if needed
+    if (limit is None) & (image_limit is not None):
+        print('Using image limit {}'.format(image_limit))
+        limit = image_limit
+
+    ## set image resolution if needed
+    if (resolution is None) & (image_resolution is not None):
+        print('Using image resolution {}'.format(image_resolution))
+        resolution = image_resolution
+
     ## determine final projection dct
     dct_limit = None
     if (limit is not None):
         if (dct is not None):
             dct_limit = ac.shared.projection_sub(dct, limit)
-            print('Used provided output projection.')
+            print('Used provided output projection with limit {}.'.format(limit))
         elif (dct_tiles is not None) & (use_tile_projection):
             dct_limit = ac.shared.projection_sub(dct_tiles, limit)
-            print('Output projection was determined from input files.')
+            print('Output projection was determined from input files with limit {}.'.format(limit))
         elif (resolution is not None):
             dct_limit, nc_projection, warp_to = ac.shared.projection_setup(limit, resolution, utm=utm)
-            print('Computed new UTM output projection at {} m resolution.'.format(resolution))
+            print('Computed new UTM output projection at {} m resolution with limit.'.format(resolution, limit))
         else:
             print('Could not determine subset for limit.')
     elif dct is not None:
         dct_limit = {k:dct[k] for k in dct}
+        print('Used provided output projection.')
     elif (dct_tiles is not None) & (use_tile_projection):
         dct_limit = {dct_tiles[k] for k in dct_tiles}
         print('Output projection was determined from input files.')
@@ -102,7 +138,7 @@ def warp_and_merge(tiles, output = None, limit = None,
             rpc_dem = dem_files[0]
         elif len(dem_files) > 1:
             rpc_dem ='{}/dem_merged.tif'.format(output)
-            if os.path.exists(merged_file): os.remove(merged_file)
+            if os.path.exists(rpc_dem): os.remove(rpc_dem)
             print('Merging {} tiles to {}'.format(len(dem_files), rpc_dem))
             gdal_merge.main(['', '-o', rpc_dem, '-n', '0']+dem_files)
 
@@ -119,7 +155,6 @@ def warp_and_merge(tiles, output = None, limit = None,
         bn, ex = os.path.splitext((os.path.basename(tile)))
         warped_file='{}/{}_warped.tif'.format(output, bn)
         if os.path.exists(warped_file): os.remove(warped_file)
-        #print(dct_limit)
         warped_tile, dim = ac.shared.warp_inputfile(tile, target=warped_file, rpc_dem=rpc_dem, dct=dct_limit)
         print(warped_tile, dim)
         warped_tiles.append(warped_tile)
