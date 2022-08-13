@@ -46,6 +46,11 @@ def acolite_l2r(gem,
     else:
         setu['dsf_exclude_bands'] = []
 
+    rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
+    if len(rhot_ds) == 0:
+        print('No TOA reflectance data in {}'.format(gemf))
+        return()
+
     ## check blackfill
     if setu['blackfill_skip']:
         rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
