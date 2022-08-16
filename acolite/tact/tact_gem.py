@@ -75,7 +75,7 @@ def tact_gem(gem, output_file = True,
 
         if gem['gatts']['isodate'] > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format(source, max_date))
-            print('Run with tact_source=gdas1 for NRT processing')
+            print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
             return()
 
     ## load emissivity data
