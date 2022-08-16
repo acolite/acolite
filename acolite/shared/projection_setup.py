@@ -19,7 +19,10 @@ def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=
     projection = 'EPSG:{}'.format(epsg)
 
     p = Proj(projection)
-    target_pixel_size = resolution, resolution * -1.0
+    if len(np.atleast_1d(resolution)) == 1:
+        target_pixel_size = resolution, resolution * -1.0
+    else:
+        target_pixel_size = resolution
 
     xrange_raw, yrange_raw = p((limit[1],limit[1],limit[3],limit[3]),
                                (limit[0],limit[2],limit[2],limit[0]))
