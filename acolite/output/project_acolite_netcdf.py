@@ -146,7 +146,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         yrange = [yrange_region[0], yrange_region[1]]
 
     ## pixel sizes
-    ny = int((yrange[0] - yrange[1])/target_pixel_size[1])
+    ny = int((yrange[1] - yrange[0])/target_pixel_size[1])
     nx = int((xrange[1] - xrange[0])/target_pixel_size[0])
     print(xrange, yrange)
     print(nx, ny)
