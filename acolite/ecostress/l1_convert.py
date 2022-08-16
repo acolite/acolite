@@ -9,7 +9,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import numpy as np
     import dateutil.parser, datetime
     import acolite as ac
-    
+
     ## read rsr
     sensor = 'ISS_ECOSTRESS'
     rsrd = ac.shared.rsr_dict(sensor, wave_range=[7,14], wave_step=0.05)[sensor]
@@ -91,6 +91,9 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             sub = ac.shared.geolocation_sub(lat, lon, limit)
             lat = None
             lon = None
+            if sub is None:
+                print('Image {} does not cover {}'.format(bundle, limit))
+                continue
 
         ncfo = '{}/{}_L1R.nc'.format(odir, oname)
         new = True
