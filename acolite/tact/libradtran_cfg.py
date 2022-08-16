@@ -30,8 +30,8 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
         ]
 
         ## add reptran if exists
-        repdir = ac.config['libradtran_dir'] + '/data/correlated_k/reptran'
-        if os.path.exists(repdir): config.insert(2, 'mol_abs_param reptran {}'.format(reptran))
+        repfine = ac.config['libradtran_dir'] + '/data/correlated_k/reptran/reptran_solar_fine.cdf'
+        if os.path.exists(repfine): config.insert(2, 'mol_abs_param reptran {}'.format(reptran))
 
         if sur_temperature is not None: config += ['sur_temperature {}'.format(sur_temperature)]
         if atmosphere is not None: config +=['atmosphere_file {}'.format(atmosphere)]
