@@ -15,6 +15,6 @@ def attributes(file):
 
     for a in h5_gatts:
         if type(h5_gatts[a]) == bytes:
-            h5_gatts[a] = str(h5_gatts[a])
+            h5_gatts[a] = h5_gatts[a].decode('utf-8')
 
     return(h5_gatts)
