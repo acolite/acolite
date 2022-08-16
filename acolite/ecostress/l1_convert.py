@@ -102,6 +102,11 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
                 data = f['Mapped'][ds][()]
             else:
                 data = f['Mapped'][ds][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+
+            if len(np.where(np.isfinite(data))[0]) == 0:
+                print('Limit {} in blackfill of {}'.format(limit, bundle))
+                continue
+
             #if ds not in ['latitude', 'longitude', 'height']:
             #    data[data<0] = np.nan
             ds_att = {'name': ds}
