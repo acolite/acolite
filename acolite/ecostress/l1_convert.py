@@ -20,7 +20,9 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     if output is None: output = setu['output']
 
     limit, sub = None, None
-    if 'polygon' in setu:
+    if 'limit' in setu:
+        limit = setu['limit']
+    if ('polygon' in setu) & (limit is None):
         poly = setu['polygon']
         if poly is not None:
             limit = ac.shared.polygon_limit(poly)
@@ -107,8 +109,6 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
                 print('Limit {} in blackfill of {}'.format(limit, bundle))
                 continue
 
-            #if ds not in ['latitude', 'longitude', 'height']:
-            #    data[data<0] = np.nan
             ds_att = {'name': ds}
             print('Writing {}'.format(datasets[ds]))
             ac.output.nc_write(ncfo, datasets[ds], data, dataset_attributes=ds_att, attributes=gatts, new=new, )
