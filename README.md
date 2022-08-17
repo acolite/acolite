@@ -65,7 +65,12 @@ Science (EROS) Center (https://e4ftl01.cr.usgs.gov/MEASURES/) for both resources
 
 Your EarthData account needs to have approval for OB.DAAC Data Access and LP DAAC Data Pool to access the ancillary, SRTM DEM, and ASTER GED datasets. Login to your EarthData account to check Authorised Apps, and click Approve More Applications if necessary: https://urs.earthdata.nasa.gov/profile
 
-ACOLITE tries and retrieve the EARTHDATA_u and EARTHDATA_p (for username and password) from the system environment variables. Alternatively they can be specified in the processing settings file or the general ACOLITE config file at config/config.txt.
+ACOLITE tries to retrieve the credentials for accessing EARTHDATA either from your .netrc file (host "earthdata"), or EARTHDATA_u and EARTHDATA_p (for username and password) from the system environment variables. Alternatively EARTHDATA_u and EARTHDATA_p can also be specified in the processing settings file or the general ACOLITE config file at config/config.txt. To set up your .netrc file for ACOLITE, make sure it has strict access permissions (-rw-------), and add the following:
+
+            machine earthdata
+            login YOUR-LOGIN
+            password YOUR-PASSWORD
+
 
 ## TACT installation
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php

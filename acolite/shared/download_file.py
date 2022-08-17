@@ -8,11 +8,12 @@
 ##                2022-04-08 (QV) download to scratch directory first
 ##                2022-07-07 (QV) added SRTM1 DEM
 ##                2022-08-04 (QV) added GED and retry option
+##                2022-08-17 (QV) added .netrc auth, simplified url checks for earthdata
 
 def download_file(url, file, auth = None, session = None,
                     parallel = False, verbosity = 0, verify_ssl = True, retry = 1):
 
-    import requests, time, os, shutil
+    import requests, time, os, shutil, netrc
     import acolite as ac
 
     file_path = os.path.abspath(file)
@@ -26,15 +27,24 @@ def download_file(url, file, auth = None, session = None,
 
     start = time.time()
 
-    if ('https://oceandata.sci.gsfc.nasa.gov/' in url) \
-            or ('MEASURES/SRTMGL3.003/2000.02.11' in url)\
-            or ('DP133/SRTM/SRTMGL1.003/2000.02.11' in url)\
-            or ('e4ftl01.cr.usgs.gov' in url) or ('opendap.cr.usgs.gov' in url):
-        if ('EARTHDATA_u' in os.environ) & ('EARTHDATA_p' in os.environ):
+    if ('gsfc.nasa.gov' in url) or ('cr.usgs.gov' in url):
+        ## try to get auth from netrc
+        if (auth is None):
+            try:
+                nr = netrc.netrc()
+                ret = nr.authenticators('earthdata')
+                if ret is not None:
+                    login, account, password = ret
+                    auth = (login, password)
+            except:
+                pass
+
+        if (auth is None) & ('EARTHDATA_u' in os.environ) & ('EARTHDATA_p' in os.environ):
             username = os.environ['EARTHDATA_u']
             password = os.environ['EARTHDATA_p']
             auth = (username, password)
-        else:
+
+        if (auth is None):
             print('EARTHDATA user name and password required for download of {}'.format(url))
             return()
 
