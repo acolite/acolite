@@ -70,9 +70,19 @@ def tact_gem(gem, output_file = True,
         print('No thermal bands for {} (bands {}) in {}'.format(gem['gatts']['sensor'], ','.join(gem['gatts']['thermal_bands']), gemf))
         return()
 
+    ## check blackfill
+    if setu['blackfill_skip']:
+        band_data = 1.0*gem['data']['bt{}'.format(gem['gatts']['thermal_bands'][0])]
+        npx = band_data.shape[0] * band_data.shape[1]
+        #nbf = npx - len(np.where(np.isfinite(band_data))[0])
+        nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
+        band_data = None
+        if (nbf/npx) >= float(setu['blackfill_max']):
+            if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
+            return()
+
     if source == 'era5':
         max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
-
         if gem['gatts']['isodate'] > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format(source, max_date))
             print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
