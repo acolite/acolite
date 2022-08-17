@@ -6,6 +6,7 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-02-21 (QV) added Skysat
+##                2022-08-12 (QV) added reprojection of unrectified data with RPC
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -201,9 +202,13 @@ def l1_convert(inputfile, output = None, settings = {},
             gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
 
+        ## try to read projection of image file
         try:
             dct = ac.shared.projection_read(image_file)
         except:
+            ## else reproject image to default resolution
+            ## if limit not set then gdal will be used to set up projection
+            ## to be improved using RPC info
             print('Cannot determine image projection of {}, reprojecting.'.format(image_file))
             ret = ac.shared.warp_and_merge(image_file_original, output = output,
                                      limit = limit, resolution = setu['default_projection_resolution'])
