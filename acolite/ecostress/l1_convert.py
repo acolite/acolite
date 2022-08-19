@@ -2,7 +2,7 @@
 ## converts ECOSTRESS L1B data to l1r NetCDF for acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-11
-## modifications:
+## modifications: 2022-08-19 (QV) added ECO1BRAD support
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import os, h5py, json
@@ -77,8 +77,27 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
         ## output file name
         oname = '{}_{}'.format(gatts['sensor'], dt.strftime('%Y_%m_%d_%H_%M_%S'))
 
-
         f = h5py.File(bundle, mode='r')
+
+        ## find out file type
+        file_type = None
+        geo_file, geo_meta = None, None
+        if 'Mapped' in f:
+            file_type = 'ECO1BMAPRAD'
+            data_key = 'Mapped'
+            geo_key = 'Mapped'
+            fg = f
+        elif 'Radiance' in f:
+            file_type = 'ECO1BRAD'
+            data_key = 'Radiance'
+            geo_key = 'Geolocation'
+            geo_file = dn + os.path.sep + bn.replace('ECOSTRESS_L1B_RAD_', 'ECOSTRESS_L1B_GEO_') + ext
+            if not os.path.exists(geo_file):
+                print('ECO1BGEO file required for processing ECO1BRAD.')
+                print('{} not found'.format(geo_file))
+                continue
+            geo_meta = ac.ecostress.attributes(geo_file)
+            fg = h5py.File(geo_file, mode='r')
 
         datasets = {'latitude': 'lat', 'longitude':'lon',
                     'height': 'altitude', 'solar_azimuth':'saa', 'solar_zenith':'sza',
@@ -87,8 +106,8 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
 
         ## find crop
         if limit is not None:
-            lat = f['Mapped']['latitude'][()]
-            lon = f['Mapped']['longitude'][()]
+            lat = fg[geo_key]['latitude'][()]
+            lon = fg[geo_key]['longitude'][()]
 
             sub = ac.shared.geolocation_sub(lat, lon, limit)
             lat = None
@@ -101,9 +120,9 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
         new = True
         for ds in datasets:
             if sub is None:
-                data = f['Mapped'][ds][()]
+                data = fg[geo_key][ds][()]
             else:
-                data = f['Mapped'][ds][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                data = fg[geo_key][ds][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
             if len(np.where(np.isfinite(data))[0]) == 0:
                 print('Limit {} in blackfill of {}'.format(limit, bundle))
@@ -119,9 +138,9 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             bk = '{}'.format(b)
             ds = 'Lt{}'.format(b)
             if sub is None:
-                Lt = f['Mapped']['radiance_{}'.format(b)][()]
+                Lt = f[data_key]['radiance_{}'.format(b)][()]
             else:
-                Lt = f['Mapped']['radiance_{}'.format(b)][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                Lt = f[data_key]['radiance_{}'.format(b)][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
             ds_att = {'name': 'radiance_{}'.format(b)}
             for k in rsrd:
@@ -164,6 +183,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             ac.output.nc_write(ncfo, 'bt{}'.format(b), bt, dataset_attributes=ds_att, attributes=gatts, new=new)
             bt = None
             new = False
+        f, fg = None, None
         if limit is not None: sub = None
         if ncfo not in ofiles: ofiles.append(ncfo)
 
