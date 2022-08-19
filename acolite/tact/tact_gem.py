@@ -72,7 +72,10 @@ def tact_gem(gem, output_file = True,
 
     ## check blackfill
     if setu['blackfill_skip']:
-        band_data = 1.0*gem['data']['bt{}'.format(gem['gatts']['thermal_bands'][0])]
+        for b in gem['gatts']['thermal_bands']:
+            if 'bt{}'.format(b) in gem['data']:
+                band_data = 1.0*gem['data']['bt{}'.format(b)]
+                break
         npx = band_data.shape[0] * band_data.shape[1]
         #nbf = npx - len(np.where(np.isfinite(band_data))[0])
         nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
