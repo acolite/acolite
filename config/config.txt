@@ -7,10 +7,6 @@ defaults=$ACDIR/config/defaults.txt
 parameter_labels=$ACDIR/config/parameter_labels.txt
 parameter_cf_attributes=$ACDIR/config/parameter_cf_attributes.json
 
-## EarthData
-EARTHDATA_u=
-EARTHDATA_p=
-
 ## Data directory
 data_dir=$ACDIR/data
 
@@ -43,3 +39,18 @@ grid_dir=$ACDIR/data/TACT/grid
 
 ## libRadtran directory
 libradtran_dir=$ACDIR/external/libRadtran-2.0.2
+
+##
+## other configuration
+##
+
+## EarthData credentials (will be set to environment variables by acolite)
+## alternatively use .netrc for machine earthdata
+EARTHDATA_u=
+EARTHDATA_p=
+
+## list of hyperspectral sensors (do not edit)
+hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI
+
+## list of thermal sensors (do not edit)
+thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,ASTER_TIR

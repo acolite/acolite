@@ -62,7 +62,7 @@ def acolite_l2w(gem,
     ## read rsr
     hyper = False
     ## hyperspectral
-    if gem['gatts']['sensor'] in ac.hyper_sensors:
+    if gem['gatts']['sensor'] in ac.config['hyper_sensors']:
         hyper = True
         if gem['gatts']['sensor']=='DESIS_HSI':
             ### DESIS RSR and RSR file are version-specific
@@ -582,7 +582,7 @@ def acolite_l2w(gem,
         if (cur_par[0:6] == 'chl_re'):
             par_name = cur_par
             mask = True ## apply non water mask
-            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS'] + ac.hyper_sensors:
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS'] + ac.config['hyper_sensors']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                 continue
 
@@ -1105,7 +1105,7 @@ def acolite_l2w(gem,
             ds_waves = [w for w in rhos_waves]
 
             ### get required datasets
-            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.hyper_sensors:
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.config['hyper_sensors']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                 continue
 
@@ -1149,7 +1149,7 @@ def acolite_l2w(gem,
             ds_waves = [w for w in rhos_waves]
 
             ### get required datasets
-            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.hyper_sensors:
+            if gem['gatts']['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.config['hyper_sensors']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem['gatts']['sensor']))
                 continue
 

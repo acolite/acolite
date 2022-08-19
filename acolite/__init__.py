@@ -39,9 +39,6 @@ import os, datetime
 code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
 
-## list of hyperspectral sensors
-hyper_sensors = ['CHRIS', 'PRISMA', 'ISS_HICO', 'EO1_HYPERION', 'DESIS_HSI']
-
 ## find config file
 if not os.path.exists('{}{}config'.format(path, os.path.sep)):
     ## check if binary distribution
@@ -80,10 +77,18 @@ else:
             version_long+=' pull {}'.format(gd['FETCH_HEAD'])
             version = 'Generic GitHub Clone p{}'.format(gd['FETCH_HEAD'])
 
-## test whether we can find the relative paths
+## run through config data
 for t in config:
-    if t in ['EARTHDATA_u', 'EARTHDATA_p']: continue
+    ## set EARTHDATA credentials
+    if t in ['EARTHDATA_u', 'EARTHDATA_p']:
+        if (t not in os.environ) & (len(config[t]) > 0): os.environ[t] = config[t]
+        continue
+    ## split lists (currently only sensors)
+    if ',' in config[t]:
+        config[t] = config[t].split(',')
+        continue
 
+    ## test paths
     ## replace $ACDIR in config by ac.path
     if '$ACDIR' == config[t][0:6]:
         # os.path.join did not give the intended result on Windows
@@ -104,8 +109,3 @@ param = {'scaling':acolite.parameter_scaling()}
 import json
 with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
     param['attributes'] = json.load(f)
-
-## set up earthdata login
-if ('EARTHDATA_u' in config) & ('EARTHDATA_p' in config):
-    if len(config['EARTHDATA_u']) > 0: os.environ['EARTHDATA_u'] = config['EARTHDATA_u']
-    if len(config['EARTHDATA_p']) > 0: os.environ['EARTHDATA_p'] = config['EARTHDATA_p']

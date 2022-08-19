@@ -76,7 +76,7 @@ def acolite_l2r(gem,
     ## read rsrd and get band wavelengths
     hyper = False
     ## hyperspectral
-    if gem.gatts['sensor'] in ac.hyper_sensors:
+    if gem.gatts['sensor'] in ac.config['hyper_sensors']:
         hyper = True
         if gem.gatts['sensor']=='DESIS_HSI':
             ### DESIS RSR and RSR file are version-specific

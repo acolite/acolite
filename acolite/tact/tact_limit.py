@@ -11,8 +11,7 @@
 def tact_limit(isotime, limit=None,
                   lat = None, lon = None,
                   source = 'era5', reptran = 'medium',
-                  satsens = ['L9_TIRS', 'L8_TIRS', 'L5_TM', 'L7_ETM', 'ISS_ECOSTRESS'],
-                  satsen = 'L8_TIRS', override = False, verbosity = 0, processes = 4):
+                  satsen = None, override = False, verbosity = 0, processes = 4):
 
     import netCDF4
     import numpy as np
@@ -40,7 +39,7 @@ def tact_limit(isotime, limit=None,
 
     ## read thermal band RSR
     rsr_data = {}
-    for sen in satsens:
+    for sen in ac.config['thermal_sensors']:
         if sen in ['L5_TM', 'L7_ETM']:
             rsr_file = "{}/RSR/{}_B6.txt".format(ac.config['data_dir'], sen)
         else:
