@@ -3,6 +3,7 @@
 ;; Quinten Vanhellemont 2022-02-28
 ;; from ASTER-RSR.xlsx
 ;;
+;; 2022-08-20 added TERRA to file name
 ;;
 ;; datasets: wavelength, RSR
 ;;

@@ -53,4 +53,4 @@ EARTHDATA_p=
 hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI
 
 ## list of thermal sensors (do not edit)
-thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,ASTER_TIR
+thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,TERRA_ASTER_TIR
