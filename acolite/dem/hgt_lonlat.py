@@ -18,10 +18,10 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None, source = 'srtmgl3'):
 
     if source == 'srtmgl3':
         url_base = 'http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'
-        hgt_dir+='/SRTMGL3/'
+        hgt_dir+='SRTMGL3/'
     elif source == 'srtmgl1':
         url_base = 'https://e4ftl01.cr.usgs.gov/DP133/SRTM/SRTMGL1.003/2000.02.11/{}.SRTMGL1.hgt.zip'
-        hgt_dir+='/SRTMGL1/'
+        hgt_dir+='SRTMGL1/'
 
     ## find dem files
     limit=[0,0,0,0]
