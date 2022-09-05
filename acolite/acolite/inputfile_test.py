@@ -2,7 +2,7 @@
 ## function to test/parse inputfile given to acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-03-04
-## modifications:
+## modifications: 2022-09-05 (QV) remove trailing slash from file paths in txt file
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -42,6 +42,8 @@ def inputfile_test(inputfile):
                     if len(l) == 0: continue
                     cfiles = []
                     for fn in l.split(','):
+                        fn = fn.strip()
+                        if fn[-1] == os.sep: fn = fn[0:-1]
                         if os.path.exists(fn):
                             cfiles.append(fn)
                         else:
