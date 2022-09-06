@@ -35,6 +35,8 @@ def download_file(url, file, auth = None, session = None,
                 ret = nr.authenticators('earthdata')
                 if ret is not None:
                     login, account, password = ret
+                    login = login.strip('"')
+                    password = password.strip('"')
                     auth = (login, password)
             except:
                 pass
@@ -43,7 +45,6 @@ def download_file(url, file, auth = None, session = None,
             username = os.environ['EARTHDATA_u']
             password = os.environ['EARTHDATA_p']
             auth = (username, password)
-
         if (auth is None):
             print('EARTHDATA user name and password required for download of {}'.format(url))
             return()
