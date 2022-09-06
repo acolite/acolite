@@ -21,7 +21,11 @@ def hgt_download(tile, url_base, hgt_dir = None, override = False):
     if not os.path.exists(f_local):
         try:
             ret = ac.shared.download_file(f_url, f_local)
-        except:
+            if os.path.exists(f_local):
+                print('Downloaded {}'.format(f_local))
+        except BaseException as err:
+            print(f"Download error {err=}, {type(err)=}")
+            print('Downloading {} failed'.format(f_local))
             pass
 
     ## test file
