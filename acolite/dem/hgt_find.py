@@ -7,10 +7,18 @@
 ##                2021-04-21 (QV) added download
 ##                2022-07-07 (QV) added SRTM1 DEM
 
-def hgt_find(limit, required=False, hgt_dir=None, hgt_url = 'http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'):
+def hgt_find(limit, required=False, hgt_dir=None, hgt_url = None):
     import os
     import numpy as np
     import acolite as ac
+
+    ## identify source
+    source = os.path.split(hgt_dir)[-1]
+    tiles = []
+    tilefile = '{}/{}'.format(ac.config['hgt_dir'], '{}_tilelist.txt'.format(source))
+    with open(tilefile, 'r', encoding='utf-8') as f:
+        for line in f.readlines():
+            tiles.append(line.strip())
 
     hgt_ext = os.path.basename(hgt_url)[2:]
     hgt_limit = [int(np.floor(limit[0])),
@@ -36,6 +44,7 @@ def hgt_find(limit, required=False, hgt_dir=None, hgt_url = 'http://e4ftl01.cr.u
             lon_pf = "W" if lon < 0 else "E"
 
             hgt_file = '{}{}{}{}'.format(lat_pf,str(abs(lat)).zfill(2),lon_pf,str(abs(lon)).zfill(3))
+            if '{}.{}'.format(hgt_file, source) not in tiles: continue
             hgt_required.append(hgt_file)
 
     hgt_files = []
