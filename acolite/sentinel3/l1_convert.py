@@ -118,7 +118,7 @@ def l1_convert(inputfile, output = None, settings = {},
             ## or full size data
             else:
                 for ds in datasets:
-                    if ds[3:] == '_radiance':
+                    if ds[-9:] == '_radiance':
                         data[ds] = ac.shared.nc_data(file, ds, sub=sub)
                         if verbosity > 2: print(ds, data[ds].shape)
                         if use_gains:
@@ -128,9 +128,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                 cg = float(gains[gi])
                             if verbosity > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
                             data[ds]*=cg
-                        continue
-
-                    if output_geolocation:
+                    elif output_geolocation:
                         data_ = ac.shared.nc_data(file, ds, sub=sub)
                         if dshape is None: dshape = data_.shape
                         if data_shape is None: data_shape = data_.shape
