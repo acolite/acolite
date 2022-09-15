@@ -110,6 +110,7 @@ def acolite_l2r(gem,
         else:
             clon = gem.gatts['lon']
             clat = gem.gatts['lat']
+        print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(gem.gatts['isodate'], clon, clat))
         anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat)
 
         ## overwrite the defaults
