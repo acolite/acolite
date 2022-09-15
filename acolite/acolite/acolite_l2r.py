@@ -358,6 +358,8 @@ def acolite_l2r(gem,
         gemo.bands = gem.bands
         gemo.verbosity = setu['verbosity']
         gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
+        gemo.gatts['acolite_version'] = ac.version
+        
         ## add settings to gatts
         for k in setu:
             if k in gem.gatts: continue
