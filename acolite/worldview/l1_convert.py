@@ -330,6 +330,11 @@ def l1_convert(inputfile, output = None,
                     d = ac.shared.read_band(swir_file, idx=swir_meta['BAND_INFO'][bt]['index'], sub=sub, warp_to=warp_to)
                     cf = float(swir_meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(swir_meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
 
+                if cf <=0:
+                    print('Warning DN scaling factor is <0, this will give bad TOA radiances/reflectances.')
+                    if 'RADIOMETRICENHANCEMENT' in meta:
+                        print('Data has been enhanced by the provider: {}'.format(meta['RADIOMETRICENHANCEMENT']))
+
                 ## track mask
                 nodata = d == np.uint16(0)
                 ## convert to float and scale to TOA reflectance
