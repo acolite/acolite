@@ -91,6 +91,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
             geometry_type=setu['geometry_type']
             geometry_res=setu['geometry_res']
+            geometry_override=setu['geometry_override']
             geometry_per_band=setu['geometry_per_band']
             geometry_fixed_footprint=setu['geometry_fixed_footprint']
 

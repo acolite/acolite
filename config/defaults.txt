@@ -48,6 +48,7 @@ geometry_type=grids_footprint
 geometry_res=60
 geometry_per_band=False
 geometry_fixed_footprint=False
+geometry_override=False
 
 ## Sentinel-3 options
 smile_correction=True
