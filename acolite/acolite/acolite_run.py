@@ -6,12 +6,16 @@
 ##                2021-04-15 (QV) test/parse input files
 ##                2022-03-04 (QV) moved inputfile testing to inputfile_test
 ##                2022-07-25 (QV) avoid deleting original inputfiles
+##                2022-09-19 (QV) printout platform info
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
     import acolite as ac
 
     print('Running ACOLITE processing - {}'.format(ac.version))
+    print('Python - {} - {}'.format(ac.python['platform'], ac.python['version']).replace('\n', ''))
+    print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
+
     ## time of processing start
     time_start = datetime.datetime.now()
 

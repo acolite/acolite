@@ -35,7 +35,12 @@ from acolite import parameters
 import numpy as np
 olderr = np.seterr(all='ignore')
 
-import os, datetime
+import os, sys, datetime
+## get platform identifiers
+uname = os.uname()
+python = {'platform':sys.platform, 'version':sys.version}
+system = {'sysname': uname.sysname, 'release': uname.release, 'machine': uname.machine, 'version': uname.version}
+
 code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
 
