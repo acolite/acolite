@@ -102,7 +102,7 @@ def warp_and_merge(tiles, output = None, limit = None,
             print('Output projection was determined from input files with limit {}.'.format(limit))
         elif (resolution is not None):
             dct_limit, nc_projection, warp_to = ac.shared.projection_setup(limit, resolution, utm=utm)
-            print('Computed new UTM output projection at {} m resolution with limit.'.format(resolution, limit))
+            print('Computed new UTM output projection at {} m resolution with limit {}.'.format(resolution, limit))
         else:
             print('Could not determine subset for limit.')
     elif dct is not None:
