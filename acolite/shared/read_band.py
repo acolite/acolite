@@ -5,6 +5,7 @@
 ## 2020-01-25
 ## modifications:  2021-02-08 (QV) renamed from generic read, integrated in acolite-gen
 ##                                 added in col and row diff check from landsat reader
+##                 2022-09-21 (QV) allow passing of open gdal file
 
 def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
                  target_res=None, sub=None, gdal_meta = False):
@@ -13,7 +14,16 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
     from osgeo import gdal
     gdal.UseExceptions()
 
-    ds = gdal.Open(file)
+    close = False
+    if type(file) == str:
+        ds = gdal.Open(file)
+        close = True ## close if we open file here
+    elif type(file) == gdal.Dataset:
+        ds = file
+    else:
+        print('{} not recognised'.format(file))
+        return()
+
     nrows=ds.RasterYSize
     ncols=ds.RasterXSize
 
@@ -23,14 +33,12 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
         except:
             md = {}
 
-    if idx is not None:
-        ds = None
-        tmp = gdal.Open(file)
-        ds = tmp.GetRasterBand(idx)
-
     if warp_to is None:
         if sub is None:
-            data = ds.ReadAsArray()
+            if idx is not None:
+                data = ds.GetRasterBand(idx).ReadAsArray()
+            else:
+                data = ds.ReadAsArray()
         else:
             cdiff = ncols - (sub[0]+sub[2])
             if cdiff < 0:
@@ -38,8 +46,11 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
             rdiff = nrows-(sub[1]+sub[3])
             if rdiff < 0:
                 sub[3]+=rdiff
-            data = ds.ReadAsArray(sub[0],sub[1],sub[2],sub[3])
-        ds = None
+            if idx is not None:
+                data = ds.GetRasterBand(idx).ReadAsArray(sub[0],sub[1],sub[2],sub[3])
+            else:
+                data = ds.ReadAsArray(sub[0],sub[1],sub[2],sub[3])
+        if close: ds = None
     else:
         if len(warp_to) >= 2:
             dstSRS = warp_to[0] ## target projection
@@ -85,12 +96,10 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
                             dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
                             format='VRT', resampleAlg=warp_alg)
             if idx is not None:
-                tmp = ds.GetRasterBand(idx)
-                data = tmp.ReadAsArray()
-                tmp = None
+                data =  ds.GetRasterBand(idx).ReadAsArray()
             else:
                 data = ds.ReadAsArray()
-            ds = None
+            if close: ds = None
 
     if gdal_meta:
         return(md, data)

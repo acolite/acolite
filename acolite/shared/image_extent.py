@@ -2,12 +2,21 @@
 ## gets geographic extent of image using gdal
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-14
-## modifications:
+## modifications: 2022-09-21 (QV) added support to pass open gdal dataset
 
 def image_extent(image_file):
     from osgeo import gdal
 
-    ds = gdal.Open(image_file)
+    close = False
+    if type(image_file) == str:
+        ds = gdal.Open(image_file)
+        close = True
+    elif type(image_file) == gdal.Dataset:
+        ds = image_file
+    else:
+        print('{} not recognised'.format(image_file))
+        return()
+        
     xdim = ds.RasterXSize
     ydim = ds.RasterYSize
     tr = gdal.Transformer(ds, None, [])
@@ -26,6 +35,6 @@ def image_extent(image_file):
         lons.append(crd[0])
         lats.append(crd[1])
     limit = [min(lats), min(lons), max(lats), max(lons)]
-    ds = None
+    if close: ds = None ## close if we open file here
 
     return(limit, (xdim, ydim), corners)
