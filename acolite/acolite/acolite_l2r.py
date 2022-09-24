@@ -78,7 +78,7 @@ def acolite_l2r(gem,
     ## hyperspectral
     if gem.gatts['sensor'] in ac.config['hyper_sensors']:
         hyper = True
-        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
+        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'], step=0.1)
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
     else:
         rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
