@@ -182,7 +182,7 @@ def acolite_run(settings, inputfile=None, output=None):
                                 processed[ni]['l2r_pans'].append(pr)
 
                     ## make rgb rhos maps
-                    if l2r_setu['rgb_rhos']:
+                    if l2r_setu['rgb_rhos'] | l2r_setu['rgb_rhorc']:
                         l2r_setu_ = {k: l1r_setu[k] for k in l2r_setu}
                         l2r_setu_['rgb_rhot'] = False
                         for ncf in l2r:

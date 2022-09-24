@@ -276,6 +276,7 @@ offsets_toa=None
 # output RGB / L2W maps
 rgb_rhot=True
 rgb_rhos=True
+rgb_rhorc=False
 rgb_rhow=False
 map_l2w=False
 
