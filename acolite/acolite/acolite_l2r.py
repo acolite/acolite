@@ -7,6 +7,7 @@
 ##                2022-01-01 (QV) added segmented dsf option
 ##                2022-06-21 (QV) moved orange band to separate function
 ##                2022-07-15 (QV) added option to select most common model for non-fixed DSF
+##                2022-09-24 (QV) removed special case for DESIS
 
 def acolite_l2r(gem,
                 output = None,
@@ -78,15 +79,8 @@ def acolite_l2r(gem,
     ## hyperspectral
     if gem.gatts['sensor'] in ac.config['hyper_sensors']:
         hyper = True
-        if gem.gatts['sensor']=='DESIS_HSI':
-            ### DESIS RSR and RSR file are version-specific
-            rsrd = ac.shared.rsr_dict(f"{gem.gatts['sensor']}_{gem.gatts['version']}")
-            # Restore sensor key without version
-            rsrd[gem.gatts['sensor']] = rsrd[f"{gem.gatts['sensor']}_{gem.gatts['version']}"]
-            del rsrd[f"{gem.gatts['sensor']}_{gem.gatts['version']}"]
-        else:
-            rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
-            rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
+        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
+        rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
     else:
         rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
 
@@ -359,7 +353,7 @@ def acolite_l2r(gem,
         gemo.verbosity = setu['verbosity']
         gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
         gemo.gatts['acolite_version'] = ac.version
-        
+
         ## add settings to gatts
         for k in setu:
             if k in gem.gatts: continue

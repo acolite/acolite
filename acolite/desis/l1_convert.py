@@ -7,6 +7,7 @@
 ##                2022-03-28 (QV) added masking using QL data, updated crop subsetting
 ##                2022-04-15 (QV) fixed polygon masking
 ##                2022-09-24 (QV) fixed DESIS band naming
+##                                aligned DESIS RSR handling with other hyperspectral sensors
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -131,44 +132,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                 clip_mask = clip_mask.astype(bool) == False
 
         ## make rsr and bands dataset
-        # rsr = {'{}'.format(bi): ac.shared.gauss_response(gatts['band_waves'][bi], gatts['band_widths'][bi], step=0.1)
-        #        for bi in range(len(gatts['band_waves']))}
-        # band_rsr = {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]}  for b in rsr}
-        rsrf = ac.path+f"/data/RSR/{meta['mission']}_{meta['sensor']}_{meta['version']}.txt"
-        band_names = [meta['BAND_INFO'][b]['name'] for b in list(meta['BAND_INFO'].keys())]
-        try:
-            rsr, rsr_bands = ac.shared.rsr_read(rsrf)
-        except:
-            if verbosity > 1: print(f"No RSR file found for {meta['sensor']}. Read from metadata.")
-
-            ## DESIS rsr from METADATA file
-            rsr = {}
-            rsr_bands = []
-            for band in band_names:
-                rsr[band] = {}
-                ### CONVERT NM to MICRONS for CONVOLUTION ###
-                rsr[band]['wave'] = [number / 1000 for number in meta['BAND_INFO'][band]['wavelengths']]
-                rsr[band]['response'] = meta['BAND_INFO'][band]['response']
-                rsr_bands.append(band)
-
-            ## Write to new RSR file
-            if verbosity > 1: print(f"Writing {rsrf}.")
-
-            head = [f";; DESIS RSR from file: {os.path.split(bundle)[1]}",
-                f";; Version: {meta['version']}", ';; Written by Acolite: {}'.format(datetime.datetime.now().isoformat()[0:19]),
-                 ";; ", ";; wavelength (microns)    response"]
-            ac.shared.rsr_write(rsrf, head, meta['sensor'], rsr)
-
-        ## load rsrd to get band average wavelength
-        sensor_version = '{}_{}'.format(gatts['sensor'], gatts['version'])
-        rsrd = ac.shared.rsr_dict(sensor_version)
-        band_rsr = rsrd[sensor_version]['rsr']
+        rsr = ac.shared.rsr_hyper(gatts['band_waves'], gatts['band_widths'], step=0.1)
+        rsrd = ac.shared.rsr_dict(rsrd={gatts['sensor']:{'rsr':rsr}})
+        band_rsr = rsrd[gatts['sensor']]['rsr']
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
 
         ## make bands dataset
         bands = {}
         for bi, b in enumerate(band_rsr):
-            cwave = rsrd[sensor_version]['wave_nm'][b]
+            cwave = rsrd[gatts['sensor']]['wave_nm'][b]
             swave = '{:.0f}'.format(cwave)
             bands[b]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
                        'wave_name':'{:.0f}'.format(cwave),
