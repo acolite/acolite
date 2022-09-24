@@ -158,14 +158,16 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                  ";; ", ";; wavelength (microns)    response"]
             ac.shared.rsr_write(rsrf, head, meta['sensor'], rsr)
 
-        band_rsr = rsr #unclear if I need to convert lists to arrays
-
+        ## load rsrd to get band average wavelength
+        sensor_version = '{}_{}'.format(gatts['sensor'], gatts['version'])
+        rsrd = ac.shared.rsr_dict(sensor_version)
+        band_rsr = rsrd[sensor_version]['rsr']
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
 
         ## make bands dataset
         bands = {}
         for bi, b in enumerate(band_rsr):
-            cwave = gatts['band_waves'][bi]
+            cwave = rsrd[sensor_version]['wave_nm'][b]
             swave = '{:.0f}'.format(cwave)
             bands[b]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
                        'wave_name':'{:.0f}'.format(cwave),
