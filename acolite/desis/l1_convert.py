@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-03-28 (QV) added masking using QL data, updated crop subsetting
 ##                2022-04-15 (QV) fixed polygon masking
+##                2022-09-24 (QV) fixed DESIS band naming
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
