@@ -54,7 +54,6 @@ def acolite_l2r(gem,
 
     ## check blackfill
     if setu['blackfill_skip']:
-        rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
         rhot_wv = [int(ds.split('_')[1]) for ds in rhot_ds]
         bi, bw = ac.shared.closest_idx(rhot_wv, setu['blackfill_wave'])
         band_data = 1.0*gem.data(rhot_ds[bi])
