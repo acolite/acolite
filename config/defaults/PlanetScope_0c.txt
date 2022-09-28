@@ -7,12 +7,15 @@
 
 ## dark spectrum fitting options
 dsf_aot_estimate=fixed
-dsf_wave_range=400,2500
+dsf_wave_range=400,900
 gains_toa=1,1,1,1
 l2w_mask_wave=800
 l2w_mask_threshold=0.1
 dsf_intercept_pixels=1000
 dsf_tile_dimensions=2000,2000
+
+## l2w negatives masking
+l2w_mask_negative_wave_range=400,750
 
 ## set max rhow to 1 * C for PlanetScope
 nechad_max_rhow_C_factor=1.0
