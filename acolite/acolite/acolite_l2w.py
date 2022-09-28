@@ -5,12 +5,11 @@
 ## modifications: 2021-12-08 (QV) added nc_projection
 
 def acolite_l2w(gem,
-                settings = None,
+                settings = {},
                 sub = None,
                 target_file = None,
                 output = None,
                 load_data = True,
-                return_gem = False,
                 copy_datasets = ['lon', 'lat'],
                 new = True,
                 verbosity=5):
@@ -44,6 +43,7 @@ def acolite_l2w(gem,
 
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
+    if setu['l2w_parameters'] == None: return()
 
     ## get rhot and rhos wavelengths
     rhot_ds = [ds for ds in gem['datasets'] if 'rhot_' in ds]
@@ -241,7 +241,6 @@ def acolite_l2w(gem,
                         nc_projection=nc_projection,
                         netcdf_compression=setu['netcdf_compression'],
                         netcdf_compression_level=setu['netcdf_compression_level'])
-    if return_gem: gem['data']['l2_flags'] = l2_flags
     new = False
 
     qaa_computed, p3qaa_computed = False, False
@@ -1313,18 +1312,10 @@ def acolite_l2w(gem,
                                netcdf_compression=setu['netcdf_compression'],
                                netcdf_compression_level=setu['netcdf_compression_level'],
                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
-            ## we can also add parameter to gem
-            if return_gem:
-                gem['data'][cur_ds] = par_data[cur_ds]
-                gem['atts'][cur_ds] = par_atts[cur_ds]
-
             new = False
         par_data = None
         par_atts = None
     ## end parameter loop
 
-    ## return data or file path
-    if return_gem:
-        return(gem)
-    else:
-        return(ofile)
+    ## return file path
+    return(ofile)
