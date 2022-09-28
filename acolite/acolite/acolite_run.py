@@ -285,7 +285,6 @@ def acolite_run(settings, inputfile=None, output=None):
                     if os.path.exists(f) & (f not in processed[ni]['input_original']):
                         print('Deleting {}'.format(f))
                         shutil.rmtree(f)
-                        processed[ni]['input'].remove(f)
 
         ## remove output netcdfs
         for level in ['l1r', 'l2r', 'l2r_pans', 'l2t', 'l2w']:
@@ -297,7 +296,6 @@ def acolite_run(settings, inputfile=None, output=None):
                     if os.path.exists(f):
                         print('Deleting {}'.format(f))
                         os.remove(f)
-                        processed[ni][level].remove(f)
                     ## also delete pan file if it exists
                     if level == 'l1r':
                         panf = f.replace('_L1R.nc', '_L1R_pan.nc')
