@@ -68,9 +68,9 @@ else:
         gitfiles = os.listdir(gitdir)
 
         for f in ['ORIG_HEAD', 'FETCH_HEAD', 'HEAD']:
-            gf = '{}/{}'.format(gitdir, f)
-            if not os.path.exists(gf): continue
-            st = os.stat(gf)
+            gfile = '{}/{}'.format(gitdir, f)
+            if not os.path.exists(gfile): continue
+            st = os.stat(gfile)
             dt = datetime.datetime.fromtimestamp(st.st_mtime)
             gd[f] = dt.isoformat()[0:19]
 
