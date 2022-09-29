@@ -289,4 +289,4 @@ def identify_bundle(bundle, input_type = None, output = None):
         bundle = '{}'.format(orig_bundle)
 
     ## return input_type
-    return(input_type, bundle)
+    return(input_type, bundle, zipped)
