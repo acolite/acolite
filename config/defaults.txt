@@ -126,7 +126,7 @@ l2w_mask_cirrus_threshold=0.005
 l2w_mask_cirrus_wave=1373
 l2w_mask_high_toa=True
 l2w_mask_high_toa_threshold=0.3
-l2w_data_in_memory=True
+l2w_data_in_memory=False
 
 ## settings for Nechad algorithms
 nechad_range=600,900
