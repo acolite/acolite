@@ -105,6 +105,7 @@ def acolite_l2w(gem,
     if verbosity > 3: print('Computing non water threshold mask.')
     cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_wave'])
     cur_par = 'rhot_{}'.format(cwave)
+    if verbosity > 3: print('Computing non water threshold mask from {} > {}.'.format(cur_par, setu['l2w_mask_threshold']))
     cur_data = gem.data(cur_par)
     if setu['l2w_mask_smooth']:
         cur_data = ac.shared.fillnan(cur_data)
@@ -119,6 +120,7 @@ def acolite_l2w(gem,
     cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_cirrus_wave'])
     if np.abs(cwave - setu['l2w_mask_cirrus_wave']) < 5:
         cur_par = 'rhot_{}'.format(cwave)
+        if verbosity > 3: print('Computing cirrus mask from {} > {}.'.format(cur_par, setu['l2w_mask_cirrus_threshold']))
         cur_data = gem.data(cur_par)
         if setu['l2w_mask_smooth']:
             cur_data = ac.shared.fillnan(cur_data)
@@ -134,6 +136,7 @@ def acolite_l2w(gem,
     if verbosity > 3: print('Computing TOA limit mask.')
     toa_mask = None
     for ci, cur_par in enumerate(rhot_ds):
+        if verbosity > 3: print('Computing TOA limit mask from {} > {}.'.format(cur_par, setu['l2w_mask_high_toa_threshold']))
         cur_data = gem.data(cur_par)
         if ci == 0:
             outmask = np.isnan(cur_data)
@@ -155,6 +158,7 @@ def acolite_l2w(gem,
     for ci, cur_par in enumerate(rhos_ds):
         if rhos_waves[ci]<setu['l2w_mask_negative_wave_range'][0]: continue
         if rhos_waves[ci]>setu['l2w_mask_negative_wave_range'][1]: continue
+        if verbosity > 3: print('Computing negative reflectance mask from {}.'.format(cur_par))
         cur_data = gem.data(cur_par)
         #if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
         if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
