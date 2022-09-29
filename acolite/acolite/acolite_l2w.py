@@ -11,7 +11,7 @@ def acolite_l2w(gem,
                 target_file = None,
                 output = None,
                 load_data = True,
-                copy_datasets = ['lon', 'lat'],
+                #copy_datasets = ['lon', 'lat'],
                 new = True,
                 verbosity=5):
 
@@ -167,6 +167,7 @@ def acolite_l2w(gem,
     neg_mask = None
 
     ## list datasets to copy over from L2R
+    copy_datasets = ['lon', 'lat']
     if verbosity > 3: print('Copying datasets from L2R.')
     for cur_par in gem.datasets:
         if cur_par in copy_datasets: continue
