@@ -7,7 +7,7 @@
 
 def acolite_l1r(bundle, setu, input_type=None):
     import acolite as ac
-    import os, sys
+    import os, sys, shutil
 
     ## set up l1r_files list
     l1r_files = []
@@ -34,6 +34,7 @@ def acolite_l1r(bundle, setu, input_type=None):
     identification = [ac.acolite.identify_bundle(b, output=setu['output']) for b in bundle]
     input_types = [i[0] for i in identification]
     bundle = [i[1] for i in identification]
+    zipped = [i[2] for i in identification]
 
     input_type = input_types[0]
     if not all([i == input_type for i in input_types]):
@@ -170,5 +171,15 @@ def acolite_l1r(bundle, setu, input_type=None):
         l1r_files, setu = ac.ecostress.l1_convert(bundle, settings = setu)
     ## end ECOSTRESS
     ################
+
+    ## remove extracted files
+    for i, im in enumerate(identification):
+        if (im[2]) & (setu['delete_extracted_input']):
+            ob = os.path.abspath(orig_bundle[i])
+            eb = os.path.abspath(bundle[i])
+            if ob != eb:
+                if os.path.exists(eb) & (bundle[i] not in orig_bundle):
+                    print('Deleting {}'.format(eb))
+                    shutil.rmtree(eb)
 
     return(l1r_files, setu, bundle)

@@ -93,12 +93,6 @@ def acolite_run(settings, inputfile=None, output=None):
         if len(ret[0]) == 0: continue
 
         l1r_files, l1r_setu, l1_bundle = ret
-        if processed[ni]['input'] != l1_bundle:
-            processed[ni]['input_original'] = copy.copy(processed[ni]['input'])
-            if type(processed[ni]['input_original']) != list:
-                processed[ni]['input_original'] = [processed[ni]['input_original']]
-            if len(l1_bundle) > 0:
-                processed[ni]['input'] = l1_bundle
         processed[ni]['l1r'] = l1r_files
 
         ## project before a/c
@@ -278,14 +272,6 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## remove files
     for ni in processed:
-        ## remove extracted data
-        if ('input_original' in processed[ni]):
-            if (l1r_setu['delete_extracted_input']):
-                for f in processed[ni]['input']:
-                    if os.path.exists(f) & (f not in processed[ni]['input_original']):
-                        print('Deleting {}'.format(f))
-                        shutil.rmtree(f)
-
         ## remove output netcdfs
         for level in ['l1r', 'l2r', 'l2r_pans', 'l2t', 'l2w']:
             if level not in processed[ni]: continue
