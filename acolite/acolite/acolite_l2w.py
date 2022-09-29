@@ -217,7 +217,7 @@ def acolite_l2w(gem,
             att_add['algorithm']=''
 
         ## if data already read copy here
-        print(cur_tag)
+        print('Copying {}, base dataset {}'.format(cur_par, cur_tag))
         cur_data, cur_att = gem.data(cur_tag, attributes=True)
         if factor != 1.0: cur_data *= factor
 
