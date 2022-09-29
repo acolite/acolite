@@ -5,6 +5,7 @@
 ## modifications: 2021-12-22 (QV) added MERIS processing
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2022-09-29 (QV) changed rsr loading
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -47,8 +48,10 @@ def l1_convert(inputfile, output = None, settings = {},
             len_gains = 15
             bands_data = ac.sentinel3.meris_band_info()
             band_id = 'M'
-        rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
-        rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
+
+        ## load rsrd
+        rsrd = ac.shared.rsr_dict(sensor)
+        rsr_bands = rsrd[sensor]['rsr_bands']
 
         ## merge sensor specific settings
         setu = ac.acolite.settings.parse(sensor, settings=settings)
@@ -263,19 +266,17 @@ def l1_convert(inputfile, output = None, settings = {},
         isodate = dtime.isoformat()
 
         ## read rsr
-        waves = np.arange(250, 2500)/1000
-        waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
-        waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
+        waves_mu = rsrd[sensor]['wave_mu']
+        waves_names = rsrd[sensor]['wave_name']
 
         ## take wavelengths and band names from external table
         ## the smile correction should bring things in line with these
-        #waves_names = ['{:.0f}'.format(bands_data[b]['wavelength']) for b in bands_data]
         dnames = ['{}_radiance'.format(b) for b in bands_data]
         bnames = [b for b in bands_data]
 
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get()
-        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsrd[sensor]['rsr'])
 
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
                      'isodate':isodate, 'global_dims':data_shape,
