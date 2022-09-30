@@ -46,9 +46,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         tiles, metafile = ac.gf.bundle_test(bundle)
         meta = ac.gf.metadata(metafile)
         if meta['SatelliteID'] not in  ['GF1D', 'GF6']: continue
+        sensor = '{}_{}'.format(meta['SatelliteID'], meta['SensorID'])
 
         ## sensor settings
-        setu = ac.acolite.settings.parse(meta['SatelliteID'], settings=settings)
+        setu = ac.acolite.settings.parse(sensor, settings=settings)
         verbosity = setu['verbosity']
         ## get other settings
         limit = setu['limit']
@@ -86,7 +87,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             gatts['raa'] = raa_ave
 
         gatts['satellite'] = meta['SatelliteID']
-        gatts['sensor'] = '{}_{}'.format(meta['SatelliteID'], meta['SensorID'])
+        gatts['sensor'] = sensor
         gatts['isodate'] = isodate
         gatts['se_distance'] = se_distance
         gatts['doy'] = doy
@@ -136,6 +137,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         y_off = 0
 
         ## run through tiles
+        if verbosity > 1: print('Running through {} {} image tiles'.format(len(tiles), sensor))
         for ti, image_file in enumerate(tiles):
             new = True
             bn = os.path.basename(image_file)
@@ -145,9 +147,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             gatts['obase'] = obase + '_{}'.format(ctile)
             ofile = '{}/{}.nc'.format(odir, gatts['obase'])
 
+            if verbosity > 1: print('Running {} tile {}/{}'.format(sensor, ti+1, len(tiles)))
+
             ## identify projection
             try:
                 prj = ac.shared.projection_read(image_file)
+                if verbosity > 1: print('Could determine projection from {}'.format(image_file))
             except:
                 prj = None
 
@@ -159,18 +164,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                     if not os.path.exists(rpr_file):
                         if verbosity > 1: print('Reprojecting {} to {}'.format(image_file, epsg))
                         if verbosity > 1: print('Target file {}'.format(rpr_file))
-                        #sp = subprocess.run(' '.join(["gdalwarp", "-overwrite", " -t_srs {} -r cubic ".format(epsg),
-                        #                              image_file.replace(' ', '\ '), rpr_file.replace(' ', '\ ')]),
-                        #                              shell=True, check=True, stdout=subprocess.PIPE)
                         ## scratch directory
-                        if not os.path.exists(ac.config['scratch_dir']):
-                            os.makedirs(ac.config['scratch_dir'])
+                        if not os.path.exists(ac.config['scratch_dir']): os.makedirs(ac.config['scratch_dir'])
                         ## reproject and close dataset
                         ds = gdal.Warp(rpr_file, image_file, dstSRS=epsg)
                         ds = None
                     ## get prj from new file
-                    if os.path.exists(rpr_file):
-                        prj = ac.shared.projection_read(rpr_file)
+                    if os.path.exists(rpr_file): prj = ac.shared.projection_read(rpr_file)
 
             ## add projection keys to gatts
             if prj is not None:
@@ -233,7 +233,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 new = False
 
             ## old geolocation
-            if rpr_file is None:
+            if (rpr_file is None) and (prj is None):
                 nx, ny = int(meta['WidthInPixels']), int(meta['HeightInPixels'])
                 tllat, tllon = float(meta['TopLeftLatitude']), float(meta['TopLeftLongitude'])
                 trlat, trlon = float(meta['TopRightLatitude']), float(meta['TopRightLongitude'])
