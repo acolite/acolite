@@ -35,6 +35,7 @@ def acolite_l1r(bundle, setu, input_type=None):
     input_types = [i[0] for i in identification]
     bundle = [i[1] for i in identification]
     zipped = [i[2] for i in identification]
+    extracted_path = [i[3] for i in identification]
 
     input_type = input_types[0]
     if not all([i == input_type for i in input_types]):
@@ -174,12 +175,17 @@ def acolite_l1r(bundle, setu, input_type=None):
 
     ## remove extracted files
     for i, im in enumerate(identification):
-        if (im[2]) & (setu['delete_extracted_input']):
-            ob = os.path.abspath(orig_bundle[i])
-            eb = os.path.abspath(bundle[i])
-            if ob != eb:
-                if os.path.exists(eb) & (bundle[i] not in orig_bundle):
-                    print('Deleting {}'.format(eb))
-                    shutil.rmtree(eb)
+        try:
+            if (im[2]) & (setu['delete_extracted_input']):
+                ob = os.path.abspath(orig_bundle[i])
+                eb = os.path.abspath(extracted_path[i])
+                if ob != eb:
+                    if os.path.exists(eb) & (extracted_path[i] not in orig_bundle):
+                        print('Deleting {}'.format(eb))
+                        shutil.rmtree(eb)
+        except KeyError:
+            print('Not deleting extracted file as "delete_extracted_input" is not in settings.')
+        except BaseException as err:
+            print(f"Error removing extracted files {err=}, {type(err)=}")
 
     return(l1r_files, setu, bundle)

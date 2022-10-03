@@ -2,7 +2,7 @@
 ## extract a given bundle if it is zip or tar
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-07-21
-## modifications:
+## modifications: 2022-10-03 (QV) check if there is only one directory in the unzipped file
 
 def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
     import os, tarfile, zipfile
@@ -12,6 +12,7 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
     orig_bundle = '{}'.format(bundle)
     if output is None: output = os.path.dirname(orig_bundle)
     targ_bundle = None
+    extracted_path = False
     extracted = False
 
     ## tar file
@@ -57,4 +58,13 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
             pass
     ## end zip file
 
-    return(targ_bundle)
+    if targ_bundle != None:
+        ## if there is only one directory in the unzipped file
+        ## use it as targ_bundle, track extracted path separately
+        extracted_path = os.path.abspath(targ_bundle)
+        dfiles = [f for f in os.listdir(targ_bundle) if f not in ['.DS_Store']]
+        if len(dfiles) == 1:
+            fpath = os.sep.join([targ_bundle, dfiles[0]])
+            if os.path.isdir(fpath): targ_bundle = fpath
+
+    return(targ_bundle, extracted_path)
