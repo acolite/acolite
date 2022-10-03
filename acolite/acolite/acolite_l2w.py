@@ -11,7 +11,6 @@ def acolite_l2w(gem,
                 target_file = None,
                 output = None,
                 load_data = True,
-                #copy_datasets = ['lon', 'lat'],
                 new = True,
                 verbosity=5):
 
@@ -1275,6 +1274,8 @@ def acolite_l2w(gem,
         par_data = None
         par_atts = None
     ## end parameter loop
+
+    if verbosity>0: print('Wrote {}'.format(ofile))
 
     ## return file path
     return(ofile)
