@@ -30,6 +30,7 @@ verbosity
 map_dpi
 dsf_wave_range
 l2w_mask_negative_wave_range
+l2w_mask_high_toa_wave_range
 dsf_residual_glint_wave_range
 luts_pressures
 nechad_range

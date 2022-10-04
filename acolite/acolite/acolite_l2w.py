@@ -134,13 +134,14 @@ def acolite_l2w(gem,
     ## TOA out of limit
     if verbosity > 3: print('Computing TOA limit mask.')
     toa_mask = None
+    outmask = None
     for ci, cur_par in enumerate(rhot_ds):
+        if rhot_waves[ci]<setu['l2w_mask_high_toa_wave_range'][0]: continue
+        if rhot_waves[ci]>setu['l2w_mask_high_toa_wave_range'][1]: continue
         if verbosity > 3: print('Computing TOA limit mask from {} > {}.'.format(cur_par, setu['l2w_mask_high_toa_threshold']))
         cur_data = gem.data(cur_par)
-        if ci == 0:
-            outmask = np.isnan(cur_data)
-        else:
-            outmask = (outmask) | (np.isnan(cur_data))
+        if outmask is None: outmask = np.zeros(cur_data.shape).astype(bool)
+        outmask = (outmask) | (np.isnan(cur_data))
         if setu['l2w_mask_smooth']:
             cur_data = ac.shared.fillnan(cur_data)
             cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
