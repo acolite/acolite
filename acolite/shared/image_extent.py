@@ -3,8 +3,9 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-14
 ## modifications: 2022-09-21 (QV) added support to pass open gdal dataset
+##                2022-10-05 (QV) added tr_opt
 
-def image_extent(image_file):
+def image_extent(image_file, tr_opt = ['METHOD=RPC', 'RPC_PIXEL_ERROR_THRESHOLD=0.05']):
     from osgeo import gdal
 
     close = False
@@ -16,10 +17,10 @@ def image_extent(image_file):
     else:
         print('{} not recognised'.format(image_file))
         return()
-        
+
     xdim = ds.RasterXSize
     ydim = ds.RasterYSize
-    tr = gdal.Transformer(ds, None, [])
+    tr = gdal.Transformer(ds, None, tr_opt)
 
     corners = {'UL':{'pixel':[1,1,0]},
                'UR':{'pixel':[xdim,1,0]},
