@@ -103,7 +103,11 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                     dataset.SetProjection(wkt)
                 else:
                     driver = gdal.GetDriverByName('GTiff')
-                    dataset = driver.Create(outfile, dimx, dimy, 1, dt)
+                    if (dimx != x) | (dimy != y):
+                        print('Warning: dataset shape ({}x{}) does not correspond to match_file shape ({}x{})'.format(x,y,dimx,dimy))
+                        dataset = driver.Create(outfile, x, y, 1, dt)
+                    else:
+                        dataset = driver.Create(outfile, dimx, dimy, 1, dt)
                     ## write RPC data
                     if len(RPCs) > 0:
                         dataset.SetMetadata(RPCs ,'RPC')
