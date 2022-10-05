@@ -110,11 +110,11 @@ def bundle_test(file, listpan=True):
         for i, sf in enumerate(sub_file):
             im = [im for im in img_file if (sf in im) & (fnmatch.fnmatch(im.upper(), '*IMG*PMS*'))]
             md = [md for md in xml_file if (sf in md) & (fnmatch.fnmatch(md.upper(), '*IMG*PMS*.XML'))]
-            if (len(im) == 1) & (len(md) == 1):
-                imagefile.append(im[0])
-                metafile.append(md[0])
-                panimagefile.append('')
-                panmetafile.append('')
+            if (len(im) >= 0) & (len(md) == 1):
+                imagefile+=im
+                metafile+=[md[0]]*len(im)
+                panimagefile+=['']*len(im)
+                panmetafile+=['']*len(im)
 
     if (len(metafile) != 0) & (len(imagefile) != 0):
         if listpan:
