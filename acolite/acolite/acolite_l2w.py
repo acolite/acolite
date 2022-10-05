@@ -217,6 +217,11 @@ def acolite_l2w(gem,
             att_add['reference']=''
             att_add['algorithm']=''
 
+        # skip if the source dataset is not in the inputfile
+        if cur_tag not in gem.datasets:
+            print('{} not in {}'.format(cur_tag, gemf))
+            continue
+
         ## if data already read copy here
         print('Copying {}, base dataset {}'.format(cur_par, cur_tag))
         cur_data, cur_att = gem.data(cur_tag, attributes=True)
