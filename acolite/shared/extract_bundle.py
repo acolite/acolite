@@ -8,8 +8,8 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
     import os, tarfile, zipfile
     import acolite as ac
 
-    bn, ex = os.path.splitext(os.path.basename(bundle))
-    orig_bundle = '{}'.format(bundle)
+    orig_bundle = os.path.abspath(bundle)
+    bn, ex = os.path.splitext(os.path.basename(orig_bundle))
     if output is None: output = os.path.dirname(orig_bundle)
     targ_bundle = None
     extracted_path = False
@@ -47,10 +47,13 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
                 else:
                     targ_bundle = '{}/'.format(output)
                 if verbosity>0:
-                    print('Extracting {} files from {} to {}'.format(len(files), bundle, targ_bundle))
+                    print('Extracting {} files from {} to {}'.format(len(files), orig_bundle, targ_bundle))
+                n_extracted = 0
                 for z in files:
+                    if verbosity>2: print('Extracting {} to {}'.format(z, targ_bundle))
                     f.extract(z, targ_bundle)
-            if verbosity>0: print('Extraction completed to {}'.format(targ_bundle))
+                    n_extracted += 1
+            if verbosity>0: print('Extraction of {} files completed to {}'.format(n_extracted, targ_bundle))
             if file_dir is not None: targ_bundle = '{}/{}'.format(output, file_dir)
             extracted = True
         except BaseException as err:
