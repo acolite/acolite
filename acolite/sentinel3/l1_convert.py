@@ -6,6 +6,7 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-09-29 (QV) changed rsr loading
+##                2022-10-06 (QV) added back in tgas after smile correction
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -208,17 +209,17 @@ def l1_convert(inputfile, output = None, settings = {},
         ## smile correction - from l2gen smile.c
         if verbosity > 1: print('Running smile correction')
         if smile_correction:
+            ## gas_correction
+            if setu['smile_correction_tgas']:
+                if verbosity > 2: print('{} - Gas correction before smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
+                for band in bands_data: data['{}_radiance'.format(band)]/=ttg['tt_gas'][band]
+
             smile = {}
             for band in bands_data:
                 ## dataset name
                 dname = '{}_radiance'.format(band)
-
                 ## band index
                 b_i = bands_data[band]['band']-1
-
-                ## gas_correction:
-                data['{}_radiance'.format(band)]/=ttg['tt_gas'][band]
-
                 if verbosity > 2: print('{} - Smile correction for band {} {} nm'.format(datetime.datetime.now().isoformat()[0:19], band, bands_data[band]['wavelength'] ), end='\n')
 
                 ## bounding bands
@@ -257,6 +258,10 @@ def l1_convert(inputfile, output = None, settings = {},
             ## add smile effect to radiance data
             for band in smile: data['{}_radiance'.format(band)]+=smile[band]
             del smile
+            ## add back in gas transmittance
+            if setu['smile_correction_tgas']:
+                if verbosity > 2: print('{} - Gas correction restored after smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
+                for band in bands_data: data['{}_radiance'.format(band)]*=ttg['tt_gas'][band]
         ## end smile correction
 
         ## global attributes

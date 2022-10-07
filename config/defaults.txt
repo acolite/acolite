@@ -52,6 +52,7 @@ geometry_override=False
 
 ## Sentinel-3 options
 smile_correction=True
+smile_correction_tgas=True
 use_tpg=True
 
 ## WorldView only (optional)
