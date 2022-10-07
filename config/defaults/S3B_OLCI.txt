@@ -5,13 +5,24 @@
 ## settings you want to change from the ones in this defaults file.
 ##
 
+## apply TOA gains
+gains=False
+## unity gains
+#gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+## gains taken 2022-10-02 from https://www.eumetsat.int/ocean-colour-system-vicarious-calibration-tool
+## added ones for oxygen and water vapour bands
+gains_toa=0.994584,0.990100,0.992215,0.986199,0.988985,0.991140,0.997689,0.996837,0.997165,0.998016,0.997824,1.001631,1.000000,1.000000,1.000000,1.002586,1.000000,1.000891,1.000000,1.000000,0.940641
+
+## gas transmittance thresholds, aim not to use O2 and H2O bands
+min_tgas_aot=0.90
+min_tgas_rho=0.80
+
 ## copy datasets from L1R to L2R
 copy_datasets=lon,lat,sza,vza,saa,vaa,raa,rhot_*
 
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
 resolved_geometry=True
-gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 dsf_intercept_pixels=200
 dsf_tile_dimensions=120,120
 dsf_exclude_bands=Oa01,Oa02
@@ -19,9 +30,18 @@ dsf_smooth_aot=True
 dsf_smooth_box=10,10
 dsf_interface_reflectance=True
 
+## when using fixed aot retrieval
+dsf_spectrum_option=percentile
+dsf_percentile=5
+
 l2w_mask_wave=1020
 l2w_mask_threshold=0.05
 l2w_mask_smooth=False
 l2w_mask_negative_wave_range=440,710
+
+## rhot can be >0.3 at 400 at high view and sun angles
+## exclude 400 and 412 nm bands here
+l2w_mask_high_toa_wave_range=440,1050
+l2w_mask_high_toa_threshold=0.3
 
 default_projection_resolution=300,300
