@@ -35,6 +35,11 @@ def l1_convert(inputfile, output = None, settings = {},
     ofile = None
     ofiles = []
     for bundle in inputfile:
+        nbundle = glob.glob('{}/*.SEN3'.format(bundle))
+        if len(nbundle) == 1:
+            print('Found nested SEN3 bundle {}'.format(nbundle[0]))
+            bundle = '{}'.format(nbundle[0])
+
         t0 = time.time()
         new = True
         ## identify sensor

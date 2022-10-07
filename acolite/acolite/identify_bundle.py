@@ -79,8 +79,12 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
         ## Sentinel-3
         try:
-            dfiles = glob.glob('{}/*.nc'.format(bundle))
-            dfiles.sort()
+            if zipped & (len(glob.glob('{}/*.SEN3'.format(bundle))) == 1):
+                dfiles = glob.glob('{}/*.SEN3/*.nc'.format(bundle))
+                dfiles.sort()
+            else:
+                dfiles = glob.glob('{}/*.nc'.format(bundle))
+                dfiles.sort()
             gatts = ac.shared.nc_gatts(dfiles[0])
             if 'OLCI Level 1b Product' in gatts['title']:
                 input_type = 'Sentinel-3'
