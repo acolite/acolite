@@ -7,10 +7,13 @@
 
 ## dark spectrum fitting options
 dsf_aot_estimate=fixed
+dsf_spectrum_option=darkest
 dsf_wave_range=400,900
-gains_toa=1,1,1,1,1
+gains_toa=1,1,1,1,1,1,1,1
+
 l2w_mask_wave=800
 l2w_mask_threshold=0.1
+
 dsf_intercept_pixels=1000
 dsf_tile_dimensions=2000,2000
 
