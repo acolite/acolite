@@ -28,6 +28,10 @@ The adaptation to Sentinel-3/OLCI was presented in:
 
 * Vanhellemont and Ruddick 2021, [Atmospheric correction of Sentinel-3/OLCI data for mapping of suspended particulate matter and chlorophyll-a concentration in Belgian turbid coastal waters](https://doi.org/10.1016/j.rse.2021.112284)
 
+First results using ACOLITE/DSF for PRISMA are presented in:
+
+* Braga et al. 2022, [Assessment of PRISMA water reflectance using autonomous hyperspectral radiometry](http://dx.doi.org/10.1016/j.isprsjprs.2022.08.009)
+
 The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and allows for processing of Landsat thermal band data to surface temperatures. TACT was presented in:
 
 * Vanhellemont 2020a, [Automated water surface temperature retrieval from Landsat 8/TIRS](https://doi.org/10.1016/j.rse.2019.111518)
