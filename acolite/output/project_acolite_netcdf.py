@@ -64,9 +64,11 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
             return()
         else:
             target_pixel_size = [float(v) for v in setu['output_projection_resolution']]
+            target_pixel_size[1] *= -1
     else:
         if setu['default_projection_resolution'] is not None:
             target_pixel_size = [float(v) for v in setu['default_projection_resolution']]
+            target_pixel_size[1] *= -1
             print('Using default grid size: {}x{}metres'.format(target_pixel_size[0], target_pixel_size[1]))
 
     if setu['output_projection_limit'] is not None:
