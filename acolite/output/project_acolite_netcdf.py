@@ -6,6 +6,7 @@
 ##                2022-01-10 (QV) renamed from reproject_acolite_netcdf
 ##                2022-07-05 (QV) determine projection limit from lat lon if none given
 ##                2022-07-06 (QV) simultaneous reprojection of multiple datasets (much faster!)
+##                2022-10-17 (QV) added output_projection_polygon
 
 def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
@@ -40,6 +41,10 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
     ## parse settings
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+
+    if (setu['output_projection_limit'] is None) & (setu['output_projection_polygon'] is not None):
+        setu['output_projection_limit'] = ac.shared.polygon_limit(setu['output_projection_polygon'])
+
     if (setu['output_projection_limit'] is None) & (setu['limit'] is not None):
         setu['output_projection_limit'] = [l for l in setu['limit']]
 

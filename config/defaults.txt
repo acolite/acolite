@@ -357,6 +357,7 @@ output_projection_epsg=None
 output_projection_proj4=None
 output_projection_resolution=None
 output_projection_limit=None
+output_projection_polygon=None
 output_projection_metres=False
 output_projection_xrange=None
 output_projection_yrange=None
