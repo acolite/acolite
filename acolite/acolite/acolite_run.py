@@ -241,18 +241,17 @@ def acolite_run(settings, inputfile=None, output=None):
                         l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
                         l1r_setu_['rgb_rhos'] = False
                         ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=False)
+
                     ## make rgb  maps
-                    if (otype == 'l2r') & (l1r_setu['rgb_rhos']):
+                    if (otype == 'l2r') & ((l1r_setu['rgb_rhos']) | (l1r_setu['rgb_rhorc'])):
                         l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
                         l1r_setu_['rgb_rhot'] = False
                         ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=False)
 
-                    ## make other  maps
-                    if (otype == 'l2w') & (l1r_setu['map_l2w']):
+                    ## make rgb and other maps
+                    if (otype == 'l2w') & ((l1r_setu['rgb_rhow']) | (l1r_setu['map_l2w'])):
                         l1r_setu_ = {k: l1r_setu[k] for k in l1r_setu}
-                        l1r_setu_['rgb_rhos'] = False
-                        l1r_setu_['rgb_rhot'] = False
-                        ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=True)
+                        ac.acolite.acolite_map(ncfo, settings = l1r_setu_, plot_all=l1r_setu['map_l2w'])
 
                     ## output geotiffs
                     if '{}_export_geotiff'.format(otype) in l1r_setu:
