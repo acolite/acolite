@@ -190,8 +190,6 @@ def import_luts(pressures = [500, 750, 1013, 1100],
 
             ## set up LUT interpolator
             if add_rsky:
-                print(lut_dict[lut]['dim'])
-                print(lut_dict[lut]['lut'].shape)
                 lut_dict[lut]['rgi'] = scipy.interpolate.RegularGridInterpolator(lut_dict[lut]['dim'],
                                                                              lut_dict[lut]['lut'][:,:,:,:,:,:,:,:],
                                                                              bounds_error=False, fill_value=np.nan)
@@ -208,8 +206,11 @@ def import_luts(pressures = [500, 750, 1013, 1100],
             if (add_rsky) & (par == 'romix+rsky_t'):
                 rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, sensor=sensor, get_remote=get_remote)
                 rlut = rskyd[int(lut[-1])]['lut']
-                rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
-                rskyd = None
+                if 'wind' in rskyd[int(lut[-1])]['meta']:
+                    rsky_winds  = rskyd[int(lut[-1])]['meta']['wind']
+                else:
+                    rsky_winds = np.atleast_1d([0,20])
+                #rskyd = None
 
                 ## current pars
                 ipd = {p:i for i,p in enumerate(lut_dict[lut]['meta']['par'])}
@@ -219,6 +220,11 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                     tmp = rlut[band] * 1.0
                     tlut = lut_dict[lut]['lut'][band]
                     tmp = rlut[band] * 1.0
+
+                    ## add wind axis
+                    if 'wind' not in rskyd[int(lut[-1])]['meta']:
+                        tmp = np.expand_dims(tmp, -2)
+                        tmp = np.repeat(tmp, len(rsky_winds), axis=-2)
                     tlut = np.repeat(tlut, len(rsky_winds), axis=-2)
 
                     ## add to the LUT

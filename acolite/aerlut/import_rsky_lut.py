@@ -116,7 +116,11 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                 ## lutfile was already resampled
                 if os.path.isfile(lutnc_s):
                     lut_sensor, meta = ac.shared.lutnc_import(lutnc_s)
-                    dim = [meta['azi'], meta['thv'], meta['ths'], meta['wind'], meta['tau']]
+                    ## workaround for old LUTs which had no wind speed dimension
+                    if 'wind' not in meta:
+                        dim = [meta['azi'], meta['thv'], meta['ths'], meta['tau']]
+                    else:
+                        dim = [meta['azi'], meta['thv'], meta['ths'], meta['wind'], meta['tau']]
                     rgi_sensor = {}
                     for band in rsr_bands:
                         rgi_sensor[band] = scipy.interpolate.RegularGridInterpolator(dim, lut_sensor[band], bounds_error=False, fill_value=np.nan)
