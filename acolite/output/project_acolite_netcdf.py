@@ -7,6 +7,7 @@
 ##                2022-07-05 (QV) determine projection limit from lat lon if none given
 ##                2022-07-06 (QV) simultaneous reprojection of multiple datasets (much faster!)
 ##                2022-10-17 (QV) added output_projection_polygon
+##                2022-10-20 (QV) added nn option
 
 def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
@@ -16,8 +17,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     import acolite as ac
     import numpy as np
     from pyresample.bilinear import NumpyBilinearResampler
-    #from pyresample import image, geometry
-    from pyresample import geometry
+    from pyresample import kd_tree, geometry
 
     ## read gatts
     try:
@@ -174,11 +174,6 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     ## set up source definition
     source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
 
-    ## set up resampler
-    if setu['output_projection_resampling_method'] == 'bilinear':
-        #resampler = NumpyBilinearResampler(source_definition, target_definition, 30e5, neighbours=81)
-        resampler = NumpyBilinearResampler(source_definition, target_definition, 30e3)
-
     ## make new output attributes
     gatts_out = {k:gatts[k] for k in gatts}
     for k in dct: gatts_out[k] = dct[k]
@@ -206,7 +201,16 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     t0 = time.time()
     print('Projecting datasets {}x{}x{} to {} {}x{}x{}'.format(data_in_stack.shape[0], data_in_stack.shape[1], len(datasets_out),\
                                                 projection, nx, ny, len(datasets_out)))
-    data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
+
+    ## set up resampler
+    if setu['output_projection_resampling_method'] == 'bilinear':
+        resampler = NumpyBilinearResampler(source_definition, target_definition, 30e3)
+        data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
+    elif setu['output_projection_resampling_method'] == 'nearest':
+        data_out_stack = kd_tree.resample_nearest(source_definition, data_in_stack, target_definition,
+                                                    radius_of_influence=target_pixel_size[0],
+                                                    epsilon=0.5, fill_value=np.nan)
+
     data_in_stack = None
     if setu['output_projection_fillnans']:
         data_out_stack[data_out_stack == 0] = np.nan
