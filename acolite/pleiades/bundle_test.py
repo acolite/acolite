@@ -7,7 +7,7 @@
 ##                QV 2017-05-04 nc returns none lists
 ##                QV 2019-02-27 check pan file for tile
 ##                QV 2021-02-24 renamed from image_test removed nc option
-
+##                QV 2022-10-21 dtype and dataset names are now indexed
 
 def bundle_test(file, listpan=True):
     import os, sys, fnmatch
@@ -35,7 +35,8 @@ def bundle_test(file, listpan=True):
                 if len(node) > 0: path = node[0].attributes['href'].value
                 tmp = title.split(' ')
                 if tmp[0] not in ['SENSOR','ORTHO','SYSTEM_ORTHO']: continue
-                _, dtype, dataset = tmp
+                dtype = tmp[1]
+                dataset = tmp[2]
                 components.append({'title':title,'path':path, 'type': dtype, 'dataset': dataset})
 
         ## image directories
