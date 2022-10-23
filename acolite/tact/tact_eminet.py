@@ -7,6 +7,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-09
 ## modifications: 2022-08-11 (QV) don't attempt to run with missing bands
+##                2022-10-23 (QV) added EMINET download
 
 def tact_eminet(gemf, model_path = None,
                       water_fill = True, water_threshold = 0.0215,
@@ -34,9 +35,23 @@ def tact_eminet(gemf, model_path = None,
 
     ## select model
     if model_path is None:
-        model_dir = ac.config['data_dir'] + '/EMINET'
+        ## model and meta file names
         model_file = model_base.format(satsen, netname)
+        meta_file = model_file[0:-3]+'_meta.json'
+        ## local file
+        model_dir = ac.config['data_dir'] + '/EMINET'
         model_path = '{}/{}/{}'.format(model_dir, model_version, model_file)
+        meta_path = '{}/{}/{}'.format(model_dir, model_version, meta_file)
+        ## remote file
+        url_base = 'https://github.com/acolite/acolite_extra/raw/main/EMINET/'
+        model_url = '{}/{}/{}'.format(url_base, model_version, model_file)
+        meta_url = '{}/{}/{}'.format(url_base, model_version, meta_file)
+        if not os.path.exists(model_path):
+            print('Getting remote file {}'.format(model_url))
+            ac.shared.download_file(model_url, model_path)
+        if not os.path.exists(meta_path):
+            print('Getting remote file {}'.format(meta_url))
+            ac.shared.download_file(meta_url, meta_path)
 
     ## open model
     if verbosity > 2: print('Opening model file {}'.format(model_path))
