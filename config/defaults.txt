@@ -182,7 +182,7 @@ dem_source=copernicus30
 ## correction for reflectance on air-water interface
 dsf_interface_reflectance=False
 dsf_interface_option=default
-dsf_interface_lut=RSKY-202102
+dsf_interface_lut=ACOLITE-RSKY-202102-82W
 wind=None
 wind_default=2
 
