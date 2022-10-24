@@ -224,7 +224,7 @@ dsf_intercept_pixels=1000
 dsf_minimum_segment_size=1
 
 ## apply percentile filter to TOA data
-dsf_filter_toa=False
+dsf_filter_rhot=False
 dsf_filter_percentile=50
 dsf_filter_box=10,10
 

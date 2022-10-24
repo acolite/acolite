@@ -458,7 +458,7 @@ def acolite_l2r(gem,
                 mask = valid == False
 
                 ## apply TOA filter
-                if setu['dsf_filter_toa']:
+                if setu['dsf_filter_rhot']:
                     if verbosity > 1: print('Filtered {} using {}th percentile in {}x{} pixel box'.format(gem.bands[b]['rhot_ds'],
                                                     setu['dsf_filter_percentile'], setu['dsf_filter_box'][0], setu['dsf_filter_box'][1]))
                     band_data[mask] = np.nanmedian(band_data) ## fill mask with median
