@@ -6,7 +6,7 @@
 ##
 
 ## apply TOA gains
-gains=False
+gains=True
 ## unity gains
 #gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 ## gains taken 2022-10-02 from https://www.eumetsat.int/ocean-colour-system-vicarious-calibration-tool
