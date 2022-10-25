@@ -4,8 +4,9 @@
 ## 2016-11
 ## modifications: 2017-10-17 (QV) moved wave range and step to keywords, renamed from interprsr
 ##                2020-03-02 (QV) added ceil to number of elements in linspace
+##                2022-10-25 (QV) changed upper bound of default range to 2.5
 
-def rsr_convolute_dict(wave_data, data, rsr, wave_range=[0.2,2.4], wave_step=0.001):
+def rsr_convolute_dict(wave_data, data, rsr, wave_range=[0.2,2.5], wave_step=0.001):
     import numpy as np
 
     ## set up wavelength space
