@@ -7,6 +7,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-02-21 (QV) added Skysat
 ##                2022-08-12 (QV) added reprojection of unrectified data with RPC
+##                2022-10-26 (QV) changed handling of multi file bundles
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -50,11 +51,14 @@ def l1_convert(inputfile, output = None, settings = {},
     ofile = None
     ofiles = []
     setu = {}
-
+    ## track files if there are multiple in the bundle
+    ## e.g. extracted Planet zip file
+    ifiles = []
     for bundle in inputfile:
         t0 = time.time()
-
         ## unzip files if needed
+        ## they should have been unzipped by idendify_bundle
+        ## so this section can be removed?
         zipped = False
         if bundle[-4:] == '.zip':
             zipped = True
@@ -68,6 +72,12 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## test files
         files = ac.planet.bundle_test(bundle)
+        print('Found {} files in {}'.format(len(files), bundle))
+        for fk in files: ifiles.append((bundle, files[fk]))
+
+    ## run through the found files
+    for ifile in ifiles:
+        bundle, files = ifile
         if (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic' in files))) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))):
             print('Bundle {} not recognised'.format(bundle))

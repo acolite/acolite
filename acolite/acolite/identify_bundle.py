@@ -4,6 +4,7 @@
 ## 2021-03-10
 ## modifications: 2021-04-08 (QV) added VENUS
 ##                2022-07-21 (QV) added check for tar and zip files
+##                2022-10-26 (QV) update Planet multi-scene zip file handling
 
 def identify_bundle(bundle, input_type = None, output = None):
     import os, glob, shutil, zipfile
@@ -214,15 +215,16 @@ def identify_bundle(bundle, input_type = None, output = None):
         try:
             ## test files
             files = ac.planet.bundle_test(bundle)
-            if 'metadata' in files:
-                metafile = files['metadata']['path']
-            elif 'metadata_json' in files:
-                metafile = files['metadata_json']['path']
-
-            if 'analytic' in files:
-                image_file = files['analytic']['path']
-            elif 'pansharpened' in files:
-                image_file = files['pansharpened']['path']
+            ## files now contains scene_id keys
+            fk = list(files.keys())[0]
+            if 'metadata' in files[fk]:
+                metafile = files[fk]['metadata']['path']
+            elif 'metadata_json' in files[fk]:
+                metafile = files[fk]['metadata_json']['path']
+            if 'analytic' in files[fk]:
+                image_file = files[fk]['analytic']['path']
+            elif 'pansharpened' in files[fk]:
+                image_file = files[fk]['pansharpened']['path']
             meta = ac.planet.metadata_parse(metafile)
             if ('platform' in meta) & (os.path.exists(image_file)):
                 input_type = 'Planet'

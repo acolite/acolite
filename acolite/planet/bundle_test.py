@@ -8,6 +8,7 @@
 ##                2021-02-24 (QV) new version for acg
 ##                2022-01-11 (QV) added AnalyticMS_8b
 ##                2022-02-21 (QV) added Skysat, include support for unzipped API downloads
+##                2022-10-26 (QV) added scene_id to datafiles
 
 def bundle_test(bundle_in):
     import os
@@ -31,6 +32,8 @@ def bundle_test(bundle_in):
     for i, file in enumerate(files):
         fname = os.path.basename(file)
         fn,ext = os.path.splitext(fname)
+        if len(fn) < 23: continue
+        scene_id = fn[0:23]
 
         if ext not in ['.json', '.tif', '.xml']: continue
         band,clp=None,''
@@ -62,5 +65,6 @@ def bundle_test(bundle_in):
 
         if band is None: continue
         if os.path.isfile(file):
-            datafiles[band] = {"path":file, "fname":fname, "ext": ext}
+            if scene_id not in datafiles: datafiles[scene_id] = {}
+            datafiles[scene_id][band] = {"path":file, "fname":fname, "ext": ext}
     return(datafiles)
