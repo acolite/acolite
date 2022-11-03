@@ -3,3 +3,4 @@ from .olci_band_info import *
 from .meris_band_info import *
 
 from .l1_convert import *
+from .metadata_parse import *

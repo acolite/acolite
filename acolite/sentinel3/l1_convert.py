@@ -7,6 +7,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-09-29 (QV) changed rsr loading
 ##                2022-10-06 (QV) added back in tgas after smile correction
+##                2022-11-03 (QV) update sensor/metadata parsing
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -40,20 +41,32 @@ def l1_convert(inputfile, output = None, settings = {},
             print('Found nested SEN3 bundle {}'.format(nbundle[0]))
             bundle = '{}'.format(nbundle[0])
 
+        ## find data files
+        dfiles = [os.path.basename(f) for f in glob.glob('{}/*.nc'.format(bundle))]
+        dfiles.sort()
+
+        ## find xml files
+        mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
+        if len(mfile)==1: mfile = mfile[0]
+
         t0 = time.time()
         new = True
-        ## identify sensor
-        platform = os.path.basename(bundle)[0:3]
-        if platform in ['S3A', 'S3B']:
-            sensor = '{}_OLCI'.format(platform)
+
+        ## sensor settings
+        metafile = '{}/{}'.format(bundle, mfile)
+        smeta = ac.sentinel3.metadata_parse(metafile)
+        sensor = smeta['sensor']
+        if sensor in ['S3A_OLCI', 'S3B_OLCI']:
             len_gains = 21
             bands_data = ac.sentinel3.olci_band_info()
             band_id = 'Oa'
-        if platform in ['EN1', 'ENV']:
-            sensor = '{}_MERIS'.format('EN1')
+        elif sensor in ['EN1_MERIS']:
             len_gains = 15
             bands_data = ac.sentinel3.meris_band_info()
             band_id = 'M'
+        else:
+            print('Sensor {} from file {} not configured.'.format(sensor, bundle))
+            continue
 
         ## load rsrd
         rsrd = ac.shared.rsr_dict(sensor)
@@ -87,14 +100,6 @@ def l1_convert(inputfile, output = None, settings = {},
                     clip = True
                 except:
                     if verbosity > 1: print('Failed to import polygon {}'.format(poly))
-
-        ## find data files
-        dfiles = [os.path.basename(f) for f in glob.glob('{}/*.nc'.format(bundle))]
-        dfiles.sort()
-
-        ## find xml files
-        mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
-        if len(mfile)==1: mfile = mfile[0]
 
         sub = None
         data_shape = None
