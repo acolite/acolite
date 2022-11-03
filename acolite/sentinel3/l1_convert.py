@@ -49,8 +49,8 @@ def l1_convert(inputfile, output = None, settings = {},
             len_gains = 21
             bands_data = ac.sentinel3.olci_band_info()
             band_id = 'Oa'
-        if platform in ['EN1']:
-            sensor = '{}_MERIS'.format(platform)
+        if platform in ['EN1', 'ENV']:
+            sensor = '{}_MERIS'.format('EN1')
             len_gains = 15
             bands_data = ac.sentinel3.meris_band_info()
             band_id = 'M'
