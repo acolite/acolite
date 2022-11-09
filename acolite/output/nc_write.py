@@ -21,13 +21,14 @@
 ##                QV 2021-06-04 added dataset attributes defaults
 ##                QV 2021-07-19 change to using setncattr
 ##                QV 2021-12-08 added nc_projection
+##                QV 2022-11-09 added option to update nc_projection
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
                  keep=True, offset=None, replace_nan=False,
                  metadata=None, dataset_attributes=None, double=False,
                  chunking=True, chunk_tiles=[10,10], chunksizes=None, fillvalue=None,
-                 nc_projection = None,
+                 nc_projection = None, update_projection=False,
                  format='NETCDF4',
                  netcdf_compression=False,
                  netcdf_compression_level=4,
@@ -136,6 +137,27 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                             nc.setncattr(key, attributes[key])
                         except:
                             print('Failed to write attribute: {}'.format(key))
+
+        ## set up NetCDF projection if provided
+        if (update_projection) & (nc_projection is not None):
+            pkey = [k for k in nc_projection.keys() if k not in ['x', 'y']][0]
+            nc.setncattr('projection_key', pkey)
+
+            var = nc.createVariable(pkey, np.float64)
+            for att in nc_projection[pkey]['attributes'].keys():
+                if att in ['_FillValue']: continue
+                var.setncattr(att, nc_projection[pkey]['attributes'][att])
+
+            for v in ['x', 'y']:
+                if v not in nc.variables.keys():
+                    var = nc.createVariable(v, nc_projection[v]['data'].dtype, (v,))
+                #var[:] = nc_projection[v]['data']
+                var = nc.variables[v]
+                var[:] = nc_projection[v]['data']
+                for att in nc_projection[v]['attributes'].keys():
+                    if att in ['_FillValue']: continue
+                    var.setncattr(att, nc_projection[v]['attributes'][att])
+
 
     if (not double) & (data.dtype == np.float64):
         data = data.astype(np.float32)
