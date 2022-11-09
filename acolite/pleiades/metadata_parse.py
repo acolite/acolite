@@ -12,7 +12,7 @@
 ##                2019-02-25 (QV) changed import name
 ##                2020-10-18 (QV) added tile info
 ##                2020-10-18 (QV) renamed from parse_metadata, prep for acg
-
+##                2022-11-09 (QV) added PNEO
 
 def metadata_parse(metafile, pan=False):
     import os, sys, fnmatch, dateutil.parser
@@ -73,14 +73,26 @@ def metadata_parse(metafile, pan=False):
 
     ## get band info such as F0 and calibration
     band_info = {}
-    bands = ['B0','B1','B2','B3']
-    default_F0 = [1915., 1830., 1594.,1060.]
+    if 'PNEO' in metadata['sensor']:
+        bands_names = ['BlueCoastal', 'Blue', 'Green', 'Red', 'RedEdge', 'NIR']
+        bands = ['DB', 'B', 'G', 'R', 'RE', 'NIR']
+        ## QV 2022-11-09
+        ## taken from PNEO3 metadata, may need to be updated for PNEO4
+        if (metadata['sensor'] == 'PNEO3') | (metadata['sensor'] == 'PNEO4'):
+            ## DB B G R RE NIR
+            default_F0 = [1787.4, 1972.1, 1816.2, 1553.6, 1350.7, 1059.7]
+            if pan:
+                bands = ['PAN']
+                default_F0 = [1569.5]
+    else:
+        bands_names = ['Blue', 'Green', 'Red', 'NIR']
+        bands = ['B0','B1','B2','B3']
+        default_F0 = [1915., 1830., 1594.,1060.]
+        if pan:
+            bands = ['P']
+            default_F0 = [1548.]
 
-    if pan is True:
-        bands = ['P']
-        default_F0 = [1548.]
-
-    for band in bands:
+    for bi, band in enumerate(bands):
         band_data = {}
         for t in xmldoc.getElementsByTagName('BAND_ID') :
             if (t.firstChild.nodeValue) == band:
@@ -115,11 +127,18 @@ def metadata_parse(metafile, pan=False):
                     band_data['wave_end'] = wave_end
                     band_data['wave'] = (band_data['wave_end']+band_data['wave_start'])/2.
                     band_data['wave_name'] = str(round(int(band_data['wave']*1000.),2))
-                if pan is False:
-                    if band == metadata['RED_CHANNEL']: band_data['band_index']=0
-                    if band == metadata['GREEN_CHANNEL']: band_data['band_index']=1
-                    if band == metadata['BLUE_CHANNEL']: band_data['band_index']=2
-                    if band == metadata['ALPHA_CHANNEL']: band_data['band_index']=3
+
+                if parent == 'Raster_Index':
+                    band_data['band_index']=int(t.parentNode.getElementsByTagName('BAND_INDEX')[0].firstChild.nodeValue)
+                    band_data['band_name']=t.parentNode.getElementsByTagName('BAND_NAME')[0].firstChild.nodeValue
+                    band_data['band_id']=t.parentNode.getElementsByTagName('BAND_ID')[0].firstChild.nodeValue
+
+                if (pan is False) & ('PNEO' not in metadata['sensor']):
+                    if band == metadata['RED_CHANNEL']: band_data['band_index']=1
+                    if band == metadata['GREEN_CHANNEL']: band_data['band_index']=2
+                    if band == metadata['BLUE_CHANNEL']: band_data['band_index']=3
+                    if band == metadata['ALPHA_CHANNEL']: band_data['band_index']=4
+        band_data['band_name_rsr'] = bands_names[bi]
         band_info[band]=band_data
     metadata['BAND_INFO'] = band_info
 

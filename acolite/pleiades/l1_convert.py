@@ -4,6 +4,7 @@
 ## 2021-02-24
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2022-11-09 (QV) updates for PNEO processing
 
 def l1_convert(inputfile, output = None, settings = {},
                 limit = None, sub = None,
@@ -50,6 +51,7 @@ def l1_convert(inputfile, output = None, settings = {},
             return()
 
         sub = None
+        pansub = None
         new = True
         new_pan = True
         ofile = None
@@ -89,7 +91,11 @@ def l1_convert(inputfile, output = None, settings = {},
                 print('Provided limit {} not covered by scene'.format(limit))
                 continue
 
-        btags = {'Blue':'B0', 'Green':'B1', 'Red':'B2', 'NIR':'B3', 'Pan':'P'}
+        ## align metadata tag names with RSR names
+        if 'PNEO' in meta['sensor']:
+            btags = {'BlueCoastal':'DB', 'Blue':'B', 'Green':'G', 'Red':'R', 'RedEdge':'RE', 'NIR':'NIR', 'PAN':'PAN'}
+        else:
+            btags = {'Blue':'B0', 'Green':'B1', 'Red':'B2', 'NIR':'B3', 'Pan':'P'}
 
         dtime = dateutil.parser.parse(meta['isotime'])
         doy = dtime.strftime('%j')
@@ -109,7 +115,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
         gatts = {'sensor':meta['sensor'], 'satellite':meta['satellite'],
                  'satellite_sensor':'{}_{}'.format(meta['satellite'], meta['sensor']),
-                 'isodate':isodate, #'global_dims':global_dims,
+                 'isodate':isodate,
                  'sza':meta['sza'], 'vza':meta['vza'], 'raa':meta['raa'], 'se_distance': se_distance,
                  'mus': np.cos(meta['sza']*(np.pi/180.)),
                  'acolite_file_type': 'L1R'}
@@ -138,18 +144,13 @@ def l1_convert(inputfile, output = None, settings = {},
                 ncols = int(meta['NCOLS'])
                 nrows = int(meta['NROWS'])
                 sub = ac.pleiades.geo.crop(meta, limit)
-                #if (sub[2] <= 50) or (sub[3] <= 50):
-                #    print("Region not in image.")
-                #    print("Crop dimensions: {}x{}.".format(sub[2],sub[3]))
-                #    #continue
-                #if (sub[0] <= 0): sub[0] = 0
-                #if (sub[1] <= 0): sub[1] = 0
-                #if (sub[0]+sub[2] >= ncols):
-                #    sub[2] -= ((sub[0]+sub[2])-ncols)
-                #if (sub[1]+sub[3] >= nrows):
-                #    sub[3] -= ((sub[1]+sub[3])-nrows)
                 if pmeta is not None:
                     pansub = ac.pleiades.geo.crop(pmeta, limit)
+                    ## QV 2022-11-09
+                    ## force pan sub dimensions to match ms data
+                    ## to be improved!
+                    pansub[2] = sub[2]*4
+                    pansub[3] = sub[3]*4
 
         if sub is not None:
             sub = [int(s) for s in sub]
@@ -196,42 +197,91 @@ def l1_convert(inputfile, output = None, settings = {},
                 print(tile_id, tile_name)
 
                 ## tile offsets
-                tile_row_off = r_tile * tile_dims[0]
-                tile_col_off = c_tile * tile_dims[1]
+                tile_row_off = r_tile * tile_dims[0] # Y
+                tile_col_off = c_tile * tile_dims[1] # X
+
+                ## subsetting tiled image
+                ## not tested for ROI across tiles!
+                sub_tile = None
+                pansub_tile = None
+                if sub is not None:
+                    sub_tile = [sub[0]-tile_col_off, sub[1]-tile_row_off,sub[2], sub[3]]
+
+                    if sub_tile[0] < 0: continue
+                    if sub_tile[1] < 0: continue
+                    if sub_tile[0] > tile_dims[0]: continue
+                    if sub_tile[1] > tile_dims[1]: continue
+                    pansub_tile = [pansub[0]-(tile_col_off*4),
+                                   pansub[1]-(tile_row_off*4),
+                                   pansub[2], pansub[3]]
 
                 ifile = None
                 for it,tfile in enumerate(ifiles):
                     if tile_name not in tfile: continue
-                    ifile=ifiles[it]
+                    tbn = os.path.basename(tfile)
                     mfile=mfiles[it]
                     pifile=pifiles[it]
                     pmfile=pmfiles[it]
+                    ## track PNEO RGB and NED tiles
+                    if ('PNEO' in meta['sensor']):
+                        if '_NED_' in tbn: ifile_ned=ifiles[it]
+                        if '_RGB_' in tbn: ifile=ifiles[it]
+                    else:
+                        ifile=ifiles[it]
 
-                print('Reading: {}'.format(ifile))
+                dct = None
+                nc_projection = None
+                update_projection = True
+
+                dct_pan = None
+                nc_projection_pan = None
+                update_projection_pan = True
 
                 ## read in TOA reflectances
                 for b in rsr_bands:
                     pan = False
                     if btags[b] in meta['BAND_INFO']:
                         bd = {k:meta['BAND_INFO'][btags[b]][k] for k in meta['BAND_INFO'][btags[b]]}
-                        idx = 1+bd['band_index']
+                        #idx = 1+bd['band_index']
+                        idx = 0 + bd['band_index']
                         ## read data
-                        data = ac.shared.read_band(ifile, idx=idx, sub=sub)
+                        ifile_ = '{}'.format(ifile)
+
+                        ## Red Green Blue PNEO bands in RGB file
+                        ## NIR, RedEdge, CoastalBlue in NED file
+                        if ('PNEO' in meta['sensor']) & (b in ['BlueCoastal', 'RedEdge', 'NIR']):
+                            ifile_ = '{}'.format(ifile_ned)
+
+                        print('Reading band {} from {}'.format(b, ifile_))
+                        data = ac.shared.read_band(ifile_, idx=idx, sub=sub_tile)
+                        if update_projection:
+                            try:
+                                dct = ac.shared.projection_read(ifile_)
+                                nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
+                            except BaseException as err:
+                                print(f"Could not determine projection from {ifile_=} error {err=}, {ifile_=}, {type(err)=}")
+                                pass
                     else:
                         if pmeta is None: continue
                         if skip_pan: continue
                         pan = True
                         if sub is None:
-                            pansub = None
                             pandims = int(pmeta['NROWS']), int(pmeta['NCOLS'])
                         else:
                             pandims = pansub[3], pansub[2]
+
+                        print('Reading band {} from {}'.format(b, pifile))
                         ## read data
-                        data = ac.shared.read_band(pifile, idx=1, sub=pansub)
-                        print(data.shape)
-                        print(pmeta)
+                        data = ac.shared.read_band(pifile, idx=1, sub=pansub_tile)
+                        try:
+                            dct_pan = ac.shared.projection_read(pifile)
+                            nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
+                        except BaseException as err:
+                            print(f"Could not determine projection from {pifile=} error {err=}, {pifile=}, {type(err)=}")
+                            pass
 
                     nodata = data == np.uint16(meta['NODATA'])
+                    nodata2 = data == 1
                     print(idx, b, btags[b])
                     data = data.astype(np.float32)
                     if (meta['RADIOMETRIC_PROCESSING'] == 'RADIANCE') | (meta['RADIOMETRIC_PROCESSING'] == 'BASIC'):
@@ -260,6 +310,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         continue
 
                     data[nodata] = np.nan
+                    data[nodata2] = np.nan
 
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
@@ -267,38 +318,58 @@ def l1_convert(inputfile, output = None, settings = {},
                         ds_att['percentiles'] = percentiles
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
+                    ## QV 2022-11-09
+                    ## nc_projection does not match when using crop
+                    if sub is not None:
+                        nc_projection = None
+                        nc_projection_pan = None
+
                     if pan:
                         cur_shape = data.shape
-                        data_full = np.zeros(pandims)+np.nan
-                        data_full[tile_row_off*4:tile_row_off*4+cur_shape[0],
-                                  tile_col_off*4:tile_col_off*4+cur_shape[1]] = data
+                        if cur_shape != pandims:
+                            data_full = np.zeros(pandims)+np.nan
+                            data_full[tile_row_off*4:tile_row_off*4+cur_shape[0],
+                                      tile_col_off*4:tile_col_off*4+cur_shape[1]] = data
+                        else:
+                            data_full = data * 1.0
+
                         ## write to netcdf file
-                        ac.output.nc_write(pofile, ds, data_full, replace_nan=True, attributes=gatts,
+                        ac.output.nc_write(pofile, ds, data_full, replace_nan=True, #attributes=gatts,
                                             new=new_pan, dataset_attributes = ds_att,
+                                            nc_projection=nc_projection_pan, update_projection=update_projection_pan,
                                             netcdf_compression=setu['netcdf_compression'],
                                             netcdf_compression_level=setu['netcdf_compression_level'],
                                             netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                         data_full = None
+                        update_projection_pan = False
                         new_pan = False
 
                         ## mask data before zooming
                         dmin = np.nanmin(data)
                         data[np.isnan(data)] = 0
-                        data = scipy.ndimage.zoom(data, 0.25)
+                        data = scipy.ndimage.zoom(data, 0.25, order=1)
                         data[data<dmin] = np.nan
                         data[data==dmin] = np.nan
 
                     cur_shape = data.shape
-                    data_full = np.zeros(dims)+np.nan
-                    data_full[tile_row_off:tile_row_off+cur_shape[0],
-                              tile_col_off:tile_col_off+cur_shape[1]] = data
+                    print(dims)
+                    print(cur_shape)
+                    print(tile_row_off,tile_col_off)
+                    if cur_shape != dims:
+                        data_full = np.zeros(dims)+np.nan
+                        data_full[tile_row_off:tile_row_off+cur_shape[0],
+                                  tile_col_off:tile_col_off+cur_shape[1]] = data
+                    else:
+                        data_full = data * 1.0
                     data = None
 
                     ## write to netcdf file
                     ac.output.nc_write(ofile, ds, data_full, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att,
+                                        nc_projection=nc_projection, update_projection=update_projection,
                                         netcdf_compression=setu['netcdf_compression'],
                                         netcdf_compression_level=setu['netcdf_compression_level'],
                                         netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                    update_projection = False
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data_full.shape))
 
