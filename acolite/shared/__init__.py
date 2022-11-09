@@ -6,6 +6,7 @@ from .rsr_convolute_dict import *
 from .rsr_convolute_nd import *
 
 from .projection_sub import *
+from .projection_sub_dct import *
 from .projection_geo import *
 from .projection_limit import *
 from .projection_read import *
