@@ -359,10 +359,14 @@ def l1_convert(inputfile, output = None, settings = {},
             wave = waves_names[band]
             ds = 'rhot_{}'.format(wave)
             if verbosity > 2: print('{} - Reading TOA data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
+
             # per pixel wavelength
             l = meta['instrument_data']['lambda0'][iw][di]
             # per pixel f0
             f0 = meta['instrument_data']['solar_flux'][iw][di]
+            # if smile corrected use nominal E0
+            if setu['smile_correction']: f0 = bands_data[band]['E0']
+
             # per pixel fwhm
             fwhm = meta['instrument_data']['FWHM'][iw][di]
 
