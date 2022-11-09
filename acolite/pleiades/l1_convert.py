@@ -258,6 +258,9 @@ def l1_convert(inputfile, output = None, settings = {},
                             try:
                                 dct = ac.shared.projection_read(ifile_)
                                 nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
+                                if sub is not None:
+                                    dct = ac.shared.projection_sub_dct(dct, sub)
+                                    nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
                             except BaseException as err:
                                 print(f"Could not determine projection from {ifile_=} error {err=}, {ifile_=}, {type(err)=}")
                                 pass
@@ -276,6 +279,9 @@ def l1_convert(inputfile, output = None, settings = {},
                         try:
                             dct_pan = ac.shared.projection_read(pifile)
                             nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
+                            if pansub is not None:
+                                dct_pan = ac.shared.projection_sub_dct(dct_pan, pansub)
+                                nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
                         except BaseException as err:
                             print(f"Could not determine projection from {pifile=} error {err=}, {pifile=}, {type(err)=}")
                             pass
@@ -320,9 +326,9 @@ def l1_convert(inputfile, output = None, settings = {},
 
                     ## QV 2022-11-09
                     ## nc_projection does not match when using crop
-                    if sub is not None:
-                        nc_projection = None
-                        nc_projection_pan = None
+                    #if sub is not None:
+                    #    nc_projection = None
+                    #    nc_projection_pan = None
 
                     if pan:
                         cur_shape = data.shape
@@ -362,6 +368,28 @@ def l1_convert(inputfile, output = None, settings = {},
                     else:
                         data_full = data * 1.0
                     data = None
+
+                    ## update lat/lon if we were able to compute nc_projection
+                    if (update_projection) & (nc_projection is not None):
+                        if verbosity > 1: print('Writing geolocation lon/lat')
+                        lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
+                        print(lon.shape)
+                        ac.output.nc_write(ofile, 'lon', lon, double=True,
+                                            nc_projection=nc_projection, update_projection=update_projection,
+                                            netcdf_compression=setu['netcdf_compression'],
+                                            netcdf_compression_level=setu['netcdf_compression_level'])
+                        lon = None
+                        update_projection = False
+
+                        if verbosity > 1: print('Wrote lon')
+                        print(lat.shape)
+                        ac.output.nc_write(ofile, 'lat', lat, double=True,
+                                            nc_projection=nc_projection, update_projection=update_projection,
+                                            netcdf_compression=setu['netcdf_compression'],
+                                            netcdf_compression_level=setu['netcdf_compression_level'])
+                        lat = None
+                        if verbosity > 1: print('Wrote lat')
+                        new=False
 
                     ## write to netcdf file
                     ac.output.nc_write(ofile, ds, data_full, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att,
