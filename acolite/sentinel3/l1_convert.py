@@ -8,6 +8,7 @@
 ##                2022-09-29 (QV) changed rsr loading
 ##                2022-10-06 (QV) added back in tgas after smile correction
 ##                2022-11-03 (QV) update sensor/metadata parsing
+##                2022-11-09 (QV) change of F0 in radiance to reflectance correction, depending on whether smile correction was applied
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
