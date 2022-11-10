@@ -255,6 +255,11 @@ dsf_fixed_lut=ACOLITE-LUT-202110-MOD2
 ## tile dimensions should be set per sensor
 dsf_tile_dimensions=100,100
 
+## tiled processing options
+dsf_tile_smoothing=True
+dsf_tile_smoothing_kernel_size=3
+dsf_tile_interp_method=linear
+
 ## exponential options
 exp_swir_threshold=0.0215
 exp_fixed_epsilon=True

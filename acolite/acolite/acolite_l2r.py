@@ -1016,7 +1016,7 @@ def acolite_l2r(gem,
             for sidx, segment in enumerate(segment_data):
                 aot_out[segment_data[segment]['sub']] = aot_sel[sidx]
         elif setu['dsf_aot_estimate'] == 'tiled':
-            aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=True, kern_size=3, method='linear')
+            aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
         else:
             aot_out = aot_sel * 1.0
         ## write aot
@@ -1198,14 +1198,14 @@ def acolite_l2r(gem,
             if setu['dsf_aot_estimate'] == 'tiled':
                 if verbosity > 1: print('Interpolating tiles')
                 romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                     ttot_all[b] = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                    target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                    target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
 
             ## create full scene parameters for segmented processing
             if setu['dsf_aot_estimate'] == 'segmented':
@@ -1307,9 +1307,9 @@ def acolite_l2r(gem,
             if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
                 if verbosity > 1: print('Interpolating tiles for rhorc')
                 rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                            target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                            target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 dutotr_cur = ac.shared.tiles_interp(dutotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
-                            target_mask_full=True, smooth=True, kern_size=3, method='linear')
+                            target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
 
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
