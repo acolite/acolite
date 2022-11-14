@@ -6,6 +6,7 @@
 ##                2021-03-15 (QV) large update, including other parameters and mapping with pcolormesh
 ##                2021-04-01 (QV) changed plot_all option
 ##                2022-06-21 (QV) changed handling of l2_flags (if not int)
+##                2022-11-14 (QV) changed rgb pcolormesh, added font options
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -118,10 +119,10 @@ def acolite_map(ncf, output = None,
             if crs is None:
                 if setu['map_pcolormesh']:
                     if rgb: ## convert rgb values to color tuple before mapping
-                        mesh_rgb = im[:, :-1, :]/255
+                        mesh_rgb = im[:, :, :]/255
                         colorTuple = mesh_rgb.reshape((mesh_rgb.shape[0] * mesh_rgb.shape[1]), 3)
                         colorTuple = np.insert(colorTuple,3,1.0,axis=1)
-                        axim = plt.pcolormesh(lon, lat, im[:,:,0], color=colorTuple, shading='flat') #latlon=False,
+                        axim = plt.pcolormesh(lon, lat, im[:,:,0], color=colorTuple, shading='nearest')
                     else:
                         axim = plt.pcolormesh(lon, lat, im, norm=norm, cmap=cmap, shading='auto')
                         if scene_mask is not None:
