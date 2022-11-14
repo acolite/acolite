@@ -8,6 +8,7 @@
 ##                2022-02-21 (QV) added Skysat
 ##                2022-08-12 (QV) added reprojection of unrectified data with RPC
 ##                2022-10-26 (QV) changed handling of multi file bundles
+##                2022-11-14 (QV) added support for outputting Planet SR data
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -79,10 +80,13 @@ def l1_convert(inputfile, output = None, settings = {},
     for ifile in ifiles:
         bundle, files = ifile
         if (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic' in files))) &\
-           (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))):
+           (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))) &\
+           (not ((('metadata' in files) | ('metadata_json' in files)) & ('sr' in files))):
             print('Bundle {} not recognised'.format(bundle))
             continue
 
+        metafile = None
+        image_file = None
         if 'metadata' in files:
             metafile = files['metadata']['path']
         elif 'metadata_json' in files:
@@ -96,6 +100,12 @@ def l1_convert(inputfile, output = None, settings = {},
 
         sr_image_file = None
         if 'sr' in files: sr_image_file = files['sr']['path']
+
+        if image_file is None:
+            print('No TOA radiance file found in {}'.format(bundle))
+            if (sr_image_file is None):
+                print('No SR file found in {}'.format(bundle))
+                continue
 
         ## read meta data
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
@@ -175,8 +185,12 @@ def l1_convert(inputfile, output = None, settings = {},
         gatts = {'sensor':meta['sensor'], 'satellite_sensor':meta['satellite_sensor'],
                  'isodate':isodate, #'global_dims':global_dims,
                  'sza':meta['sza'], 'vza':meta['vza'], 'raa':meta['raa'], 'se_distance': se_distance,
-                 'mus': np.cos(meta['sza']*(np.pi/180.)),
-                 'acolite_file_type': 'L1R'}
+                 'mus': np.cos(meta['sza']*(np.pi/180.))}
+
+        if image_file is not None:
+            gatts['acolite_file_type'] = 'L1R'
+        else:
+            gatts['acolite_file_type'] = 'SR'
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
@@ -184,14 +198,13 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## output file information
         if (merge_tiles is False) | (ofile is None):
-            ofile = '{}/{}_L1R.nc'.format(output, oname)
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
         elif (merge_tiles) & (ofile is None):
-            ofile = '{}/{}_L1R.nc'.format(output, oname)
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
-
 
         ## check if we should merge these tiles
         if (merge_tiles) & (not new) & (os.path.exists(ofile)):
@@ -214,7 +227,10 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## try to read projection of image file
         try:
-            dct = ac.shared.projection_read(image_file)
+            if image_file is not None:
+                dct = ac.shared.projection_read(image_file)
+            elif sr_image_file is not None:
+                dct = ac.shared.projection_read(sr_image_file)
         except:
             ## else reproject image to default resolution
             ## if limit not set then gdal will be used to set up projection
@@ -364,8 +380,9 @@ def l1_convert(inputfile, output = None, settings = {},
                 if verbosity > 1: print('Wrote y')
                 new=False
 
-        ## convert bands
+        ## convert bands TOA
         for b in rsr_bands:
+            if image_file is None: continue
             if b in ['PAN']: continue
             idx = int(meta['{}-band_idx'.format(b)])
 
@@ -427,6 +444,39 @@ def l1_convert(inputfile, output = None, settings = {},
                                 netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
+
+        ## convert bands SR
+        if (sr_image_file is not None) & (setu['planet_store_sr']):
+            for b in rsr_bands:
+                if b in ['PAN']: continue
+                idx = int(meta['{}-band_idx'.format(b)])
+
+                ## read data
+                md, data = ac.shared.read_band(sr_image_file, idx=idx, warp_to=warp_to, gdal_meta = True)
+                nodata = data == np.uint16(0)
+
+                ## DN to rhos is 1/10000 according to Planet Docs
+                data = data.astype(float) / 10000
+                data[nodata] = np.nan
+
+                ## clip to poly
+                if clip: data[clip_mask] = np.nan
+
+                ds = 'rhos_sr_{}'.format(waves_names[b])
+                ds_att = {'wavelength':waves_mu[b]*1000}
+
+                if percentiles_compute:
+                    ds_att['percentiles'] = percentiles
+                    ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
+
+                ## write to netcdf file
+                ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
+                                    new=new, dataset_attributes = ds_att, nc_projection=nc_projection,
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'],
+                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                new = False
+                if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))

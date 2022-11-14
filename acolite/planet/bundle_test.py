@@ -60,7 +60,8 @@ def bundle_test(bundle_in):
             band = 'pan_dn'
         if ('pansharpened{}.tif'.format(clp) in fname):
             band = 'pansharpened'
-        if ('Analytic_SR{}.tif'.format(clp) in fname):
+        if ('Analytic_SR{}.tif'.format(clp) in fname)|\
+           ('AnalyticMS_SR_8b{}.tif'.format(clp) in fname):
             band = 'sr'
 
         if band is None: continue

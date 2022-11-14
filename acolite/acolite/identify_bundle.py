@@ -225,6 +225,8 @@ def identify_bundle(bundle, input_type = None, output = None):
                 image_file = files[fk]['analytic']['path']
             elif 'pansharpened' in files[fk]:
                 image_file = files[fk]['pansharpened']['path']
+            elif 'sr' in files[fk]:
+                image_file = files[fk]['sr']['path']
             meta = ac.planet.metadata_parse(metafile)
             if ('platform' in meta) & (os.path.exists(image_file)):
                 input_type = 'Planet'
