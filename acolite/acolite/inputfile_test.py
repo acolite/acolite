@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-03-04
 ## modifications: 2022-09-05 (QV) remove trailing slash from file paths in txt file
+##                2022-11-14 (QV) changed appending files from txt file to inputfile list
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -48,5 +49,5 @@ def inputfile_test(inputfile):
                             cfiles.append(fn)
                         else:
                             if ac.config['verbosity'] > 0: print('Path {} does not exist.'.format(fn))
-                    if len(cfiles)>0: inputfile_list.append(cfiles)
+                    if len(cfiles)>0: inputfile_list += cfiles
     return(inputfile_list)
