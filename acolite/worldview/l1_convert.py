@@ -4,6 +4,7 @@
 ## 2021-02-25
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2022-11-14 (QV) added subsetting of projected data
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -82,7 +83,6 @@ def l1_convert(inputfile, output = None,
                 try:
                     limit = ac.shared.polygon_limit(poly)
                     print('Using limit from polygon envelope: {}'.format(limit))
-                    print('Not yet implemented for WorldView')
                     clip = True
                 except:
                     print('Failed to import polygon {}'.format(poly))
@@ -189,9 +189,15 @@ def l1_convert(inputfile, output = None,
             ## check if the files were named .TIF instead of .TIFF
             if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
             if not os.path.exists(file): continue
+
+            ## get projection info from current tile
             try:
-                ## get projection info from current tile
                 dct_vnir = ac.shared.projection_read(file)
+            except:
+                dct_vnir = None
+
+            ## get projection info
+            try:
                 ## set up dict
                 if dct is None:
                     dct = {k: dct_vnir[k] for k in dct_vnir}
@@ -222,11 +228,25 @@ def l1_convert(inputfile, output = None,
                 lons = [meta['BAND_INFO'][bt][k] for k in meta['BAND_INFO'][bt] if 'LON' in k]
                 lats = [meta['BAND_INFO'][bt][k] for k in meta['BAND_INFO'][bt] if 'LAT' in k]
                 lim = [min(lats), min(lons), max(lats), max(lons)]
-            dct, nc_projection, warp_to = ac.shared.projection_utm(lim, setu['worldview_reproject_resolution'], res_method=setu['worldview_reproject_method'])
+            dct, nc_projection, warp_to = ac.shared.projection_setup(lim, setu['worldview_reproject_resolution'], \
+                                                                          res_method=setu['worldview_reproject_method'])
             global_dims = dct['ydim'], dct['xdim']
 
         ## final scene dimensions
         if dct is not None:
+            ## if we have dct and limit we can subset
+            if limit is not None:
+                dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+                if dct_sub['out_lon']:
+                    if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
+                    continue
+                if dct_sub['out_lat']:
+                    if verbosity > 1: print('Latitude limits outside {}'.format(bundle))
+                    continue
+                sub = dct_sub['sub']
+                dct = {k:dct_sub[k] for k in dct_sub}
+                global_dims = dct['ydim'], dct['xdim']
+
             ## compute dimensions
             dct['xdim'] = int(np.round((dct['xrange'][1]-dct['xrange'][0]) / dct['pixel_size'][0]))
             dct['ydim'] = int(np.round((dct['yrange'][1]-dct['yrange'][0]) / dct['pixel_size'][1]))
@@ -336,7 +356,11 @@ def l1_convert(inputfile, output = None,
                         print('Data has been enhanced by the provider: {}'.format(meta['RADIOMETRICENHANCEMENT']))
 
                 ## track mask
-                nodata = d == np.uint16(0)
+                if d.dtype == np.dtype('uint8'):
+                    nodata = d == np.uint8(0)
+                elif d.dtype == np.dtype('uint16'):
+                    nodata = d == np.uint16(0)
+
                 ## convert to float and scale to TOA reflectance
                 d = d.astype(np.float32) * cf
                 if (gains != None) & (setu['gains_parameter'] == 'radiance'):
