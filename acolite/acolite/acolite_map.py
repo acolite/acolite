@@ -127,11 +127,13 @@ def acolite_map(ncf, output = None,
                         if scene_mask is not None:
                             plt.pcolormesh(lon, lat, scene_mask, cmap='gray', vmin=0, vmax=1)
 
-                    plt.xlabel('Longitude (°E)')
-                    plt.ylabel('Latitude (°N)')
+                    plt.xlabel('Longitude (°E)', **font)
+                    plt.ylabel('Latitude (°N)', **font)
                     if limit is not None:
                         plt.xlim(limit[1],limit[3])
                         plt.ylim(limit[0],limit[2])
+                    plt.xticks(**font)
+                    plt.yticks(**font)
                 else:
                     axim = plt.imshow(im, norm=norm, cmap=cmap)
                     if scene_mask is not None:
@@ -146,7 +148,7 @@ def acolite_map(ncf, output = None,
                 gl.xlabels_bottom = True
                 gl.ylabels_right = False
 
-            if setu['map_title']: plt.title(title)
+            if setu['map_title']: plt.title(title, **font)
 
             ## color bars
             cbar = None
@@ -194,6 +196,10 @@ def acolite_map(ncf, output = None,
 
     ## combine default and user defined settings
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+
+    ## set font settings
+    font = {'fontname':setu['map_fontname']}
+    mpl.rc('text', usetex=setu['map_usetex'])
 
     scene_mask = None
     if 'l2_flags' in datasets:
