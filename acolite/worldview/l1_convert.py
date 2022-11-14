@@ -259,6 +259,9 @@ def l1_convert(inputfile, output = None,
             for k in ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'dimensions', 'zone']:
                 if k in dct: gatts[k] = dct[k]
 
+            if nc_projection is None: nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = False)
+            gatts['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
+
         ## write results to output file
         new=True
 
