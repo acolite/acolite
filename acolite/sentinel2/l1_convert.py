@@ -6,6 +6,7 @@
 #                 2021-10-14 (QV) fixed band specific footprints for band specific geometry for PB004
 ##                2021-12-08 (QV) added nc_projection
 ##                2021-12-31 (QV) new handling of settings
+##                2022-11-16 (QV) added dfoo outputs
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -327,6 +328,8 @@ def l1_convert(inputfile, output = None, settings = {},
         if (output_geometry):
             if verbosity > 1: print('Reading per pixel geometry')
             if (geometry_type == 'grids') | (geometry_type == 'grids_footprint'):
+                dfoo = None
+
                 ## just use 60m band for geometry, it will be interpolated later
                 if geometry_res == 10:
                     target_file = safe_files[granule]['B2']['path']
@@ -432,6 +435,19 @@ def l1_convert(inputfile, output = None, settings = {},
                     print('Could not access {}'.format(target_file))
                     print('Path length {} greater than the recommended path length on Windows'.format(len(target_file)))
                     return(ofiles, setu)
+
+                ## write detector footprint data
+                if (setu['s2_write_dfoo']) & (dfoo is not None):
+                    dfoo_ = ac.shared.warp_from_source(target_file, dct_prj, dfoo, warp_to=warp_to)
+                    dfoo_[mask] = -1
+                    if clip: dfoo_[clip_mask] = -1
+                    ac.output.nc_write(ofile, 'dfoo', dfoo_, replace_nan=True,
+                                                attributes=gatts, new=new, nc_projection=nc_projection,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                    if verbosity > 1: print('Wrote dfoo {}'.format(dfoo_.shape))
+                    dfoo_ = None
+                    new = False
 
                 ## compute band specific geometry
                 if geometry_per_band:

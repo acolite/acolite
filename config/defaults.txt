@@ -40,6 +40,7 @@ oli_orange_band=True
 s2_target_res=10
 s2_include_auxillary=False
 s2_project_auxillary=True
+s2_write_dfoo=False
 s2_write_vaa=False
 s2_write_saa=False
 
