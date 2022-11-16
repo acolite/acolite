@@ -44,7 +44,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                 print('Failed to import polygon {}'.format(poly))
 
     ## get F0 for radiance -> reflectance computation
-    f0 = ac.shared.f0_get()
+    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
     ofiles = []
     for bundle in inputfile:

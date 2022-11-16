@@ -88,7 +88,7 @@ def l1_convert(inputfile, output = None, settings = {},
         waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
 
         ## get F0 - not stricty necessary if using reflectance
-        f0 = ac.shared.f0_get()
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
 
 

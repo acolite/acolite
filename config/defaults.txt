@@ -108,6 +108,11 @@ verbosity=5
 ## output TOA radiance (not from all sensors)
 output_lt=False
 
+## extraterrestrial solar reference to use in radiance-reflectance conversion
+## only for sensors where ACOLITE does Lr->rhot conversion
+## solar_irradiance_reference=Thuillier2003
+solar_irradiance_reference=Coddington2021_1_0nm
+
 ## test cropped scenes for blackfill coverage
 blackfill_skip=True
 blackfill_max=1.0

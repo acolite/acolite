@@ -51,7 +51,7 @@ def l1_convert(inputfile, output = None, settings = {},
     ofile = None
     ofiles = []
     setu = {}
-    
+
     for bundle in inputfile:
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
@@ -200,7 +200,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
 
         ## get F0 - not stricty necessary if using USGS reflectance
-        f0 = ac.shared.f0_get()
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
 
         ## make global attributes for L1R NetCDF

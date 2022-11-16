@@ -8,6 +8,7 @@
 ##                2018-09-19 (QV) added encoding
 ##                2021-02-05 (QV) changes for acolite-gen
 ##                2022-09-28 (QV) added support for bzipped files
+##                2022-11-16 (QV) added printout when file is not found
 
 def f0_get(f0_file=None, f0_dataset='Thuillier2003'):
     import numpy as np
@@ -39,5 +40,8 @@ def f0_get(f0_file=None, f0_dataset='Thuillier2003'):
                 if len(split) != 2: continue
                 f0data.append(float(split[1]))
                 f0wave.append(float(split[0]))
-    f0={"wave":np.asarray(f0wave), "data":np.asarray(f0data)}
-    return f0
+        f0={"wave":np.asarray(f0wave), "data":np.asarray(f0data)}
+        return(f0)
+    else:
+        print('F0 reference {} not found in {}/data/Solar/'.format(f0_dataset, ac.path))
+        return()

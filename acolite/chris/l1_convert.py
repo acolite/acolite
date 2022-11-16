@@ -127,7 +127,7 @@ def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
         #    rsr[b] = {'wave':wave/1000, 'response': resp}
 
         ## get F0 per band
-        f0 = ac.shared.f0_get()
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_bands = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsr)
 
         ## determine mode

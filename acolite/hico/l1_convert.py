@@ -23,7 +23,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
     ## get F0 for radiance -> reflectance computation
-    f0 = ac.shared.f0_get()
+    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
     ofiles = []
     for file in inputfile:

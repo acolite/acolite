@@ -291,7 +291,7 @@ def l1_convert(inputfile, output = None, settings = {},
         bnames = [b for b in bands_data]
 
         ## get F0 - not stricty necessary if using USGS reflectance
-        f0 = ac.shared.f0_get()
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsrd[sensor]['rsr'])
 
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
