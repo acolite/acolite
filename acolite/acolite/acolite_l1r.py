@@ -173,6 +173,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end ECOSTRESS
     ################
 
+    ################
+    ## ENMAP
+    if input_type == 'ENMAP':
+        l1r_files, setu = ac.enmap.l1_convert(bundle, settings = setu)
+    ## end ENMAP
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:

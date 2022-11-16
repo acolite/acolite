@@ -1,0 +1,23 @@
+## ACOLITE default settings for EnMAP HSI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=500,1000
+dsf_wave_range=400,2400
+
+l2w_mask_wave=1609
+l2w_mask_threshold=0.03
+l2w_mask_cirrus_wave=1379
+
+dsf_interface_reflectance=False
+resolved_geometry=False
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+dsf_residual_glint_correction_method=alternative
+dsf_residual_glint_wave_range=1500,2400

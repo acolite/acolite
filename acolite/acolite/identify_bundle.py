@@ -290,6 +290,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## ENMAP
+        try:
+            bundle_files = ac.enmap.bundle_test(bundle)
+            metadata, band_data = ac.enmap.metadata_parse(bundle_files['METADATA'])
+            if metadata['mission'].upper() + '_' + metadata['sensor'].upper() == 'ENMAP_HSI':
+                input_type = 'ENMAP'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end ENMAP
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified
