@@ -8,8 +8,9 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2018-11-19 (QV) added verbosity option
 ##                2021-03-01 (QV) simplified for acg, renamed from ancillary_get
+##                2022-11-17 (QV) delete series by default
 
-def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
+def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, keep_series=False):
     import acolite as ac
     import dateutil.parser, datetime
     import os
@@ -49,7 +50,9 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
         if os.path.exists(ozone_file):
             if verbosity > 1: print('Reading ozone from {}'.format(ozone_file))
             anc_ozone = ac.ac.ancillary.interp_ozone(ozone_file, lon, lat, kind=kind)
-            for k in anc_ozone.keys(): anc[k] = anc_ozone[k]
+            for k in anc_ozone.keys():
+                if (not keep_series) & ('series' in anc_ozone[k]): del anc_ozone[k]['series']
+                anc[k] = anc_ozone[k]
 
     ## get ncep MET files
     ncep_files = [anc_local[i] for i, j in enumerate(anc_local) if "NCEPR2" in j]
@@ -61,6 +64,8 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0):
     else:
         if verbosity > 1: print('Reading {} ncep met files'.format(len(ncep_files)))
         anc_met = ac.ac.ancillary.interp_met(ncep_files,  lon, lat, ftime, kind=kind)
-        for k in anc_met.keys(): anc[k] = anc_met[k]
+        for k in anc_met.keys():
+            if (not keep_series) & ('series' in anc_met[k]): del anc_met[k]['series']
+            anc[k] = anc_met[k]
 
     return(anc)

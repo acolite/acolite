@@ -9,13 +9,18 @@
 ##                2018-03-05 (QV) fixed end of year rollover
 ##                2018-03-12 (QV) added file closing to enable file deletion for Windows
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_interp_met
+##                2022-11-17 (QV) added 2D interpolation
 
 def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_hum','p_water'], kind='linear'):
-
+    import acolite as ac
     import os, sys, bz2
     from pyhdf.SD import SD, SDC
     import numpy as np
     from scipy import interpolate
+
+    ## input geolocation dimensions
+    dim = np.atleast_1d(lon).shape
+    onedim = ((len(dim) == 1) & (dim[0] == 1))
 
     interp_data = {ds:[] for ds in datasets}
     ftimes = []
@@ -47,20 +52,31 @@ def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_h
         lats = np.linspace(meta["Northernmost Latitude"], meta["Southernmost Latitude"],
                         num = meta['Number of Rows'])
 
+        ## make lons/lats 2D for reproject2
+        if not onedim:
+            shape = lats.shape[0], lons.shape[0]
+            lons = np.repeat(np.broadcast_to(lons, (1, shape[1])), shape[0], axis=0)
+            lats = np.repeat(np.expand_dims(lats, axis=1), shape[1], axis=1)
+
         for dataset in datasets:
             sds_obj = f.select(dataset)
             data = sds_obj.get()
-            ## do interpolation in space
-            if kind == 'nearest':
-                xi,xret = min(enumerate(lons), key=lambda x: abs(x[1]-float(lon)))
-                yi,yret = min(enumerate(lats), key=lambda x: abs(x[1]-float(lat)))
-                interp_data[dataset].append(data[yi,xi])
+            ## old 1D interp
+            if onedim:
+                ## do interpolation in space
+                if kind == 'nearest':
+                    xi,xret = min(enumerate(lons), key=lambda x: abs(x[1]-float(lon)))
+                    yi,yret = min(enumerate(lats), key=lambda x: abs(x[1]-float(lat)))
+                    interp_data[dataset].append(data[yi,xi])
+                else:
+                    interp = interpolate.interp2d(lons, lats, data, kind=kind)
+                    idata = interp(lon, lat)
+                    interp_data[dataset].append(idata[0])
+                ## add QC?
             else:
-                interp = interpolate.interp2d(lons, lats, data, kind=kind)
-                idata = interp(lon, lat)
-                interp_data[dataset].append(idata[0])
-            ## add QC?
-
+                interp_data[dataset].append(ac.shared.reproject2(data, lons, lats, lon, lat,
+                                                   nearest=kind == 'nearest',
+                                                   radius_of_influence=10e5))
         f.end()
         f = None
 
@@ -73,11 +89,18 @@ def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_h
 
     ## do interpolation in time
     anc_data = {}
-
     if (time >= ftimes[0]) & (time <= ftimes[-1]):
+        ## linear interpolation weigths
+        ip = np.interp(time, ftimes, np.arange(len(ftimes)))
+        i0 = int(np.floor(ip))
+        i1 = i0+1
+        w0 = 1 - (ip-i0)
+        w1 = 1 - w0
         for dataset in datasets:
-            tinp = interpolate.interp1d(ftimes,interp_data[dataset])
-            ti = tinp(time).flatten()[0]
+            ## old 1D interp
+            #tinp = interpolate.interp1d(ftimes,interp_data[dataset])
+            #ti = tinp(time).flatten()[0]
+            ti = (w0 * interp_data[dataset][i0]) + (w1 * interp_data[dataset][i1])
             anc_data[dataset] = {"interp":ti, "series":interp_data[dataset]}
 
     return(anc_data)
