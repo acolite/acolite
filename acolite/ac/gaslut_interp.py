@@ -3,10 +3,9 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-06-22
-## modifications:
-##
-def gaslut_interp(sza, vza, pressure = 1013,
-                  sensor = None, waves = None,
+## modifications: 2022-11-17 (QV) added 2D interpolation for a given sensor, removed waves keyword
+
+def gaslut_interp(sza, vza, pressure = 1013, sensor = None,
                   lutconfig = '202106F', pars = ['ttdica','ttoxyg','ttniox','ttmeth'],
                   remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
     import os, sys
@@ -14,6 +13,10 @@ def gaslut_interp(sza, vza, pressure = 1013,
     from netCDF4 import Dataset
     import scipy.interpolate
     import numpy as np
+
+    ## input geometry dimensions
+    dim = np.atleast_1d(sza).shape
+    onedim = ((len(dim) == 1) & (dim[0] == 1))
 
     ## identify LUT file
     lut_path = '{}/Gas'.format(ac.config['lut_dir'])
@@ -32,38 +35,58 @@ def gaslut_interp(sza, vza, pressure = 1013,
             print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
             if os.path.exists(lutnc): os.remove(lutnc)
 
-
     ## import LUT
     if os.path.exists(lutnc):
         lut, meta = ac.shared.lutnc_import(lutnc)
     else:
-        print('Could not open WV LUT {}'.format(lutnc))
+        print('Could not open gas LUT {}'.format(lutnc))
         sys.exit(1)
 
-    ## set up interpolator
-    ipd = {p:pi for pi, p in enumerate(meta['par'])}
-    rgi = scipy.interpolate.RegularGridInterpolator([meta['pressure'], range(len(meta['par'])),
-                                                     meta['wave'], meta['vza'], meta['sza']],lut,
-                                                             bounds_error=False, fill_value=None)
-
-    ## interpolate to vza, sza, pressure
-    tg = {}
-    for par in pars:
-        tg[par] = rgi((pressure, ipd[par], meta['wave'], vza, sza))
-    tg['wave'] = meta['wave']
-
-    ## interpolate to given wavelengths
-    if waves is not None:
-        for par in pars:
-            tg[par] = np.interp(waves, meta['wave'], tg[par])
-
-    ## resample to sensor
+    # find RSR
     if sensor is not None:
-        # find RSR
-        rsr_file = ac.config['data_dir']+'/RSR/{}.txt'.format(sensor)
-        rsr,bands = ac.shared.rsr_read(file=rsr_file)
+        rsrd = ac.shared.rsr_dict(sensor=sensor)
+        if sensor in rsrd:
+            rsr, rsr_bands = rsrd[sensor]['rsr'], rsrd[sensor]['rsr_bands']
+        else:
+            print('Sensor {} RSR not found'.format(sensor))
+            sys.exit(1)
+
+    ## LUT parameter indices
+    ipd = {p:pi for pi, p in enumerate(meta['par'])}
+
+    if onedim:
+        ## set up interpolator
+        rgi = scipy.interpolate.RegularGridInterpolator([meta['pressure'], range(len(meta['par'])),
+                                                         meta['wave'], meta['vza'], meta['sza']],lut,
+                                                                 bounds_error=False, fill_value=None)
+
+        ## interpolate to vza, sza, pressure
+        tg = {}
+        for par in pars:
+            tg[par] = rgi((pressure, ipd[par], meta['wave'], vza, sza))
+        tg['wave'] = meta['wave']
+
+        ## resample to sensor
+        if sensor is not None:
+            for par in tg:
+                tg[par] = ac.shared.rsr_convolute_dict(meta['wave'], tg[par], rsr)
+    else:
         ## make band averaged values
-        for par in tg:
-            tg[par] = ac.shared.rsr_convolute_dict(meta['wave'], tg[par], rsr)
+        if sensor == None:
+            print('Multidimensional gas LUT interpolation not currently supported for hyperspectral.')
+            return()
+
+        ## convolution lut and make rgi
+        tg = {}
+        for band in rsr_bands:
+            blut = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=2)
+            rgi = scipy.interpolate.RegularGridInterpolator([meta['pressure'], range(len(meta['par'])),
+                                                             meta['vza'], meta['sza']],blut,
+                                                             bounds_error=False, fill_value=None)
+            ## run through parameters
+            for par in ipd:
+                if par not in tg: tg[par] = {}
+                iw = rgi((pressure, ipd[par], vza, sza))
+                tg[par][band] = iw
 
     return(tg)
