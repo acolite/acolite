@@ -14,7 +14,6 @@ def acolite_l1r(bundle, setu, input_type=None):
 
     ## make bundle a list even if only one is provided
     if type(bundle) != list: bundle = [bundle]
-    bundle.sort()
     setu['inputfile'] = bundle
 
     ## test path lengths on windows
