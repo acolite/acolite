@@ -129,10 +129,9 @@ def l1_convert(inputfile, output = None, settings = {},
             merge_tiles = setu['merge_tiles']
             merge_zones = setu['merge_zones']
             extend_region = setu['extend_region']
-            if (limit is None) & (merge_tiles):
-                if verbosity > 0: print("Merging tiles not supported without ROI limit")
-                merge_tiles = False
             if merge_tiles:
+                if (limit is None):
+                    if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
                 merge_zones = True
                 extend_region = True
         sub = None
@@ -269,9 +268,6 @@ def l1_convert(inputfile, output = None, settings = {},
                         dct_prj['xdim'] = int((dct_prj['xrange'][1]-dct_prj['xrange'][0])/pixel_size[0])+1
                         dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
                         dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
-                    else:
-                        ## if the projection matches just use the current scene projection
-                        dct_prj = {k:dct[k] for k in dct}
             elif (warp_to is None):
                 dct_prj = {k:dct[k] for k in dct}
         else:
