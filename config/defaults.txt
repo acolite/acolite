@@ -44,6 +44,10 @@ s2_write_dfoo=False
 s2_write_vaa=False
 s2_write_saa=False
 
+## get rid of lines when merging
+s2_dilate_blackfill=False
+s2_dilate_blackfill_iterations=2
+
 ## Sentinel-2 per pixel geometry
 geometry_type=grids_footprint
 geometry_res=60

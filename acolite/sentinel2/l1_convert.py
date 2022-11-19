@@ -100,6 +100,9 @@ def l1_convert(inputfile, output = None, settings = {},
             s2_project_auxillary = setu['s2_project_auxillary']
             netcdf_projection = setu['netcdf_projection']
 
+            dilate = setu['s2_dilate_blackfill']
+            dilate_iterations = setu['s2_dilate_blackfill_iterations']
+
             output_geolocation=setu['output_geolocation']
             output_xy=setu['output_xy']
             output_geometry=setu['output_geometry']
@@ -720,6 +723,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 if b in waves_names:
                     data = ac.shared.read_band(safe_files[granule][Bn]['path'], sub=sub, warp_to=warp_to)
                     data_mask = data == nodata
+                    if dilate: data_mask = scipy.ndimage.binary_dilation(data_mask, iterations=dilate_iterations)
                     data = data.astype(np.float32)
                     if 'RADIO_ADD_OFFSET' in band_data: data += band_data['RADIO_ADD_OFFSET'][Bn]
                     data /= quant
