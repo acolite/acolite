@@ -5,6 +5,7 @@ from acolite import planet
 from acolite import pleiades
 from acolite import worldview
 from acolite import venus
+from acolite import ikonos
 
 from acolite import chris
 from acolite import prisma

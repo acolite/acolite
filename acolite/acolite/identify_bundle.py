@@ -278,6 +278,24 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## IKONOS2
+        try:
+            files_dict = ac.ikonos.bundle_test(bundle)
+            metadata = ac.ikonos.metadata_parse(files_dict['metadata'])
+            if 'Source Image Metadata' in metadata:
+                if metadata['Source Image Metadata']['Sensor'][0] == 'IKONOS-2':
+                    input_type = 'IKONOS'
+                    break ## exit loop
+            elif 'Product Order Metadata' in metadata:
+                if metadata['Product Order Metadata']['Sensor Name'][0] == 'IKONOS-2':
+                    input_type = 'IKONOS'
+                    break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end IKONOS2
+        ################
+
+        ################
         ## ECOSTRESS
         try:
             meta = ac.ecostress.attributes(bundle)
