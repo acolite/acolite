@@ -22,6 +22,7 @@ from .nc_read_projection import *
 from .nc_extract_point import *
 
 from .read_band import *
+from .read_gdal_meta import *
 from .lutnc_import import *
 from .lutnc_write import *
 from .datascl import *
