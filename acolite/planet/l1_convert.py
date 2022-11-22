@@ -447,6 +447,13 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## convert bands SR
         if (sr_image_file is not None) & (setu['planet_store_sr']):
+            md = ac.shared.read_gdal_meta(sr_image_file)
+            if 'TIFFTAG_IMAGEDESCRIPTION' in md:
+                md_dict = json.loads(md['TIFFTAG_IMAGEDESCRIPTION'])
+                if 'atmospheric_correction' in md_dict:
+                    for k in md_dict['atmospheric_correction']:
+                        gatts['planet_sr_{}'.format(k)] = md_dict['atmospheric_correction'][k]
+            update_attributes = True
             for b in rsr_bands:
                 if b in ['PAN']: continue
                 idx = int(meta['{}-band_idx'.format(b)])
@@ -470,12 +477,13 @@ def l1_convert(inputfile, output = None, settings = {},
                     ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                 ## write to netcdf file
-                ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
+                ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, update_attributes=update_attributes,
                                     new=new, dataset_attributes = ds_att, nc_projection=nc_projection,
                                     netcdf_compression=setu['netcdf_compression'],
                                     netcdf_compression_level=setu['netcdf_compression_level'],
                                     netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                 new = False
+                update_attributes = False
                 if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
         if verbosity > 1:
