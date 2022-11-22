@@ -242,7 +242,7 @@ def identify_bundle(bundle, input_type = None, output = None):
             tiles, metafile = ac.gf.bundle_test(bundle)
             if metafile is not None:
                 meta = ac.gf.metadata(metafile)
-                if meta['SatelliteID'] in ['GF1D', 'GF6']:
+                if meta['SatelliteID'] in ['GF1','GF1D', 'GF6']:
                     input_type = 'GF'
                     break ## exit loop
         except:

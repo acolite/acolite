@@ -19,7 +19,8 @@ def metadata(metafile):
         sys.exit()
 
     meta = {}
-    tags = ['SatelliteID','SensorID', 'ProductLevel', 'StartTime', 'EndTime', 'CenterTime', 'Bands']
+    tags = ['SatelliteID', 'SensorID', 'ProductID', 'ProductLevel', 
+            'StartTime', 'EndTime', 'CenterTime', 'Bands']
     tags += ['SolarAzimuth', 'SolarZenith', 'SatelliteAzimuth', 'SatelliteZenith']
     tags += ['WidthInPixels', 'HeightInPixels', 'WidthInMeters', 'HeightInMeters']
 
@@ -36,6 +37,8 @@ def metadata(metafile):
 
     for tag in tags:
         tdom = xmldoc.getElementsByTagName(tag)
-        if len(tdom) > 0: meta[tag] = tdom[0].firstChild.nodeValue
+        if len(tdom) > 0:
+            if tdom[0].firstChild is None: continue
+            meta[tag] = tdom[0].firstChild.nodeValue
 
     return(meta)

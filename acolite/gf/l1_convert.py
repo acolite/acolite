@@ -5,6 +5,7 @@
 ## modifications: 2021-11-20 (QV) reproject file if projection not recognised
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2022-11-22 (QV) added GF1 WFV1-4
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -26,12 +27,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## get F0 for radiance -> reflectance computation
-    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-
     ## from Mona Allam PDF
     ## 240A9946ECED64C3CB4D56B8A8764F35
     dn_scaling = {}
+    dn_scaling['GF1'] = {}
+    dn_scaling['GF1']['WFV1'] = {'Blue':0.19319, 'Green': 0.16041, 'Red': 0.12796, 'NIR': 0.13405}
+    dn_scaling['GF1']['WFV2'] = {'Blue':0.2057, 'Green': 0.1648, 'Red': 0.1260, 'NIR': 0.1187}
+    dn_scaling['GF1']['WFV3'] = {'Blue':0.2106, 'Green': 0.1825, 'Red': 0.1346, 'NIR': 0.1187}
+    dn_scaling['GF1']['WFV4'] = {'Blue':0.2522, 'Green': 0.2029, 'Red': 0.1528, 'NIR': 0.1031}
+
     dn_scaling['GF1B'] = {'PMS': {'PAN': 0.0687, 'MS1': 0.0757, 'MS2': 0.0618, 'MS3': 0.0545, 'MS4': 0.0572}}
     dn_scaling['GF1C'] = {'PMS': {'PAN': 0.0709, 'MS1': 0.0758, 'MS2': 0.0657, 'MS3': 0.0543, 'MS4': 0.0564}}
     dn_scaling['GF1D'] = {'PMS': {'PAN': 0.0715, 'MS1': 0.0738, 'MS2': 0.0656, 'MS3': 0.0590, 'MS4': 0.0585}}
@@ -45,7 +49,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     for bundle in inputfile:
         tiles, metafile = ac.gf.bundle_test(bundle)
         meta = ac.gf.metadata(metafile)
-        if meta['SatelliteID'] not in  ['GF1D', 'GF6']: continue
+        if meta['SatelliteID'] not in  ['GF1', 'GF1D', 'GF6']: continue
         sensor = '{}_{}'.format(meta['SatelliteID'], meta['SensorID'])
 
         ## sensor settings
@@ -61,6 +65,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         gains_toa = setu['gains_toa']
         if output is None: output = setu['output']
 
+        ## get F0 for radiance -> reflectance computation
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+
         print('Processing {}'.format(bundle))
 
         ## parse data
@@ -70,8 +77,17 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         isodate = dtime.isoformat()
 
         ## figure out suitable UTM zone
-        utm_zone = (int(1+(float(meta['CenterLongitude'])+180.0)/6.0))
-        north = float(meta['CenterLatitude']) > 0.0
+        if 'CenterLongitude' in meta:
+            clon = float(meta['CenterLongitude'])
+        else:
+            clon = 0.5*(float(meta['BottomLeftLongitude'])+float(meta['TopRightLongitude']))
+        if 'CenterLatitude' in meta:
+            clat = float(meta['CenterLatitude'])
+        else:
+            clat = 0.5*(float(meta['BottomLeftLatitude'])+float(meta['TopRightLatitude']))
+
+        utm_zone = (int(1+(clon+180.0)/6.0))
+        north = clat > 0.0
         epsg = 'EPSG:32{}{}'.format('6' if north else '7', utm_zone)
 
         ## output attributes
@@ -110,15 +126,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 bands[b][k] = rsrd[k][b]
             bands[b]['f0'] = f0d[b]
 
-            if sensor in ['GF1D_PMS', 'GF6_PMS']:
+            if sensor in ['GF1_WFV1', 'GF1_WFV2', 'GF1_WFV3', 'GF1_WFV4', 'GF1D_PMS', 'GF6_PMS']:
                 bands[b]['index'] = int(bi)+1
-            if sensor == 'GF6_WFV':
+            if sensor in ['GF6_WFV']:
                 bands[b]['index'] = int(b[1])
 
         ## order bands
         if sensor in ['GF1D_PMS', 'GF6_PMS']:
             idx = np.argsort([bands[b]['wave_name'] for b in bands if b not in ['PAN']])
-        if sensor == 'GF6_WFV':
+        if sensor in ['GF1_WFV1', 'GF1_WFV2', 'GF1_WFV3', 'GF1_WFV4', 'GF6_WFV']:
             idx = np.argsort([bands[b]['wave_name'] for b in bands])
         bands_sorted = [band_names[i] for i in idx]
 
@@ -141,7 +157,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         for ti, image_file in enumerate(tiles):
             new = True
             bn = os.path.basename(image_file)
-            ctile = os.path.splitext(bn)[0].split('-')[1]
+            try:
+                ctile = os.path.splitext(bn)[0].split('-')[1]
+            except:
+                ctile = meta['ProductID']
+                
             #if ('PMS' in bn) & ('PAN' in bn): continue
             if ctile.upper() == 'PAN': continue
             gatts['obase'] = obase + '_{}'.format(ctile)
@@ -239,7 +259,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 trlat, trlon = float(meta['TopRightLatitude']), float(meta['TopRightLongitude'])
                 bllat, bllon = float(meta['BottomLeftLatitude']), float(meta['BottomLeftLongitude'])
                 brlat, brlon = float(meta['BottomRightLatitude']), float(meta['BottomRightLongitude'])
-                clat, clon = float(meta['CenterLatitude']), float(meta['CenterLongitude'])
+                #clat, clon = float(meta['CenterLatitude']), float(meta['CenterLongitude'])
 
                 ## get vertex image location
                 pcol = [0, nx, nx, 0]
@@ -254,7 +274,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 zlat = interp2d(pcol, prow, plat)
 
                 ## pixel coordinate limits
-                if sensor in ['GF1D_PMS', 'GF6_PMS']:
+                if sensor in ['GF1_WFV1', 'GF1_WFV2', 'GF1_WFV3', 'GF1_WFV4','GF1D_PMS', 'GF6_PMS']:
                     x0, y0 = 0, 0
                     ns, nl = nx, ny
                 if sensor == 'GF6_WFV':

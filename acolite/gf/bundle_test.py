@@ -21,7 +21,7 @@ def bundle_test(bundle):
     for k in info:
         #print(k)
         keys = list(info[k].keys())
-        if ('.xml' in keys) & ('.tiff' not in keys):
+        if ('.xml' in keys):# & ('.tiff' not in keys):
             metafile = info[k]['.xml']['path']
         if ('.tiff' in keys):
             tiles.append(info[k]['.tiff']['path'])
