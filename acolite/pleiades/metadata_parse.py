@@ -31,7 +31,9 @@ def metadata_parse(metafile, pan=False):
                      'RED_CHANNEL', 'GREEN_CHANNEL', 'BLUE_CHANNEL', 'ALPHA_CHANNEL', 'EXTENT_TYPE']
     for tag in metadata_tags:
         node = xmldoc.getElementsByTagName(tag)
-        if len(node) > 0: metadata[tag] = node[0].firstChild.nodeValue
+        if len(node) > 0:
+            if not node[0].firstChild is None:
+                metadata[tag] = node[0].firstChild.nodeValue
     metadata['sensor'] = '{}{}'.format(metadata['MISSION'],metadata['MISSION_INDEX'])
     if 'SPOT' in metadata['sensor']: metadata['satellite'] = 'SPOT'
 
