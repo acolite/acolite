@@ -32,8 +32,8 @@ def metadata_parse(metafile, pan=False):
     for tag in metadata_tags:
         node = xmldoc.getElementsByTagName(tag)
         if len(node) > 0:
-            if not node[0].firstChild is None:
-                metadata[tag] = node[0].firstChild.nodeValue
+            if node[0].firstChild is None: continue
+            metadata[tag] = node[0].firstChild.nodeValue
     metadata['sensor'] = '{}{}'.format(metadata['MISSION'],metadata['MISSION_INDEX'])
     if 'SPOT' in metadata['sensor']: metadata['satellite'] = 'SPOT'
 
