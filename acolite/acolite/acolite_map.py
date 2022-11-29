@@ -256,7 +256,10 @@ def acolite_map(ncf, output = None,
     if not os.path.exists(odir):
         os.makedirs(odir)
 
-    title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' ')[0:19])
+    if 'satellite_sensor' in gatts:
+        title_base = '{} {}'.format(gatts['satellite_sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' ')[0:19])
+    else:
+        title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' ')[0:19])
 
     ## parameters to plot
     plot_parameters = []
