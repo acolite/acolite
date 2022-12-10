@@ -6,6 +6,7 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-11-22 (QV) added GF1 WFV1-4
+##                2022-12-10 (QV) changed bias to 0.0
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -43,7 +44,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     dn_scaling['GF6'] = {'WFV': {'B1': 0.0675, 'B2': 0.0552, 'B3': 0.0513, 'B4': 0.0314,
                                  'B5': 0.0519, 'B6': 0.0454, 'B7': 0.0718, 'B8': 0.0596},
                           'PMS': {'PAN': 0.0537, 'MS1': 0.082, 'MS2': 0.0645, 'MS3': 0.0489, 'MS4': 0.0286}}
-    dn_bias = 0.2
+
+    ## bias should be 0 and not 0.2
+    ## https://github.com/acolite/acolite/issues/53
+    dn_bias = 0.0
 
     ofiles = []
     for bundle in inputfile:
@@ -161,7 +165,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 ctile = os.path.splitext(bn)[0].split('-')[1]
             except:
                 ctile = meta['ProductID']
-                
+
             #if ('PMS' in bn) & ('PAN' in bn): continue
             if ctile.upper() == 'PAN': continue
             gatts['obase'] = obase + '_{}'.format(ctile)
