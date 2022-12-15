@@ -20,14 +20,18 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, 
     else:
         dt = date
 
+    isodate = dt.isoformat()[0:10]
+    ftime = dt.hour + dt.minute/60 + dt.second/3600
+
     diff = (dateutil.parser.parse(datetime.datetime.now().strftime('%Y-%m-%d')) -\
             dateutil.parser.parse(dt.strftime('%Y-%m-%d'))).days
     if diff < 7:
-        print('Scene too recent to get ancillary data')
+        print('Scene too recent to get ancillary data: {}'.format(isodate))
         return({})
 
-    isodate = dt.isoformat()[0:10]
-    ftime = dt.hour + dt.minute/60 + dt.second/3600
+    if isodate < '1978-10-27':
+        print('Scene too old to get ancillary data: {}'.format(isodate))
+        return({})
 
     ## list and download files
     anc_local = ac.ac.ancillary.download(date = isodate, verbosity=verbosity)
