@@ -1,0 +1,28 @@
+## ACOLITE default settings for L5_MSS
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## copy datasets from L1R to L2R
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+
+## dark spectrum fitting options
+dsf_aot_estimate=tiled
+dsf_wave_range=400,2500
+resolved_geometry=True
+gains_toa=1,1,1,1
+l2w_mask_wave=900
+l2w_mask_threshold=0.1
+dsf_tile_dimensions=200,200
+l2w_mask_smooth=True
+l2w_mask_smooth_sigma=12
+
+dsf_spectrum_option=percentile
+dsf_percentile=1
+dsf_aot_estimate=fixed
+
+rgb_red_wl=750
+rgb_green_wl=650
+rgb_blue_wl=550

@@ -57,6 +57,8 @@ def identify_bundle(bundle, input_type = None, output = None):
                 if (spacecraft_id in ['LANDSAT_5', 'LANDSAT_7', 'LANDSAT_8', 'LANDSAT_9']) | ((spacecraft_id == 'EO1') & (sensor_id == 'ALI')):
                     input_type = 'Landsat'
                     break ## exit loop
+                if (spacecraft_id in ['LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3', 'LANDSAT_4', 'LANDSAT_5']) & (sensor_id == 'MSS'):
+                    input_type = 'Landsat'
         except:
             pass ## continue to next sensor
         ## end Landsat
@@ -242,7 +244,7 @@ def identify_bundle(bundle, input_type = None, output = None):
             tiles, metafile = ac.gf.bundle_test(bundle)
             if metafile is not None:
                 meta = ac.gf.metadata(metafile)
-                if meta['SatelliteID'] in ['GF1','GF1D', 'GF6']:
+                if meta['SatelliteID'] in ['GF1', 'GF1D', 'GF6']:
                     input_type = 'GF'
                     break ## exit loop
         except:

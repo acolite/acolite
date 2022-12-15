@@ -95,6 +95,7 @@ def l1_convert(inputfile, output = None, settings = {},
         global_dims = int(meta[rk]['REFLECTIVE_LINES']), int(meta[rk]['REFLECTIVE_SAMPLES'])
 
         ## some hard coded info
+        azi_use_band = '5'
         sat = 'L{}'.format(spacecraft_id[-1])
         pan_scale = 2
         if sensor_id in ['TM']:# Landsat 5
@@ -119,6 +120,16 @@ def l1_convert(inputfile, output = None, settings = {},
             sen = 'ALI'
             pan_bands = ['1']
             thermal_bands = []
+        elif sensor_id in ['MSS']:# Landsat 1--5
+            sen = 'MSS'
+            pan_bands = []
+            # 3 has one
+            if sat == 'L3':
+                thermal_bands = ['8']
+            else:
+                thermal_bands = []
+            if sat in ['L4', 'L5']:
+                azi_use_band = '4'
         else:
             print(spacecraft_id, sensor_id)
             print('Not configured')
@@ -180,7 +191,7 @@ def l1_convert(inputfile, output = None, settings = {},
         sza = 90-float(meta[ik]['SUN_ELEVATION'])
         saa = float(meta[ik]['SUN_AZIMUTH'])
         ## compute view zenith angle
-        r,l,t,b, nadir_top, nadir_bottom,nadir_middle = ac.landsat.image_corners(bundle, meta)
+        r,l,t,b, nadir_top, nadir_bottom,nadir_middle = ac.landsat.image_corners(bundle, meta, use_band = azi_use_band)
         vaa = ac.shared.azimuth_two_points(nadir_top[0],nadir_top[1],nadir_bottom[0],nadir_bottom[1])
         raa = np.abs(saa-vaa)
         while raa > 180: raa = np.abs(360 - raa)
