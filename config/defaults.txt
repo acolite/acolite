@@ -326,6 +326,7 @@ rgb_min=0.0,0.0,0.0
 rgb_max=0.15,0.15,0.15
 rgb_autoscale=False
 rgb_autoscale_percentiles=5,95
+rgb_stretch=linear
 
 # PAN sharpening options
 pans=False

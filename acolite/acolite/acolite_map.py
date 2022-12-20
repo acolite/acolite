@@ -322,12 +322,32 @@ def acolite_map(ncf, output = None,
             for iw, w in enumerate(rgb_wave):
                 wi, ww = ac.shared.closest_idx(rho_wv, w)
                 data = ac.shared.nc_data(ncf, '{}{}'.format(ds_base,ww))
+
+                ## autoscale rgb to percentiles
                 if setu['rgb_autoscale']:
-                    prc = np.nanpercentile(data.data, setu['rgb_autoscale_percentiles'])
-                    tmp = ac.shared.datascl(data.data, dmin=prc[0], dmax=prc[1])
+                    bsc = np.nanpercentile(data.data, setu['rgb_autoscale_percentiles'])
                 else:
-                    tmp = ac.shared.datascl(data.data, dmin=setu['rgb_min'][iw], dmax=setu['rgb_max'][iw])
-                tmp[data.mask] = 255
+                    bsc = np.asarray((setu['rgb_min'][iw], setu['rgb_max'][iw]))
+
+                ## do RGB stretch
+                stretches = ['linear', 'log', 'sinh', 'sqrt']
+                if setu['rgb_stretch'] not in stretches:
+                    print('rgb_stretch={} not configured'.format(setu['rgb_stretch']))
+                    print('Using default linear stretch')
+                    setu['rgb_stretch'] = 'linear'
+                if setu['rgb_stretch'] == 'linear':
+                    tmp = np.interp(data.data, bsc, [0, 1])
+                elif setu['rgb_stretch'] == 'log':
+                    if bsc[0] <= 0: bsc[0] = 0.01
+                    tmp = np.interp(np.log(data.data), np.log(bsc) , [0, 1])
+                elif setu['rgb_stretch'] == 'sinh':
+                    tmp = np.interp(np.sinh(data.data), np.sinh(bsc) , [0, 1])
+                elif setu['rgb_stretch'] == 'sqrt':
+                    tmp = np.interp(np.sqrt(data.data), np.sqrt(bsc) , [0, 1])
+
+                ## mask
+                tmp[data.mask] = 1
+                ## stack RGB
                 if iw == 0:
                     im = tmp
                 else:
