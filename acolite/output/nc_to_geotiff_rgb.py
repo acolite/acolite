@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-01-02
 ## modifications: 2022-02-17 (QV) fix for paths with spaces
+##                2022-12-29 (QV) use output directory if given
 
 def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff'):
     import acolite as ac
@@ -25,6 +26,11 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
         out = gatts['ofile'].replace('.nc', '')
     else:
         out = f.replace('.nc', '')
+
+    ## use output directory if given
+    if 'output' in setu:
+        if setu['output'] is not None:
+            out = '{}/{}'.format(setu['output'], os.path.basename(out))
 
     ## find datasets and wavelengths
     rhot_ds = [ds for ds in datasets_file if ds[0:5] == 'rhot_']
