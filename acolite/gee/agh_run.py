@@ -4,6 +4,8 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-04-13
 ## modifications: 2022-04-14 (QV) changed settings parsing, added option to add region name to output
+##                2022-12-25 (QV) added SR option
+##                2022-12-27 (QV) added offline TACT option
 
 def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}):
     import acolite as ac
@@ -34,6 +36,7 @@ def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}):
     ## find images
     images, imColl = gee.find_scenes(setg['isodate_start'], isodate_end = setg['isodate_end'],
                                  day_range = setg['day_range'], sensors = setg['sensors'],
+                                 surface_reflectance = setg['surface_reflectance'],
                                  filter_tiles = setg['filter_tiles'],
                                  limit = setg['limit'], st_lat = setg['st_lat'], st_lon = setg['st_lon'])
 
@@ -49,18 +52,20 @@ def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}):
         print(image, 'skip: ', skip)
         if skip: continue
 
-        ## get data
+        ## run AGH processing
         t0 = time.time()
         ret = gee.agh(image, imColl, rsrd=rsrd, lutd=lutd, settings=setg)
         t1 = time.time()
         print('AGH processing finished in {:.1f} seconds'.format(t1-t0))
 
         ## run offline acolite
-        if ('l1r_gee' in ret) & ('l2r_gee' not in ret) & (setg['run_offline_dsf']):
+        if ('l1r_gee' in ret) & ('l2r_gee' not in ret) & (setg['run_offline_dsf'] | setg['run_offline_tact']):
             setu = ac.acolite.settings.parse(None, settings=acolite_settings, merge=False)
             setu['inputfile'] = ret['l1r_gee']
             if 'output' not in setu: setu['output'] = os.path.dirname(setu['inputfile'])
             print(setu)
+            setu['atmospheric_correction'] = setg['run_offline_dsf']
+            setu['tact_run'] = setg['run_offline_tact']
             ac.acolite.acolite_run(setu)
             t2 = time.time()
             print('Offline ACOLITE processing finished in {:.1f} seconds'.format(t2-t1))

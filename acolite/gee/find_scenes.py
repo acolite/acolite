@@ -2,8 +2,10 @@
 ## finds L1 Landsat or Sentinel-2 scenes on GEE for a given limit ROI or lat/lon points
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-04-12
+## modifications: 2022-12-25 (QV) added SR option
 
 def find_scenes(isodate_start, isodate_end=None, day_range=1,
+                surface_reflectance=False,
                 limit=None, st_lat=None, st_lon=None, filter_tiles=None,
                 sensors=['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI']):
     import ee
@@ -51,10 +53,18 @@ def find_scenes(isodate_start, isodate_end=None, day_range=1,
     for landsat in landsats:
         for tier in landsat_tiers:
             for coll in landsat_collections:
-                collections.append('{}/{}/{}/{}_TOA'.format('LANDSAT', landsat, coll, tier))
+                if surface_reflectance:
+                    collections.append('{}/{}/{}/{}_L2'.format('LANDSAT', landsat, coll, tier))
+                else:
+                    collections.append('{}/{}/{}/{}_TOA'.format('LANDSAT', landsat, coll, tier))
 
     if ('S2A_MSI' in sensors) or ('S2B_MSI' in sensors):
-        collections.append('COPERNICUS/S2') # 'COPERNICUS/S2_HARMONIZED'
+        ## harmonized has scenes from new processing shifted to old processing
+        ## we take the offset into account in agh for >= PB4 data
+        if surface_reflectance:
+            collections += ['COPERNICUS/S2_SR'] # COPERNICUS/S2_SR_HARMONIZED
+        else:
+            collections.append('COPERNICUS/S2') # 'COPERNICUS/S2_HARMONIZED'
 
     print('Checking collections {}'.format(' '.join(collections)))
 

@@ -10,9 +10,11 @@
 ##                2022-04-15 (QV) added ancillary data
 ##                2022-05-22 (QV) added download of BT data from Landsat, added metadata copy
 ##                2022-07-18 (QV) added check for existing files & override setting
+##                2022-12-25 (QV) added SR option
+##                2022-12-27 (QV) fixed SR computation (for ST data) and added hybrid/offline TACT run
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
-    import os, dateutil.parser, requests
+    import os, dateutil.parser, requests, json
     import acolite as ac
     from acolite import gee ## currently not imported in main acolite
 
@@ -32,6 +34,10 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     rhop_par = settings['rhop_par']
     sel_par = settings['sel_par']
 
+    reptran = settings['reptran']
+    source = settings['source']
+    emissivity = settings['emissivity']
+
     limit = None
     region_name = None
     output = os.getcwd()
@@ -49,6 +55,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
     if ('LANDSAT' in fkey) & (pid[0:3] == 'LT0'): tar_band = 'B10' ## TIRS only data
+    if ('LANDSAT' in fkey) & (settings['surface_reflectance']): tar_band = 'SR_B2' ## Landsat SR data
 
     ## output file names for combined file
     ## used to determine NetCDF name, also for Google Drive outputs
@@ -60,9 +67,16 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
     geom_file = pid+'_geom'+ext
     geom_file_local = '{}/{}.zip'.format(output,geom_file)
+    sr_file = pid+'_sr'+ext
+    sr_file_local = '{}/{}.zip'.format(output,sr_file)
+    st_file = pid+'_st'+ext
+    st_file_local = '{}/{}.zip'.format(output,st_file)
 
+    ## file type for file name
     file_type = 'L1R_GEE'
     if settings['run_hybrid_dsf']: file_type = 'L2R_GEE_HYBRID'
+    if settings['run_hybrid_tact']: file_type = 'ST_GEE_HYBRID'
+    if settings['surface_reflectance']: file_type = 'SR_GEE'
 
     ## select product
     i = imColl.filter(ee.Filter.eq(fkey, pid)).first()
@@ -117,6 +131,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         add_factor = 0
         if (im['properties']['PROCESSING_BASELINE'][1]>='4') & ~('S2_HARMONIZED' in im['id']):
             add_factor = -1000
+
     elif 'LANDSAT_PRODUCT_ID' in im['properties']: ## Landsat image
         fkey = 'LANDSAT_PRODUCT_ID'
         pid = im['properties'][fkey]
@@ -133,6 +148,11 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             sensor = '{}_OLI'.format(satellite)
         scale_factor = 1
         add_factor = 0
+        if settings['surface_reflectance']:
+            scale_factor = 2.75e-05
+            add_factor = -0.2
+            thermal_scale_factor = 0.00341802
+            thermal_add_factor = 149
 
     ## parse datetime
     dt = dateutil.parser.parse(dtime)
@@ -147,35 +167,68 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         print('AGH file {} exists, set override=True to replace'.format(ofile))
         return()
 
-    ## get ancillary
-    if settings['ancillary_data']:
-        print('Getting ancillary for scene centre location.')
-        ## get central lon and lat
-        mp = i.pixelLonLat().reproject(p, None, scale * 1.0)
-        ll = mp.reduceRegion(geometry=(i.geometry() if limit is None else region), \
-                             reducer= ee.Reducer.mean(), bestEffort=True).getInfo()
-        print('Scene centre: {:.5f}E {:.5f}N'.format(ll['longitude'], ll['latitude']))
-        anc = ac.ac.ancillary.get(dt, ll['longitude'], ll['latitude'])
-
-        ## overwrite the defaults
-        if ('ozone' in anc): uoz = anc['ozone']['interp']/1000. ## convert from MET data
-        if ('p_water' in anc): uwv = anc['p_water']['interp']/10. ## convert from MET data
-        if ('z_wind' in anc) & ('m_wind' in anc) & (wind is None):
-            wind = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-        if ('press' in anc): pressure = anc['press']['interp']
-        print(uoz, uwv, wind, pressure)
-
     if sensor not in rsrd:
         print('Loading RSRs: {}'.format(sensor))
         rsrd[sensor] = ac.shared.rsr_dict(sensor=sensor)[sensor]
 
-    if (sensor not in lutd) & (settings['run_hybrid_dsf']):
-        print('Loading atmosphere LUTs: {}'.format(sensor))
-        lutd[sensor] = ac.aerlut.import_luts(sensor=sensor)
+    ## if processing rhot
+    if not settings['surface_reflectance']:
+        ## get central lon and lat
+        if settings['ancillary_data'] | settings['run_hybrid_tact']:
+            mp = i.pixelLonLat().reproject(p, None, scale * 1.0)
+            ll = mp.reduceRegion(geometry=(i.geometry() if limit is None else region), \
+                                 reducer= ee.Reducer.mean(), bestEffort=True).getInfo()
+            print(ll)
+            if (ll['longitude'] is None) | (ll['latitude'] is None):
+                print('Could not determine scene center longitude/latitude')
+                settings['ancillary_data'] = False
+                settings['run_hybrid_tact'] = False
+            else:
+                print('Scene centre: {:.5f}E {:.5f}N'.format(ll['longitude'], ll['latitude']))
 
-    if (sensor not in luti) & (settings['run_hybrid_dsf']) & (settings['glint_correction']):
-        print('Loading interface LUTs: {}'.format(sensor))
-        luti[sensor] = ac.aerlut.import_rsky_luts(models=[1,2], lutbase='ACOLITE-RSKY-202102-82W', sensor=sensor)
+        ## get ancillary
+        if settings['ancillary_data']:
+            print('Getting ancillary for scene centre location.')
+            anc = ac.ac.ancillary.get(dt, ll['longitude'], ll['latitude'])
+
+            ## overwrite the defaults
+            if ('ozone' in anc): uoz = anc['ozone']['interp']/1000. ## convert from MET data
+            if ('p_water' in anc): uwv = anc['p_water']['interp']/10. ## convert from MET data
+            if ('z_wind' in anc) & ('m_wind' in anc) & (wind is None):
+                wind = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
+            if ('press' in anc): pressure = anc['press']['interp']
+            print(uoz, uwv, wind, pressure)
+
+        if settings['run_hybrid_tact']:
+            emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
+            print(emissivity_file)
+            print('Getting TACT parameters for scene centre location.')
+            thermal_sensors = {'5':'L5_TM', '7':'L7_ETM', '8':'L8_TIRS', '9':'L9_TIRS'}
+            thermal_bands = {'5':'6', '7':'6', '8':'10', '9':'10'}
+            thermal_sensor = thermal_sensors[sensor[1]]
+            #thermal_band = thermal_bands[sensor[1]]
+
+            ## radiative transfer
+            thd, simst, lonc, latc = ac.tact.tact_limit(dtime,
+                                                        lon = ll['longitude'],
+                                                        lat = ll['latitude'],
+                                                        satsen = thermal_sensor,
+                                                        reptran = reptran, source = source)
+            print(thd)
+            em = json.load(open(emissivity_file, 'r'))
+            #bem = em[thermal_sensor][thermal_band]
+            #btau = thd['tau{}'.format(thermal_band)]
+            #bLu = thd['Lu{}'.format(thermal_band)]
+            #bLd = thd['Ld{}'.format(thermal_band)]
+
+        ## load luts
+        if (sensor not in lutd) & (settings['run_hybrid_dsf']):
+            print('Loading atmosphere LUTs: {}'.format(sensor))
+            lutd[sensor] = ac.aerlut.import_luts(sensor=sensor)
+
+        if (sensor not in luti) & (settings['run_hybrid_dsf']) & (settings['glint_correction']):
+            print('Loading interface LUTs: {}'.format(sensor))
+            luti[sensor] = ac.aerlut.import_rsky_luts(models=[1,2], lutbase='ACOLITE-RSKY-202102-82W', sensor=sensor)
 
     ## get average geometry
     ## will be updated later if SAA/SZA/VAA/VZA data are available
@@ -209,33 +262,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         else:
             glint_bands = ['5', '7']
 
-    ## make rhot dataset
-    i_rhot = None
-    for b in rsrd[sensor]['rsr_bands']:
-        bname = 'B{}'.format(b)
-        print('rhot {}'.format(bname))
-        ## gas and path corrected rhot
-        rhot = i.expression('(DN + {}) * {}'.format(add_factor, scale_factor), {'DN': i.select(bname)})
-        if i_rhot is None:
-            i_rhot = ee.Image(rhot)
-        else:
-            i_rhot = i_rhot.addBands(rhot)
-
-    ## add thermal bands
-    ## not rhot but at sensor BT
-    thermal_bands = []
-    for b in im['bands']:
-        bname = b['id']
-        if (bname[0] == 'B') & (bname[1:] not in rsrd[sensor]['rsr_bands']):
-            print(bname)
-            bt = i.expression('(DN + {}) * {}'.format(add_factor, scale_factor), {'DN': i.select(bname)})
-            i_rhot = i_rhot.addBands(bt)
-            thermal_bands.append(bname)
-
-    ## TOA band info
-    rhot_info = i_rhot.getInfo()
-    obands_rhot = [ib['id'] for ib in rhot_info['bands']]
-
     ## make geometry per pixel dataset if available
     i_geom = None
     for b in ['SAA', 'SZA', 'VAA', 'VZA']:
@@ -250,124 +276,178 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         geom_info = i_geom.getInfo()
         obands_geom = [ib['id'] for ib in geom_info['bands']]
 
-    print('Getting geometry and gas transmittance')
-    ## get geometry percentiles
-    geom_percentile = 50
-    prc = i.reduceRegion(reducer= ee.Reducer.percentile([geom_percentile]), bestEffort=True).getInfo()
-    for b in bands:
-        ### get geometry if available
-        if b in ['SAA', 'SZA', 'VAA', 'VZA']:
-            k = '{}_p{}'.format(b,geom_percentile)
-            if k in prc: geometry[b.lower()] = prc[k]/100
-
-    ## update geometry
-    geometry['raa'] = np.abs(geometry['saa'] - geometry['vaa'])
-    while geometry['raa'] > 180:
-        geometry['raa'] = 360 - geometry['raa']
-
-    ## get gas transmittance
-    ttg = ac.ac.gas_transmittance(geometry['sza'], geometry['vza'], pressure = pressure,
-                            uoz = uoz, uwv = uwv, rsr=rsrd[sensor]['rsr'])
-
-    ## run fixed DSF on this data
-    if settings['run_hybrid_dsf']:
-        ## get rhot percentiles
-        percentiles = settings['percentiles']
-        print('Extracting rhot percentiles')
-        prc = i_rhot.reduceRegion(reducer= ee.Reducer.percentile(percentiles), bestEffort=True).getInfo()
-        prc_data = {p: {b: prc['{}_p{}'.format(b,p)] for b in obands_rhot} for p in percentiles}
-
-        ## fit aerosol models
-        print('Fitting aerosol models')
-        results = {}
-        luts = list(lutd[sensor].keys())
-        for lut in luts:
-            taua_arr = None
-            rhot_arr = None
-            taua_bands = []
-            ## run through bands
-            for b in rsrd[sensor]['rsr_bands']:
-                if b in aot_skip_bands: continue
-                print(sensor, b, lut)
-                ret = lutd[sensor][lut]['rgi'][b]((pressure, lutd[sensor][lut]['ipd']['romix'],
-                                           geometry['raa'], geometry['vza'], geometry['sza'], lutd[sensor][lut]['meta']['tau']))
-                rhot = np.asarray([prc_data[p]['B{}'.format(b)] for p in percentiles])
-                rhot /= ttg['tt_gas'][b]
-                taua = np.interp(rhot, ret, lutd[sensor][lut]['meta']['tau'])
-                if taua_arr is None:
-                    rhot_arr = 1.0 * rhot
-                    taua_arr = 1.0 * taua
-                else:
-                    rhot_arr = np.vstack((rhot_arr, rhot))
-                    taua_arr = np.vstack((taua_arr, taua))
-
-                taua_bands.append(b)
-
-            ## find aot value
-            bidx = np.argsort(taua_arr[:,settings['pidx']])
-            taua = np.nanmean(taua_arr[bidx[0:settings['nbands']],settings['pidx']])
-            taua_std = np.nanstd(taua_arr[bidx[0:settings['nbands']],settings['pidx']])
-            taua_cv = taua_std/taua
-            taua, taua_std, taua_cv*100
-
-            ## store results
-            results[lut] = {'taua_bands': taua_bands, 'taua_arr': taua_arr, 'rhot_arr': rhot_arr,
-                            'taua': taua, 'taua_std': taua_std, 'taua_cv': taua_cv,'bidx': bidx}
-
-        ## select LUT and aot
-        sel_lut = None
-        sel_aot = None
-        sel_val = np.inf
-        for lut in results:
-            if results[lut][sel_par] < sel_val:
-                sel_val = results[lut][sel_par] * 1.0
-                sel_aot = results[lut]['taua'] * 1.0
-                sel_lut = '{}'.format(lut)
-
-        ## get atmosphere parameters
-        print('Getting final atmosphere parameters')
-        am = {}
-        for par in lutd[sensor][sel_lut]['ipd']:
-            am[par] = {b: lutd[sensor][sel_lut]['rgi'][b]((pressure, lutd[sensor][sel_lut]['ipd'][par],
-                                                           geometry['raa'], geometry['vza'], geometry['sza'], sel_aot))
-                       for b in rsrd[sensor]['rsr_bands']}
-
-        print(sel_lut, sel_aot, sel_val)
-
-        ## do atmospheric correction
-        print('Performing atmospheric correction')
-        i_rhos = None
+    ## get either SR or rhot
+    if settings['surface_reflectance']:
+        info = i.getInfo()
+        #print(info)
+        ## make sr dataset
+        i_sr = None
         for b in rsrd[sensor]['rsr_bands']:
-            #if b in aot_skip_bands: continue
             bname = 'B{}'.format(b)
-
-            ## gas and path corrected rhot
-            rhot_prime = i_rhot.expression('(rhot / {}) - {}'.format(ttg['tt_gas'][b], am[rhop_par][b]), \
-                                           {'rhot': i_rhot.select(bname)})
-
-            ## rhos
-            rhos = rhot_prime.expression('(rhotp) / ({} - {} * rhotp)'.format(am['dutott'][b], am['astot'][b]), \
-                                         {'rhotp': rhot_prime.select(bname)})
-
-            if i_rhos is None:
-                i_rhos = ee.Image(rhos)
+            if sensor[0] == 'L': bname='SR_{}'.format(bname)
+            try:
+                if sensor[0] == 'L':
+                    sr = i.expression('(DN * {}) + {}'.format(scale_factor,add_factor), {'DN': i.select(bname)})
+                else:
+                    sr = i.expression('(DN + {}) * {}'.format(add_factor,scale_factor), {'DN': i.select(bname)})
+                tmp = sr.getInfo()
+            except:
+                continue
+            print('sr {}'.format(bname))
+            if i_sr is None:
+                i_sr = ee.Image(sr)
             else:
-                i_rhos = i_rhos.addBands(rhos)
+                i_sr = i_sr.addBands(sr)
 
-        ## do atmospheric correction + glint
-        if settings['glint_correction']:
-            print('Performing glint correction using bands {} {}'.format(glint_bands[0], glint_bands[1]))
-            model = int(sel_lut[-1])
-            g1 = i_rhos.select('B{}'.format(glint_bands[0]))
-            g2 = i_rhos.select('B{}'.format(glint_bands[1]))
-            glint = (g1.add(g2)).divide(2).rename('glint')
-            glintMask = glint.gt(settings['glint_min']).multiply(glint.lt(settings['glint_max'])).selfMask()
-            #glint = glint.multiply(glintMask)
-            glint = glint.mask(glintMask)
-            glint = glint.unmask(0)
-            glint_dict = {b:luti[sensor][model]['rgi'][b]((geometry['raa'], geometry['vza'], geometry['sza'], settings['glint_wind'], sel_aot)) for b in rsrd[sensor]['rsr_bands']}
-            glint_spec = np.asarray([glint_dict[b] for b in glint_dict])
-            glint_ave = {b: glint_dict[b]/((glint_dict[glint_bands[0]]+glint_dict[glint_bands[1]])/2) for b in glint_dict}
+        ## add ST in thermal bands
+        if sensor[0] == 'L':
+            if sensor[1] in ['5', '7']:
+                bnames = ['ST_B6']
+            if sensor[1] in ['8', '9']:
+                bnames = ['ST_B10'] # 'ST_B11' B11 data is not produced?
+            for bname in bnames:
+                print(sensor, bname)
+                try:
+                    st = i.expression('(DN * {}) + {} '.format(thermal_scale_factor,thermal_add_factor), {'DN': i.select(bname)})
+                    tmp = st.getInfo()
+                except:
+                    continue
+                i_sr = i_sr.addBands(st)
+
+        ## SR band info
+        sr_info = i_sr.getInfo()
+        obands_sr = [ib['id'] for ib in sr_info['bands']]
+        print(obands_sr)
+        ## find image dimensions
+        for b in sr_info['bands']:
+            if b['id'] == tar_band:
+                odim = b['dimensions']
+                origin = b['origin']
+                print('Region dimensions {}'.format(odim))
+                print('Region origin {}'.format(origin))
+    else:
+        ## make rhot dataset
+        i_rhot = None
+        for b in rsrd[sensor]['rsr_bands']:
+            bname = 'B{}'.format(b)
+            print('rhot {}'.format(bname))
+            ## gas and path corrected rhot
+            rhot = i.expression('(DN + {}) * {}'.format(add_factor, scale_factor), {'DN': i.select(bname)})
+            if i_rhot is None:
+                i_rhot = ee.Image(rhot)
+            else:
+                i_rhot = i_rhot.addBands(rhot)
+
+        ## add thermal bands
+        ## not rhot but at sensor BT
+        thermal_bands = []
+        for b in im['bands']:
+            bname = b['id']
+            if (bname[0] == 'B') & (bname[1:] not in rsrd[sensor]['rsr_bands']):
+                print(bname)
+                bt = i.expression('(DN + {}) * {}'.format(add_factor, scale_factor), {'DN': i.select(bname)})
+                i_rhot = i_rhot.addBands(bt)
+                thermal_bands.append(bname)
+
+        ## TOA band info
+        rhot_info = i_rhot.getInfo()
+        obands_rhot = [ib['id'] for ib in rhot_info['bands']]
+        print(obands_rhot)
+
+        ## find image dimensions
+        for b in rhot_info['bands']:
+            if b['id'] == tar_band:
+                odim = b['dimensions']
+                origin = b['origin']
+                print('Region dimensions {}'.format(odim))
+                print('Region origin {}'.format(origin))
+
+        print('Getting geometry and gas transmittance')
+        ## get geometry percentiles
+        geom_percentile = 50
+        prc = i.reduceRegion(reducer= ee.Reducer.percentile([geom_percentile]), bestEffort=True).getInfo()
+        for b in bands:
+            ### get geometry if available
+            if b in ['SAA', 'SZA', 'VAA', 'VZA']:
+                k = '{}_p{}'.format(b,geom_percentile)
+                if k in prc: geometry[b.lower()] = prc[k]/100
+
+        ## update geometry
+        geometry['raa'] = np.abs(geometry['saa'] - geometry['vaa'])
+        while geometry['raa'] > 180:
+            geometry['raa'] = 360 - geometry['raa']
+
+        ## get gas transmittance
+        ttg = ac.ac.gas_transmittance(geometry['sza'], geometry['vza'], pressure = pressure,
+                                uoz = uoz, uwv = uwv, rsr=rsrd[sensor]['rsr'])
+
+        ## run fixed DSF on this data
+        if settings['run_hybrid_dsf']:
+            ## get rhot percentiles
+            percentiles = settings['percentiles']
+            print('Extracting rhot percentiles')
+            prc = i_rhot.reduceRegion(reducer= ee.Reducer.percentile(percentiles), bestEffort=True).getInfo()
+            prc_data = {p: {b: prc['{}_p{}'.format(b,p)] for b in obands_rhot} for p in percentiles}
+
+            ## fit aerosol models
+            print('Fitting aerosol models')
+            results = {}
+            luts = list(lutd[sensor].keys())
+            for lut in luts:
+                taua_arr = None
+                rhot_arr = None
+                taua_bands = []
+                ## run through bands
+                for b in rsrd[sensor]['rsr_bands']:
+                    if b in aot_skip_bands: continue
+                    print(sensor, b, lut)
+                    ret = lutd[sensor][lut]['rgi'][b]((pressure, lutd[sensor][lut]['ipd']['romix'],
+                                               geometry['raa'], geometry['vza'], geometry['sza'], lutd[sensor][lut]['meta']['tau']))
+                    rhot = np.asarray([prc_data[p]['B{}'.format(b)] for p in percentiles])
+                    rhot /= ttg['tt_gas'][b]
+                    taua = np.interp(rhot, ret, lutd[sensor][lut]['meta']['tau'])
+                    if taua_arr is None:
+                        rhot_arr = 1.0 * rhot
+                        taua_arr = 1.0 * taua
+                    else:
+                        rhot_arr = np.vstack((rhot_arr, rhot))
+                        taua_arr = np.vstack((taua_arr, taua))
+
+                    taua_bands.append(b)
+
+                ## find aot value
+                bidx = np.argsort(taua_arr[:,settings['pidx']])
+                taua = np.nanmean(taua_arr[bidx[0:settings['nbands']],settings['pidx']])
+                taua_std = np.nanstd(taua_arr[bidx[0:settings['nbands']],settings['pidx']])
+                taua_cv = taua_std/taua
+                taua, taua_std, taua_cv*100
+
+                ## store results
+                results[lut] = {'taua_bands': taua_bands, 'taua_arr': taua_arr, 'rhot_arr': rhot_arr,
+                                'taua': taua, 'taua_std': taua_std, 'taua_cv': taua_cv,'bidx': bidx}
+
+            ## select LUT and aot
+            sel_lut = None
+            sel_aot = None
+            sel_val = np.inf
+            for lut in results:
+                if results[lut][sel_par] < sel_val:
+                    sel_val = results[lut][sel_par] * 1.0
+                    sel_aot = results[lut]['taua'] * 1.0
+                    sel_lut = '{}'.format(lut)
+
+            ## get atmosphere parameters
+            print('Getting final atmosphere parameters')
+            am = {}
+            for par in lutd[sensor][sel_lut]['ipd']:
+                am[par] = {b: lutd[sensor][sel_lut]['rgi'][b]((pressure, lutd[sensor][sel_lut]['ipd'][par],
+                                                               geometry['raa'], geometry['vza'], geometry['sza'], sel_aot))
+                           for b in rsrd[sensor]['rsr_bands']}
+
+            print(sel_lut, sel_aot, sel_val)
+
+            ## do atmospheric correction
+            print('Performing DSF atmospheric correction')
             i_rhos = None
             for b in rsrd[sensor]['rsr_bands']:
                 #if b in aot_skip_bands: continue
@@ -377,28 +457,95 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 rhot_prime = i_rhot.expression('(rhot / {}) - {}'.format(ttg['tt_gas'][b], am[rhop_par][b]), \
                                                {'rhot': i_rhot.select(bname)})
 
-                ## rhos not corrected for glint
+                ## rhos
                 rhos = rhot_prime.expression('(rhotp) / ({} - {} * rhotp)'.format(am['dutott'][b], am['astot'][b]), \
                                              {'rhotp': rhot_prime.select(bname)})
-
-                ## rhos corrected for glint
-                rhos = rhos.expression('rhos - (rhog * {})'.format(glint_ave[b]), \
-                                             {'rhos': rhos.select(bname), 'rhog': glint.select('glint')})
 
                 if i_rhos is None:
                     i_rhos = ee.Image(rhos)
                 else:
                     i_rhos = i_rhos.addBands(rhos)
-        rhos_info = i_rhos.getInfo()
-        obands_rhos = [ib['id'] for ib in rhos_info['bands']]
 
-    ## find image dimensions
-    for b in rhot_info['bands']:
-        if b['id'] == tar_band:
-            odim = b['dimensions']
-            origin = b['origin']
-            print('Region dimensions {}'.format(odim))
-            print('Region origin {}'.format(origin))
+            ## do atmospheric correction + glint
+            if settings['glint_correction']:
+                print('Performing glint correction using bands {} {}'.format(glint_bands[0], glint_bands[1]))
+                model = int(sel_lut[-1])
+                g1 = i_rhos.select('B{}'.format(glint_bands[0]))
+                g2 = i_rhos.select('B{}'.format(glint_bands[1]))
+                glint = (g1.add(g2)).divide(2).rename('glint')
+                glintMask = glint.gt(settings['glint_min']).multiply(glint.lt(settings['glint_max'])).selfMask()
+                #glint = glint.multiply(glintMask)
+                glint = glint.mask(glintMask)
+                glint = glint.unmask(0)
+                glint_dict = {b:luti[sensor][model]['rgi'][b]((geometry['raa'], geometry['vza'], geometry['sza'], settings['glint_wind'], sel_aot)) for b in rsrd[sensor]['rsr_bands']}
+                glint_spec = np.asarray([glint_dict[b] for b in glint_dict])
+                glint_ave = {b: glint_dict[b]/((glint_dict[glint_bands[0]]+glint_dict[glint_bands[1]])/2) for b in glint_dict}
+                i_rhos = None
+                for b in rsrd[sensor]['rsr_bands']:
+                    #if b in aot_skip_bands: continue
+                    bname = 'B{}'.format(b)
+
+                    ## gas and path corrected rhot
+                    rhot_prime = i_rhot.expression('(rhot / {}) - {}'.format(ttg['tt_gas'][b], am[rhop_par][b]), \
+                                                   {'rhot': i_rhot.select(bname)})
+
+                    ## rhos not corrected for glint
+                    rhos = rhot_prime.expression('(rhotp) / ({} - {} * rhotp)'.format(am['dutott'][b], am['astot'][b]), \
+                                                 {'rhotp': rhot_prime.select(bname)})
+
+                    ## rhos corrected for glint
+                    rhos = rhos.expression('rhos - (rhog * {})'.format(glint_ave[b]), \
+                                                 {'rhos': rhos.select(bname), 'rhog': glint.select('glint')})
+
+                    if i_rhos is None:
+                        i_rhos = ee.Image(rhos)
+                    else:
+                        i_rhos = i_rhos.addBands(rhos)
+            rhos_info = i_rhos.getInfo()
+            obands_rhos = [ib['id'] for ib in rhos_info['bands']]
+
+        ## run TACT on this data
+        if settings['run_hybrid_tact']:
+            #print(im['properties'])
+            ## do atmospheric correction
+            #print(thermal_bands)
+            print('Performing TACT atmospheric correction')
+            i_st = None
+            #obands_st = []
+            for bname in thermal_bands:
+                b = bname.replace('B', '')
+                ## K constants
+                k1 = float(im['properties']['K1_CONSTANT_BAND_{}'.format(b)])
+                k2 = float(im['properties']['K2_CONSTANT_BAND_{}'.format(b)])
+
+                print(bname, k1, k2)
+                bem = em[thermal_sensor][b]
+                btau = thd['tau{}'.format(b)]
+                bLu = thd['Lu{}'.format(b)]
+                bLd = thd['Ld{}'.format(b)]
+
+                ## Lt
+                lt = i_rhot.expression('{k1}/(exp({k2}/BT)-1)'.format(k1=k1, k2=k2), {'BT': i_rhot.select(bname)}).rename(bname)
+
+                ## Ls
+                ls = lt.expression('(((LT-{Lu})/{tau}) - (((1-{em})*{Ld}))/{em})'.format(em=bem, Lu=bLu, Ld=bLd, tau=btau), \
+                                               {'LT': lt.select(bname)}).rename(bname)
+
+                #print('(((LT-{Lu})/{tau}) - (((1-{em})*{Ld}))/{em})'.format(em=bem, Lu=bLu, Ld=bLd, tau=btau))
+
+                ## ST
+                st = ls.expression('{k2}/(log(({k1}/LS)+1))'.format(k2=k2, k1=k1), {'LS': ls.select(bname)}).rename(bname)
+
+                if i_st is None:
+                    i_st = ee.Image(st)
+                else:
+                    i_st = i_st.addBands(st)
+                #obands_st.append(bname)
+
+            ## get band info for outputs
+            st_info = i_st.getInfo()
+            obands_st = [ib['id'] for ib in st_info['bands']]
+
 
     ## check size and tile if necessary
     tiled_transfer = False
@@ -427,16 +574,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         tiles = [[0,odim[0], 0,odim[1],'']]
     print('Running download with {} tiles'.format(len(tiles)))
 
-#    ## output file names
-#    ext = ''
-#    if len(rname) >= 0: ext = '_{}'.format(rname)
-#    rhot_file = pid+'_rhot'+ext
-#    rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
-#    rhos_file = pid+'_rhos'+ext
-#    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
-#    geom_file = pid+'_geom'+ext
-#    geom_file_local = '{}/{}.zip'.format(output,geom_file)
-
     ## set output config for rhot
     output_config = {'description': rhot_file, 'scale': scale,  'folder':'ACOLITE'}
 
@@ -453,12 +590,34 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     ## output data to drive
     if settings['store_output_google_drive']:
-        if settings['store_rhot']:
-            output_config['description'] = rhot_file
-            task_rhot = ee.batch.Export.image.toDrive(i_rhot.select(obands_rhot), **output_config)
-            print('Exporting to Drive {}'.format(output_config['description']))
-            task_rhot.start()
-            status = gee.check_task(task_rhot, task_sleep = settings['task_check_sleep'])
+        if settings['surface_reflectance']:
+            if settings['store_sr']:
+                output_config['description'] = sr_file
+                task_sr = ee.batch.Export.image.toDrive(i_sr.select(obands_sr), **output_config)
+                print('Exporting to Drive {}'.format(output_config['description']))
+                task_sr.start()
+                status = gee.check_task(task_sr, task_sleep = settings['task_check_sleep'])
+        else:
+            if settings['store_rhot']:
+                output_config['description'] = rhot_file
+                task_rhot = ee.batch.Export.image.toDrive(i_rhot.select(obands_rhot), **output_config)
+                print('Exporting to Drive {}'.format(output_config['description']))
+                task_rhot.start()
+                status = gee.check_task(task_rhot, task_sleep = settings['task_check_sleep'])
+
+            if settings['store_rhos'] & settings['run_hybrid_dsf']:
+                output_config['description'] = rhos_file
+                task_rhos = ee.batch.Export.image.toDrive(i_rhos.select(obands_rhos), **output_config)
+                print('Exporting to Drive {}'.format(output_config['description']))
+                task_rhos.start()
+                status = gee.check_task(task_rhos, task_sleep = settings['task_check_sleep'])
+
+            if settings['store_st'] & settings['run_hybrid_tact']:
+                output_config['description'] = st_file
+                task_st = ee.batch.Export.image.toDrive(i_st.select(obands_st), **output_config)
+                print('Exporting to Drive {}'.format(output_config['description']))
+                task_st.start()
+                status = gee.check_task(task_st, task_sleep = settings['task_check_sleep'])
 
         if settings['store_geom'] & (i_geom is not None):
             output_config['description'] = geom_file
@@ -467,12 +626,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             task_geom.start()
             status = gee.check_task(task_geom, task_sleep = settings['task_check_sleep'])
 
-        if settings['store_rhos'] & settings['run_hybrid_dsf']:
-            output_config['description'] = rhos_file
-            task_rhos = ee.batch.Export.image.toDrive(i_rhos.select(obands_rhos), **output_config)
-            print('Exporting to Drive {}'.format(output_config['description']))
-            task_rhos.start()
-            status = gee.check_task(task_rhos, task_sleep = settings['task_check_sleep'])
     ## end output to drive
 
     ## store data locally, with tiling if needed
@@ -481,6 +634,9 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         rhot_files = []
         geom_files = []
         rhos_files = []
+        sr_files = []
+        st_files = []
+
         for ti, tile in enumerate(tiles):
             ## output file names
             ext = ''
@@ -503,23 +659,10 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             rhos_file_tile_local = '{}/{}.zip'.format(output,rhos_file_tile)
             geom_file_tile = pid+'_geom'+ext
             geom_file_tile_local = '{}/{}.zip'.format(output,geom_file_tile)
-
-            ## write rhot (tile)
-            if settings['store_rhot']:
-                output_config['description'] = rhot_file_tile
-                url = i_rhot.getDownloadUrl({
-                        'name': output_config['description'],
-                        'bands': obands_rhot,
-                        'region': output_config['region'],
-                        'scale': output_config['scale'],
-                        'crs': output_config['crs'],
-                        'crs_transform': output_config['crs_transform'],
-                        'filePerBand': False})
-                print('Downloading {}'.format(rhot_file_tile))
-                response = requests.get(url)
-                with open(rhot_file_tile_local, 'wb') as f:
-                    f.write(response.content)
-                rhot_files.append(rhot_file_tile_local)
+            sr_file_tile = pid+'_sr'+ext
+            sr_file_tile_local = '{}/{}.zip'.format(output,sr_file_tile)
+            st_file_tile = pid+'_st'+ext
+            st_file_tile_local = '{}/{}.zip'.format(output,st_file_tile)
 
             ## write geometry (tile)
             if settings['store_geom'] & (i_geom is not None):
@@ -538,22 +681,73 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     f.write(response.content)
                 geom_files.append(geom_file_tile_local)
 
-            ## write rhos (tile)
-            if settings['store_rhos'] & settings['run_hybrid_dsf']:
-                output_config['description'] = rhos_file_tile
-                url = i_rhos.getDownloadUrl({
-                    'name': output_config['description'],
-                    'bands': obands_rhos,
-                    'region': output_config['region'],
-                    'scale': output_config['scale'],
-                    'crs': output_config['crs'],
-                    'crs_transform': output_config['crs_transform'],
-                    'filePerBand': False})
-                print('Downloading {}'.format(rhos_file_tile))
-                response = requests.get(url)
-                with open(rhos_file_tile_local, 'wb') as f:
-                    f.write(response.content)
-                rhos_files.append(rhos_file_tile_local)
+            ## write rhot (tile)
+            if settings['surface_reflectance']:
+                if settings['store_sr']:
+                    output_config['description'] = sr_file_tile
+                    url = i_sr.getDownloadUrl({
+                            'name': output_config['description'],
+                            'bands': obands_sr,
+                            'region': output_config['region'],
+                            'scale': output_config['scale'],
+                            'crs': output_config['crs'],
+                            'crs_transform': output_config['crs_transform'],
+                            'filePerBand': False})
+                    print('Downloading {}'.format(sr_file_tile))
+                    response = requests.get(url)
+                    with open(sr_file_tile_local, 'wb') as f:
+                        f.write(response.content)
+                    sr_files.append(sr_file_tile_local)
+            else:
+                if settings['store_rhot']:
+                    output_config['description'] = rhot_file_tile
+                    url = i_rhot.getDownloadUrl({
+                            'name': output_config['description'],
+                            'bands': obands_rhot,
+                            'region': output_config['region'],
+                            'scale': output_config['scale'],
+                            'crs': output_config['crs'],
+                            'crs_transform': output_config['crs_transform'],
+                            'filePerBand': False})
+                    print('Downloading {}'.format(rhot_file_tile))
+                    response = requests.get(url)
+                    with open(rhot_file_tile_local, 'wb') as f:
+                        f.write(response.content)
+                    rhot_files.append(rhot_file_tile_local)
+
+                ## write rhos (tile)
+                if settings['store_rhos'] & settings['run_hybrid_dsf']:
+                    output_config['description'] = rhos_file_tile
+                    url = i_rhos.getDownloadUrl({
+                        'name': output_config['description'],
+                        'bands': obands_rhos,
+                        'region': output_config['region'],
+                        'scale': output_config['scale'],
+                        'crs': output_config['crs'],
+                        'crs_transform': output_config['crs_transform'],
+                        'filePerBand': False})
+                    print('Downloading {}'.format(rhos_file_tile))
+                    response = requests.get(url)
+                    with open(rhos_file_tile_local, 'wb') as f:
+                        f.write(response.content)
+                    rhos_files.append(rhos_file_tile_local)
+
+                ## write rhos (tile)
+                if settings['store_st'] & settings['run_hybrid_tact']:
+                    output_config['description'] = st_file_tile
+                    url = i_st.getDownloadUrl({
+                        'name': output_config['description'],
+                        'bands': obands_st,
+                        'region': output_config['region'],
+                        'scale': output_config['scale'],
+                        'crs': output_config['crs'],
+                        'crs_transform': output_config['crs_transform'],
+                        'filePerBand': False})
+                    print('Downloading {}'.format(st_file_tile))
+                    response = requests.get(url)
+                    with open(st_file_tile_local, 'wb') as f:
+                        f.write(response.content)
+                    st_files.append(st_file_tile_local)
     ## end store local files
 
     ## output to ACOLITE style NetCDF
@@ -567,31 +761,59 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         rhot_data = None
         rhos_data = None
         geom_data = None
+        sr_data = None
+        st_data = None
+
         for ti, tile in enumerate(tiles):
             print(tile[4])
-            rhotf = rhot_files[ti]
-            rhot_image_file = '/vsizip/{}/{}.tif'.format(rhotf, os.path.basename(os.path.splitext(rhotf)[0]))
-            ## read rhot
-            if os.path.exists(rhotf):
-                if ti == 0:
-                    dct = ac.shared.projection_read(rhot_image_file)
-                else:
-                    ## update dct
-                    dct_ = ac.shared.projection_read(rhot_image_file)
-                    dct['yrange'] = max(dct['yrange'][0], dct_['yrange'][0]), min(dct['yrange'][1], dct_['yrange'][1])
-                    dct['xrange'] = min(dct['xrange'][0], dct_['xrange'][0]), max(dct['xrange'][1], dct_['xrange'][1])
-                    dct['ydim'] = int((dct['yrange'][1]-dct['yrange'][0])/dct['pixel_size'][1])
-                    dct['xdim'] = int((dct['xrange'][1]-dct['xrange'][0])/dct['pixel_size'][0])
-                    dct['dimensions'] = (dct['xdim'], dct['ydim'])
+            file_proj = None
 
-                ds = gdal.Open(rhot_image_file)
-                if num_tiles == 1:
-                    rhot_data = ds.ReadAsArray()
-                else:
-                    if rhot_data is None: rhot_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
-                    rhot_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
-                ds = None
-                rhot_data[rhot_data==0.0] = np.nan
+            if settings['surface_reflectance']:
+                srf = sr_files[ti]
+                sr_image_file = '/vsizip/{}/{}.tif'.format(srf, os.path.basename(os.path.splitext(srf)[0]))
+                ## read sr
+                if os.path.exists(srf):
+                    file_proj = '{}'.format(sr_image_file)
+                    ds = gdal.Open(sr_image_file)
+                    if num_tiles == 1:
+                        sr_data = ds.ReadAsArray()
+                    else:
+                        if rhot_data is None: sr_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        sr_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
+                    ds = None
+                    sr_data[sr_data==0.0] = np.nan
+            else:
+                ## read rhot data
+                if len(rhot_files) == num_tiles:
+                    rhotf = rhot_files[ti]
+                    rhot_image_file = '/vsizip/{}/{}.tif'.format(rhotf, os.path.basename(os.path.splitext(rhotf)[0]))
+                    ## read rhot
+                    if os.path.exists(rhotf):
+                        file_proj = '{}'.format(rhot_image_file)
+                        ds = gdal.Open(rhot_image_file)
+                        if num_tiles == 1:
+                            rhot_data = ds.ReadAsArray()
+                        else:
+                            if rhot_data is None: rhot_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                            rhot_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
+                        ds = None
+                        rhot_data[rhot_data==0.0] = np.nan
+
+                ## read rhos data
+                if len(rhos_files) == num_tiles:
+                    rhosf = rhos_files[ti]
+                    rhos_image_file = '/vsizip/{}/{}.tif'.format(rhosf, os.path.basename(os.path.splitext(rhosf)[0]))
+                    ## read rhos
+                    if os.path.exists(rhosf):
+                        file_proj = '{}'.format(rhos_image_file)
+                        ds = gdal.Open(rhos_image_file)
+                        if num_tiles == 1:
+                            rhos_data = ds.ReadAsArray()
+                        else:
+                            if rhos_data is None: rhos_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                            rhos_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
+                        ds = None
+                    rhos_data[rhos_data==0.0] = np.nan
 
             ## read geom data
             if len(geom_files) == num_tiles:
@@ -599,6 +821,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 geom_image_file = '/vsizip/{}/{}.tif'.format(geomf, os.path.basename(os.path.splitext(geomf)[0]))
                 ## read geom
                 if os.path.exists(geomf):
+                    file_proj = '{}'.format(geom_image_file)
                     ds = gdal.Open(geom_image_file)
                     if num_tiles == 1:
                         geom_data = ds.ReadAsArray()
@@ -607,20 +830,33 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         geom_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
 
-            ## read rhos data
-            if len(rhos_files) == num_tiles:
-                rhosf = rhos_files[ti]
-                rhos_image_file = '/vsizip/{}/{}.tif'.format(rhosf, os.path.basename(os.path.splitext(rhosf)[0]))
-                ## read rhos
-                if os.path.exists(rhosf):
-                    ds = gdal.Open(rhos_image_file)
+            ## read st data
+            if len(st_files) == num_tiles:
+                stf = st_files[ti]
+                st_image_file = '/vsizip/{}/{}.tif'.format(stf, os.path.basename(os.path.splitext(stf)[0]))
+                print(st_image_file)
+                ## read geom
+                if os.path.exists(stf):
+                    file_proj = '{}'.format(st_image_file)
+                    ds = gdal.Open(st_image_file)
                     if num_tiles == 1:
-                        rhos_data = ds.ReadAsArray()
+                        st_data = ds.ReadAsArray()
                     else:
-                        if rhos_data is None: rhos_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
-                        rhos_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
+                        if stdata is None: st_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        st_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
-                rhos_data[rhos_data==0.0] = np.nan
+
+            ## read file projection
+            if ti == 0:
+                dct = ac.shared.projection_read(file_proj)
+            else:
+                ## update dct
+                dct_ = ac.shared.projection_read(file_proj)
+                dct['yrange'] = max(dct['yrange'][0], dct_['yrange'][0]), min(dct['yrange'][1], dct_['yrange'][1])
+                dct['xrange'] = min(dct['xrange'][0], dct_['xrange'][0]), max(dct['xrange'][1], dct_['xrange'][1])
+                dct['ydim'] = int((dct['yrange'][1]-dct['yrange'][0])/dct['pixel_size'][1])
+                dct['xdim'] = int((dct['xrange'][1]-dct['xrange'][0])/dct['pixel_size'][0])
+                dct['dimensions'] = (dct['xdim'], dct['ydim'])
 
         ## image file in zip
         #rhot_image_file = '/vsizip/{}/{}.tif'.format(rhot_file_local, rhot_file)
@@ -641,15 +877,19 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         for k in geometry: gatts[k] = geometry[k]
         #file_type = 'L1R_GEE'
 
-        if settings['run_hybrid_dsf']:
-            gatts['acolite_type'] = 'l2r_gee_hybrid'
-            gatts['pressure'] = pressure
-            gatts['uwv'] = uwv
-            gatts['uoz'] = uoz
-            gatts['ac_aot_550'] = sel_aot
-            gatts['ac_model'] = sel_lut
-            gatts['ac_var'] = sel_val
-            #file_type = 'L2R_GEE_HYBRID'
+        if settings['surface_reflectance']:
+            gatts['acolite_type'] = 'sr_gee'
+        else:
+            if settings['run_hybrid_dsf']:
+                gatts['acolite_type'] = 'l2r_gee_hybrid'
+                gatts['pressure'] = pressure
+                gatts['uwv'] = uwv
+                gatts['uoz'] = uoz
+                gatts['ac_aot_550'] = sel_aot
+                gatts['ac_model'] = sel_lut
+                gatts['ac_var'] = sel_val
+            if settings['run_hybrid_tact']:
+                gatts['acolite_type'] = 'st_gee_hybrid'
 
         ## output file names
         ext = ''
@@ -699,43 +939,85 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             raa = None
             geom_data = None
 
+        bii = 0 ## band index for SR files, which may not have all bands
         for bi, b in enumerate(rsrd[sensor]['rsr_bands']):
             wave_name = rsrd[sensor]['wave_name'][b]
             wave_nm = rsrd[sensor]['wave_nm'][b]
             att = {'band': b, 'wave_name': wave_name, 'wave_nm': wave_nm}
-            for k in ttg: att[k] = ttg[k][b]
 
-            rhot_ds = 'rhot_{}'.format(wave_name)
-            rhos_ds = 'rhos_{}'.format(wave_name)
+            if settings['surface_reflectance']:
+                if sensor[0] == 'L':
+                    if 'SR_B{}'.format(b) not in obands_sr: continue
+                else:
+                    if 'B{}'.format(b) not in obands_sr: continue
+                sr_ds = 'rhos_sr_{}'.format(wave_name)
+                ## write sr data
+                if sr_data is not None:
+                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att,
+                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    print('Wrote {}'.format(sr_ds))
+                    bii += 1
+            else:
+                for k in ttg: att[k] = ttg[k][b]
 
-            ## write rhot data
-            if rhot_data is not None:
-                ac.output.nc_write(ofile, rhot_ds, rhot_data[bi, :, :], dataset_attributes=att,
-                                   netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-                print('Wrote {}'.format(rhot_ds))
+                rhot_ds = 'rhot_{}'.format(wave_name)
+                rhos_ds = 'rhos_{}'.format(wave_name)
 
-            ## write rhos data
-            if (att['tt_gas'] > min_tgas_rho) & (rhos_data is not None):
-                ac.output.nc_write(ofile, rhos_ds, rhos_data[bi, :, :], dataset_attributes=att,
-                                   netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-                print('Wrote {}'.format(rhos_ds))
+                ## write rhot data
+                if rhot_data is not None:
+                    ac.output.nc_write(ofile, rhot_ds, rhot_data[bi, :, :], dataset_attributes=att,
+                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    print('Wrote {}'.format(rhot_ds))
 
-        ## write thermal bands
-        for bi, b in enumerate(obands_rhot):
-            if b not in thermal_bands: continue
-            dso = b.replace('B', 'bt')
-            ac.output.nc_write(ofile, dso, rhot_data[bi, :, :], dataset_attributes={'band': b},
-                               netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-            print('Wrote {}'.format(dso))
+                ## write rhos data
+                if (att['tt_gas'] > min_tgas_rho) & (rhos_data is not None):
+                    ac.output.nc_write(ofile, rhos_ds, rhos_data[bi, :, :], dataset_attributes=att,
+                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    print('Wrote {}'.format(rhos_ds))
 
+        ## write Landsat L2 ST
+        if settings['surface_reflectance'] & (sensor[0] == 'L'):
+            for b in bnames:
+                if b not in obands_sr: continue
+                sr_ds = 'st{}'.format(b.replace('ST_B', ''))
+                ## write sr data
+                if sr_data is not None:
+                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att,
+                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    print('Wrote {}'.format(sr_ds))
+                    bii += 1
+        ## end write Landsat L2 ST
+
+        if not settings['surface_reflectance']:
+            ## write thermal bands
+            bii = 0
+            for bi, b in enumerate(obands_rhot):
+                if b not in thermal_bands: continue
+
+                if rhot_data is not None:
+                    dso = b.replace('B', 'bt')
+                    ac.output.nc_write(ofile, dso, rhot_data[bi, :, :], dataset_attributes={'band': b},
+                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    print('Wrote {}'.format(dso))
+
+                if st_data is not None:
+                    if b in obands_st:
+                        dso = b.replace('B', 'st')
+                        ac.output.nc_write(ofile, dso, st_data[bii, :, :], dataset_attributes={'band': b},
+                                           netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                        print('Wrote {}'.format(dso))
+                        bii += 1
 
         print('Wrote {}'.format(ofile))
         rhot_data = None
         rhos_data = None
+        sr_data = None
+        st_data = None
+        geom_data = None
 
         ## clear intermediate files
         if settings['store_output_locally'] & settings['clear_output_zip_files']:
-            for zfile in rhot_files+geom_files+rhos_files:
+            for zfile in rhot_files+geom_files+rhos_files+sr_files:
                 if os.path.exists(zfile):
                     print('Removing {}'.format(zfile))
                     os.remove(zfile)

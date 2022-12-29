@@ -29,9 +29,17 @@ sensors=L5_TM,L7_ETM,L8_OLI,L9_OLI,S2A_MSI,S2B_MSI
 filter_tiles=None
 
 ## processing settings
+surface_reflectance=False # get standard SR products
 run_hybrid_dsf=True # run DSF online on GEE data
 run_offline_dsf=False # run DSF on downloaded data (currently only if hybrid is off)
 subset_aot=True # compute aot over subset (True) or over full scene (False)
+
+## TACT settings
+run_hybrid_tact=False # run TACT online on GEE data
+run_offline_tact=False # run TACT on downloaded data (currently only if hybrid is off)
+reptran=True
+source=era5
+emissivity=water
 
 ## hybrid DSF settings
 rhop_par=romix
@@ -62,6 +70,8 @@ store_output_locally=True
 store_rhot=True
 store_rhos=True
 store_geom=True
+store_sr=True
+store_st=True
 use_scene_name=False
 target_scale=None
 
