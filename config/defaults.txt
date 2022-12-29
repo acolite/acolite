@@ -304,6 +304,7 @@ map_l2w=False
 # mapping options
 map_title=True
 map_fontname=sans-serif
+map_fontsize=12
 map_usetex=False
 map_dpi=300
 map_ext=png

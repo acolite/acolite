@@ -207,7 +207,7 @@ def acolite_map(ncf, output = None,
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
 
     ## set font settings
-    font = {'fontname':setu['map_fontname']}
+    font = {'fontname':setu['map_fontname'], 'fontsize':setu['map_fontsize']}
     mpl.rc('text', usetex=setu['map_usetex'])
 
     scene_mask = None
