@@ -310,6 +310,14 @@ map_dpi=300
 map_ext=png
 map_limit=None
 
+# map annotation options
+map_scalebar=False
+map_scalebar_position=UL
+map_scalebar_color=Black
+map_scalebar_length=None
+map_scalebar_max_fraction=0.33
+map_points=None
+
 # map colour bar options
 map_colorbar=True
 map_colorbar_orientation=vertical
@@ -345,7 +353,6 @@ map_projected=False
 map_raster=False
 map_pcolormesh=False
 map_cartopy=False
-map_points=None
 
 # GeoTIFF export options
 l1r_export_geotiff=False

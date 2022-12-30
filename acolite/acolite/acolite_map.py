@@ -11,6 +11,7 @@
 ##                2022-12-27 (QV) fix for RGB pcolormesh (data already stretched 0-1)
 ##                2022-12-29 (QV) fix for RGB raster (data scaled again to 255)
 ##                2022-12-30 (QV) moved rgb stretch to different function, added rgb gamma
+##                                added scale bar option
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -285,9 +286,138 @@ def acolite_map(ncf, output = None,
             plot_parameters += [ds for ds in datasets if ds[0:par.find('*')] == par[0:par.find('*')]]
     if len(plot_parameters) == 0: return
 
-    if setu['map_pcolormesh']:
+    ## load lat and lon
+    if setu['map_pcolormesh'] | (setu['map_points'] is not None) | (setu['map_scalebar']):
         lon = ac.shared.nc_data(ncf, 'lon').data
         lat = ac.shared.nc_data(ncf, 'lat').data
+        ## find region mid point
+        mid = int(lat.shape[0]/2), int(lat.shape[1]/2)
+        ## find lon and lat ranges (at mid point)
+        lonw, lone = lon[mid[0], 0], lon[mid[0], -1]
+        latn, lats = lat[0, mid[1]], lat[-1, mid[1]]
+        lonr, latr = lone - lonw, latn - lats
+        ## compute distance in one degree at mid point latitude
+        lond, latd = ac.shared.distance_in_ll(lat=lat[mid[0], mid[1]])
+        dd = lond*abs(lone-lonw)
+        ## ratio of lon to lat distance
+        lrat = lond/latd
+
+    ## check if we need to add points to the map
+    if 'map_points' in setu:
+        if setu['map_points'] is None:
+            points = None
+        elif type(setu['map_points']) is dict:
+            points = {p: setu['map_points'][p] for p in setu['map_points']}
+        else:
+            points = ac.shared.read_points(setu['map_points'])
+        ## find point and label positions
+        for pname in points:
+            p = points[pname]
+            plon = float(p['lon'])
+            plat = float(p['lat'])
+            ## remove labeling tags if already present
+            for k in ['px', 'py', 'ha', 'va', 'pxl', 'pyl']:
+                if k in points[pname]: del points[pname][k]
+            if plon > np.nanmax(lon): continue
+            if plon < np.nanmin(lon): continue
+            if plat > np.nanmax(lat): continue
+            if plat < np.nanmin(lat): continue
+            if setu['map_pcolormesh']:
+                px, py = plon, plat
+            else:
+                tmp = ((lon - plon)**2 + (lat - plat)**2)**0.5
+                i, j = np.where(tmp == np.nanmin(tmp))
+                py, px = i[0], j[0]
+            ## track x and y
+            points[pname]['px'] = px
+            points[pname]['py'] = py
+            ## get label position
+            if p['label_side']=='right':
+                points[pname]['va']='center'
+                points[pname]['ha']='left'
+                xo, yo =  lonr * 0.02, latr * 0.0 #/ lrat
+
+            if p['label_side']=='left':
+                points[pname]['va']='center'
+                points[pname]['ha']='right'
+                xo, yo =  lonr * -0.02, latr * 0.0 #/ lrat
+
+            if p['label_side']=='top':
+                points[pname]['va']='bottom'
+                points[pname]['ha']='center'
+                xo, yo =  lonr * 0.0, latr * 0.02 #/ lrat
+
+            if p['label_side']=='bottom':
+                points[pname]['va']='top'
+                points[pname]['ha']='center'
+                xo, yo =  lonr * 0.0, latr * -0.02 #/ lrat
+
+            ## store label points
+            if not setu['map_pcolormesh']:
+                tmp = ((lon - (plon+xo))**2 + (lat - (plat+yo))**2)**0.5
+                i, j = np.where(tmp == np.nanmin(tmp))
+                points[pname]['pxl'] = j[0]
+                points[pname]['pyl'] = i[0]
+            else:
+                points[pname]['pxl'] = px + xo
+                points[pname]['pyl'] = py + yo
+    else:
+        points = None
+    ## end points
+
+    ## prepare scale bar
+    ## approximate distance in one degree of longitude
+    if setu['map_scalebar']:
+        if setu['map_scalebar_position'] not in ['UR','UL','LL','LR']:
+            print('Map scalebar position {} not recognised.')
+            print('Using default map_scalebar_position=UL.'.format(scalepos))
+            setu['map_scalebar_position'] = 'UL'
+        posv = {'U': 0.85, 'L': 0.10}
+        posh = {'R': 0.95, 'L': 0.05}
+        if setu['map_scalebar_position'][0]=='U':
+            latsc = lats+abs(latn-lats)*posv['U'] #0.87
+        if setu['map_scalebar_position'][0]=='L':
+            latsc = lats+abs(latn-lats)*posv['L'] #0.08
+        if setu['map_scalebar_position'][1]=='R':
+            lonsc = lonw+abs(lone-lonw)*posh['R'] #0.92
+            scale_sign=-1.
+        if setu['map_scalebar_position'][1]=='L':
+            lonsc = lonw+abs(lone-lonw)*posh['L'] #0.08
+            scale_sign=1.
+        ## scale bar width
+        if setu['map_scalebar_length'] is not None:
+            scalelen = int(setu['map_scalebar_length'])
+            unit = 'km'
+        else:
+            ## compute optimal scale length (as maximum fraction of image width)
+            scalelen = dd * setu['map_scalebar_max_fraction']
+            scalelen, unit = ac.shared.scale_dist(scalelen)
+        ## compute scaleline
+        sf = 1
+        if unit == 'm':
+            scaleline = (scalelen / 1000) / lond
+        else:
+            scaleline = scalelen / lond
+        ## scalebar label
+        sclabel = '{} {}'.format(scalelen*sf, unit)
+        ## compute scalebar position
+        xsb = (lonsc, lonsc+scale_sign*scaleline)
+        ysb = (latsc,latsc)
+        ## compute scalebar label position
+        xsbl = lonsc + (scale_sign*scaleline)/2
+        ysbl = latsc + (latr * 0.03)
+        ## compute positions in pixels
+        if not setu['map_pcolormesh']:
+            tmp = ((lon - xsb[0])**2 + (lat - ysb[0])**2)**0.5
+            il, jl = np.where(tmp == np.nanmin(tmp))
+            tmp = ((lon - xsb[1])**2 + (lat - ysb[1])**2)**0.5
+            ir, jr = np.where(tmp == np.nanmin(tmp))
+            ysb = (il[0], ir[0])
+            xsb = (jl[0], jr[0])
+            tmp = ((lon - xsbl)**2 + (lat - ysbl)**2)**0.5
+            ip, jp = np.where(tmp == np.nanmin(tmp))
+            xsbl, ysbl = jp, ip
+    ## end prepare scale bar
 
     ## make plots
     for cpar in plot_parameters:

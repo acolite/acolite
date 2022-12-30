@@ -61,3 +61,4 @@ from .rsr_hyper import *
 from .polylakes import *
 
 from .rgb_stretch import *
+from .scale_dist import *
