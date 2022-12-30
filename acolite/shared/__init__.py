@@ -59,3 +59,5 @@ from .sun_position import *
 from .rsr_hyper import *
 
 from .polylakes import *
+
+from .rgb_stretch import *
