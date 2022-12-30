@@ -4,12 +4,19 @@
 ## 2022-01-02
 ## modifications: 2022-02-17 (QV) fix for paths with spaces
 ##                2022-12-29 (QV) use output directory if given
+##                2022-12-30 (QV) use gdal_merge import to avoid gdal_merge.py not being recognised
 
-def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff'):
+def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
+                      remove_temp_files = True, oformat = 'GTiff'):
+
+    import os, sys, subprocess
     import acolite as ac
     import numpy as np
     from osgeo import gdal
-    import os, sys, subprocess
+    if gdal.__version__ < '3.3':
+        from osgeo.utils import gdal_merge
+    else:
+        from osgeo_utils import gdal_merge
 
     creationOptions = None
     setu =  ac.acolite.settings.parse(None, settings=settings)
@@ -81,18 +88,34 @@ def nc_to_geotiff_rgb(f, settings = {}, remove_temp_files=True, oformat='GTiff')
                                 creationOptions=creationOptions, options=options)
             ## set no data value
             dt.GetRasterBand(1).SetNoDataValue(0)
-            tempfiles.append("'{}'".format(outfile))
+            tempfiles.append("{}".format(outfile))
             dt = None
 
         ## composite to RGB
         outfile = '{}_{}{}'.format(out, '{}_RGB'.format(base), '.tif')
         if os.path.exists(outfile):
             os.remove(outfile)
-        cmd = ['gdal_merge.py',  "-o '{}'".format(outfile), '-separate'] + tempfiles
-        ret = os.popen(' '.join(cmd)).read()
-        #sp = subprocess.run(' '.join(cmd),shell=True, check=True, stdout=subprocess.PIPE)
-        if os.path.exists(outfile):
-            print('Wrote {}'.format(outfile))
+
+        ## use gdal_merge to merge RGB bands
+        if use_gdal_merge_import:
+            ## run using imported gdal_merge
+            ## gives file name errors when running batch processing
+            ## so generate default out.tif and rename
+            cwd = os.getcwd()
+            odir = os.path.dirname(outfile)
+            os.chdir(odir)
+            gdal_merge.main(['', '-quiet', '-separate'] + tempfiles) ## calling without -o will generate out.tif in cwd
+            if os.path.exists('out.tif'): os.rename('out.tif', os.path.basename(outfile))
+            os.chdir(cwd)
+            ## end imported gdal_merge
+        else:
+            ## use os to run gdal_merge.py
+            tempfiles = ["'{}'".format(tf) for tf in tempfiles] ## add quotes to allow spaces in file path
+            cmd = ['gdal_merge.py',  "-o '{}'".format(outfile), '-separate'] + tempfiles
+            ret = os.popen(' '.join(cmd)).read()
+            ##sp = subprocess.run(' '.join(cmd),shell=True, check=True, stdout=subprocess.PIPE)
+
+        if os.path.exists(outfile): print('Wrote {}'.format(outfile))
 
         ## remove tempfiles
         if remove_temp_files:
