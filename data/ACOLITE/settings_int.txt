@@ -3,6 +3,7 @@
 ##
 s2_target_res
 map_max_dim
+map_fontsize
 dsf_filter_box
 dsf_tile_dimensions
 dsf_intercept_pixels
