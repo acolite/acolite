@@ -28,6 +28,7 @@ l2w_mask_high_toa_threshold
 map_auto_range_percentiles
 rgb_min
 rgb_max
+rgb_gamma
 rgb_autoscale_percentiles
 gains_toa
 offsets_toa

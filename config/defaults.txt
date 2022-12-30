@@ -325,6 +325,7 @@ rgb_green_wl=560
 rgb_blue_wl=480
 rgb_min=0.0,0.0,0.0
 rgb_max=0.15,0.15,0.15
+rgb_gamma=1.0,1.0,1.0
 rgb_autoscale=False
 rgb_autoscale_percentiles=5,95
 rgb_stretch=linear
