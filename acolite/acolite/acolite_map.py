@@ -10,6 +10,7 @@
 ##                2022-12-20 (QV) added different RGB stretches
 ##                2022-12-27 (QV) fix for RGB pcolormesh (data already stretched 0-1)
 ##                2022-12-29 (QV) fix for RGB raster (data scaled again to 255)
+##                2022-12-30 (QV) moved rgb stretch to different function, added rgb gamma
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -336,22 +337,10 @@ def acolite_map(ncf, output = None,
                     bsc = np.nanpercentile(data.data, setu['rgb_autoscale_percentiles'])
                 else:
                     bsc = np.asarray((setu['rgb_min'][iw], setu['rgb_max'][iw]))
+                gamma = setu['rgb_gamma'][iw]
 
                 ## do RGB stretch
-                stretches = ['linear', 'log', 'sinh', 'sqrt']
-                if setu['rgb_stretch'] not in stretches:
-                    print('rgb_stretch={} not configured'.format(setu['rgb_stretch']))
-                    print('Using default linear stretch')
-                    setu['rgb_stretch'] = 'linear'
-                if setu['rgb_stretch'] == 'linear':
-                    tmp = np.interp(data.data, bsc, [0, 1])
-                elif setu['rgb_stretch'] == 'log':
-                    if bsc[0] <= 0: bsc[0] = 0.01
-                    tmp = np.interp(np.log(data.data), np.log(bsc) , [0, 1])
-                elif setu['rgb_stretch'] == 'sinh':
-                    tmp = np.interp(np.sinh(data.data), np.sinh(bsc) , [0, 1])
-                elif setu['rgb_stretch'] == 'sqrt':
-                    tmp = np.interp(np.sqrt(data.data), np.sqrt(bsc) , [0, 1])
+                tmp = ac.shared.rgb_stretch(data, gamma = gamma, bsc = bsc, stretch=setu['rgb_stretch'])
 
                 ## mask
                 tmp[data.mask] = 1
