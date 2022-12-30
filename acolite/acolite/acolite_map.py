@@ -161,6 +161,14 @@ def acolite_map(ncf, output = None,
 
             if setu['map_title']: plt.title(title, **font)
 
+            ## add the scalebar
+            if setu['map_scalebar']:
+                plt.plot(xsb, ysb, '-', linewidth = 2, color=setu['map_scalebar_color'], zorder=10)
+                ## add the label
+                plt.text(xsbl, ysbl, sclabel, color=setu['map_scalebar_color'], zorder=11,
+                                 horizontalalignment='center', fontsize=fontsize)
+            ## end scalebar
+
             ## color bars
             cbar = None
             if setu['map_colorbar']:
