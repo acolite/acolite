@@ -178,11 +178,13 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             mp = i.pixelLonLat().reproject(p, None, scale * 1.0)
             ll = mp.reduceRegion(geometry=(i.geometry() if limit is None else region), \
                                  reducer= ee.Reducer.mean(), bestEffort=True).getInfo()
-            print(ll)
+
+            ## sometimes lon/lat are None... why?
             if (ll['longitude'] is None) | (ll['latitude'] is None):
                 print('Could not determine scene center longitude/latitude')
-                settings['ancillary_data'] = False
-                settings['run_hybrid_tact'] = False
+                print('Stopping AGH')
+                print(im['properties'])
+                return()
             else:
                 print('Scene centre: {:.5f}E {:.5f}N'.format(ll['longitude'], ll['latitude']))
 
@@ -506,12 +508,9 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
         ## run TACT on this data
         if settings['run_hybrid_tact']:
-            #print(im['properties'])
             ## do atmospheric correction
-            #print(thermal_bands)
             print('Performing TACT atmospheric correction')
             i_st = None
-            #obands_st = []
             for bname in thermal_bands:
                 b = bname.replace('B', '')
                 ## K constants
@@ -525,22 +524,21 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 bLd = thd['Ld{}'.format(b)]
 
                 ## Lt
-                lt = i_rhot.expression('{k1}/(exp({k2}/BT)-1)'.format(k1=k1, k2=k2), {'BT': i_rhot.select(bname)}).rename(bname)
+                lt = i_rhot.expression('{k1}/(exp({k2}/BT)-1)'.format(k1=k1, k2=k2), \
+                                        {'BT': i_rhot.select(bname)}).rename(bname)
 
                 ## Ls
-                ls = lt.expression('(((LT-{Lu})/{tau}) - (((1-{em})*{Ld}))/{em})'.format(em=bem, Lu=bLu, Ld=bLd, tau=btau), \
-                                               {'LT': lt.select(bname)}).rename(bname)
-
-                #print('(((LT-{Lu})/{tau}) - (((1-{em})*{Ld}))/{em})'.format(em=bem, Lu=bLu, Ld=bLd, tau=btau))
+                ls = lt.expression('(((LT-{Lu})/{tau}) - ((1-{em})*{Ld}))/{em}'.format(em=bem, Lu=bLu, Ld=bLd, tau=btau), \
+                                        {'LT': lt.select(bname)}).rename(bname)
 
                 ## ST
-                st = ls.expression('{k2}/(log(({k1}/LS)+1))'.format(k2=k2, k1=k1), {'LS': ls.select(bname)}).rename(bname)
+                st = ls.expression('{k2}/(log(({k1}/LS)+1))'.format(k2=k2, k1=k1), \
+                                        {'LS': ls.select(bname)}).rename(bname)
 
                 if i_st is None:
                     i_st = ee.Image(st)
                 else:
                     i_st = i_st.addBands(st)
-                #obands_st.append(bname)
 
             ## get band info for outputs
             st_info = i_st.getInfo()
