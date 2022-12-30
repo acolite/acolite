@@ -178,6 +178,11 @@ st6_vcid_2,270,300,False,Planck_Parchment_RGB,ST6 VCID2,K
 st10,270,300,False,Planck_Parchment_RGB,ST10,K
 st11,270,300,False,Planck_Parchment_RGB,ST11,K
 #
+## Water surface temperature
+wst10,18,24,False,Planck_Parchment_RGB,WST10,°C
+wst11,18,24,False,Planck_Parchment_RGB,WST11,°C
+#
+#
 ##
 #
 ## Hue Angle
