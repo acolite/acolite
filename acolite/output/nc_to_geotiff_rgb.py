@@ -69,6 +69,7 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
             scale_out = [0, 255]
 
             # standard scaling
+            data = None
             if not setu['rgb_autoscale']:
                 scale_cur = [scale_in[0],scale_in[1]]
             else:
@@ -86,6 +87,16 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
             else:
                 dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds), format=oformat,
                                 creationOptions=creationOptions, options=options)
+
+            ## do custom RGB stretch
+            if True:
+                if data is None: data = ac.shared.nc_data(f, ds)
+                bsc = np.asarray(scale_cur)
+                gamma = setu['rgb_gamma'][ii]
+                tmp = ac.shared.rgb_stretch(data, gamma = gamma, bsc = bsc, stretch=setu['rgb_stretch'])
+                tmp = (tmp*255).astype(np.uint8)
+                dt.GetRasterBand(1).WriteArray(tmp)
+
             ## set no data value
             dt.GetRasterBand(1).SetNoDataValue(0)
             tempfiles.append("{}".format(outfile))
