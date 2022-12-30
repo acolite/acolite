@@ -30,6 +30,7 @@ def acolite_map(ncf, output = None,
     import matplotlib as mpl
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
+    import matplotlib.patheffects as pe
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from PIL import Image
 
@@ -160,6 +161,40 @@ def acolite_map(ncf, output = None,
                 gl.ylabels_right = False
 
             if setu['map_title']: plt.title(title, **font)
+
+            ## add point markers
+            if points is not None:
+                for pname in points:
+                    if 'px' not in points[pname]: continue
+                    p = points[pname]
+                    if 'facecolor' in p:
+                        mfc = p['facecolor']
+                        mew = 1.5
+                    else:
+                        mfc = None
+                        mew = None
+                    if 'edgecolor' in p:
+                        mec = p['edgecolor']
+                    else:
+                        mec = None
+                    if 'fontsize' in p:
+                        fontsize = p['fontsize']
+                    else:
+                        fontsize = None
+                    if 'markersize' in p:
+                        markersize = p['markersize']
+                    else:
+                        markersize = None
+                    ## plot marker
+                    pplot = plt.plot(p['px'], p['py'], color=p['color'],
+                                             marker=p['sym'],
+                                             markersize = markersize, mec=mec, mfc=mfc, mew=mew)
+                    ## plot marker label
+                    if p['label_plot']:
+                        plt.text(p['pxl'], p['pyl'], p['label'], color='white', fontsize=fontsize,
+                                 path_effects = [pe.withStroke(linewidth=2, foreground=p['color'])],
+                                 verticalalignment=points[pname]['va'], horizontalalignment=points[pname]['ha'])
+            ## end add point markers
 
             ## add the scalebar
             if setu['map_scalebar']:
@@ -318,59 +353,60 @@ def acolite_map(ncf, output = None,
             points = {p: setu['map_points'][p] for p in setu['map_points']}
         else:
             points = ac.shared.read_points(setu['map_points'])
-        ## find point and label positions
-        for pname in points:
-            p = points[pname]
-            plon = float(p['lon'])
-            plat = float(p['lat'])
-            ## remove labeling tags if already present
-            for k in ['px', 'py', 'ha', 'va', 'pxl', 'pyl']:
-                if k in points[pname]: del points[pname][k]
-            if plon > np.nanmax(lon): continue
-            if plon < np.nanmin(lon): continue
-            if plat > np.nanmax(lat): continue
-            if plat < np.nanmin(lat): continue
-            if setu['map_pcolormesh']:
-                px, py = plon, plat
-            else:
-                tmp = ((lon - plon)**2 + (lat - plat)**2)**0.5
-                i, j = np.where(tmp == np.nanmin(tmp))
-                py, px = i[0], j[0]
-            ## track x and y
-            points[pname]['px'] = px
-            points[pname]['py'] = py
-            ## get label position
-            if p['label_side']=='right':
-                points[pname]['va']='center'
-                points[pname]['ha']='left'
-                xo, yo =  lonr * 0.02, latr * 0.0 #/ lrat
+        if type(points) is dict:
+            ## find point and label positions
+            for pname in points:
+                p = points[pname]
+                plon = float(p['lon'])
+                plat = float(p['lat'])
+                ## remove labeling tags if already present
+                for k in ['px', 'py', 'ha', 'va', 'pxl', 'pyl']:
+                    if k in points[pname]: del points[pname][k]
+                if plon > np.nanmax(lon): continue
+                if plon < np.nanmin(lon): continue
+                if plat > np.nanmax(lat): continue
+                if plat < np.nanmin(lat): continue
+                if setu['map_pcolormesh']:
+                    px, py = plon, plat
+                else:
+                    tmp = ((lon - plon)**2 + (lat - plat)**2)**0.5
+                    i, j = np.where(tmp == np.nanmin(tmp))
+                    py, px = i[0], j[0]
+                ## track x and y
+                points[pname]['px'] = px
+                points[pname]['py'] = py
+                ## get label position
+                if p['label_side']=='right':
+                    points[pname]['va']='center'
+                    points[pname]['ha']='left'
+                    xo, yo =  lonr * 0.02, latr * 0.0 #/ lrat
 
-            if p['label_side']=='left':
-                points[pname]['va']='center'
-                points[pname]['ha']='right'
-                xo, yo =  lonr * -0.02, latr * 0.0 #/ lrat
+                if p['label_side']=='left':
+                    points[pname]['va']='center'
+                    points[pname]['ha']='right'
+                    xo, yo =  lonr * -0.02, latr * 0.0 #/ lrat
 
-            if p['label_side']=='top':
-                points[pname]['va']='bottom'
-                points[pname]['ha']='center'
-                xo, yo =  lonr * 0.0, latr * 0.02 #/ lrat
+                if p['label_side']=='top':
+                    points[pname]['va']='bottom'
+                    points[pname]['ha']='center'
+                    xo, yo =  lonr * 0.0, latr * 0.02 #/ lrat
 
-            if p['label_side']=='bottom':
-                points[pname]['va']='top'
-                points[pname]['ha']='center'
-                xo, yo =  lonr * 0.0, latr * -0.02 #/ lrat
+                if p['label_side']=='bottom':
+                    points[pname]['va']='top'
+                    points[pname]['ha']='center'
+                    xo, yo =  lonr * 0.0, latr * -0.02 #/ lrat
 
-            ## store label points
-            if not setu['map_pcolormesh']:
-                tmp = ((lon - (plon+xo))**2 + (lat - (plat+yo))**2)**0.5
-                i, j = np.where(tmp == np.nanmin(tmp))
-                points[pname]['pxl'] = j[0]
-                points[pname]['pyl'] = i[0]
-            else:
-                points[pname]['pxl'] = px + xo
-                points[pname]['pyl'] = py + yo
-    else:
-        points = None
+                ## store label points
+                if not setu['map_pcolormesh']:
+                    tmp = ((lon - (plon+xo))**2 + (lat - (plat+yo))**2)**0.5
+                    i, j = np.where(tmp == np.nanmin(tmp))
+                    points[pname]['pxl'] = j[0]
+                    points[pname]['pyl'] = i[0]
+                else:
+                    points[pname]['pxl'] = px + xo
+                    points[pname]['pyl'] = py + yo
+        else:
+            points = None
     ## end points
 
     ## prepare scale bar
