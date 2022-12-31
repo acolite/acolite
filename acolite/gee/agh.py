@@ -206,7 +206,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             print(emissivity_file)
             print('Getting TACT parameters for scene centre location.')
             thermal_sensors = {'5':'L5_TM', '7':'L7_ETM', '8':'L8_TIRS', '9':'L9_TIRS'}
-            thermal_bands = {'5':'6', '7':'6', '8':'10', '9':'10'}
+            thermal_bands = {'5':'6', '7':['6_VCID_1','6_VCID_2'], '8':'10', '9':'10'}
             thermal_sensor = thermal_sensors[sensor[1]]
             #thermal_band = thermal_bands[sensor[1]]
 
@@ -513,9 +513,11 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             i_st = None
             for bname in thermal_bands:
                 b = bname.replace('B', '')
+
                 ## K constants
                 k1 = float(im['properties']['K1_CONSTANT_BAND_{}'.format(b)])
                 k2 = float(im['properties']['K2_CONSTANT_BAND_{}'.format(b)])
+                if thermal_sensor == 'L7_ETM': b = '6' ## avoid VCID distinction
 
                 print(bname, k1, k2)
                 bem = em[thermal_sensor][b]
