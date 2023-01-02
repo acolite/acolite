@@ -12,6 +12,7 @@
 ##                2022-07-18 (QV) added check for existing files & override setting
 ##                2022-12-25 (QV) added SR option
 ##                2022-12-27 (QV) fixed SR computation (for ST data) and added hybrid/offline TACT run
+##                2023-01-02 (QV) updated projection handling and scene centre lat/lon computation
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, dateutil.parser, requests, json
@@ -19,7 +20,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     from acolite import gee ## currently not imported in main acolite
 
     import numpy as np
-    from osgeo import gdal
+    from pyproj import Proj
+    from osgeo import gdal,osr
     gdal.UseExceptions()
 
     import ee
@@ -81,7 +83,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## select product
     i = imColl.filter(ee.Filter.eq(fkey, pid)).first()
 
-    ## get projection info
     ## get projection
     proj = i.select(tar_band).projection().getInfo()
     if 'crs' in proj:
@@ -117,8 +118,30 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## subset here if local aot is to be computed
     if (limit is not None) & (settings['subset_aot']): i = i.clip(region)
 
+    ## get image info
     im = i.getInfo()
     bands = [p['id'] for p in im['bands'] if p['id'][0]]
+    ## get projection info and region dimensions
+    for b in im['bands']:
+        if b['id'] == tar_band:
+            odim = b['dimensions']
+            origin = b['origin']
+            crs = b['crs']
+            crs_transform = b['crs_transform']
+            print('Region dimensions {}'.format(odim))
+            print('Region origin {}'.format(origin))
+
+    ## set up projection
+    prj = osr.SpatialReference()
+    prj.ImportFromEPSG(int(crs.split(':')[-1]))
+    Wkt = prj.ExportToWkt()
+    wp = Proj(Wkt)
+    ## find scene center
+    nx = origin[0] + odim[0]/2
+    ny = origin[1] + odim[1]/2
+    mlon, mlat = wp(crs_transform[2]+nx*crs_transform[0], crs_transform[5]+ny*crs_transform[4], inverse=True)
+    ll = {'longitude': mlon, 'latitude': mlat}
+    print('Scene centre: {:.5f}E {:.5f}N'.format(ll['longitude'], ll['latitude']))
 
     if 'PRODUCT_ID' in im['properties']: ## Sentinel-2 image
         fkey = 'PRODUCT_ID'
@@ -174,19 +197,10 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## if processing rhot
     if not settings['surface_reflectance']:
         ## get central lon and lat
-        if settings['ancillary_data'] | settings['run_hybrid_tact']:
-            mp = i.pixelLonLat().reproject(p, None, scale * 1.0)
-            ll = mp.reduceRegion(geometry=(i.geometry() if limit is None else region), \
-                                 reducer= ee.Reducer.mean(), bestEffort=True).getInfo()
-
-            ## sometimes lon/lat are None... why?
-            if (ll['longitude'] is None) | (ll['latitude'] is None):
-                print('Could not determine scene center longitude/latitude')
-                print('Stopping AGH')
-                print(im['properties'])
-                return()
-            else:
-                print('Scene centre: {:.5f}E {:.5f}N'.format(ll['longitude'], ll['latitude']))
+        #if settings['ancillary_data'] | settings['run_hybrid_tact']:
+        #    mp = i.pixelLonLat()
+        #    ll = mp.reduceRegion(crs=proj_crs, crsTransform=proj['transform'], geometry=(i.geometry() if limit is None else region), \
+        #                         reducer= ee.Reducer.mean(), bestEffort=True).getInfo()
 
         ## get ancillary
         if settings['ancillary_data']:
@@ -320,13 +334,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         sr_info = i_sr.getInfo()
         obands_sr = [ib['id'] for ib in sr_info['bands']]
         print(obands_sr)
-        ## find image dimensions
-        for b in sr_info['bands']:
-            if b['id'] == tar_band:
-                odim = b['dimensions']
-                origin = b['origin']
-                print('Region dimensions {}'.format(odim))
-                print('Region origin {}'.format(origin))
     else:
         ## make rhot dataset
         i_rhot = None
@@ -355,14 +362,6 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         rhot_info = i_rhot.getInfo()
         obands_rhot = [ib['id'] for ib in rhot_info['bands']]
         print(obands_rhot)
-
-        ## find image dimensions
-        for b in rhot_info['bands']:
-            if b['id'] == tar_band:
-                odim = b['dimensions']
-                origin = b['origin']
-                print('Region dimensions {}'.format(odim))
-                print('Region origin {}'.format(origin))
 
         print('Getting geometry and gas transmittance')
         ## get geometry percentiles
@@ -575,7 +574,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     print('Running download with {} tiles'.format(len(tiles)))
 
     ## set output config for rhot
-    output_config = {'description': rhot_file, 'scale': scale,  'folder':'ACOLITE'}
+    output_config = {'description': rhot_file, 'folder':'ACOLITE'} #'scale': scale,
 
     ## test if setting crs works
     output_config['crs'] = proj_crs
@@ -671,7 +670,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     'name': output_config['description'],
                     'bands': obands_geom,
                     'region': output_config['region'],
-                    'scale': output_config['scale'],
+                    #'scale': output_config['scale'],
                     'crs': output_config['crs'],
                     'crs_transform': output_config['crs_transform'],
                     'filePerBand': False})
@@ -689,7 +688,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                             'name': output_config['description'],
                             'bands': obands_sr,
                             'region': output_config['region'],
-                            'scale': output_config['scale'],
+                            #'scale': output_config['scale'],
                             'crs': output_config['crs'],
                             'crs_transform': output_config['crs_transform'],
                             'filePerBand': False})
@@ -705,7 +704,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                             'name': output_config['description'],
                             'bands': obands_rhot,
                             'region': output_config['region'],
-                            'scale': output_config['scale'],
+                            #'scale': output_config['scale'],
                             'crs': output_config['crs'],
                             'crs_transform': output_config['crs_transform'],
                             'filePerBand': False})
@@ -722,7 +721,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         'name': output_config['description'],
                         'bands': obands_rhos,
                         'region': output_config['region'],
-                        'scale': output_config['scale'],
+                        #'scale': output_config['scale'],
                         'crs': output_config['crs'],
                         'crs_transform': output_config['crs_transform'],
                         'filePerBand': False})
@@ -739,7 +738,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         'name': output_config['description'],
                         'bands': obands_st,
                         'region': output_config['region'],
-                        'scale': output_config['scale'],
+                        #'scale': output_config['scale'],
                         'crs': output_config['crs'],
                         'crs_transform': output_config['crs_transform'],
                         'filePerBand': False})
