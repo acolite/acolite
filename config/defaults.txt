@@ -374,7 +374,8 @@ l2w_delete_netcdf=False
 
 # delete settings and log files
 delete_acolite_run_text_files=False
-
+# delete output directory if empty
+delete_acolite_output_directory=False
 # delete extracted L1 file
 delete_extracted_input=False
 

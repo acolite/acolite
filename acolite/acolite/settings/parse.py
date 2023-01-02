@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-09
 ## modifications: 2022-03-28 (QV) moved int and float lists to external files
+##                2023-01-02 (QV) test which is the lowest level of output path that needs to be created
 
 
 def parse(sensor, settings=None, merge=True):
@@ -54,5 +55,20 @@ def parse(sensor, settings=None, merge=True):
     ## default pressure
     if 'pressure' in setu:
         setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
+
+    ## test which new directory levels will be created
+    if 'output' in setu:
+        if setu['output'] is not None:
+            output = os.path.abspath(setu['output'])
+            output_split = output.split(os.path.sep)
+
+            test_path = ''
+            new_path = None
+            for l in output_split:
+                test_path += l+os.path.sep
+                if os.path.exists(test_path): continue
+                new_path = test_path
+                break
+            setu['new_path'] = new_path
 
     return(setu)

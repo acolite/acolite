@@ -12,19 +12,19 @@ def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
     import acolite as ac
 
-    print('Running ACOLITE processing - {}'.format(ac.version))
-    print('Python - {} - {}'.format(ac.python['platform'], ac.python['version']).replace('\n', ''))
-    print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
-
     ## time of processing start
     time_start = datetime.datetime.now()
 
     ## get user settings
     ## these are updated with sensor specific settings in acolite_l2r
     setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
+    l1r_setu = None
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
     if 'output' not in setu: setu['output'] = os.getcwd()
     if 'verbosity' in setu: ac.config['verbosity'] = int(setu['verbosity'])
+
+    new_path = None
+    if 'new_path' in setu: new_path = '{}'.format(setu['new_path'])
 
     ## workaround for outputting rhorc and bt
     if 'l2w_parameters' in setu:
@@ -36,6 +36,10 @@ def acolite_run(settings, inputfile=None, output=None):
     ## log file for l1r generation
     log_file = '{}/acolite_run_{}_log_file.txt'.format(setu['output'],setu['runid'])
     log = ac.acolite.logging.LogTee(log_file)
+    
+    print('Running ACOLITE processing - {}'.format(ac.version))
+    print('Python - {} - {}'.format(ac.python['platform'], ac.python['version']).replace('\n', ''))
+    print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
     print('Run ID - {}'.format(setu['runid']))
 
     ## earthdata credentials from settings file
@@ -55,8 +59,8 @@ def acolite_run(settings, inputfile=None, output=None):
     else:
         nscenes = len(setu['inputfile'])
 
-    ## get defaults settings for l1r processing
-    setu_l1r = ac.acolite.settings.parse(None, settings=setu, merge=False)
+    ## get user settings for l1r processing
+    setu_user = ac.acolite.settings.parse(None, settings=setu, merge=False)
 
     ## make list of lists to process, one list if merging tiles
     inputfile_list = ac.acolite.inputfile_test(setu['inputfile'])
@@ -84,11 +88,11 @@ def acolite_run(settings, inputfile=None, output=None):
         processed[ni] = {'input': bundle}
 
         ## save user settings
-        settings_file = '{}/acolite_run_{}_l1r_settings_user.txt'.format(setu_l1r['output'],setu_l1r['runid'])
-        ac.acolite.settings.write(settings_file, setu_l1r)
+        settings_file = '{}/acolite_run_{}_l1r_settings_user.txt'.format(setu_user['output'],setu_user['runid'])
+        ac.acolite.settings.write(settings_file, setu_user)
 
         ## run l1 convert
-        ret = ac.acolite.acolite_l1r(bundle, setu_l1r)
+        ret = ac.acolite.acolite_l1r(bundle, setu_user)
         if len(ret) == 0: continue
         if len(ret[0]) == 0: continue
 
@@ -288,17 +292,41 @@ def acolite_run(settings, inputfile=None, output=None):
                             print('Deleting {}'.format(panf))
                             os.remove(panf)
 
-    ## remove log and settings files
-    try:
-        delete_text = l1r_setu['delete_acolite_run_text_files']
-        op, ri = l1r_setu['output'], l1r_setu['runid']
-    except:
-        delete_text = False if 'delete_acolite_run_text_files' not in setu_l1r else setu_l1r['delete_acolite_run_text_files']
-        op, ri = setu_l1r['output'], setu_l1r['runid']
+    ## if l1r_setu was not created use user settings here to check if
+    ## delete_acolite_run_text_files or delete_acolite_output_directory are set
+    if l1r_setu == None: l1r_setu = {k: setu_user[k] for k in setu_user}
 
-    if delete_text:
-        tfiles = glob.glob('{}/acolite_run_{}_*.txt'.format(op, ri))
-        for tf in tfiles:
-            os.remove(tf)
+    ## remove log and settings files for this run
+    try:
+        if l1r_setu['delete_acolite_run_text_files']:
+            tfiles = glob.glob('{}/acolite_run_{}_*.txt'.format(l1r_setu['output'], l1r_setu['runid']))
+            for tf in tfiles: os.remove(tf)
+    except KeyError:
+        print('Not removing text files as "delete_acolite_run_text_files" is not in settings.')
+    except BaseException as err:
+        print('Could not remove ACOLITE text files in directory {}'.format(l1r_setu['output']))
+
+    ## remove output directory if delete_acolite_output_directory is True and the directory is empty
+    try:
+        if (l1r_setu['delete_acolite_output_directory']) & (new_path is not None):
+            output = os.path.abspath(setu['output'])
+            output_split = output.split(os.path.sep)
+            ## create list of directory levels to delete
+            to_delete = []
+            test_path = ''
+            for l in output_split:
+                test_path += l+os.path.sep
+                if len(test_path) < len(new_path): continue
+                to_delete.append(test_path)
+            ## start from last directory level
+            to_delete.reverse()
+            for td in to_delete:
+                os.rmdir(td)
+                print('Removed {}'.format(td))
+    except KeyError:
+        print('Not testing output directory as "delete_acolite_output_directory" is not in settings.')
+    except OSError as err:
+        print('Could not remove output directory {}'.format(l1r_setu['output']))
+        if (err.errno == 66): print('Output directory not empty {}'.format(l1r_setu['output']))
 
     return(processed)
