@@ -1,0 +1,21 @@
+## ACOLITE default settings for SDGSAT-1 KX10 MII
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=400,900
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+## masking options
+l2w_mask_wave=850
+l2w_mask_threshold=0.1
+
+## vicarious Lt/rhot gains, not DN->Lt gains, they are taken from calib xml
+gains=False
+gains_toa=1.,1.,1.,1.,1.,1.,1.
+offsets_toa=0.,0.,0.,0.,0.,0.,0.

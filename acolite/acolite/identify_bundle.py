@@ -279,6 +279,23 @@ def identify_bundle(bundle, input_type = None, output = None):
         ## end FORMOSAT
         ################
 
+
+        ################
+        ## SDGSAT-1 KX10 MII
+        try:
+            metafiles, calfiles, imgfiles = ac.sdgsat.bundle_test(bundle)
+            for mi, mf in enumerate(metafiles):
+                meta = ac.sdgsat.metadata(mf)
+                cal = ac.sdgsat.calibration(calfiles[mi])
+                sensor = '{}_{}'.format(meta['SatelliteID'], meta['SensorID'])
+                if sensor in ['KX10_MII']:
+                    input_type = 'SDGSAT'
+                    break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end SDGSAT-1 KX10 MII
+        ################
+
         ################
         ## IKONOS2
         try:

@@ -166,6 +166,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ################
 
     ################
+    ## SDGSAT
+    if input_type == 'SDGSAT':
+        l1r_files, setu = ac.sdgsat.l1_convert(bundle, settings = setu)
+    ## end SDGSAT
+    ################
+
+    ################
     ## IKONOS
     if input_type == 'IKONOS':
         l1r_files, setu = ac.ikonos.l1_convert(bundle, settings = setu)
