@@ -98,10 +98,14 @@ def l1_convert(inputfile, output = None, settings = {},
         azi_use_band = '5'
         sat = 'L{}'.format(spacecraft_id[-1])
         pan_scale = 2
+        satellite_sensor = None
         if sensor_id in ['TM']:# Landsat 5
             sen = 'TM'
             pan_bands = []
             thermal_bands = ['6']
+            if sat == 'L4':
+                satellite_sensor = '{}_{}'.format(sat,sen)
+                sat = 'L5' ## to use the same LUT as L5
         elif sensor_id in ['ETM']:# Landsat 7
             sen = 'ETM'
             pan_bands = ['8']
@@ -110,10 +114,6 @@ def l1_convert(inputfile, output = None, settings = {},
             sen = 'OLI'
             pan_bands = ['8']
             thermal_bands = ['10', '11']
-        #elif sensor_id in ['OLI2', 'OLI2_TIRS2']:# Landsat 9
-        #    sen = 'OLI2'
-        #    pan_bands = ['8']
-        #    thermal_bands = ['10', '11']
         elif sensor_id in ['ALI']:# EO1/ALI
             pan_scale = 3
             sat = 'EO1'
@@ -135,6 +135,7 @@ def l1_convert(inputfile, output = None, settings = {},
             print('Not configured')
             continue
 
+        ## sensor name
         sensor = '{}_{}'.format(sat,sen)
 
         ## merge sensor specific settings
@@ -219,6 +220,8 @@ def l1_convert(inputfile, output = None, settings = {},
                  'sza':sza, 'vza':vza, 'vaa':vaa, 'saa':saa, 'raa':raa, 'se_distance': se_distance,
                  'mus': np.cos(sza*(np.pi/180.)), 'wrs_path': path, 'wrs_row': row,
                  'acolite_file_type': 'L1R'}
+        ## track L4 satellite sensor to use same LUT as L5, but not duplicate LUT space
+        if satellite_sensor is not None: gatts['satellite_sensor'] = satellite_sensor
         if merge_tiles:
             gatts['tile_code'] = 'merged'
         else:
