@@ -56,7 +56,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     fkey, pid = image[0], image[1]
 
     tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
-    if ('LANDSAT' in fkey) & (pid[0:3] == 'LT0'): tar_band = 'B10' ## TIRS only data
+    if ('LANDSAT' in fkey) & (pid[0:4] in ['LT08', 'LT09']): tar_band = 'B10' ## TIRS only data
     if ('LANDSAT' in fkey) & (settings['surface_reflectance']): tar_band = 'SR_B2' ## Landsat SR data
 
     ## output file names for combined file
@@ -77,7 +77,11 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## file type for file name
     file_type = 'L1R_GEE'
     if settings['run_hybrid_dsf']: file_type = 'L2R_GEE_HYBRID'
-    if settings['run_hybrid_tact']: file_type = 'ST_GEE_HYBRID'
+    if settings['run_hybrid_tact']:
+        if settings['run_hybrid_dsf']:
+            file_type = 'L2R_ST_GEE_HYBRID'
+        else:
+            file_type = 'ST_GEE_HYBRID'
     if settings['surface_reflectance']: file_type = 'SR_GEE'
 
     ## select product
@@ -130,6 +134,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             crs_transform = b['crs_transform']
             print('Region dimensions {}'.format(odim))
             print('Region origin {}'.format(origin))
+            print(crs)
+            print(crs_transform)
 
     ## set up projection
     prj = osr.SpatialReference()
@@ -163,12 +169,17 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         path = '{}'.format(im['properties']['WRS_PATH']).zfill(3)
         tile_name = '{}{}'.format(path, row)
         satellite = pid[0]+pid[3]
-        if satellite == 'L5':
+        satellite_sensor = None
+        if satellite == 'L4':
+            sensor = 'L5_TM'.format(satellite) ## use same LUT as for L5
+            satellite_sensor = '{}_TM'.format(satellite)
+        elif satellite == 'L5':
             sensor = '{}_TM'.format(satellite)
         elif satellite == 'L7':
             sensor = '{}_ETM'.format(satellite)
         elif satellite in ['L8', 'L9']:
             sensor = '{}_OLI'.format(satellite)
+        if satellite_sensor is None: satellite_sensor = '{}'.format(sensor)
         scale_factor = 1
         add_factor = 0
         if settings['surface_reflectance']:
@@ -183,7 +194,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     if settings['use_scene_name']:
         ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
     else:
-        obase  = '{}_{}_{}_{}{}'.format(sensor,  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
+        obase  = '{}_{}_{}_{}{}'.format(satellite_sensor,  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
         ofile = '{}/{}.nc'.format(os.path.dirname(rhot_file_local), obase)
 
     if os.path.exists(ofile) & (settings['override'] is False):
@@ -574,7 +585,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     print('Running download with {} tiles'.format(len(tiles)))
 
     ## set output config for rhot
-    output_config = {'description': rhot_file, 'folder':'ACOLITE'} #'scale': scale,
+    output_config = {'description': rhot_file, 'folder':'ACOLITE', 'scale': scale}
 
     ## test if setting crs works
     output_config['crs'] = proj_crs
@@ -670,7 +681,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     'name': output_config['description'],
                     'bands': obands_geom,
                     'region': output_config['region'],
-                    #'scale': output_config['scale'],
+                    'scale': output_config['scale'],
                     'crs': output_config['crs'],
                     'crs_transform': output_config['crs_transform'],
                     'filePerBand': False})
@@ -688,7 +699,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                             'name': output_config['description'],
                             'bands': obands_sr,
                             'region': output_config['region'],
-                            #'scale': output_config['scale'],
+                            'scale': output_config['scale'],
                             'crs': output_config['crs'],
                             'crs_transform': output_config['crs_transform'],
                             'filePerBand': False})
@@ -704,7 +715,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                             'name': output_config['description'],
                             'bands': obands_rhot,
                             'region': output_config['region'],
-                            #'scale': output_config['scale'],
+                            'scale': output_config['scale'],
                             'crs': output_config['crs'],
                             'crs_transform': output_config['crs_transform'],
                             'filePerBand': False})
@@ -721,7 +732,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         'name': output_config['description'],
                         'bands': obands_rhos,
                         'region': output_config['region'],
-                        #'scale': output_config['scale'],
+                        'scale': output_config['scale'],
                         'crs': output_config['crs'],
                         'crs_transform': output_config['crs_transform'],
                         'filePerBand': False})
@@ -738,7 +749,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         'name': output_config['description'],
                         'bands': obands_st,
                         'region': output_config['region'],
-                        #'scale': output_config['scale'],
+                        'scale': output_config['scale'],
                         'crs': output_config['crs'],
                         'crs_transform': output_config['crs_transform'],
                         'filePerBand': False})
@@ -867,6 +878,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         gatts['acolite_type'] = 'l1r_gee'
         gatts['pid'] = pid
         gatts['sensor'] = sensor
+        gatts['satellite_sensor'] = satellite_sensor
         gatts['isodate'] = dt.isoformat()
         ## add image metadata from properties
         property_keys = list(im['properties'].keys())
@@ -888,7 +900,10 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 gatts['ac_model'] = sel_lut
                 gatts['ac_var'] = sel_val
             if settings['run_hybrid_tact']:
-                gatts['acolite_type'] = 'st_gee_hybrid'
+                if settings['run_hybrid_dsf']:
+                    gatts['acolite_type'] = 'l2r_st_gee_hybrid'
+                else:
+                    gatts['acolite_type'] = 'st_gee_hybrid'
 
         ## output file names
         ext = ''
@@ -898,7 +913,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         if settings['use_scene_name']:
             ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
         else:
-            obase  = '{}_{}_{}_{}{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
+            obase  = '{}_{}_{}_{}{}'.format(gatts['satellite_sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
             ofile = '{}/{}.nc'.format(os.path.dirname(rhot_file_local), obase)
         print(ofile)
 
@@ -979,11 +994,15 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             for b in bnames:
                 if b not in obands_sr: continue
                 sr_ds = 'st{}'.format(b.replace('ST_B', ''))
-                ## write sr data
+                ## write st data
                 if sr_data is not None:
-                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att,
+                    ## mask out of scene data
+                    cur_data = sr_data[bii, :, :] * 1.0
+                    cur_data[cur_data<=thermal_add_factor] = np.nan
+                    ac.output.nc_write(ofile, sr_ds, cur_data, dataset_attributes=att,
                                        netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-                    print('Wrote {}'.format(sr_ds))
+                    print('Wrote {} ({})'.format(sr_ds, cur_data.shape))
+                    cur_data = None
                     bii += 1
         ## end write Landsat L2 ST
 
@@ -994,17 +1013,24 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 if b not in thermal_bands: continue
 
                 if rhot_data is not None:
+                    cur_data = rhot_data[bi, :, :] * 1.0
                     dso = b.replace('B', 'bt')
-                    ac.output.nc_write(ofile, dso, rhot_data[bi, :, :], dataset_attributes={'band': b},
+                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes={'band': b},
                                        netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-                    print('Wrote {}'.format(dso))
+                    print('Wrote {} ({})'.format(dso, cur_data.shape))
+                    cur_data = None
 
                 if st_data is not None:
                     if b in obands_st:
+                        if len(st_data.shape) == 3:
+                            cur_data = st_data[bii, :, :] * 1.0
+                        else:
+                            cur_data = st_data * 1.0
                         dso = b.replace('B', 'st')
-                        ac.output.nc_write(ofile, dso, st_data[bii, :, :], dataset_attributes={'band': b},
+                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes={'band': b},
                                            netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-                        print('Wrote {}'.format(dso))
+                        print('Wrote {} ({})'.format(dso, cur_data.shape))
+                        cur_data = None
                         bii += 1
 
         print('Wrote {}'.format(ofile))

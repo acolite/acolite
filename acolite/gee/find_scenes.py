@@ -3,11 +3,12 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-04-12
 ## modifications: 2022-12-25 (QV) added SR option
+##                2023-01-05 (QV) added L4 and L1-5 MSS
 
 def find_scenes(isodate_start, isodate_end=None, day_range=1,
                 surface_reflectance=False,
                 limit=None, st_lat=None, st_lon=None, filter_tiles=None,
-                sensors=['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI']):
+                sensors=['L4_TM', 'L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI']):
     import ee
     #ee.Authenticate() ## assume ee use is authenticated in current environment
     ee.Initialize()
@@ -43,6 +44,15 @@ def find_scenes(isodate_start, isodate_end=None, day_range=1,
     ## identify collections
     collections = []
     landsats = []
+    ## MultiSpectral Scanners
+    if 'L1_MSS' in sensors: landsats.append('LM01')
+    if 'L2_MSS' in sensors: landsats.append('LM02')
+    if 'L3_MSS' in sensors: landsats.append('LM03')
+    if 'L4_MSS' in sensors: landsats.append('LM04')
+    if 'L5_MSS' in sensors: landsats.append('LM05')
+
+    ## newer sensors
+    if 'L4_TM' in sensors: landsats.append('LT04')
     if 'L5_TM' in sensors: landsats.append('LT05')
     if 'L7_ETM' in sensors: landsats.append('LE07')
     if 'L8_OLI' in sensors: landsats.append('LC08')
