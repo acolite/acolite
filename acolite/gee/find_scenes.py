@@ -64,9 +64,15 @@ def find_scenes(isodate_start, isodate_end=None, day_range=1,
         for tier in landsat_tiers:
             for coll in landsat_collections:
                 if surface_reflectance:
-                    collections.append('{}/{}/{}/{}_L2'.format('LANDSAT', landsat, coll, tier))
+                    if landsat[1] == 'M':
+                        print('No SR for MSS.')
+                    else:
+                        collections.append('{}/{}/{}/{}_L2'.format('LANDSAT', landsat, coll, tier))
                 else:
-                    collections.append('{}/{}/{}/{}_TOA'.format('LANDSAT', landsat, coll, tier))
+                    if landsat[1] == 'M':
+                        collections.append('{}/{}/{}/{}'.format('LANDSAT', landsat, coll, tier))
+                    else:
+                        collections.append('{}/{}/{}/{}_TOA'.format('LANDSAT', landsat, coll, tier))
 
     if ('S2A_MSI' in sensors) or ('S2B_MSI' in sensors):
         ## harmonized has scenes from new processing shifted to old processing

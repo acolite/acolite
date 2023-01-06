@@ -57,6 +57,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     tar_band = 'B2' ## target band for projection and output resolution 10m for S2, 30m for Landsat
     if ('LANDSAT' in fkey) & (pid[0:4] in ['LT08', 'LT09']): tar_band = 'B10' ## TIRS only data
+    if ('LANDSAT' in fkey) & (pid[0:4] in ['LM01', 'LM02','LM03']): tar_band = 'B4'
     if ('LANDSAT' in fkey) & (settings['surface_reflectance']): tar_band = 'SR_B2' ## Landsat SR data
 
     ## output file names for combined file
@@ -170,15 +171,22 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         tile_name = '{}{}'.format(path, row)
         satellite = pid[0]+pid[3]
         satellite_sensor = None
-        if satellite == 'L4':
-            sensor = 'L5_TM'.format(satellite) ## use same LUT as for L5
-            satellite_sensor = '{}_TM'.format(satellite)
-        elif satellite == 'L5':
-            sensor = '{}_TM'.format(satellite)
-        elif satellite == 'L7':
-            sensor = '{}_ETM'.format(satellite)
-        elif satellite in ['L8', 'L9']:
-            sensor = '{}_OLI'.format(satellite)
+
+        if 'MSS' in im['properties']['SENSOR_ID']:
+            sensor = '{}_MSS'.format(satellite)
+        else:
+            if satellite == 'L4':
+                sensor = 'L5_TM' ## use same LUT as for L5
+                satellite_sensor = '{}_TM'.format(satellite)
+            elif satellite == 'L5':
+                sensor = '{}_TM'.format(satellite)
+            elif satellite == 'L7':
+                sensor = '{}_ETM'.format(satellite)
+            elif satellite in ['L8', 'L9']:
+                sensor = '{}_OLI'.format(satellite)
+
+        print(im['properties'])
+
         if satellite_sensor is None: satellite_sensor = '{}'.format(sensor)
         scale_factor = 1
         add_factor = 0
@@ -351,8 +359,17 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         for b in rsrd[sensor]['rsr_bands']:
             bname = 'B{}'.format(b)
             print('rhot {}'.format(bname))
+            if 'MSS' in sensor:
+                add_factor = im['properties']['REFLECTANCE_ADD_BAND_{}'.format(b)]
+                scale_factor = im['properties']['REFLECTANCE_MULT_BAND_{}'.format(b)]
+                if i_rhot is None: i = i.toFloat()
+
             ## gas and path corrected rhot
             rhot = i.expression('(DN + {}) * {}'.format(add_factor, scale_factor), {'DN': i.select(bname)})
+            if 'MSS' in sensor:
+                mus = np.cos(np.radians(90-im['properties']['SUN_ELEVATION']))
+                rhot = rhot.expression('rhot/{}'.format(mus), {'rhot': rhot.select(bname)})
+
             if i_rhot is None:
                 i_rhot = ee.Image(rhot)
             else:
