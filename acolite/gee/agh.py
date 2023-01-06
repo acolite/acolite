@@ -1011,6 +1011,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             for b in bnames:
                 if b not in obands_sr: continue
                 sr_ds = 'st{}'.format(b.replace('ST_B', ''))
+                att = {'band': b}
                 ## write st data
                 if sr_data is not None:
                     ## mask out of scene data
@@ -1028,11 +1029,11 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             bii = 0
             for bi, b in enumerate(obands_rhot):
                 if b not in thermal_bands: continue
-
+                att = {'band': b}
                 if rhot_data is not None:
                     cur_data = rhot_data[bi, :, :] * 1.0
                     dso = b.replace('B', 'bt')
-                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes={'band': b},
+                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att,
                                        netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
                     print('Wrote {} ({})'.format(dso, cur_data.shape))
                     cur_data = None
@@ -1044,7 +1045,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         else:
                             cur_data = st_data * 1.0
                         dso = b.replace('B', 'st')
-                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes={'band': b},
+                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att,
                                            netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
                         print('Wrote {} ({})'.format(dso, cur_data.shape))
                         cur_data = None
