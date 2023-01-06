@@ -3,7 +3,7 @@
 ## code from ac.shared.warp_and_merge
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-09-22
-## modifications:
+## modifications: 2022-12-30 (QV) update to use gdal_merge import
 
 def copernicus_dem_rpc(dct_limit, output=None):
     import acolite as ac
@@ -28,5 +28,11 @@ def copernicus_dem_rpc(dct_limit, output=None):
         rpc_dem ='{}/dem_merged.tif'.format(output)
         if os.path.exists(rpc_dem): os.remove(rpc_dem)
         print('Merging {} tiles to {}'.format(len(dem_files), rpc_dem))
-        gdal_merge.main(['', '-o', rpc_dem, '-n', '0']+dem_files)
+        #gdal_merge.main(['', '-o', rpc_dem, '-n', '0']+dem_files)
+        cwd = os.getcwd()
+        odir = os.path.dirname(rpc_dem)
+        os.chdir(odir)
+        gdal_merge.main(['', '-quiet', '-n', '0']+dem_files) ## calling without -o will generate out.tif in cwd
+        if os.path.exists('out.tif'): os.rename('out.tif', os.path.basename(rpc_dem))
+        os.chdir(cwd)
     return(rpc_dem)
