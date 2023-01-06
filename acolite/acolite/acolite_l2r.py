@@ -394,14 +394,16 @@ def acolite_l2r(gem,
                     gem.data_mem[k] = None
 
     t0 = time.time()
-    print('Loading LUTs')
+    print('Loading LUTs {}'.format(setu['luts']))
     ## load reverse lut romix -> aot
-    if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, base_luts=setu['luts'])
+    if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, \
+                                                rsky_lut = setu['dsf_interface_lut'], base_luts=setu['luts'])
     ## load aot -> atmospheric parameters lut
     ## QV 2022-04-04 interface reflectance is always loaded since we include wind in the interpolation below
     ## not necessary for runs with par == romix, to be fixed
     lutdw = ac.aerlut.import_luts(add_rsky=True, par=(par if par == 'romix+rsurf' else 'romix+rsky_t'), sensor=None if hyper else gem.gatts['sensor'],
-                                  base_luts=setu['luts'], pressures = setu['luts_pressures'],
+                                  rsky_lut = setu['dsf_interface_lut'],
+                                  base_luts = setu['luts'], pressures = setu['luts_pressures'],
                                   reduce_dimensions=setu['luts_reduce_dimensions'])
     luts = list(lutdw.keys())
     print('Loading LUTs took {:.1f} s'.format(time.time()-t0))
@@ -1164,8 +1166,8 @@ def acolite_l2r(gem,
                           gem.data_mem['wind'+gk]]
                     # subset to number of estimates made for this LUT
                     ## QV 2022-07-28 maybe not needed any more?
-                    if len(xi[0]) > 1:
-                        xi = [[x[l] for l in ls[0]] for x in xi]
+                    #if len(xi[0]) > 1:
+                    #    xi = [[x[l] for l in ls[0]] for x in xi]
 
                 if hyper:
                     ## compute hyper results and resample later
@@ -1242,7 +1244,7 @@ def acolite_l2r(gem,
                             gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
 
             ## do atmospheric correction
-            rhot_noatm = (cur_data/ gem.bands[b]['tt_gas']) - romix
+            rhot_noatm = (cur_data / gem.bands[b]['tt_gas']) - romix
             romix = None
             cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
             astot=None
