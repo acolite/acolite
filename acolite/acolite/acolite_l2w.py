@@ -4,6 +4,8 @@
 ## 2021-03-09
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2022-09-28 (QV) changed gem from dict to object
+import concurrent.futures
+from threading import Lock
 
 def acolite_l2w(gem,
                 settings = {},
@@ -135,18 +137,34 @@ def acolite_l2w(gem,
     if verbosity > 3: print('Computing TOA limit mask.')
     toa_mask = None
     outmask = None
-    for ci, cur_par in enumerate(rhot_ds):
-        if rhot_waves[ci]<setu['l2w_mask_high_toa_wave_range'][0]: continue
-        if rhot_waves[ci]>setu['l2w_mask_high_toa_wave_range'][1]: continue
+    # WIP BEGIN toa_out_of_limit
+    # for ci, cur_par in enumerate(rhot_ds):
+    def toa_out_of_limt(cur_par, rhot_waves_ci, setu):
+        if rhot_waves_ci<setu['l2w_mask_high_toa_wave_range'][0]: return None
+        if rhot_waves_ci>setu['l2w_mask_high_toa_wave_range'][1]: return None
         if verbosity > 3: print('Computing TOA limit mask from {} > {}.'.format(cur_par, setu['l2w_mask_high_toa_threshold']))
         cur_data = gem.data(cur_par)
-        if outmask is None: outmask = np.zeros(cur_data.shape).astype(bool)
-        outmask = (outmask) | (np.isnan(cur_data))
         if setu['l2w_mask_smooth']:
             cur_data = ac.shared.fillnan(cur_data)
             cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
-        if toa_mask is None: toa_mask = np.zeros(cur_data.shape).astype(bool)
-        toa_mask = (toa_mask) | (cur_data > setu['l2w_mask_high_toa_threshold'])
+        return cur_data
+    futures = []
+    with  concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(toa_out_of_limt, cur_par, rhot_waves[ci], setu) for ci, cur_par in enumerate(rhot_ds) ]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                cur_data = future.result()
+                if(cur_data is not None):
+                    if outmask is None: outmask = np.zeros(cur_data.shape).astype(bool)
+                    outmask = (outmask) | (np.isnan(cur_data))
+                    if toa_mask is None: toa_mask = np.zeros(cur_data.shape).astype(bool)
+                    toa_mask = (toa_mask) | (cur_data > setu['l2w_mask_high_toa_threshold'])
+            except Exception as exc:
+                print('toa_out_of_limt: generated an exception: %s' % (exc))
+            else:
+                print('toa_out_of_limt: Band completed')
+    # WIP END toa_out_of_limit
+
     l2_flags = (l2_flags) | (toa_mask.astype(np.int32)*(2**setu['flag_exponent_toa']))
     toa_mask = None
     l2_flags = (l2_flags) | (outmask.astype(np.int32)*(2**setu['flag_exponent_outofscene']))
@@ -155,14 +173,31 @@ def acolite_l2w(gem,
     ## negative rhos
     if verbosity > 3: print('Computing negative reflectance mask.')
     neg_mask = None
-    for ci, cur_par in enumerate(rhos_ds):
-        if rhos_waves[ci]<setu['l2w_mask_negative_wave_range'][0]: continue
-        if rhos_waves[ci]>setu['l2w_mask_negative_wave_range'][1]: continue
+    # WIP BEING negative_rhos
+    # for ci, cur_par in enumerate(rhos_ds):
+    def negative_rhos(cur_par, rhos_waves_ci, setu):
+        if rhos_waves_ci<setu['l2w_mask_negative_wave_range'][0]: return None
+        if rhos_waves_ci>setu['l2w_mask_negative_wave_range'][1]: return None
         if verbosity > 3: print('Computing negative reflectance mask from {}.'.format(cur_par))
         cur_data = gem.data(cur_par)
         #if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
-        if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
-        neg_mask = (neg_mask) | (cur_data < 0)
+        return cur_data
+
+    futures = []
+    with  concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(negative_rhos, cur_par, rhos_waves[ci], setu) for ci, cur_par in enumerate(rhos_ds) ]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                cur_data = future.result()
+                if(cur_data is not None):
+                    if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
+                    neg_mask = (neg_mask) | (cur_data < 0)
+            except Exception as exc:
+                print('negative_rhos: generated an exception: %s' % (exc))
+            else:
+                print('negative_rhos: Band completed')
+    # WIP end negative_rhos
+
     l2_flags = (l2_flags) | (neg_mask.astype(np.int32)*(2**setu['flag_exponent_negative']))
     neg_mask = None
 
@@ -196,6 +231,7 @@ def acolite_l2w(gem,
             copy_datasets.append(cur_par)
 
     ## copy datasets
+    # WIP Multithread Candidate ?? more difficult cause IO but the IO write seems to be at end.
     for ci, cur_par in enumerate(copy_datasets):
         factor = 1.0
         cur_tag = '{}'.format(cur_par)
