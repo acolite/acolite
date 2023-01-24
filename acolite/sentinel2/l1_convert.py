@@ -354,6 +354,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 xSrc = g.RasterXSize
                 ySrc = g.RasterYSize
                 g = None
+                # WIP Multithread candidate...?
                 xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(xSrc))
                 ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(ySrc))
                 sza = ac.shared.tiles_interp(grmeta['SUN']['Zenith'], xnew, ynew, smooth=False, method='linear')
@@ -363,6 +364,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 if geometry_type == 'grids':
                     #xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
                     #ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
+                    # WIP Multithread candidate...?
                     vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
                     vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
 
@@ -391,6 +393,7 @@ def l1_convert(inputfile, output = None, settings = {},
                     vaa = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1])))+np.nan
 
                     if verbosity>1:print('Computing band average per detector geometry')
+                    # WIP Multithread candidate...?
                     for nf, bv in enumerate(dval):
                         if bv == 0: continue ## fill value in new format
                         ## compute detector average geometry
@@ -425,6 +428,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ## use target band so we can just do the 60 metres geometry
                 if os.path.exists(target_file):
+                    # WIP Multithread candidate...?
                     sza = ac.shared.warp_from_source(target_file, dct_prj, sza, warp_to=warp_to) # alt (dct, dct_prj, sza)
                     saa = ac.shared.warp_from_source(target_file, dct_prj, saa, warp_to=warp_to)
                     vza = ac.shared.warp_from_source(target_file, dct_prj, vza, warp_to=warp_to)
@@ -437,6 +441,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ## write detector footprint data
                 if (setu['s2_write_dfoo']) & (dfoo is not None):
+                    # WIP Multithread candidate...?
                     dfoo_ = ac.shared.warp_from_source(target_file, dct_prj, dfoo, warp_to=warp_to)
                     dfoo_[mask] = -1
                     if clip: dfoo_[clip_mask] = -1
@@ -473,6 +478,7 @@ def l1_convert(inputfile, output = None, settings = {},
                             dval = np.unique(dfoo)
 
                     ## compute band specific view geometry
+                    # WIP Multithread candidate...?
                     for bi, b in enumerate(bands):
                         Bn = band_data['BandNames'][b]
                         print('Computing band specific geometry - {}'.format(Bn))
@@ -591,6 +597,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
             ## write per band geometry
             if (geometry_per_band) & ((geometry_type == 'grids') | (geometry_type == 'grids_footprint')):
+                # WIP Multithread candidate...?
                 for bi, b in enumerate(rsr_bands):
                     Bn = 'B{}'.format(b)
                     print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
@@ -672,6 +679,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if s2_include_auxillary:
             ofile_aux = '{}/{}'.format(os.path.dirname(ofile), os.path.basename(ofile).replace('_L1R.nc', '_AUX.nc'))
             ofile_aux_new = True
+            # WIP Multithread candidate...?
             for source in ['AUX_CAMSFO', 'AUX_ECMWFT']:
                 ## read aux data
                 aux_data = ac.sentinel2.auxillary(bundle, granule, sources=[source])
@@ -716,6 +724,7 @@ def l1_convert(inputfile, output = None, settings = {},
             for Bn in band_data['RADIO_ADD_OFFSET']:
                 band_data['RADIO_ADD_OFFSET'][Bn] = float(band_data['RADIO_ADD_OFFSET'][Bn])
         if verbosity > 1: print('Converting bands')
+        # WIP Multithread candidate...?
         for bi, b in enumerate(rsr_bands):
             Bn = 'B{}'.format(b)
             if Bn not in safe_files[granule]: continue
