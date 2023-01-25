@@ -9,6 +9,9 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 
+import concurrent.futures
+from threading import Lock
+
 def l1_convert(inputfile, output = None, settings = {},
 
                 output_pan = True,
@@ -478,23 +481,33 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## write TOA bands
         if verbosity > 1: print('Converting bands')
-        for b in fmeta:
-            if '.TIF' not in fmeta[b]['FILE']: continue
-            if b in ['PIXEL', 'RADSAT']: continue
-            if os.path.exists(fmeta[b]['FILE']):
+        # WIP BEGIN convert_band
+        # for b in fmeta:
+        def convert_band(b, fmeta_b, waves_names, pan_bands, output_pan, output_pan_ms, new_pan, new, \
+            mus, pan_scale, sub_pan, warp_to_pan, sub, warp_to, waves_mu, \
+            percentiles_compute, percentiles, \
+            gains, gains_dict, \
+            setu, ofile, \
+            clip, clip_mask, \
+            thermal_bands, output_thermal, \
+            gatts, nc_projection_pan, nc_projection, \
+            verbosity, lock):
+            if '.TIF' not in fmeta_b['FILE']: return
+            if b in ['PIXEL', 'RADSAT']: return
+            if os.path.exists(fmeta_b['FILE']):
                 if b in waves_names:
                     pan = False
                     if b in pan_bands: ## pan band
-                        if (not output_pan) & (not output_pan_ms): continue
+                        if (not output_pan) & (not output_pan_ms): return
                         pan = True
                         mus_pan = scipy.ndimage.zoom(mus, zoom=pan_scale, order=1) if len(np.atleast_1d(mus))>1 else mus * 1
-                        data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan, warp_to=warp_to_pan)
+                        data = ac.landsat.read_toa(fmeta_b, sub=sub_pan, mus=mus_pan, warp_to=warp_to_pan)
                         mus_pan = None
                     else: ## not a pan band
-                        data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=mus, warp_to=warp_to)
+                        data = ac.landsat.read_toa(fmeta_b, sub=sub, mus=mus, warp_to=warp_to)
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
-                    for k in fmeta[b]: ds_att[k] = fmeta[b][k]
+                    for k in fmeta_b: ds_att[k] = fmeta_b[k]
                     if percentiles_compute:
                         ds_att['percentiles'] = percentiles
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
@@ -507,11 +520,12 @@ def l1_convert(inputfile, output = None, settings = {},
                     if output_pan & pan:
                         ## write output
                         ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
-                        ac.output.nc_write(ofile_pan, ds, data, attributes=gatts,replace_nan=True,
-                                           new=new_pan, dataset_attributes = ds_att, nc_projection=nc_projection_pan,
-                                           netcdf_compression=setu['netcdf_compression'],
-                                           netcdf_compression_level=setu['netcdf_compression_level'],
-                                           netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                        with lock:
+                            ac.output.nc_write(ofile_pan, ds, data, attributes=gatts,replace_nan=True,
+                                            new=new_pan, dataset_attributes = ds_att, nc_projection=nc_projection_pan,
+                                            netcdf_compression=setu['netcdf_compression'],
+                                            netcdf_compression_level=setu['netcdf_compression_level'],
+                                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                         new_pan = False
                         if verbosity > 1: print('Converting bands: Wrote {} to separate L1R_pan'.format(ds))
 
@@ -522,35 +536,58 @@ def l1_convert(inputfile, output = None, settings = {},
                     if clip: data[clip_mask] = np.nan
 
                     ## write to ms file
-                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
-                                       dataset_attributes = ds_att, nc_projection=nc_projection,
-                                       netcdf_compression=setu['netcdf_compression'],
-                                       netcdf_compression_level=setu['netcdf_compression_level'],
-                                       netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                    with lock:
+                        ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
+                                        dataset_attributes = ds_att, nc_projection=nc_projection,
+                                        netcdf_compression=setu['netcdf_compression'],
+                                        netcdf_compression_level=setu['netcdf_compression_level'],
+                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
                 else:
                     if b in thermal_bands:
                         if output_thermal:
+                            data = ac.landsat.read_toa(fmeta_b, sub=sub, warp_to=warp_to) # Changed from acolite - fairly certain the original code is in error given the need for data var for percentiles calculation
                             ds = 'bt{}'.format(b).lower()
                             ds_att = {'band':b}
-                            for k in fmeta[b]: ds_att[k] = fmeta[b][k]
+                            for k in fmeta_b: ds_att[k] = fmeta_b[k]
                             if percentiles_compute:
                                 ds_att['percentiles'] = percentiles
                                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
-                            data = ac.landsat.read_toa(fmeta[b], sub=sub, warp_to=warp_to)
 
                             ## clip data
                             if clip: data[clip_mask] = np.nan
-                            ac.output.nc_write(ofile, ds, data, replace_nan=True,
-                                               attributes=gatts, new=new, dataset_attributes=ds_att,
-                                               netcdf_compression=setu['netcdf_compression'],
-                                               netcdf_compression_level=setu['netcdf_compression_level'],
-                                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                            with lock:
+                                ac.output.nc_write(ofile, ds, data, replace_nan=True,
+                                                attributes=gatts, new=new, dataset_attributes=ds_att,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'],
+                                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
                             new = False
                             if verbosity > 1: print('Converting bands: Wrote {}'.format(ds))
                     else:
-                        continue
+                        return
+        # WIP END convert_band
+        lock = Lock()
+        with  concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_band = {
+                executor.submit(convert_band, b, fmeta[b], waves_names, pan_bands, output_pan, output_pan_ms, new_pan, new, \
+                    mus, pan_scale, sub_pan, warp_to_pan, sub, warp_to, waves_mu, \
+                    percentiles_compute, percentiles, \
+                    gains, gains_dict, \
+                    setu, ofile, \
+                    clip, clip_mask, \
+                    thermal_bands, output_thermal, \
+                    gatts, nc_projection_pan, nc_projection, \
+                    verbosity, lock) : b for b in fmeta }
+            for future in concurrent.futures.as_completed(future_to_band):
+                band = future_to_band[future]
+                try:
+                    data = future.result()
+                except Exception as exc:
+                    print('%r generated an exception: %s' % (band, exc))
+                else:
+                    print('Band %r completed' % (band))
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))

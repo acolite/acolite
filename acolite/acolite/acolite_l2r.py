@@ -8,6 +8,8 @@
 ##                2022-06-21 (QV) moved orange band to separate function
 ##                2022-07-15 (QV) added option to select most common model for non-fixed DSF
 ##                2022-09-24 (QV) removed special case for DESIS
+import concurrent.futures
+from threading import Lock
 
 def acolite_l2r(gem,
                 output = None,
@@ -28,6 +30,9 @@ def acolite_l2r(gem,
     import skimage.measure
 
     time_start = datetime.datetime.now()
+
+    # WIP Lock to handle access to the gem object which has single threaded file IO
+    lock = Lock()
 
     ## read gem file if NetCDF
     if type(gem) is str:
@@ -178,7 +183,25 @@ def acolite_l2r(gem,
                     if (setu['sza_limit_replace']):
                         sza[high_sza] = setu['sza_limit']
                         print('Mean SZA after replacing SZA > {}: {:.3f}'.format(setu['sza_limit'],np.nanmean(sza)))
-    geom_mean = {k: np.nanmean(gem.data(k)) if k in gem.datasets else gem.gatts[k] for k in geom_ds}
+    # WIP Loop replaced with concurrent futures
+    # Original code: geom_mean = {k: np.nanmean(gem.data(k)) if k in gem.datasets else gem.gatts[k] for k in geom_ds}
+    geom_mean={}
+    with  concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_k = {}
+        for k in geom_ds:
+            if k in gem.datasets:
+                future_to_k.update({ executor.submit(np.nanmean, gem.data(k)) : k })
+            else:
+                geom_mean[k] = gem.gatts[k]
+
+        for future in concurrent.futures.as_completed(future_to_k):
+            k = future_to_k[future]
+            try:
+                geom_mean[k] = future.result()
+            except Exception as exc:
+                print(f'{k} generated exception as {exc}')
+    # End replace code
+
     if (geom_mean['sza'] > setu['sza_limit']):
         print('Warning: SZA out of LUT range')
         print('Mean SZA: {:.3f}'.format(geom_mean['sza']))
@@ -275,8 +298,9 @@ def acolite_l2r(gem,
     ## end tiling
 
     ## set up image segments
+    segment_data = {}
     if setu['dsf_aot_estimate'] == 'segmented':
-        segment_data = {}
+        # WIP moved initialisation so it is always done to support minimal refactor segment_data = {}
         rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
         finite_mask = np.isfinite(gem.data(rhot_ds[0]))
         segment_mask = skimage.measure.label(finite_mask)
@@ -384,6 +408,7 @@ def acolite_l2r(gem,
                     continue
                 if verbosity > 1: print('Writing {}'.format(ds))
                 cdata, catts = gem.data(ds, attributes=True)
+                # WIP if this is made multithreaded there needs to be a lock here...
                 gemo.write(ds, cdata, ds_att=catts)
 
         ## write dem
@@ -410,6 +435,19 @@ def acolite_l2r(gem,
 
     ## #####################
     ## dark spectrum fitting
+    # WIP Initialise some variables that are conditionally used so the multithreaded calls can work
+    exp_lut = None
+    long_wv = None
+    short_wv = None
+    epsilon = None
+    rhoam = None
+    exp_fixed_epsilon = None
+    exp_fixed_rhoam = None
+    mask = None
+    T_USER = None
+    T_SWIR1 = None
+    T_SWIR2 = None
+
     if (ac_opt == 'dsf'):
         ## user supplied aot
         if (setu['dsf_fixed_aot'] is not None):
@@ -440,21 +478,23 @@ def acolite_l2r(gem,
             aot_bands = []
             aot_dict = {}
             dsf_rhod = {}
-            for bi, b in enumerate(gem.bands):
-                if (b in setu['dsf_exclude_bands']): continue
-                if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
-                if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
+            # WIP: BEGIN This appears to be the time consuming section of the code and needs to be replaces by concurrent futures
+            def aot_band(b, gem, tiles, segment_data, dsf_rhod, luts, use_revlut, revl, setu, hyper, lutdw,
+                        verbosity, lock):
+                if (b in setu['dsf_exclude_bands']): return b, None
+                if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): return b, None, None
+                if gem.bands[b]['rhot_ds'] not in gem.datasets: return b, None, None
 
                 ## skip band for aot computation
-                if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']: continue
+                if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']: return b, None, None
 
                 ## skip bands according to configuration
-                if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
-                if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
+                if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): return b, None, None
+                if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): return b, None, None
 
                 if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
-
-                band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
+                with lock:
+                    band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
                 band_shape = band_data.shape
                 valid = np.isfinite(band_data)*(band_data>0)
                 mask = valid == False
@@ -528,7 +568,7 @@ def acolite_l2r(gem,
                     if not setu['resolved_geometry']: gk = '_mean'
                 else:
                     print('DSF option {} not configured'.format(setu['dsf_aot_estimate']))
-                    continue
+                    return b, None, None
 
                 ## do gas correction
                 band_sub = np.where(np.isfinite(band_data))
@@ -630,11 +670,28 @@ def acolite_l2r(gem,
 
                 ## mask minimum tile aots
                 if setu['dsf_aot_estimate'] == 'tiled': aot_band[lut][aot_band[lut]<setu['dsf_min_tile_aot']]=np.nan
-
+                return b, aot_band, gk
                 ## store current band results
-                aot_dict[b] = aot_band
-                aot_bands.append(b)
+                # aot_dict[b] = aot_band
+                # aot_bands.append(b)
 
+            with  concurrent.futures.ThreadPoolExecutor() as executor:
+                future_to_band = {
+                    executor.submit(aot_band, b, gem, tiles, segment_data, dsf_rhod, luts, use_revlut, revl, setu, hyper, lutdw,
+                        verbosity, lock) : b for b in gem.bands }
+                for future in concurrent.futures.as_completed(future_to_band):
+                    try:
+                        b, aot_band, gk = future.result()
+                        print(f"future_result: {b}, {aot_band}")
+                        if aot_band is not None:
+                            aot_dict[b] = aot_band
+                            aot_bands.append(b)
+                    except Exception as exc:
+                        print('aot_band: %r generated an exception: %s' % (aot_band, exc))
+                    else:
+                        print('aot_band: Band %r completed' % (b))
+
+            # WIP: END This appears to be the time consuming section of the code and needs to be replaces by concurrent futures
             ## get min aot per pixel
             aot_stack = {}
             for li, lut in enumerate(luts):
@@ -833,7 +890,7 @@ def acolite_l2r(gem,
         exp_b2_diff = 1000
         exp_mask = None
         exp_mask_diff = 1000
-        for b in gem.bands:
+        for b in gem.bands: # WIP Minor Candidate for multithread
             sd = np.abs(gem.bands[b]['wave_nm'] - setu['exp_wave1'])
             if (sd < 100) & (sd < exp_b1_diff):
                 exp_b1_diff = sd
@@ -1040,8 +1097,9 @@ def acolite_l2r(gem,
             gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
 
     ## figure out cirrus bands
+    rho_cirrus = None
     if setu['cirrus_correction']:
-        rho_cirrus = None
+        # WIP Initialise this to None regardless for multithread rho_cirrus = None
 
         ## use mean geometry to compute cirrus band Rayleigh
         xi = [gem.data_mem['pressure'+'_mean'][0][0],
@@ -1089,9 +1147,11 @@ def acolite_l2r(gem,
 
     hyper_res = None
     ## compute surface reflectances
-    for bi, b in enumerate(gem.bands):
-        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
-        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue ## skip if we don't have rhot for a band that is in the RSR file
+    # WIP BEGIN compute surface reflectances
+    # for bi, b in enumerate(gem.bands):
+    def compute_surface_reflectance(b, gem, gemo, setu, gk, copy_rhot, rho_cirrus, ac_opt, aot_sel, use_revlut, ttot_all, luts, aot_lut, hyper, par, lutdw, rsrd, xnew, ynew, segment_data, exp_lut, long_wv, short_wv, epsilon, rhoam, exp_fixed_epsilon, exp_fixed_rhoam, mask, verbosity, lock):
+        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): return b
+        if gem.bands[b]['rhot_ds'] not in gem.datasets: return b ## skip if we don't have rhot for a band that is in the RSR file
 
         dsi = gem.bands[b]['rhot_ds']
         dso = gem.bands[b]['rhos_ds']
@@ -1101,8 +1161,8 @@ def acolite_l2r(gem,
         if copy_rhot:
             gemo.write(dsi, cur_data, ds_att = cur_att)
 
-        if gem.bands[b]['tt_gas'] < setu['min_tgas_rho']: continue
-        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
+        if gem.bands[b]['tt_gas'] < setu['min_tgas_rho']: return b
+        if gem.bands[b]['rhot_ds'] not in gem.datasets: return b
 
         ## apply cirrus correction
         if setu['cirrus_correction']:
@@ -1321,10 +1381,24 @@ def acolite_l2r(gem,
             utotr_cur = None
 
         ## write rhos
-        gemo.write(dso, cur_data, ds_att = ds_att)
+        with lock:
+            gemo.write(dso, cur_data, ds_att = ds_att)
         cur_data = None
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+        return b
 
+    with  concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_band = {
+            executor.submit(compute_surface_reflectance, b, gem, gemo, setu, gk, copy_rhot, rho_cirrus, ac_opt, aot_sel, use_revlut, ttot_all, luts, aot_lut, hyper, par, lutdw, rsrd, xnew, ynew, segment_data, exp_lut, long_wv, short_wv, epsilon, rhoam, exp_fixed_epsilon, exp_fixed_rhoam, mask, verbosity, lock) : b for b in gem.bands }
+        for future in concurrent.futures.as_completed(future_to_band):
+            try:
+                b = future.result()
+            except Exception as exc:
+                print('compute_surface_reflectance: %r generated an exception: %s' % (b, exc))
+            else:
+                print('compute_surface_reflectance: Band %r completed' % (b))
+
+    # WIP END compute surface reflectances
     ## update outputfile dataset info
     gemo.datasets_read()
 
@@ -1438,10 +1512,12 @@ def acolite_l2r(gem,
                 ## swir band choice is made for first band
                 gc_choice = False
                 ## glint correction per band
-                for ib, b in enumerate(gemo.bands):
+                # WIP BEGIN glint Correction
+                # for ib, b in enumerate(gemo.bands):
+                def glint_correction(b, gem, setu, gemo, ttot_all, mus, sub_gc, omega, refri_sen, gc_user, gc_swir1_b, gc_swir2_b, T_SWIR1, T_SWIR2, Rf_sen, T_USER, gc_user_b, gc_swir1, gc_swir2, gc_choice, lock):
                     rhos_ds = gemo.bands[b]['rhos_ds']
-                    if rhos_ds not in gemo.datasets: continue
-                    if b not in ttot_all: continue
+                    if rhos_ds not in gemo.datasets: return b
+                    if b not in ttot_all: return b
                     print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
 
                     ## two way direct transmittance
@@ -1472,8 +1548,9 @@ def acolite_l2r(gem,
                     if gc_choice is False:
                         gc_choice = True
                         if gc_user is None:
-                            swir1_rhos = gemo.data(gc_swir1)[sub_gc]
-                            swir2_rhos = gemo.data(gc_swir2)[sub_gc]
+                            with lock:
+                                swir1_rhos = gemo.data(gc_swir1)[sub_gc]
+                                swir2_rhos = gemo.data(gc_swir2)[sub_gc]
                             ## set negatives to 0
                             swir1_rhos[swir1_rhos<0] = 0
                             swir2_rhos[swir2_rhos<0] = 0
@@ -1488,14 +1565,16 @@ def acolite_l2r(gem,
                             swir1_rhos, swir2_rhos = None, None
                             use_swir1 = None
                         else:
-                            rhog_ref = gemo.data(gc_user)[sub_gc]
+                            with lock:
+                                rhog_ref = gemo.data(gc_user)[sub_gc]
                             ## set negatives to 0
                             rhog_ref[rhog_ref<0] = 0
                         ## write reference glint
                         if setu['glint_write_rhog_ref']:
                             tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
                             tmp[sub_gc] = rhog_ref
-                            gemo.write('rhog_ref', tmp)
+                            with lock:
+                                gemo.write('rhog_ref', tmp)
                             tmp = None
                     ## end select glint correction band
 
@@ -1510,17 +1589,32 @@ def acolite_l2r(gem,
                         cur_rhog = gc_USER * rhog_ref
 
                     ## remove glint from rhos
-                    cur_data = gemo.data(rhos_ds)
+                    with lock:
+                        cur_data = gemo.data(rhos_ds)
                     cur_data[sub_gc]-=cur_rhog
-                    gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
+                    with lock:
+                        gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
 
                     ## write band glint
                     if setu['glint_write_rhog_all']:
                         tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
                         tmp[sub_gc] = cur_rhog
-                        gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
+                        with lock:
+                            gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
                         tmp = None
                     cur_rhog = None
+                    return b
+                # WIP END glint Correction function
+                with  concurrent.futures.ThreadPoolExecutor() as executor:
+                    future_to_band = {
+                        executor.submit(glint_correction, b, gem, setu, gemo, ttot_all, mus, sub_gc, omega, refri_sen, gc_user, gc_swir1_b, gc_swir2_b, T_SWIR1, T_SWIR2, Rf_sen, T_USER, gc_user_b, gc_swir1, gc_swir2, gc_choice, lock) : b for b in gem.bands }
+                    for future in concurrent.futures.as_completed(future_to_band):
+                        try:
+                            b = future.result()
+                        except Exception as exc:
+                            print('glint_correction: %r generated an exception: %s' % (b, exc))
+                        else:
+                            print('glint_correction: Band %r completed' % (b))
                 Rf_sen = None
                 rhog_ref = None
     ## end glint correction
