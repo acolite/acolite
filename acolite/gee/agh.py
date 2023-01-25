@@ -821,7 +821,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     if num_tiles == 1:
                         sr_data = ds.ReadAsArray()
                     else:
-                        if rhot_data is None: sr_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        if sr_data is None: sr_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
                         sr_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
                     sr_data[sr_data==0.0] = np.nan
