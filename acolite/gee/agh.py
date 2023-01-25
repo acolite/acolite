@@ -15,7 +15,7 @@
 ##                2023-01-02 (QV) updated projection handling and scene centre lat/lon computation
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
-    import os, dateutil.parser, requests, json
+    import os, datetime, dateutil.parser, requests, json
     import acolite as ac
     from acolite import gee ## currently not imported in main acolite
 
@@ -59,6 +59,15 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     if ('LANDSAT' in fkey) & (pid[0:4] in ['LT08', 'LT09']): tar_band = 'B10' ## TIRS only data
     if ('LANDSAT' in fkey) & (pid[0:4] in ['LM01', 'LM02','LM03']): tar_band = 'B4'
     if ('LANDSAT' in fkey) & (settings['surface_reflectance']): tar_band = 'SR_B2' ## Landsat SR data
+
+    ## check whether TACT is possible
+    if settings['run_hybrid_tact']:
+        if ('LANDSAT' not in fkey) :
+            print('Not Landsat, no hybrid TACT processing possible')
+            return()
+        if (pid[0:4] in ['LO08', 'LO09']):
+            print('OLI only data, no hybrid TACT processing possible')
+            return()
 
     ## output file names for combined file
     ## used to determine NetCDF name, also for Google Drive outputs
@@ -185,7 +194,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             elif satellite in ['L8', 'L9']:
                 sensor = '{}_OLI'.format(satellite)
 
-        print(im['properties'])
+        #print(im['properties'])
 
         if satellite_sensor is None: satellite_sensor = '{}'.format(sensor)
         scale_factor = 1
@@ -198,6 +207,13 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     ## parse datetime
     dt = dateutil.parser.parse(dtime)
+
+    if settings['run_hybrid_tact']:
+        max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
+        if dt.isoformat() > max_date:
+            print('File too recent for TACT with {} profiles: after {}'.format('era5', max_date))
+            #print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
+            return()
 
     if settings['use_scene_name']:
         ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
@@ -236,7 +252,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
         if settings['run_hybrid_tact']:
             emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
-            print(emissivity_file)
+            #print(emissivity_file)
             print('Getting TACT parameters for scene centre location.')
             thermal_sensors = {'5':'L5_TM', '7':'L7_ETM', '8':'L8_TIRS', '9':'L9_TIRS'}
             thermal_bands = {'5':'6', '7':['6_VCID_1','6_VCID_2'], '8':'10', '9':'10'}
@@ -249,7 +265,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                                                         lat = ll['latitude'],
                                                         satsen = thermal_sensor,
                                                         reptran = reptran, source = source)
-            print(thd)
+            #print(thd)
             em = json.load(open(emissivity_file, 'r'))
             #bem = em[thermal_sensor][thermal_band]
             #btau = thd['tau{}'.format(thermal_band)]
