@@ -104,7 +104,7 @@ def tact_gem(gem, output_file = True,
     if emissivity_file is not None:
         em = json.load(open(emissivity_file, 'r'))
         print('Loaded emissivity file {}'.format(emissivity_file))
-        print(em)
+        #print(em)
     else:
         em = None
 
