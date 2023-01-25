@@ -23,19 +23,19 @@ settings = {
     "l2w_parameters": "Rrs_*",
     "rgb_rhot": False,
     "rgb_rhos": False,
-    "map_l2w": False,
-    "merge_zones": False,
-    "dsf_residual_glint_correction": True,
+    # "map_l2w": False,
+    # "merge_zones": False,
+    # "dsf_residual_glint_correction": True,
     "l2w_export_geotiff": True,
     "l1r_delete_netcdf" : True,
     "l2r_delete_netcdf": True,
     "l2t_delete_netcdf": True,
-    "l2w_delete_netcdf": False,
-    "dsf_interface_reflectance": False, # False is the default
+    "l2w_delete_netcdf": True,
+    # "dsf_interface_reflectance": False, # False is the default
     "ancillary_data": False, # If you set this to True you must supply a username and password for EARTHDATA
-    "EARTHDATA_u": "",
-    "EARTHDATA_p": "",
-    "verbosity": 5
+    # "EARTHDATA_u": "",
+    # "EARTHDATA_p": "",
+    # "verbosity": 5
 }
 
 profiler = cProfile.Profile()
