@@ -4,6 +4,7 @@
 ## 2021-08-03
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2023-01-31 (QV) moved F0 import
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -21,9 +22,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
-
-    ## get F0 for radiance -> reflectance computation
-    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
     ofiles = []
     for file in inputfile:
@@ -58,6 +56,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
         gatts['obase'] = obase
+
+        ## get F0 for radiance -> reflectance computation
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
         ## read geometry data
         new = True
