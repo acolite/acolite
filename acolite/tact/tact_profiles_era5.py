@@ -23,7 +23,7 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
     import acolite as ac
 
     if obase is None:
-        os.path.abspath(ac.config['grid_dir']) + '/era5/'
+        obase = os.path.abspath(ac.config['grid_dir']) + '/era5/'
 
     ## parse date
     dt = dateutil.parser.parse(isotime)
