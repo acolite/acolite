@@ -72,6 +72,7 @@ store_rhos=True
 store_geom=True
 store_sr=True
 store_st=True
+store_sp=False
 use_scene_name=False
 target_scale=None
 

@@ -13,6 +13,7 @@
 ##                2022-12-25 (QV) added SR option
 ##                2022-12-27 (QV) fixed SR computation (for ST data) and added hybrid/offline TACT run
 ##                2023-01-02 (QV) updated projection handling and scene centre lat/lon computation
+##                2023-02-01 (QV) added extra parameters output for L2 ST data
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, datetime, dateutil.parser, requests, json
@@ -83,6 +84,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     sr_file_local = '{}/{}.zip'.format(output,sr_file)
     st_file = pid+'_st'+ext
     st_file_local = '{}/{}.zip'.format(output,st_file)
+    sp_file = pid+'_sp'+ext
+    sp_file_local = '{}/{}.zip'.format(output,sp_file)
 
     ## file type for file name
     file_type = 'L1R_GEE'
@@ -209,7 +212,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     dt = dateutil.parser.parse(dtime)
 
     if settings['run_hybrid_tact']:
-        max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
+        max_date = (datetime.datetime.now() - datetime.timedelta(days=91)).isoformat()
         if dt.isoformat() > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format('era5', max_date))
             #print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
@@ -369,6 +372,36 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         sr_info = i_sr.getInfo()
         obands_sr = [ib['id'] for ib in sr_info['bands']]
         print(obands_sr)
+
+        ## add extra par for ST
+        st_par = None
+        st_par_bands = []
+        if (sensor[0] == 'L') & (settings['store_sp']) & (im['properties']['PROCESSING_LEVEL'] == 'L2SP'):
+            sp_scale = {'ST_B6': 0.00341802, 'ST_B10': 0.00341802,
+                        'ST_ATRAN': 0.0001, 'ST_CDIST': 0.01,
+                        'ST_DRAD': 0.001, 'ST_EMIS': 0.0001,
+                        'ST_EMSD': 0.0001, 'ST_QA': 0.01,
+                        'ST_TRAD': 0.001,'ST_URAD': 0.001}
+
+            sp_offset = {'ST_B6': 149, 'ST_B10': 149,
+                         'ST_ATRAN': 0, 'ST_CDIST': 0,
+                         'ST_DRAD': 0, 'ST_EMIS': 0,
+                         'ST_EMSD': 0,'ST_QA': 0,
+                         'ST_TRAD': 0,'ST_URAD': 0}
+
+            for b in im['bands']:
+                bname = b['id']
+                if bname[0:2] == 'ST':
+                    print(bname)
+                    sp = i.expression('(DN * {}) + {} '.format(sp_scale[bname],sp_offset[bname]),
+                                      {'DN': i.select(bname)})
+                    if st_par is None:
+                        st_par = ee.Image(sp)
+                    else:
+                        st_par = st_par.addBands(sp)
+                    st_par_bands.append(bname)
+                else:
+                    continue
     else:
         ## make rhot dataset
         i_rhot = None
@@ -679,6 +712,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         rhos_files = []
         sr_files = []
         st_files = []
+        sp_files = []
 
         for ti, tile in enumerate(tiles):
             ## output file names
@@ -706,6 +740,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             sr_file_tile_local = '{}/{}.zip'.format(output,sr_file_tile)
             st_file_tile = pid+'_st'+ext
             st_file_tile_local = '{}/{}.zip'.format(output,st_file_tile)
+            sp_file_tile = pid+'_sp'+ext
+            sp_file_tile_local = '{}/{}.zip'.format(output,sp_file_tile)
 
             ## write geometry (tile)
             if settings['store_geom'] & (i_geom is not None):
@@ -741,6 +777,22 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     with open(sr_file_tile_local, 'wb') as f:
                         f.write(response.content)
                     sr_files.append(sr_file_tile_local)
+
+                if settings['store_sp'] & (st_par != None):
+                    output_config['description'] = sp_file_tile
+                    url = st_par.getDownloadUrl({
+                            'name': output_config['description'],
+                            'bands': st_par_bands,
+                            'region': output_config['region'],
+                            'scale': output_config['scale'],
+                            'crs': output_config['crs'],
+                            'crs_transform': output_config['crs_transform'],
+                            'filePerBand': False})
+                    print('Downloading {}'.format(sp_file_tile))
+                    response = requests.get(url)
+                    with open(sp_file_tile_local, 'wb') as f:
+                        f.write(response.content)
+                    sp_files.append(sp_file_tile_local)
             else:
                 if settings['store_rhot']:
                     output_config['description'] = rhot_file_tile
@@ -806,6 +858,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         geom_data = None
         sr_data = None
         st_data = None
+        sp_data = None
 
         for ti, tile in enumerate(tiles):
             print(tile[4])
@@ -825,6 +878,20 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         sr_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
                     sr_data[sr_data==0.0] = np.nan
+
+                spf = sp_files[ti]
+                sp_image_file = '/vsizip/{}/{}.tif'.format(spf, os.path.basename(os.path.splitext(spf)[0]))
+                ## read sp
+                if os.path.exists(spf):
+                    file_proj = '{}'.format(sp_image_file)
+                    ds = gdal.Open(sp_image_file)
+                    if num_tiles == 1:
+                        sp_data = ds.ReadAsArray()
+                    else:
+                        if sp_data is None: sp_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        sp_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
+                    ds = None
+                    #sr_data[sr_data==0.0] = np.nan
             else:
                 ## read rhot data
                 if len(rhot_files) == num_tiles:
@@ -1038,6 +1105,17 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     print('Wrote {} ({})'.format(sr_ds, cur_data.shape))
                     cur_data = None
                     bii += 1
+
+            ## output extra st parameters
+            if len(st_par_bands) != 0:
+                for bi, b in enumerate(st_par_bands):
+                    att = {'band': b}
+                    if sp_data is not None:
+                        cur_data = sp_data[bi, :, :]
+                        ac.output.nc_write(ofile, b, cur_data, dataset_attributes=att,
+                                           netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                        print('Wrote {} ({})'.format(b, cur_data.shape))
+                        cur_data = None
         ## end write Landsat L2 ST
 
         if not settings['surface_reflectance']:
@@ -1076,7 +1154,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
         ## clear intermediate files
         if settings['store_output_locally'] & settings['clear_output_zip_files']:
-            for zfile in rhot_files+geom_files+rhos_files+sr_files:
+            for zfile in rhot_files+geom_files+rhos_files+sr_files+sp_files:
                 if os.path.exists(zfile):
                     print('Removing {}'.format(zfile))
                     os.remove(zfile)
