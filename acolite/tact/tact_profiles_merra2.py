@@ -149,8 +149,15 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
                     if not os.path.exists(odir): os.makedirs(odir)
                     for par in pars:
                         ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, ti, la, lo, par]]))
-                        res = {'time':float(ti),'levels':[float(l) for l in levels],'lat':la, 'lon':lo,
-                                'data':[float(s) for s in list(data[par][k,:,i,j].data)]}
+
+                        ## remove levels with NaNs
+                        cur_data = [float(s) for s in list(data[par][k,:,i,j].data)]
+                        cur_levels = [float(l) for l in levels]
+                        cur_idx = [ind for ind, v in enumerate(cur_data) if np.isfinite(v)]
+                        cur_data = [cur_data[ind] for ind in cur_idx]
+                        cur_levels = [cur_levels[ind] for ind in cur_idx]
+
+                        res = {'time':float(ti),'levels':cur_levels,'lat':la, 'lon':lo, 'data':cur_data}
                         if (not os.path.exists(ofile)) or (override):
                             with open(ofile, 'w') as f:
                                 f.write(json.dumps(res))
