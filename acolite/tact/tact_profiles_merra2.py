@@ -120,11 +120,9 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
         idx = [t.strip(']') for t in sp[0].split('[')]
         par = idx[0]
         idx = [int(i) for i in idx[1:]]
-        v0 = float(sp[1])
-        v1 = float(sp[2])
-
-        if v0 < 1e15: data[par][idx[0], idx[1], idx[2], 0] = v0
-        if v1 < 1e15: data[par][idx[0], idx[1], idx[2], 1] = v1
+        for vi, v in enumerate(sp[1:]):
+            v0 = float(v)
+            if v0 < 1e15: data[par][idx[0], idx[1], idx[2], vi] = v0
 
     ## check whether these files exist
     new_data = True if override else False
