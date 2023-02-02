@@ -124,6 +124,9 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
             v0 = float(v)
             if v0 < 1e15: data[par][idx[0], idx[1], idx[2], vi] = v0
 
+    ## convert RH from fraction to percent
+    data['RH'] *= 100
+
     ## check whether these files exist
     new_data = True if override else False
     if not new_data:
