@@ -8,6 +8,7 @@
 ##                2021-02-11 (QV) added checks for merging tiles of the same sensor and close in time
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2023-02-04 (QV) added QA band output
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -480,7 +481,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if verbosity > 1: print('Converting bands')
         for b in fmeta:
             if '.TIF' not in fmeta[b]['FILE']: continue
-            if b in ['PIXEL', 'RADSAT']: continue
+            if b in setu['landsat_qa_bands']: continue
             if os.path.exists(fmeta[b]['FILE']):
                 if b in waves_names:
                     pan = False
@@ -551,6 +552,25 @@ def l1_convert(inputfile, output = None, settings = {},
                             if verbosity > 1: print('Converting bands: Wrote {}'.format(ds))
                     else:
                         continue
+
+        ## output quality assesment bands
+        if setu['landsat_qa_output']:
+            if verbosity > 1: print('Writing QA bands')
+            for b in fmeta:
+                if '.TIF' not in fmeta[b]['FILE']: continue
+                if b not in setu['landsat_qa_bands']: continue
+                ds = 'QA_{}'.format(b)
+                ds_att = {'band':b}
+                for k in fmeta[b]: ds_att[k] = fmeta[b][k]
+                data = ac.shared.read_band(fmeta[b]['FILE'], sub=sub, warp_to=warp_to)
+                #if clip: data[clip_mask] = 0
+                ac.output.nc_write(ofile, ds, data, replace_nan=True,
+                                               attributes=gatts, new=new, dataset_attributes=ds_att,
+                                               netcdf_compression=setu['netcdf_compression'],
+                                               netcdf_compression_level=setu['netcdf_compression_level'],
+                                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                new = False
+                if verbosity > 1: print('Writing QA bands: Wrote {}'.format(ds))
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))

@@ -33,7 +33,11 @@ netcdf_compression=False
 netcdf_compression_level=4
 netcdf_compression_least_significant_digit=None
 
-## Landsat OLI options
+## Landsat options
+landsat_qa_bands=PIXEL,RADSAT,SATURATION
+landsat_output_qa=False
+
+## OLI options
 oli_orange_band=True
 
 ## Sentinel-2 options
