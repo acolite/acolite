@@ -51,6 +51,7 @@ from .warp_and_merge import *
 from .warp_from_source import *
 from .warp_inputfile import *
 from .polygon_crop import *
+from .polygon_from_wkt import *
 from .polygon_limit import *
 from .reproject2 import *
 
