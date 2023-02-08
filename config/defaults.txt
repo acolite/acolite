@@ -35,7 +35,7 @@ netcdf_compression_least_significant_digit=None
 
 ## Landsat options
 landsat_qa_bands=PIXEL,RADSAT,SATURATION
-landsat_output_qa=False
+landsat_qa_output=False
 
 ## OLI options
 oli_orange_band=True
