@@ -193,6 +193,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end ENMAP
     ################
 
+    ################
+    ## EMIT
+    if input_type == 'EMIT':
+        l1r_files, setu = ac.emit.l1_convert(bundle, settings = setu)
+    ## end EMIT
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:

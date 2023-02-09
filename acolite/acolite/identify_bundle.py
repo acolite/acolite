@@ -340,6 +340,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## EMIT
+        try:
+            meta = ac.shared.nc_gatts(bundle)
+            if (meta['instrument'] == 'EMIT') & ('L1B' in meta['title']):
+                input_type = 'EMIT'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end EMIT
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified
