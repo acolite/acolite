@@ -35,6 +35,7 @@ def acolite_run(settings, inputfile=None, output=None):
                 except:
                     print('Provided is not a valid WKT polygon')
                     print(setu['polygon'])
+                    setu['polygon'] = None
                     pass
     new_path = None
     if 'new_path' in setu: new_path = '{}'.format(setu['new_path'])
