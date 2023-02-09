@@ -28,10 +28,14 @@ def acolite_run(settings, inputfile=None, output=None):
     if 'polygon' in setu:
         if setu['polygon'] is not None:
             if not os.path.exists(setu['polygon']):
-                polygon_new = ac.shared.polygon_from_wkt(setu['polygon'], file = '{}/polygon_{}.json'.format(setu['output'], setu['runid']))
-                setu['polygon_old'] = '{}'.format(setu['polygon'])
-                setu['polygon'] = '{}'.format(polygon_new)
-
+                try:
+                    polygon_new = ac.shared.polygon_from_wkt(setu['polygon'], file = '{}/polygon_{}.json'.format(setu['output'], setu['runid']))
+                    setu['polygon_old'] = '{}'.format(setu['polygon'])
+                    setu['polygon'] = '{}'.format(polygon_new)
+                except:
+                    print('Provided is not a valid WKT polygon')
+                    print(setu['polygon'])
+                    pass
     new_path = None
     if 'new_path' in setu: new_path = '{}'.format(setu['new_path'])
 
