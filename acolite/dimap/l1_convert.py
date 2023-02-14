@@ -26,6 +26,7 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
 
     ## start conversion
     ofile = None
+    setu = {}
     ofiles = []
     for bundle in inputfile:
         dimfile, datfile = ac.dimap.bundle_test(bundle)
@@ -65,7 +66,7 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
 
         if setu['smile_correction']:
             print('Smile correction not implemented in DIMAP processing.')
-            
+
         #data_dir = '{}/{}.data/'.format(dn, bn)
         img_bands = glob.glob('{}/*.img'.format(datfile))
         img_bands.sort()
