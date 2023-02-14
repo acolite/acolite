@@ -56,7 +56,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         qlfile = '{}/{}'.format(dn, bn.replace('SPECTRAL_IMAGE', 'QL_QUALITY'))
 
         ## read metadata
-        header = ac.desis.hdr(headerfile)
+        header = ac.shared.hdr(headerfile)
         meta = ac.desis.metadata(metafile)
 
         ## set up projection
