@@ -160,6 +160,12 @@ def l1_convert(inputfile, output = None, settings = {},
                             data[ds] = data_
         ## end read data
 
+        ## global attributes
+        dtime = dateutil.parser.parse(start_time)
+        doy = dtime.strftime('%j')
+        se_distance = ac.shared.distance_se(doy)
+        isodate = dtime.isoformat()
+
         ## create full scene tpgs
         full_scene = False
         if sub is None:
@@ -208,20 +214,36 @@ def l1_convert(inputfile, output = None, settings = {},
         sza = np.nanmean(tpg['SZA'])
         vza = np.nanmean(tpg['OZA'])
         raa = np.nanmean(tpg['RAA'])
+        ## center lat and lon
+        clat = np.nanmean(tpg['latitude'])
+        clon = np.nanmean(tpg['longitude'])
 
         ## compute gas transmittance
-        use_supplied_ancillary = True
-        uoz_default=0.3
-        uwv_default=1.5
-        if use_supplied_ancillary:
+        uoz = None
+        uwv = None
+        pressure = None
+        if (setu['use_supplied_ancillary']) & (not setu['ancillary_data']):
             ## convert ozone from kg.m-2 to cm.atm
-            uoz = np.nanmean(tpg['total_ozone'])/0.02141419
+            setu['uoz_default'] = np.nanmean(tpg['total_ozone'])/0.02141419
             ## convert water from kg.m-2 to g.cm-2
-            uwv = np.nanmean(tpg['total_columnar_water_vapour'])/10
+            setu['uwv_default'] = np.nanmean(tpg['total_columnar_water_vapour'])/10
+            setu['pressure'] = np.nanmean(tpg['sea_level_pressure'])
         else:
-            ## can get other ancillary here
-            uoz = uoz_default
-            uwv = uwv_default
+            if setu['ancillary_data']:
+                print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(isodate, clon, clat))
+                anc = ac.ac.ancillary.get(dtime, clon, clat)
+                ## overwrite the defaults
+                if ('ozone' in anc): setu['uoz_default'] = anc['ozone']['interp']/1000. ## convert from MET data
+                if ('p_water' in anc): setu['uwv_default'] = anc['p_water']['interp']/10. ## convert from MET data
+                if ('z_wind' in anc) & ('m_wind' in anc) & (setu['wind'] is None):
+                    setu['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
+                if ('press' in anc) & (setu['pressure'] == setu['pressure_default']):
+                    setu['pressure'] = anc['press']['interp']
+
+        if uoz is None: uoz = setu['uoz_default']
+        if uwv is None: uwv = setu['uwv_default']
+        if pressure is None: pressure = setu['pressure']
+        print(setu['uoz_default'], setu['uwv_default'], setu['pressure'])
 
         ## for smile correction
         ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
@@ -290,12 +312,6 @@ def l1_convert(inputfile, output = None, settings = {},
                 for band in bands_data: data['{}_radiance'.format(band)]*=ttg['tt_gas'][band]
         ## end smile correction
 
-        ## global attributes
-        dtime = dateutil.parser.parse(start_time)
-        doy = dtime.strftime('%j')
-        se_distance = ac.shared.distance_se(doy)
-        isodate = dtime.isoformat()
-
         ## read rsr
         waves_mu = rsrd[sensor]['wave_mu']
         waves_names = rsrd[sensor]['wave_name']
@@ -312,6 +328,9 @@ def l1_convert(inputfile, output = None, settings = {},
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
                      'isodate':isodate, 'global_dims':data_shape,
                      'se_distance': se_distance, 'acolite_file_type': 'L1R'}
+        gatts['pressure'] = pressure
+        gatts['uoz'] = uoz
+        gatts['uwv'] = uwv
 
         if limit is not None: gatts['limit'] = limit
         if sub is not None: gatts['sub'] = sub

@@ -64,6 +64,7 @@ geometry_override=False
 smile_correction=True
 smile_correction_tgas=True
 use_tpg=True
+use_supplied_ancillary=True
 
 ## WorldView only (optional)
 inputfile_swir=None

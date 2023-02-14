@@ -140,6 +140,19 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
         vaa = np.nanmean(tpg_int['OAA'])
         raa = np.nanmean(tpg_int['RAA'])
 
+        ## center lat and lon
+        #clat = np.nanmean(tpg_int['TP_latitude'])
+        #clon = np.nanmean(tpg_int['TP_longitude'])
+
+        ## compute gas transmittance
+        if setu['use_supplied_ancillary']:
+            ## convert ozone from kg.m-2 to cm.atm
+            setu['uoz_default'] = np.nanmean(tpg_int['total_ozone'])/0.02141419
+            ## convert water from kg.m-2 to g.cm-2
+            setu['uwv_default'] = np.nanmean(tpg_int['total_columnar_water_vapour'])/10
+            setu['pressure'] = np.nanmean(tpg_int['sea_level_pressure'])
+            print(setu['uoz_default'], setu['uwv_default'], setu['pressure'])
+
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'saa':saa, 'vaa':vaa, 'raa': raa,
                      'isodate':isodate, 'global_dims':data_shape,
                      'se_distance': se_distance, 'acolite_file_type': 'L1R'}
