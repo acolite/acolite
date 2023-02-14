@@ -12,6 +12,7 @@
 ## settings for cropping
 region_name=
 limit=None
+sub=None
 polygon=None
 polygon_limit=True
 polylakes=False
