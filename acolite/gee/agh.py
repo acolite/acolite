@@ -169,6 +169,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         tile_name = '{}'.format(im['properties']['MGRS_TILE'])
         satellite = pid[0:3]
         sensor = '{}_MSI'.format(satellite)
+        satellite_sensor = '{}_MSI'.format(satellite)
         scale_factor = 0.0001
         add_factor = 0
         if (im['properties']['PROCESSING_BASELINE'][1]>='4') & ~('S2_HARMONIZED' in im['id']):
@@ -376,32 +377,33 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         ## add extra par for ST
         st_par = None
         st_par_bands = []
-        if (sensor[0] == 'L') & (settings['store_sp']) & (im['properties']['PROCESSING_LEVEL'] == 'L2SP'):
-            sp_scale = {'ST_B6': 0.00341802, 'ST_B10': 0.00341802,
-                        'ST_ATRAN': 0.0001, 'ST_CDIST': 0.01,
-                        'ST_DRAD': 0.001, 'ST_EMIS': 0.0001,
-                        'ST_EMSD': 0.0001, 'ST_QA': 0.01,
-                        'ST_TRAD': 0.001,'ST_URAD': 0.001}
+        if 'PROCESSING_LEVEL' in im['properties']:
+            if (sensor[0] == 'L') & (settings['store_sp']) & (im['properties']['PROCESSING_LEVEL'] == 'L2SP'):
+                sp_scale = {'ST_B6': 0.00341802, 'ST_B10': 0.00341802,
+                            'ST_ATRAN': 0.0001, 'ST_CDIST': 0.01,
+                            'ST_DRAD': 0.001, 'ST_EMIS': 0.0001,
+                            'ST_EMSD': 0.0001, 'ST_QA': 0.01,
+                            'ST_TRAD': 0.001,'ST_URAD': 0.001}
 
-            sp_offset = {'ST_B6': 149, 'ST_B10': 149,
-                         'ST_ATRAN': 0, 'ST_CDIST': 0,
-                         'ST_DRAD': 0, 'ST_EMIS': 0,
-                         'ST_EMSD': 0,'ST_QA': 0,
-                         'ST_TRAD': 0,'ST_URAD': 0}
+                sp_offset = {'ST_B6': 149, 'ST_B10': 149,
+                             'ST_ATRAN': 0, 'ST_CDIST': 0,
+                             'ST_DRAD': 0, 'ST_EMIS': 0,
+                             'ST_EMSD': 0,'ST_QA': 0,
+                             'ST_TRAD': 0,'ST_URAD': 0}
 
-            for b in im['bands']:
-                bname = b['id']
-                if bname[0:2] == 'ST':
-                    print(bname)
-                    sp = i.expression('(DN * {}) + {} '.format(sp_scale[bname],sp_offset[bname]),
-                                      {'DN': i.select(bname)})
-                    if st_par is None:
-                        st_par = ee.Image(sp)
+                for b in im['bands']:
+                    bname = b['id']
+                    if bname[0:2] == 'ST':
+                        print(bname)
+                        sp = i.expression('(DN * {}) + {} '.format(sp_scale[bname],sp_offset[bname]),
+                                          {'DN': i.select(bname)})
+                        if st_par is None:
+                            st_par = ee.Image(sp)
+                        else:
+                            st_par = st_par.addBands(sp)
+                        st_par_bands.append(bname)
                     else:
-                        st_par = st_par.addBands(sp)
-                    st_par_bands.append(bname)
-                else:
-                    continue
+                        continue
     else:
         ## make rhot dataset
         i_rhot = None
@@ -879,19 +881,20 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     ds = None
                     sr_data[sr_data==0.0] = np.nan
 
-                spf = sp_files[ti]
-                sp_image_file = '/vsizip/{}/{}.tif'.format(spf, os.path.basename(os.path.splitext(spf)[0]))
-                ## read sp
-                if os.path.exists(spf):
-                    file_proj = '{}'.format(sp_image_file)
-                    ds = gdal.Open(sp_image_file)
-                    if num_tiles == 1:
-                        sp_data = ds.ReadAsArray()
-                    else:
-                        if sp_data is None: sp_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
-                        sp_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
-                    ds = None
-                    #sr_data[sr_data==0.0] = np.nan
+                if settings['store_sp'] & (st_par != None):
+                    spf = sp_files[ti]
+                    sp_image_file = '/vsizip/{}/{}.tif'.format(spf, os.path.basename(os.path.splitext(spf)[0]))
+                    ## read sp
+                    if os.path.exists(spf):
+                        file_proj = '{}'.format(sp_image_file)
+                        ds = gdal.Open(sp_image_file)
+                        if num_tiles == 1:
+                            sp_data = ds.ReadAsArray()
+                        else:
+                            if sp_data is None: sp_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                            sp_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
+                        ds = None
+                        #sr_data[sr_data==0.0] = np.nan
             else:
                 ## read rhot data
                 if len(rhot_files) == num_tiles:
