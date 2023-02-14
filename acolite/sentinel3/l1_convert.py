@@ -232,8 +232,8 @@ def l1_convert(inputfile, output = None, settings = {},
             di = meta['instrument_data']['detector_index'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
         ## smile correction - from l2gen smile.c
-        if verbosity > 1: print('Running smile correction')
         if smile_correction:
+            if verbosity > 1: print('Running smile correction')
             ## gas_correction
             if setu['smile_correction_tgas']:
                 if verbosity > 2: print('{} - Gas correction before smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
