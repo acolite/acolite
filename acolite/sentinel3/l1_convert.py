@@ -9,6 +9,8 @@
 ##                2022-10-06 (QV) added back in tgas after smile correction
 ##                2022-11-03 (QV) update sensor/metadata parsing
 ##                2022-11-09 (QV) change of F0 in radiance to reflectance correction, depending on whether smile correction was applied
+##                2023-02-14 (QV) added Lt outputs, user defined subset,
+##                                fixed tpg interpolation, update from scipy.interpolate.interp2d to scipy.interpolate.RegularGridInterpolator
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -110,6 +112,10 @@ def l1_convert(inputfile, output = None, settings = {},
                 if verbosity > 1: print('Limit {} out of scene {}'.format(limit, bundle))
                 continue
 
+        ## user defined sub if limit or polygon are not set
+        if sub is None:
+            if 'sub' in setu: sub = setu['sub']
+
         ## read data
         dshape = None
         lfiles = {}
@@ -167,9 +173,18 @@ def l1_convert(inputfile, output = None, settings = {},
             suby = np.arange(sub[1],sub[1]+sub[3])+0.5
 
         ## interpolate tie point grids
+        x_sub = gatts['ac_subsampling_factor']
+        y_sub = gatts['al_subsampling_factor']
+        x_off = 0
+        y_off = 0
         tpg_shape = meta['tie_geo_coordinates']['latitude'].shape
-        tpx = np.linspace(0,data_shape[1]-1,tpg_shape[1])
-        tpy = np.linspace(0,data_shape[0]-1,tpg_shape[0])
+        tpx = (np.arange(tpg_shape[1])*x_sub) + x_off
+        tpy = (np.arange(tpg_shape[0])*y_sub) + y_off
+
+        ## 2d for RGI
+        subx_ = np.tile(subx, (len(suby),1))
+        suby_ = (np.tile(suby, len(subx)).reshape(subx_.shape[1], subx_.shape[0])).T
+
         tpg = {}
         for k in meta.keys():
             if 'tie_' in k:
@@ -179,15 +194,14 @@ def l1_convert(inputfile, output = None, settings = {},
                     if meta[k][l].shape != tpg_shape:
                         print('{}-{} tpg shape {} not supported'.format(k,l,meta[k][l].shape))
                         continue
-                    z = scipy.interpolate.interp2d(tpx, tpy, meta[k][l])
-                    tpg[l] = z(subx,suby)
+                    rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], meta[k][l], bounds_error=False, fill_value=None)
+                    tpg[l] = rgi((suby_,subx_))
 
         ## compute relative azimuth TPG
         tpg['RAA'] = abs(tpg['SAA']-tpg['OAA'])
         tpg['RAA'][tpg['RAA']>180]=np.abs(360-tpg['RAA'][tpg['RAA']>180])
         ## cosine of sun zenith angle
         mu = np.cos(tpg['SZA']*(np.pi/180))
-
 
         ## average geometry
         sza = np.nanmean(tpg['SZA'])
@@ -299,6 +313,7 @@ def l1_convert(inputfile, output = None, settings = {},
                      'se_distance': se_distance, 'acolite_file_type': 'L1R'}
 
         if limit is not None: gatts['limit'] = limit
+        if sub is not None: gatts['sub'] = sub
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
@@ -373,14 +388,23 @@ def l1_convert(inputfile, output = None, settings = {},
 
             dname = dnames[iw]
 
+            ds_att  = {'wavelength':float(wave)}
+            for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
+
+            ## write toa radiance
+            if setu['output_lt']:
+                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],
+                              dataset_attributes = ds_att,
+                              netcdf_compression=setu['netcdf_compression'],
+                              netcdf_compression_level=setu['netcdf_compression_level'],
+                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
+
             ## convert to reflectance
             d = (np.pi * data[dname] * se2) / (f0*mu)
             mask = d.mask
             d = d.data
             d[mask] = np.nan
-
-            ds_att  = {'wavelength':float(wave)}
-            for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
 
             ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts,
                                 netcdf_compression=setu['netcdf_compression'],
