@@ -2,6 +2,7 @@
 ## creates temporary json file if wkt polygon is given
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-06
+## modifications: 2023-02-14 (QV) return None if failed
 
 def polygon_from_wkt(wkt, file=None):
     import os
@@ -13,7 +14,11 @@ def polygon_from_wkt(wkt, file=None):
     if not os.path.exists(odir): os.makedirs(odir)
 
     geom = ogr.CreateGeometryFromWkt(wkt)
-    with open(file, 'w') as f: f.write(geom.ExportToJson())
+    if geom is not None:
+        with open(file, 'w') as f: f.write(geom.ExportToJson())
     geom = None
 
-    return(file)
+    if os.path.exists(file):
+        return(file)
+    else:
+        return(None)
