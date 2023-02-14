@@ -194,8 +194,9 @@ def l1_convert(inputfile, output = None, settings = {},
                     if meta[k][l].shape != tpg_shape:
                         print('{}-{} tpg shape {} not supported'.format(k,l,meta[k][l].shape))
                         continue
-                    rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], meta[k][l], bounds_error=False, fill_value=None)
-                    tpg[l] = rgi((suby_,subx_))
+                    dtype_in = meta[k][l].dtype
+                    rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], meta[k][l].astype(np.float64), bounds_error=False, fill_value=None)
+                    tpg[l] = rgi((suby_,subx_)).astype(dtype_in)
 
         ## compute relative azimuth TPG
         tpg['RAA'] = abs(tpg['SAA']-tpg['OAA'])

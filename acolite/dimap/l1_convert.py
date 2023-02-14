@@ -119,13 +119,15 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
         suby_ = (np.tile(suby, len(subx)).reshape(subx_.shape[1], subx_.shape[0])).T
         tpg_int = {}
         tpg_nc = {}
-        for tp in ['TP_latitude', 'TP_longitude', 'OAA', 'OZA', 'SAA', 'SZA', 'sea_level_pressure']:
+        for tp in ['TP_latitude', 'TP_longitude', 'OAA', 'OZA', 'SAA', 'SZA',
+                   'sea_level_pressure', 'total_columnar_water_vapour', 'total_ozone']:
+            dtype_in = data_tpg[tp].dtype
             tpx = (np.arange(data_tpg[tp].shape[1])*float(tpg_atts[tp]['STEP_X'])) + float(tpg_atts[tp]['OFFSET_X'])
             tpy = (np.arange(data_tpg[tp].shape[0])*float(tpg_atts[tp]['STEP_Y'])) + float(tpg_atts[tp]['OFFSET_Y'])
             #z = scipy.interpolate.interp2d(tpx, tpy, data_tpg[tp])
             #tpg_int[tp] = z(subx,suby)
-            rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], data_tpg[tp], bounds_error=False, fill_value=None)
-            tpg_int[tp] = rgi((suby_,subx_))
+            rgi = scipy.interpolate.RegularGridInterpolator((tpy, tpx), data_tpg[tp].astype(np.float64), bounds_error=False, fill_value=None)
+            tpg_int[tp] = rgi((suby_,subx_)).astype(dtype_in)
 
         ## RAA
         tpg_int['RAA'] = np.abs(tpg_int['SAA']-tpg_int['OAA'])
