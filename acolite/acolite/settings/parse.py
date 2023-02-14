@@ -54,7 +54,7 @@ def parse(sensor, settings=None, merge=True):
 
     ## default pressure
     if 'pressure' in setu:
-        setu['pressure'] = 1013.25 if setu['pressure'] is None else float(setu['pressure'])
+        setu['pressure'] = float(setu['pressure_default']) if setu['pressure'] is None else float(setu['pressure'])
 
     ## test which new directory levels will be created
     if 'output' in setu:

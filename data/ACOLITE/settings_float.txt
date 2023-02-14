@@ -15,6 +15,8 @@ dem_pressure_percentile
 elevation
 uoz_default
 uwv_default
+pressure
+pressure_default
 wind_default
 wind
 cirrus_range

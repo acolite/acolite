@@ -188,6 +188,7 @@ ancillary_data=True
 uoz_default=0.3
 uwv_default=1.5
 pressure=None
+pressure_default=1013.25
 elevation=None
 
 ## DEM options
