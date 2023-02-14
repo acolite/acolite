@@ -20,6 +20,7 @@ from acolite import amazonia
 from acolite import formosat
 from acolite import ecostress
 from acolite import sdgsat
+from acolite import dimap
 
 from acolite import ac
 from acolite import aerlut

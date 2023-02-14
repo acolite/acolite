@@ -200,6 +200,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end EMIT
     ################
 
+    ################
+    ## DIMAP
+    if input_type == 'DIMAP':
+        l1r_files, setu = ac.dimap.l1_convert(bundle, settings = setu)
+    ## end DIMAP
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:

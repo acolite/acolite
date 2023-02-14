@@ -352,12 +352,27 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## DIMAP
+        try:
+            dimfile, datfile = ac.dimap.bundle_test(bundle)
+            meta = ac.dimap.metadata(dimfile)
+            if (meta['met_format'] == 'DIMAP') & (meta['met_dataset'] == 'BEAM-PRODUCT'):
+                input_type = 'DIMAP'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end DIMAP
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified
     if (input_type is None) & (zipped) & (os.path.exists(bundle)) & (bundle != orig_bundle):
         shutil.rmtree(bundle)
         bundle = '{}'.format(orig_bundle)
+
+    print('Identified {} as {} type'.format(orig_bundle, input_type))
 
     ## return input_type
     return(input_type, bundle, zipped, extracted_path)
