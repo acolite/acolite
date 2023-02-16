@@ -141,6 +141,9 @@ def acolite_l2r(gem,
         dem = None
         dem_pressure = None
 
+    print('default uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(setu['uoz_default'], setu['uwv_default'], setu['pressure_default']))
+    print('current uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(gem.gatts['uoz'], gem.gatts['uwv'], gem.gatts['pressure']))
+
     ## which LUT data to read
     if (setu['dsf_interface_reflectance']):
         if (setu['dsf_interface_option'] == 'default'):

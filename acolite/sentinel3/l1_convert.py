@@ -243,7 +243,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if uoz is None: uoz = setu['uoz_default']
         if uwv is None: uwv = setu['uwv_default']
         if pressure is None: pressure = setu['pressure']
-        print(setu['uoz_default'], setu['uwv_default'], setu['pressure'])
+        print('current uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(uoz, uwv, pressure))
 
         ## for smile correction
         ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
