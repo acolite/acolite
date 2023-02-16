@@ -1246,16 +1246,24 @@ def acolite_l2r(gem,
                 if len(np.atleast_1d(romix)>1):
                     if romix.shape == cur_data.shape:
                         gemo.write('romix_{}'.format(gem.bands[b]['wave_name']), romix)
+                    else:
+                        ds_att['romix'] = romix[0]
                 if len(np.atleast_1d(astot)>1):
                     if astot.shape == cur_data.shape:
                         gemo.write('astot_{}'.format(gem.bands[b]['wave_name']), astot)
+                    else:
+                        ds_att['astot'] = astot[0]
                 if len(np.atleast_1d(dutott)>1):
                     if dutott.shape == cur_data.shape:
                         gemo.write('dutott_{}'.format(gem.bands[b]['wave_name']), dutott)
+                    else:
+                        ds_att['dutott'] = dutott[0]
                 if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                     if len(np.atleast_1d(ttot_all[b])>1):
                         if ttot_all[b].shape == cur_data.shape:
                             gemo.write('ttot_{}'.format(gem.bands[b]['wave_name']), ttot_all[b])
+                        else:
+                            ds_att['ttot_all'] = ttot_all[b][0]
 
             ## do atmospheric correction
             rhot_noatm = (cur_data / gem.bands[b]['tt_gas']) - romix
@@ -1326,6 +1334,19 @@ def acolite_l2r(gem,
                             target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 dutotr_cur = ac.shared.tiles_interp(dutotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                             target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
+
+            ## write ac parameters
+            if setu['dsf_write_tiled_parameters']:
+                if len(np.atleast_1d(rorayl_cur)>1):
+                    if rorayl_cur.shape == cur_data.shape:
+                        gemo.write('rorayl_{}'.format(gem.bands[b]['wave_name']), rorayl_cur)
+                    else:
+                        ds_att['rorayl'] = rorayl_cur[0]
+                if len(np.atleast_1d(dutotr_cur)>1):
+                    if dutotr_cur.shape == cur_data.shape:
+                        gemo.write('dutotr_{}'.format(gem.bands[b]['wave_name']), dutotr_cur)
+                    else:
+                        ds_att['dutotr'] = dutotr_cur[0]
 
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
