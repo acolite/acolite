@@ -311,6 +311,7 @@ def acolite_l2r(gem,
 
     if (not setu['resolved_geometry']) & (setu['dsf_aot_estimate'] != 'tiled'): use_revlut = False
     if setu['dsf_aot_estimate'] in ['fixed', 'segmented']: use_revlut = False
+    if hyper: use_revlut = False
 
     ## set LUT dimension parameters to correct shape if resolved processing
     if (use_revlut) & (per_pixel_geometry) & (setu['dsf_aot_estimate'] == 'resolved'):
@@ -754,9 +755,16 @@ def acolite_l2r(gem,
                                                       gem.data_mem['wind'+gk]]
                                 if hyper:
                                     ## get hyperspectral results and resample to band
-                                    res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
-                                                                            xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
-                                    rhop_f[aot_sub[0], aot_sub[1], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                                    if len(aot_stack[lut]['aot'][aot_sub]) == 1:
+                                        res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
+                                        rhop_f[aot_sub[0], aot_sub[1], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                                    else:
+                                        for iii in range(len(aot_stack[lut]['aot'][aot_sub])):
+                                            res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                                    xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub][iii]))
+                                            rhop_f[aot_sub[0][iii], aot_sub[1][iii], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+
                                 else:
                                     if setu['dsf_aot_estimate'] == 'segmented':
                                         for gki in range(len(aot_sub[0])):
@@ -1171,12 +1179,18 @@ def acolite_l2r(gem,
 
                 if hyper:
                     ## compute hyper results and resample later
-                    ## hyperpectral sensors should be fixed DSF at the moment
                     if hyper_res is None:
                         hyper_res = {}
                         for prm in [par, 'astot', 'dutott', 'ttot']:
-                            hyper_res[prm] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
-                                             lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai)).flatten()
+                            if len(ai) == 1: ## fixed DSF
+                                hyper_res[prm] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
+                                                 lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai)).flatten()
+                            else: ## tiled/resolved DSF
+                                hyper_res[prm] = np.zeros((len(lutdw[lut]['meta']['wave']),len(ai))) + np.nan
+                                for iii in range(len(ai)):
+                                    hyper_res[prm][:,iii] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
+                                                            lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai[iii])).flatten()
+
                     ## resample to current band
                     ### path reflectance
                     romix[ls] = ac.shared.rsr_convolute_nd(hyper_res[par], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
