@@ -111,7 +111,7 @@ def acolite_l2r(gem,
         if ('p_water' in anc): gem.gatts['uwv'] = anc['p_water']['interp']/10. ## convert from MET data
         if ('z_wind' in anc) & ('m_wind' in anc) & (setu['wind'] is None):
             gem.gatts['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-        if ('press' in anc) & (setu['pressure'] is None):
+        if ('press' in anc) & (setu['pressure'] == setu['pressure_default']):
             gem.gatts['pressure'] = anc['press']['interp']
 
     ## elevation provided
