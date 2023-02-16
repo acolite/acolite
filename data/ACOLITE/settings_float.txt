@@ -7,6 +7,7 @@ sza_limit
 dsf_percentile
 dsf_filter_percentile
 dsf_min_tile_aot
+dsf_max_tile_aot
 dsf_min_tile_cover
 exp_swir_threshold
 exp_fixed_epsilon_percentile
