@@ -493,8 +493,8 @@ def acolite_l2r(gem,
                 if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): return b, None, None
 
                 if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
-                # with lock:
-                band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
+                with lock:
+                    band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
                 band_shape = band_data.shape
                 valid = np.isfinite(band_data)*(band_data>0)
                 mask = valid == False
@@ -1548,9 +1548,9 @@ def acolite_l2r(gem,
                     if gc_choice is False:
                         gc_choice = True
                         if gc_user is None:
-                            # with lock:
-                            swir1_rhos = gemo.data(gc_swir1)[sub_gc]
-                            swir2_rhos = gemo.data(gc_swir2)[sub_gc]
+                            with lock:
+                                swir1_rhos = gemo.data(gc_swir1)[sub_gc]
+                                swir2_rhos = gemo.data(gc_swir2)[sub_gc]
                             ## set negatives to 0
                             swir1_rhos[swir1_rhos<0] = 0
                             swir2_rhos[swir2_rhos<0] = 0
@@ -1565,8 +1565,8 @@ def acolite_l2r(gem,
                             swir1_rhos, swir2_rhos = None, None
                             use_swir1 = None
                         else:
-                            # with lock:
-                            rhog_ref = gemo.data(gc_user)[sub_gc]
+                            with lock:
+                                rhog_ref = gemo.data(gc_user)[sub_gc]
                             ## set negatives to 0
                             rhog_ref[rhog_ref<0] = 0
                         ## write reference glint
@@ -1589,8 +1589,8 @@ def acolite_l2r(gem,
                         cur_rhog = gc_USER * rhog_ref
 
                     ## remove glint from rhos
-                    # with lock:
-                    cur_data = gemo.data(rhos_ds)
+                    with lock:
+                        cur_data = gemo.data(rhos_ds)
                     cur_data[sub_gc]-=cur_rhog
                     with lock:
                         gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
