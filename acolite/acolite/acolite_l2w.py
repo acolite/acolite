@@ -5,7 +5,6 @@
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2022-09-28 (QV) changed gem from dict to object
 import concurrent.futures
-from threading import Lock
 
 def acolite_l2w(gem,
                 settings = {},
