@@ -214,13 +214,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
             ## read data
             if read_cube:
-                if (imagefile_swir != None) & (bi >= 88):
-                    cdata_radiance = 1.0 * cube_swir[bi - 88, :, :]
+                if (imagefile_swir != None) & (bi >= 91):
+                    cdata_radiance = 1.0 * cube_swir[bi - 91, :, :]
                 else:
                     cdata_radiance = 1.0 * cube[bi, :, :]
             else:
-                if (imagefile_swir != None) & (bi >= 88):
-                    cdata_radiance = ac.shared.read_band(imagefile_swir, bi-88+1, sub=sub, warp_to = warp_to).astype(np.float32)
+                if (imagefile_swir != None) & (bi >= 91):
+                    cdata_radiance = ac.shared.read_band(imagefile_swir, bi-91+1, sub=sub, warp_to = warp_to).astype(np.float32)
                 else:
                     cdata_radiance = ac.shared.read_band(imagefile, bi+1, sub=sub, warp_to = warp_to).astype(np.float32)
                 cdata_radiance[cdata_radiance == 0] = np.nan
