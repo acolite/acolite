@@ -632,8 +632,9 @@ def acolite_l2r(gem,
                     if setu['dsf_aot_estimate'] == 'tiled':
                         aot_band[lut][aot_band[lut]<setu['dsf_min_tile_aot']]=np.nan
                         aot_band[lut][aot_band[lut]>setu['dsf_max_tile_aot']]=np.nan
-                tel = time.time()-t0
-                if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
+                        
+                    tel = time.time()-t0
+                    if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
                 ## store current band results
                 aot_dict[b] = aot_band
