@@ -208,7 +208,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 clip_mask = clip_mask.astype(bool) == False
 
             ## write lat/lon
-            if (setu['output_geolocation']) & (new):
+            if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
@@ -225,7 +225,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 new=False
 
             ## write x/y
-            if (setu['output_xy']) & (new):
+            if (setu['output_xy']):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
                 ac.output.nc_write(ofile, 'xm', x, new=new,
