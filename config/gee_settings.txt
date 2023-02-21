@@ -57,6 +57,7 @@ glint_wind=20
 uwv_default=1.5
 uoz_default=0.3
 pressure=None
+pressure_default=1013.25
 elevation=None
 wind=None
 ancillary_data=False
