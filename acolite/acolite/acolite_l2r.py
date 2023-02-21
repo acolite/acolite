@@ -33,6 +33,8 @@ def acolite_l2r(gem,
 
     # WIP Lock to handle access to the gem object which has single threaded file IO
     # lock = Lock()
+    # WIP Remove all references to Lock at some point (most are commented out right now)
+    lock = None
 
     ## read gem file if NetCDF
     if type(gem) is str:
