@@ -408,6 +408,7 @@ output_projection_fillnans=False
 # reproject input tif files if projection cannot be determined
 reproject_inputfile=False
 reproject_inputfile_force=False
+reproject_inputfile_dem=False
 
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2
