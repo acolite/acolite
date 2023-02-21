@@ -134,7 +134,7 @@ def download_and_process(stac_item, userid, scratch_bucket, s3_prefix):
                     "l1r_delete_netcdf": True,
                     "l2r_delete_netcdf": True,
                     "l2t_delete_netcdf": True,
-                    "l2w_delete_netcdf": False,
+                    "l2w_delete_netcdf": True,
                     "dsf_interface_reflectance": False,  # False is the default
                     "ancillary_data": False,  # If you set this to True you must supply a username and password for EARTHDATA
                     "EARTHDATA_u": "",
@@ -183,14 +183,13 @@ catalog = pystac_client.Client.open("https://landsatlook.usgs.gov/stac-server")
 
 
 query = catalog.search(
-    collections=['landsat-c2l1'], datetime="2022-01-01/2022-01-31", max_items=1, limit=100, bbox=bbox
+    collections=['landsat-c2l1'], datetime="2022-01-01/2022-01-31", max_items=None, limit=1, bbox=bbox
 )
 
-# PySTAC ItemCollection
-items = query.get_all_items()
-
-# Dictionary (GeoJSON FeatureCollection)
-items_json = items.to_dict()
+for ic in query.pages():
+    # PySTAC ItemCollection
+    # Dictionary (GeoJSON FeatureCollection)
+    items_json = ic.to_dict()
 
 # Grab the userid from AWS so we can place outputs in the Scratch Bucket
 # under the users prefix from our dask workers.
