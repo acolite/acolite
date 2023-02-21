@@ -50,7 +50,7 @@ def projection_setup(limit, resolution, res_method = 'bilinear', utm=True, epsg=
 
     ## set up projection dict and nc_projection
     dct = {'xrange': xrange, 'yrange': yrange, 'p': p,
-           'pixel_size': target_pixel_size, 'xdim': nx, 'ydim': ny, 'epsg':projection}
+           'pixel_size': target_pixel_size, 'xdim': nx, 'ydim': ny, 'epsg':projection, 'projection':projection}
     nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=True)
 
     xyr = [min(dct['xrange']),
