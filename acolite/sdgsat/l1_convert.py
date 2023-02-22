@@ -124,12 +124,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             gatts['ofile'] = ofile
 
             new = True
-
             ## read image projection
+            dct_prj = None
             for imi, im in enumerate(imgfiles[mi]):
                 print(imi, im)
                 dct = ac.shared.projection_read(im)
-                if imi == 0:
+                if (imi == 0) | (dct_prj is None):
                     sub = None
                     warp_to = None
 
@@ -168,6 +168,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                         dct_prj['ydim'] = dct_prj['dimensions'][0]
                         dct_prj['xdim'] = dct_prj['dimensions'][1]
             ## end run through images for projection
+
+            ## if image projection cannot be determined or ROI is outside scene
+            if dct_prj is None: continue
 
             ## update gatts
             gatts['scene_xrange'] = dct_prj['xrange']
@@ -296,11 +299,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
-        if verbosity > 1:
-            print('Conversion took {:.1f} seconds'.format(time.time()-t0))
-            print('Created {}'.format(ofile))
+        ## check if file exists and if it was created now
+        if os.path.exists(ofile) & (new is False):
+            if verbosity > 1:
+                print('Conversion took {:.1f} seconds'.format(time.time()-t0))
+                print('Created {}'.format(ofile))
 
-        if limit is not None: sub = None
-        if ofile not in ofiles: ofiles.append(ofile)
+            if limit is not None: sub = None
+            if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)
