@@ -37,7 +37,7 @@ def bundle_test(file, listpan=True):
                 node = t.getElementsByTagName('COMPONENT_PATH')
                 if len(node) > 0: path = node[0].attributes['href'].value
                 tmp = title.split(' ')
-                if tmp[0] not in ['SENSOR','ORTHO','SYSTEM_ORTHO']: continue
+                if tmp[0] not in ['SENSOR', 'ORTHO', 'SYSTEM_ORTHO', 'SYSTEM_SENSOR']: continue
                 dtype = tmp[1]
                 dataset = tmp[2]
                 components.append({'title':title,'path':path, 'type': dtype, 'dataset': dataset})
@@ -100,7 +100,6 @@ def bundle_test(file, listpan=True):
             sel_dataset = ''
             sel_panimage = ''
             sel_panmeta = ''
-
             if (fnmatch.fnmatch(img.upper(), img_match)):
                 sf = img.split('/')[-2]
                 md = [md for md in xml_file if (sf in md) & (fnmatch.fnmatch(md.upper(), xml_match))]
