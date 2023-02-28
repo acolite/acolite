@@ -87,13 +87,43 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         doy = int(time.strftime('%j'))
         d = ac.shared.distance_se(doy)
 
+        ## lon and lat keys
+        lat_key = 'Latitude_SWIR'
+        lon_key = 'Longitude_SWIR'
+        ## mask for L1G format
+        mask_value = 65535
+        dem = None
+
         ## get geometry from l2 file if present
         l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
         if os.path.exists(l2file):
             with h5py.File(l2file, mode='r') as f:
-                vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][:]
-                raa = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Rel_Azimuth_Angle'][:]
-                sza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
+                ## L1G format
+                if 'PRS_L1G_STD_OFFL_' in os.path.basename(file):
+                    lat_key = 'Latitude'
+                    lon_key = 'Longitude'
+                    vza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Zenith_Angle'][:]
+                    vaa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Azimuth_Angle'][:]
+                    sza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
+                    saa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Azimuth_Angle'][:]
+
+                    ## apply mask
+                    vza[vza>=mask_value] = np.nan
+                    sza[sza>=mask_value] = np.nan
+                    saa[saa>=mask_value] = np.nan
+                    vaa[vaa>=mask_value] = np.nan
+
+                    ## compute relative azimuth
+                    raa = np.abs(saa - vaa)
+                    raa[raa>180] = 360 - raa[raa>180]
+
+                    ## get DEM data
+                    dem = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Terrain Fields']['DEM'][:]
+                    dem[dem>=mask_value] = np.nan
+                else:
+                    vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][:]
+                    raa = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Rel_Azimuth_Angle'][:]
+                    sza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
                 gatts['vza'] = np.nanmean(np.abs(vza))
                 gatts['raa'] = np.nanmean(np.abs(raa))
                 gatts['sza'] = np.nanmean(np.abs(sza))
@@ -105,14 +135,19 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         src = 'HCO'
         read_cube = True
         with h5py.File(file, mode='r') as f:
-            lat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields']['Latitude_SWIR'][:]
-            lon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields']['Longitude_SWIR'][:]
+            lat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lat_key][:]
+            lon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lon_key][:]
+            lat[lat>=mask_value] = np.nan
+            lon[lon>=mask_value] = np.nan
             ## read bands in spectral order
             if read_cube:
                 vnir_data = h5_gatts['Offset_Vnir'] + \
                             f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][:]/h5_gatts['ScaleFactor_Vnir']
+                vnir_data[vnir_data>=mask_value] = np.nan
                 swir_data = h5_gatts['Offset_Swir'] + \
                             f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][:]/h5_gatts['ScaleFactor_Swir']
+                swir_data[swir_data>=mask_value] = np.nan
+
             ## read LOS vectors
             x_ = f['KDP_AUX']['LOS_Vnir'][:,0]
             y_ = f['KDP_AUX']['LOS_Vnir'][:,1]
@@ -168,6 +203,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                             netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
         ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)),
                             netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+
         if os.path.exists(l2file):
             ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)),
                                 netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
@@ -175,6 +211,9 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                                 netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
             ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)),
                                 netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+            if dem is not None:
+                ac.output.nc_write(ofile, 'dem', np.flip(np.rot90(dem)),
+                                    netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
 
         ## store l2c data
         store_l2c = setu['prisma_store_l2c']
