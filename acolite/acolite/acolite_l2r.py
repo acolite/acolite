@@ -127,17 +127,19 @@ def acolite_l2r(gem,
             dem = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
         else:
             dem = ac.dem.dem_lonlat(gem.gatts['lon'], gem.gatts['lon'], source = setu['dem_source'])
-        dem_pressure = ac.ac.pressure_elevation(dem)
 
-        if setu['dem_pressure_resolved']:
-            gem.data_mem['pressure'] = dem_pressure
-        else:
-            gem.data_mem['pressure'] = np.nanpercentile(dem_pressure, setu['dem_pressure_percentile'])
-        gem.datasets.append('pressure')
+        if dem is not None:
+            dem_pressure = ac.ac.pressure_elevation(dem)
 
-        if setu['dem_pressure_write']:
-            gem.data_mem['dem'] = dem.astype(np.float32)
-            gem.data_mem['dem_pressure'] = dem_pressure
+            if setu['dem_pressure_resolved']:
+                gem.data_mem['pressure'] = dem_pressure
+            else:
+                gem.data_mem['pressure'] = np.nanpercentile(dem_pressure, setu['dem_pressure_percentile'])
+            gem.datasets.append('pressure')
+
+            if setu['dem_pressure_write']:
+                gem.data_mem['dem'] = dem.astype(np.float32)
+                gem.data_mem['dem_pressure'] = dem_pressure
         dem = None
         dem_pressure = None
 
@@ -632,7 +634,7 @@ def acolite_l2r(gem,
                     if setu['dsf_aot_estimate'] == 'tiled':
                         aot_band[lut][aot_band[lut]<setu['dsf_min_tile_aot']]=np.nan
                         aot_band[lut][aot_band[lut]>setu['dsf_max_tile_aot']]=np.nan
-                        
+
                     tel = time.time()-t0
                     if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
