@@ -55,13 +55,12 @@ def contraband(gem, verbosity=5):
             rsrd_cb = ac.shared.rsr_dict(sensor_cb)[sensor_cb]
 
             for b in cb_cfg['contrabands']:
-                print('Computing contraband {}'.format(cb['rhos_ds']))
-
                 ## set up band attributes
                 cb = {k:rsrd_cb[k][b] for k in ['wave_mu', 'wave_nm', 'wave_name']}
                 cb['rhos_ds'] = 'rhos_{}'.format(cb['wave_name'])
                 cb['wavelength'] = cb['wave_nm']
                 gem.bands[b] = cb
+                print('Computing contraband {}'.format(cb['rhos_ds']))
 
                 ## compute contraband
                 for ii in range(len(datasets)):
