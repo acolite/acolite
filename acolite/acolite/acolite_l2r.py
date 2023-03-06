@@ -1694,10 +1694,8 @@ def acolite_l2r(gem,
                 cur_rhog = None
     ## end alternative glint correction
 
-    ## compute oli orange band
-    if (gemo.gatts['sensor'] in ['L8_OLI', 'L9_OLI', 'EO1_ALI']) & (setu['oli_orange_band']):
-        ac.parameters.castagna.orange(gemo)
-    ## end orange band
+    ## compute contrabands
+    if setu['compute_contrabands']: ac.parameters.castagna.contraband(gemo)
 
     ## clear aot results
     aot_lut, aot_sel = None, None

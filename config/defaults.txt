@@ -28,6 +28,9 @@ output_xy=False
 output_geometry=True
 output_rhorc=False
 
+## compute contrabands
+compute_contrabands=False
+
 ## netcdf options
 netcdf_projection=True
 netcdf_compression=False
@@ -37,9 +40,6 @@ netcdf_compression_least_significant_digit=None
 ## Landsat options
 landsat_qa_bands=PIXEL,RADSAT,SATURATION
 landsat_qa_output=False
-
-## OLI options
-oli_orange_band=True
 
 ## Sentinel-2 options
 s2_target_res=10
