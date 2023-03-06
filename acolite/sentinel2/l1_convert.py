@@ -38,6 +38,7 @@ def l1_convert(inputfile, output = None, settings = {},
     new = True
     warp_to = None
 
+    setu = {}
     ofile = None
     ofiles = []
     for bundle in inputfile:
