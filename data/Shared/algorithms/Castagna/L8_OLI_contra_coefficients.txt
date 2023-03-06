@@ -1,0 +1,20 @@
+## Coefficients to compute orange contra-band from Landsat 8/OLI pan band
+# author: Alexandre Castagna, Ghent University, Jul. 2018
+# updated coefficients to Castagna et al 2020 (https://doi.org/10.3390/rs12040637)
+# reorganised and renamed to contraband - QV, Mar. 2023
+# contraband = pf * pan + msf[0] * green + msf[1] * red
+
+## contraband list
+contrabands=Orange
+
+## Castagna et al 2018
+#pf_orange=2.4120
+#msf_orange=-0.9738,-0.2999
+
+## L8/OLI calibration
+pf_orange=2.2861
+msf_orange=-0.9467,-0.1989
+
+## required bands
+pan=8
+ms=3,4

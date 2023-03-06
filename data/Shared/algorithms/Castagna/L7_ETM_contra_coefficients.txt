@@ -1,0 +1,20 @@
+## Coefficients to compute orange and rededge contra-bands from Landsat 7/ETM pan band
+# author: Alexandre Castagna, Ghent University, L7/ETM calibration Mar. 2023
+# reference: Castagna et al 2020 (https://doi.org/10.3390/rs12040637)
+# reorganised and renamed to contraband - QV, Mar. 2023
+# contraband = pf * pan + msf[0] * NIR + msf[1] * red + msf[2] * green
+
+## contraband list
+contrabands=Orange,RedEdge
+
+## L7 orange calibration
+pf_orange=3.797425
+msf_orange=-2.512820,-0.163711,-0.818728
+
+## L7 rededge calibration
+pf_rededge=3.640462
+msf_rededge=-0.479816,-0.976290,-0.952631
+
+## required bands
+pan=8
+ms=4,3,2

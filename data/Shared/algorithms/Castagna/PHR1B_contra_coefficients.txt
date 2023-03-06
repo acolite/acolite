@@ -1,0 +1,16 @@
+## Coefficients to compute contra-band from PHR1B pan band
+# author: Alexandre Castagna, Ghent University, Mar. 2023
+# reference: Castagna et al 2020 (https://doi.org/10.3390/rs12040637)
+# reorganised and renamed to contraband - QV, Mar. 2023
+# contraband = pf * pan + msf[0]*NIR + msf[1]*Red + msf[2]*Green + msf[3]*Blue
+
+## contraband list
+contrabands=RedEdge
+
+## PHR1B calibration
+pf_rededge=2.335631
+msf_rededge=0.646279,-0.836551,-0.643709,-0.176228
+
+## required bands
+pan=Pan
+ms=NIR,Red,Green,Blue
