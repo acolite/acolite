@@ -207,6 +207,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end DIMAP
     ################
 
+    ################
+    ## HYPSO
+    if input_type == 'HYPSO':
+        l1r_files, setu = ac.hypso.l1_convert(bundle, settings = setu)
+    ## end HYPSO
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:

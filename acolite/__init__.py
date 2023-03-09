@@ -14,6 +14,7 @@ from acolite import hyperion
 from acolite import desis
 from acolite import enmap
 from acolite import emit
+from acolite import hypso
 
 from acolite import gf
 from acolite import amazonia

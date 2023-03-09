@@ -365,6 +365,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## HYPSO
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            datasets = ac.shared.nc_datasets(bundle)
+            if (gatts['instrument'] == 'HYPSO-1 Hyperspectral Imager'):
+                input_type = 'HYPSO'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end HYPSO
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified
