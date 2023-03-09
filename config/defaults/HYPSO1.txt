@@ -6,8 +6,8 @@
 ##
 
 ## dark spectrum fitting options
-dsf_aot_estimate=fixed
-l2w_mask_wave=800
+dsf_aot_estimate=tiled
+l2w_mask_wave=750
 l2w_mask_threshold=0.2
 
 dsf_wave_range=450,750
