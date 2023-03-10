@@ -18,5 +18,5 @@ resolved_geometry=False
 dsf_spectrum_option=percentile
 dsf_percentile=5
 
-output_geometry=False
+output_geometry=True
 dsf_tile_dimensions=100,100
