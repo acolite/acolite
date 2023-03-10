@@ -585,28 +585,36 @@ def acolite_l2r(gem,
                     else:
                         ## get rho path for lut steps in aot
                         if hyper:
-                            ## get modeled rhot for each wavelength
+                            # get modeled rhot for each wavelength
                             if rhot_aot is None:
-                                rhot_aot = []
-                                for aot in lutdw[lut]['meta']['tau']:
-                                    tmp = lutdw[lut]['rgi']((gem.data_mem['pressure'+gk],
-                                                             lutdw[lut]['ipd'][par],
-                                                             lutdw[lut]['meta']['wave'],
-                                                             gem.data_mem['raa'+gk_raa],
-                                                             gem.data_mem['vza'+gk_vza],
-                                                             gem.data_mem['sza'+gk],
-                                                             gem.data_mem['wind'+gk], aot))
-                                    rhot_aot.append(tmp.flatten())
-                                rhot_aot = np.asarray(rhot_aot)
+                                ## set up array to store modeled rhot
+                                rhot_aot = np.zeros((len(lutdw[lut]['meta']['tau']), \
+                                                     len(lutdw[lut]['meta']['wave']), \
+                                                     len(gem.data_mem['pressure'+gk].flatten())))
 
+                                ## compute rhot for range of aot
+                                for ai, aot in enumerate(lutdw[lut]['meta']['tau']):
+                                    for pi in range(rhot_aot.shape[2]):
+                                        tmp = lutdw[lut]['rgi']((gem.data_mem['pressure'+gk].flatten()[pi],
+                                                                  lutdw[lut]['ipd'][par],
+                                                                  lutdw[lut]['meta']['wave'],
+                                                                  gem.data_mem['raa'+gk_raa].flatten()[pi],
+                                                                  gem.data_mem['vza'+gk_vza].flatten()[pi],
+                                                                  gem.data_mem['sza'+gk].flatten()[pi],
+                                                                  gem.data_mem['wind'+gk].flatten()[pi], aot))
+                                        ## store current result
+                                        rhot_aot[ai,:,pi] = tmp.flatten()
+                                if verbosity > 4: print('Shape of modeled rhot: {}'.format(rhot_aot.shape))
                             ## resample modeled results to current band
                             tmp = ac.shared.rsr_convolute_nd(rhot_aot, lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=1)
-                            tmp = tmp.flatten()
 
                             ## interpolate rho path to observation
-                            aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp,
-                                                               lutdw[lut]['meta']['tau'],
-                                                               left=np.nan, right=np.nan)
+                            aotret = np.zeros(aot_band[lut][band_sub].flatten().shape)
+                            ## interpolate to observed rhot
+                            for ri, crho in enumerate(band_data.flatten()):
+                                aotret[ri] = np.interp(crho, tmp[:,ri], lutdw[lut]['meta']['tau'], left=np.nan, right=np.nan)
+                            if verbosity > 4: print('Shape of computed aot: {}'.format(aotret.shape))
+                            aot_band[lut][band_sub] = aotret.reshape(aot_band[lut][band_sub].shape)
                         else:
                             if len(gem.data_mem['pressure'+gk]) > 1:
                                 for gki in range(len(gem.data_mem['pressure'+gk])):
@@ -762,15 +770,23 @@ def acolite_l2r(gem,
                                 if hyper:
                                     ## get hyperspectral results and resample to band
                                     if len(aot_stack[lut]['aot'][aot_sub]) == 1:
-                                        res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
-                                                                                xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
+                                        if len(xi[0]) == 0:
+                                            res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                                    xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
+                                        else: ## if more resolved geometry
+                                            res_hyp = lutdw[lut]['rgi']((xi[0][aot_sub], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                         xi[1][aot_sub], xi[2][aot_sub], xi[3][aot_sub], xi[4][aot_sub], aot_stack[lut]['aot'][aot_sub]))
                                         rhop_f[aot_sub[0], aot_sub[1], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                                     else:
                                         for iii in range(len(aot_stack[lut]['aot'][aot_sub])):
-                                            res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
-                                                                                    xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub][iii]))
-                                            rhop_f[aot_sub[0][iii], aot_sub[1][iii], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                                            if len(xi[0]) == 0:
+                                                res_hyp = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                                        xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub][iii]))
 
+                                            else: ## if more resolved geometry
+                                                res_hyp = lutdw[lut]['rgi']((xi[0].flatten()[iii], lutdw[lut]['ipd'][par], lutdw[lut]['meta']['wave'],
+                                                                                        xi[1].flatten()[iii], xi[2].flatten()[iii], xi[3].flatten()[iii], xi[4].flatten()[iii], aot_stack[lut]['aot'][aot_sub][iii]))
+                                            rhop_f[aot_sub[0][iii], aot_sub[1][iii], ai] = ac.shared.rsr_convolute_nd(res_hyp.flatten(), lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                                 else:
                                     if setu['dsf_aot_estimate'] == 'segmented':
                                         for gki in range(len(aot_sub[0])):
@@ -1194,8 +1210,12 @@ def acolite_l2r(gem,
                             else: ## tiled/resolved DSF
                                 hyper_res[prm] = np.zeros((len(lutdw[lut]['meta']['wave']),len(ai))) + np.nan
                                 for iii in range(len(ai)):
-                                    hyper_res[prm][:,iii] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
-                                                            lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai[iii])).flatten()
+                                    if len(xi[0]) == 1:
+                                        hyper_res[prm][:,iii] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
+                                                                lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai[iii])).flatten()
+                                    else:
+                                        hyper_res[prm][:,iii] = lutdw[lut]['rgi']((xi[0].flatten()[iii], lutdw[lut]['ipd'][prm],
+                                                                lutdw[lut]['meta']['wave'], xi[1].flatten()[iii], xi[2].flatten()[iii], xi[3].flatten()[iii], xi[4].flatten()[iii], ai[iii])).flatten()
 
                     ## resample to current band
                     ### path reflectance
