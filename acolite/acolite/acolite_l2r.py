@@ -1121,8 +1121,12 @@ def acolite_l2r(gem,
     hyper_res = None
     ## compute surface reflectances
     for bi, b in enumerate(gem.bands):
-        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
-        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue ## skip if we don't have rhot for a band that is in the RSR file
+        if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]):
+            if verbosity > 2: print('Band {} at {} nm not in bands dataset'.format(b, gem.bands[b]['wave_name']))
+            continue
+        if gem.bands[b]['rhot_ds'] not in gem.datasets:
+            if verbosity > 2: print('Band {} at {} nm not in available rhot datasets'.format(b, gem.bands[b]['wave_name']))
+            continue ## skip if we don't have rhot for a band that is in the RSR file
 
         dsi = gem.bands[b]['rhot_ds']
         dso = gem.bands[b]['rhos_ds']
@@ -1132,8 +1136,9 @@ def acolite_l2r(gem,
         if copy_rhot:
             gemo.write(dsi, cur_data, ds_att = cur_att)
 
-        if gem.bands[b]['tt_gas'] < setu['min_tgas_rho']: continue
-        if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
+        if gem.bands[b]['tt_gas'] < setu['min_tgas_rho']:
+            if verbosity > 2: print('Band {} at {} nm has tgas < min_tgas_rho ({:.2f} < {:.2f})'.format(b, gem.bands[b]['wave_name'], gem.bands[b]['tt_gas'], setu['min_tgas_rho']))
+            continue
 
         ## apply cirrus correction
         if setu['cirrus_correction']:
