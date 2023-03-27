@@ -2,7 +2,7 @@
 ## converts HYPSO file to l1r NetCDF for acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-03-09
-## modifications:
+## modifications: 2023-03-27 (QV) fixed issue with band naming
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -52,20 +52,26 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         waves = attributes['wavelengths']
         fwhm = attributes['fwhm']
 
+        rsr = ac.shared.rsr_hyper(waves, fwhm, step=0.1)
+        rsrd = ac.shared.rsr_dict(rsrd={sensor:{'rsr':rsr}})
+
         ## create band dataset
         band_names = ['{}'.format(b) for b in range(0, len(waves))]
-        rsr = {'{}'.format(b): ac.shared.gauss_response(waves[bi], fwhm[bi], step=0.1) \
-               for bi, b in enumerate(band_names)}
-        band_rsr= {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]} for b in rsr}
-        f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
+        #rsr = {'{}'.format(b): ac.shared.gauss_response(waves[bi], fwhm[bi], step=0.1) \
+        #       for bi, b in enumerate(band_names)}
+        #band_rsr= {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]} for b in rsr}
+        #f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
+        f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsr)
         bands = {}
 
         for bi, b in enumerate(band_names):
-            cwave = waves[bi]
-            swave = '{:.0f}'.format(cwave)
+            #cwave = waves[bi]
+            #swave = '{:.0f}'.format(cwave)
+            cwave = rsrd[sensor]['wave_nm'][bi]
+            swave = rsrd[sensor]['wave_name'][bi]
             bands[swave]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
                            'wave_name':swave, 'width': fwhm[bi],
-                           'rsr': band_rsr[b],'f0': f0d[b]}
+                           'rsr': rsr[bi],'f0': f0d[bi]}
 
         ## time
         utime = f['/navigation/']['unixtime'][:]
@@ -129,8 +135,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         while gatts['raa'] > 180: gatts['raa'] = np.abs(gatts['raa']-360)
 
         ## store band info in gatts
-        gatts['band_waves'] = [bands[w]['wave'] for w in bands]
-        gatts['band_widths'] = [bands[w]['width'] for w in bands]
+        gatts['band_waves'] = waves # [bands[w]['wave'] for w in bands]
+        gatts['band_widths'] = fwhm # [bands[w]['width'] for w in bands]
 
         ## output file
         obase  = '{}_{}_{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), gatts['acolite_file_type'])
