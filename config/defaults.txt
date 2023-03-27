@@ -372,6 +372,7 @@ export_geotiff_match_file=None
 export_cloud_optimized_geotiff=False
 l1r_export_geotiff_rgb=False
 l2r_export_geotiff_rgb=False
+use_gdal_merge_import=False
 
 # delete NetCDFs
 l1r_delete_netcdf=False
