@@ -419,6 +419,7 @@ def acolite_l2r(gem,
     if (ac_opt == 'dsf'):
         ## user supplied aot
         if (setu['dsf_fixed_aot'] is not None):
+            setu['dsf_aot_estimate'] = 'fixed'
             aot_lut = None
             for li, lut in enumerate(luts):
                 if lut == setu['dsf_fixed_lut']:
