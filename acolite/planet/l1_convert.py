@@ -350,13 +350,13 @@ def l1_convert(inputfile, output = None, settings = {},
                 ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
                                     netcdf_compression=setu['netcdf_compression'],
                                     netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
-                if verbosity > 1: print('Wrote lon')
                 ac.output.nc_write(ofile, 'lat', lat, double=True,
                                     netcdf_compression=setu['netcdf_compression'],
                                     netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
                 lat = None
-                if verbosity > 1: print('Wrote lat')
                 new=False
 
         ## write x/y
@@ -368,16 +368,16 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new,
+                ac.output.nc_write(ofile, 'xm', x, new=new,
                                     netcdf_compression=setu['netcdf_compression'],
                                     netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote xm ({})'.format(x.shape))
                 x = None
-                if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y,
+                ac.output.nc_write(ofile, 'ym', y,
                                     netcdf_compression=setu['netcdf_compression'],
                                     netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote ym ({})'.format(y.shape))
                 y = None
-                if verbosity > 1: print('Wrote y')
                 new=False
 
         ## convert bands TOA
