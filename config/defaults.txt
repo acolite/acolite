@@ -28,6 +28,10 @@ output_xy=False
 output_geometry=True
 output_rhorc=False
 
+## add band names to datasets
+## not supported for all sensors
+add_band_name=False
+
 ## compute contrabands
 compute_contrabands=False
 

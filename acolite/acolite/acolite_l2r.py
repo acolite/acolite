@@ -8,6 +8,7 @@
 ##                2022-06-21 (QV) moved orange band to separate function
 ##                2022-07-15 (QV) added option to select most common model for non-fixed DSF
 ##                2022-09-24 (QV) removed special case for DESIS
+##                2023-03-30 (QV) added option to include band name in rhot/rhos datasets
 
 def acolite_l2r(gem,
                 output = None,
@@ -54,7 +55,7 @@ def acolite_l2r(gem,
 
     ## check blackfill
     if setu['blackfill_skip']:
-        rhot_wv = [int(ds.split('_')[1]) for ds in rhot_ds]
+        rhot_wv = [int(ds.split('_')[-1]) for ds in rhot_ds] ## use last element of rhot name as wavelength
         bi, bw = ac.shared.closest_idx(rhot_wv, setu['blackfill_wave'])
         band_data = 1.0*gem.data(rhot_ds[bi])
         npx = band_data.shape[0] * band_data.shape[1]
@@ -203,6 +204,9 @@ def acolite_l2r(gem,
             gem.bands[b] = {k:rsrd[k][b] for k in ['wave_mu', 'wave_nm', 'wave_name'] if b in rsrd[k]}
             gem.bands[b]['rhot_ds'] = 'rhot_{}'.format(gem.bands[b]['wave_name'])
             gem.bands[b]['rhos_ds'] = 'rhos_{}'.format(gem.bands[b]['wave_name'])
+            if setu['add_band_name']:
+                gem.bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(b, gem.bands[b]['wave_name'])
+                gem.bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(b, gem.bands[b]['wave_name'])
             for k in tg_dict:
                 if k not in ['wave']: gem.bands[b][k] = tg_dict[k][b]
             gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
@@ -678,6 +682,7 @@ def acolite_l2r(gem,
 
                 ## get minimum or average aot
                 if setu['dsf_aot_compute'] in ['mean', 'median']:
+                    print('Using dsf_aot_compute = {}'.format(setu['dsf_aot_compute']))
                     ## stack n lowest bands
                     for ai in range(setu['dsf_nbands']):
                         if ai == 0:
@@ -687,6 +692,7 @@ def acolite_l2r(gem,
                     ## compute mean over stack
                     if setu['dsf_aot_compute'] == 'mean': aot_stack[lut]['aot'] = np.nanmean(tmp_aot, axis=2)
                     if setu['dsf_aot_compute'] == 'median': aot_stack[lut]['aot'] = np.nanmedian(tmp_aot, axis=2)
+                    if setu['dsf_aot_estimate'] == 'fixed': print('Using dsf_aot_compute = {} {} aot = {:.3f}'.format(setu['dsf_aot_compute'], lut, aot_stack[lut]['aot'].flatten()))
                     tmp_aot = None
                 else:
                     aot_stack[lut]['aot'] = aot_stack[lut]['all'][ax,ay,tmp[ax,ay,0]] #np.nanmin(aot_stack[lut]['all'], axis=2)
