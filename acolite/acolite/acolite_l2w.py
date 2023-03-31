@@ -50,10 +50,12 @@ def acolite_l2w(gem,
     rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
     rhot_waves = [int(ds.split('_')[-1]) for ds in rhot_ds]
     if len(rhot_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhot datasets.'.format(gemf, len(rhot_ds)))
+    print(rhot_ds, rhot_waves)
 
     rhos_ds = [ds for ds in gem.datasets if 'rhos_' in ds]
     rhos_waves = [int(ds.split('_')[-1]) for ds in rhos_ds]
     if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhos datasets.'.format(gemf, len(rhos_ds)))
+    print(rhos_ds, rhos_waves)
 
     if gem.gatts['acolite_file_type'] != 'L2R':
         print('Only L2W processing of ACOLITE L2R files supported.')
@@ -104,6 +106,8 @@ def acolite_l2w(gem,
     if verbosity > 3: print('Computing non water threshold mask.')
     cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_wave'])
     cur_par = 'rhot_{}'.format(cwave)
+    cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
+
     if verbosity > 3: print('Computing non water threshold mask from {} > {}.'.format(cur_par, setu['l2w_mask_threshold']))
     cur_data = gem.data(cur_par)
     if setu['l2w_mask_smooth']:
@@ -119,6 +123,8 @@ def acolite_l2w(gem,
     cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_cirrus_wave'])
     if np.abs(cwave - setu['l2w_mask_cirrus_wave']) < 5:
         cur_par = 'rhot_{}'.format(cwave)
+        cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
+
         if verbosity > 3: print('Computing cirrus mask from {} > {}.'.format(cur_par, setu['l2w_mask_cirrus_threshold']))
         cur_data = gem.data(cur_par)
         if setu['l2w_mask_smooth']:
@@ -139,6 +145,8 @@ def acolite_l2w(gem,
         if rhot_waves[ci]<setu['l2w_mask_high_toa_wave_range'][0]: continue
         if rhot_waves[ci]>setu['l2w_mask_high_toa_wave_range'][1]: continue
         if verbosity > 3: print('Computing TOA limit mask from {} > {}.'.format(cur_par, setu['l2w_mask_high_toa_threshold']))
+        cwave = rhot_waves[ci]
+        cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
         cur_data = gem.data(cur_par)
         if outmask is None: outmask = np.zeros(cur_data.shape).astype(bool)
         outmask = (outmask) | (np.isnan(cur_data))
@@ -159,6 +167,8 @@ def acolite_l2w(gem,
         if rhos_waves[ci]<setu['l2w_mask_negative_wave_range'][0]: continue
         if rhos_waves[ci]>setu['l2w_mask_negative_wave_range'][1]: continue
         if verbosity > 3: print('Computing negative reflectance mask from {}.'.format(cur_par))
+        cwave = rhos_waves[ci]
+        cur_par = [ds for ds in rhos_ds if ('{:.0f}'.format(cwave) in ds)][0]
         cur_data = gem.data(cur_par)
         #if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
         if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
@@ -317,7 +327,8 @@ def acolite_l2w(gem,
 
             ## band center
             if nechad_parameter == 'centre':
-                par_name = '{}_Nechad{}_{}'.format(nechad_par, cal_year, cw)
+                #par_name = '{}_Nechad{}_{}'.format(nechad_par, cal_year, cw)
+                par_base = '{}_Nechad{}'.format(nechad_par, cal_year)
                 nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
                 didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], cw)
                 A_Nechad = nechad_dict['A'][didx]
@@ -325,7 +336,8 @@ def acolite_l2w(gem,
 
             ## resampled to band
             if nechad_parameter == 'resampled':
-                par_name = '{}_Nechad{}Ave_{}'.format(nechad_par, cal_year, cw)
+                #par_name = '{}_Nechad{}Ave_{}'.format(nechad_par, cal_year, cw)
+                par_base = '{}_Nechad{}Ave'.format(nechad_par, cal_year)
                 nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
                 ## resample parameters to band
                 cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem.gatts['sensor']]['rsr'])
@@ -336,7 +348,8 @@ def acolite_l2w(gem,
 
             ## resampled to band by Nechad 2016
             if nechad_parameter == '2016':
-                par_name = '{}_Nechad2016_{}'.format(nechad_par, cw)
+                #par_name = '{}_Nechad2016_{}'.format(nechad_par, cw)
+                par_base = '{}_Nechad2016'.format(nechad_par)
                 par_attributes['algorithm']='2016 calibration'
                 nechad_dict = ac.parameters.nechad.coef_2016()
                 for k in nechad_dict:
@@ -348,7 +361,9 @@ def acolite_l2w(gem,
 
             ## if we have A and C we can continue
             if (A_Nechad is not None) & (C_Nechad is not None):
-                cur_ds = 'rhos_{}'.format(cw)
+                #cur_ds = 'rhos_{}'.format(cw)
+                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
+                par_name = '{}_{}'.format(par_base, cur_ds.replace('rhos_',''))
                 cur_data = 1.0 * gem.data(cur_ds)
                 ## compute parameter
                 cur_mask = np.where(cur_data >= (setu['nechad_max_rhow_C_factor'] * C_Nechad))
@@ -397,12 +412,14 @@ def acolite_l2w(gem,
             par_attributes['wave_nir'] = nw
 
             ## read red data
-            cur_ds = 'rhos_{}'.format(rw)
+            #cur_ds = 'rhos_{}'.format(rw)
+            cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(rw) in ds)][0]
             red = 1.0 * gem.data(cur_ds)
             tur = (par_attributes['A_T_red'] * red) / (1.-red/par_attributes['C_T_red'])
 
             ## read nir data
-            cur_ds = 'rhos_{}'.format(nw)
+            #cur_ds = 'rhos_{}'.format(nw)
+            cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(nw) in ds)][0]
             nir = 1.0 * gem.data(cur_ds)
             nir_tur = (par_attributes['A_T_nir'] * nir) / (1.-nir/par_attributes['C_T_nir'])
 
@@ -466,12 +483,10 @@ def acolite_l2w(gem,
 
             ## band center
             if nechad_parameter == 'center':
-                par_name = '{}_Dogliotti2022_{}'.format(nechad_par, cw)
                 didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], cw)
                 A_Nechad = nechad_dict['A_mean'][didx]
                 C_Nechad = nechad_dict['C'][didx]
             elif nechad_parameter == 'resampled':
-                par_name = '{}_Dogliotti2022_{}'.format(nechad_par, cw)
                 # resample parameters to band
                 cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem.gatts['sensor']]['rsr'])
                 adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, 1/nechad_dict['A_mean'], rsrd[gem.gatts['sensor']]['rsr'])
@@ -481,7 +496,8 @@ def acolite_l2w(gem,
 
             ## if we have A and C we can continue
             if (A_Nechad is not None) & (C_Nechad is not None):
-                cur_ds = 'rhos_{}'.format(cw)
+                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
+                par_name = '{}_Dogliotti2022_{}'.format(nechad_par, cur_ds.replace('rhos_',''))
                 cur_data = 1.0 * gem.data(cur_ds)
                 ## compute parameter
                 cur_mask = np.where(cur_data >= (setu['nechad_max_rhow_C_factor'] * C_Nechad))
@@ -531,7 +547,8 @@ def acolite_l2w(gem,
             for w in chl_dct['blue'] + chl_dct['green']:
                 ci, cw = ac.shared.closest_idx(rhos_waves, int(w))
                 if np.abs(cw-w) > chl_oc_wl_diff: continue
-                cur_ds = 'rhos_{}'.format(cw)
+                #cur_ds = 'rhos_{}'.format(cw)
+                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
                 cur_data = 1.0 * gem.data(cur_ds)
                 if w in chl_dct['blue']:
                     if blue is None:
@@ -750,7 +767,8 @@ def acolite_l2w(gem,
 
             for ki, k in enumerate(qaa_wave):
                 ci, cw = ac.shared.closest_idx(rhos_waves, k)
-                cur_ds = 'rhos_{}'.format(cw)
+                #cur_ds = 'rhos_{}'.format(cw)
+                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
                 sen_wave.append(cw)
                 if ki == 0: qaa_in = {}
                 cur_data = 1.0 * gem.data(cur_ds)
@@ -815,7 +833,9 @@ def acolite_l2w(gem,
             ## read Blue Green Red data, convert to Rrs
             for k in ['B', 'G', 'R']:
                 ci, cw = ac.shared.closest_idx(rhos_waves, cfg[gem.gatts['sensor']]['center_wl'][k])
-                cur_ds = 'rhos_{}'.format(cw)
+                #cur_ds = 'rhos_{}'.format(cw)
+                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
+
                 cur_data = 1.0 * gem.data(cur_ds)
                 if (mask) & (setu['l2w_mask_water_parameters']): cur_data[(l2_flags & flag_value)!=0] = np.nan
                 if k == 'B':
@@ -1159,7 +1179,8 @@ def acolite_l2w(gem,
             if gem.gatts['sensor'] == 'L9_OLI': req_waves = [561,613,654]
             if gem.gatts['sensor'] == 'EO1_ALI': req_waves = [561,613,655]
 
-            required_datasets = ['rhos_{}'.format(w) for w in req_waves]
+            #required_datasets = ['rhos_{}'.format(w) for w in req_waves]
+            required_datasets = [[ds for ds in rhos_ds if ('{:.0f}'.format(w) in ds)][0] for w in req_waves]
 
             ## get data
             for di, cur_ds in enumerate(required_datasets):
