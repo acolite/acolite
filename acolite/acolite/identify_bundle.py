@@ -103,6 +103,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## VIIRS
+        try:
+            ret = ac.viirs.bundle_test(bundle)
+            if (ret is not None):
+                input_type = 'VIIRS'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end VIIRS
+        ################
+
+
+        ################
         ## Pléiades/SPOT
         try:
             ifiles,mfiles,pifiles,pmfiles = ac.pleiades.bundle_test(bundle, listpan=True)

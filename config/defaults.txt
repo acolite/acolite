@@ -98,6 +98,9 @@ desis_mask_ql=True
 clear_scratch=True
 gf_reproject_to_utm=False
 
+## VIIRS settings
+viirs_option=img+mod
+
 ## TACT settings
 tact_run=False
 tact_profile_source=era5
