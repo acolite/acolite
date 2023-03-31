@@ -12,7 +12,8 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import acolite as ac
 
     ## parse settings
-    setu = ac.acolite.settings.parse('PRISMA', settings=settings)
+    sensor = 'PRISMA'
+    setu = ac.acolite.settings.parse(sensor, settings=settings)
     verbosity = setu['verbosity']
     if output is None: output = setu['output']
     output_lt = setu['output_lt']
@@ -62,10 +63,15 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         for b in rsr_vnir: band_rsr[b] = {'wave': rsr_vnir[b][0]/1000, 'response': rsr_vnir[b][1]}
         for b in rsr_swir: band_rsr[b] = {'wave': rsr_swir[b][0]/1000, 'response': rsr_swir[b][1]}
 
+        ## use same rsr as acolite_l2r
+        #rsr = ac.shared.rsr_hyper(gatts['band_waves'], gatts['band_widths'], step=0.1)
+        # rsrd = ac.shared.rsr_dict(rsrd={sensor:{'rsr':band_rsr}})
+        # waves = [rsrd[sensor]['wave_nm'][b] for b in band_names]
+        # waves_names = [rsrd[sensor]['wave_name'][b] for b in band_names]
+
         idx = np.argsort(waves)
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
 
-        idx = np.argsort(waves)
         bands = {}
         for i in idx:
             cwave = waves[i]
@@ -78,6 +84,10 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                            'rsr': band_rsr[band_names[i]],
                            'f0': f0d[band_names[i]],
                            'instrument':instrument[i],}
+
+        # print(rsrd[sensor]['wave_name'])
+        # print(bands)
+        # stop
 
         gatts = {}
 
@@ -96,6 +106,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
 
         ## get geometry from l2 file if present
         l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
+        vza, vaa, sza, saa, raa = None, None, None, None, None
         if os.path.exists(l2file):
             with h5py.File(l2file, mode='r') as f:
                 ## L1G format
@@ -124,6 +135,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                     vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][:]
                     raa = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Rel_Azimuth_Angle'][:]
                     sza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
+
                 gatts['vza'] = np.nanmean(np.abs(vza))
                 gatts['raa'] = np.nanmean(np.abs(raa))
                 gatts['sza'] = np.nanmean(np.abs(sza))
@@ -188,32 +200,73 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         else:
             odir = output
 
-        obase  = '{}_{}_L1R'.format('PRISMA',  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        gatts['sensor'] = sensor
+        gatts['isodate'] = time.isoformat()
+
+        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
 
         gatts['obase'] = obase
-        gatts['sensor'] = 'PRISMA'
-        gatts['isodate'] = time.isoformat()
 
         gatts['band_waves'] = [bands[w]['wave'] for w in bands]
         gatts['band_widths'] = [bands[w]['width'] for w in bands]
 
-        ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts,
-                            netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-        ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)),
-                            netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+        new = True
+        if (setu['output_geolocation']) & (new):
+            if verbosity > 1: print('Writing geolocation lon/lat')
+            ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)), new=new, attributes=gatts,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'])
+            if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
+            new = False
+            lon = None
 
+            ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=new, attributes=gatts,
+                                netcdf_compression=setu['netcdf_compression'],
+                                netcdf_compression_level=setu['netcdf_compression_level'])
+            if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
+            lat = None
+
+        ## write geometry
         if os.path.exists(l2file):
-            ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)),
-                                netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-            ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)),
-                                netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
-            ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)),
-                                netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+            if (setu['output_geometry']):
+                if verbosity > 1: print('Writing geometry')
+                ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)), attributes=gatts, new=new,
+                                   netcdf_compression=setu['netcdf_compression'],
+                                   netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote vza ({})'.format(vza.shape))
+                vza = None
+                new = False
+                if vaa is not None:
+                    ac.output.nc_write(ofile, 'vaa', np.flip(np.rot90(vaa)), attributes=gatts, new=new,
+                                       netcdf_compression=setu['netcdf_compression'],
+                                       netcdf_compression_level=setu['netcdf_compression_level'])
+                    if verbosity > 1: print('Wrote vaa ({})'.format(vaa.shape))
+                    vaa = None
+
+                ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)), attributes=gatts, new=new,
+                                   netcdf_compression=setu['netcdf_compression'],
+                                   netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote sza ({})'.format(sza.shape))
+
+                if saa is not None:
+                    ac.output.nc_write(ofile, 'saa', np.flip(np.rot90(saa)), attributes=gatts, new=new,
+                                       netcdf_compression=setu['netcdf_compression'],
+                                       netcdf_compression_level=setu['netcdf_compression_level'])
+                    if verbosity > 1: print('Wrote saa ({})'.format(saa.shape))
+                    saa = None
+
+                ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)), attributes=gatts, new=new,
+                                   netcdf_compression=setu['netcdf_compression'],
+                                   netcdf_compression_level=setu['netcdf_compression_level'])
+                if verbosity > 1: print('Wrote raa ({})'.format(raa.shape))
+                raa = None
+
             if dem is not None:
                 ac.output.nc_write(ofile, 'dem', np.flip(np.rot90(dem)),
-                                    netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                                    netcdf_compression=setu['netcdf_compression'],
+                                    netcdf_compression_level=setu['netcdf_compression_level'])
 
         ## store l2c data
         store_l2c = setu['prisma_store_l2c']
