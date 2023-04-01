@@ -40,6 +40,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
         sensor = '{}_{}'.format(l1b_meta['platform'], l1b_meta['instrument']).upper()
         setu = ac.acolite.settings.parse(sensor, settings=settings)
         opts = setu['viirs_option'].lower().split('+')
+        ## configure scan lines
+        if opts[0] == 'mod': slines = 16
+        if opts[0] == 'img': slines = 32
+
         rotate = True
 
         skip = False
@@ -114,6 +118,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                 gatts['sensor'] = sensor
                 gatts['isodate'] = dtime.isoformat()
                 gatts['obase']  = '{}_{}_{}_L1R'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'), setu['viirs_option'].upper())
+                gatts['viirs_option'] = setu['viirs_option']
+                gatts['viirs_slines'] = slines
 
                 if not os.path.exists(odir): os.makedirs(odir)
                 ofile = '{}/{}.nc'.format(odir, gatts['obase'])
@@ -133,10 +139,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                     csub = [c - c%2 for c in csub]
 
                     ## make sure we crop at scan lines
-                    if opts[0] == 'mod': sline = 16
-                    if opts[0] == 'img': sline = 32
-                    csub[1] = csub[1] - csub[1]%sline if csub[1] >= sline else 0
-                    csub[3] = csub[3] - csub[3]%sline + sline
+                    csub[1] = csub[1] - csub[1]%slines if csub[1] >= slines else 0
+                    csub[3] = csub[3] - csub[3]%slines + slines
                     if (csub[1] + csub[3] > full_shape[0]): csub[3] = (full_shape[0]-csub[1])
 
                     ## store crop subset
