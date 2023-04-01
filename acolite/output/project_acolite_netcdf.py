@@ -47,6 +47,9 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     if (setu['output_projection_limit'] is None) & (setu['output_projection_polygon'] is not None):
         setu['output_projection_limit'] = ac.shared.polygon_limit(setu['output_projection_polygon'])
 
+    if (setu['output_projection_limit'] is None) & ('limit_old' in setu):
+        setu['output_projection_limit'] = [l for l in setu['limit_old']]
+
     if (setu['output_projection_limit'] is None) & (setu['limit'] is not None):
         setu['output_projection_limit'] = [l for l in setu['limit']]
 
@@ -199,12 +202,12 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         datasets_att[ds] = att
         data_in = None
 
-    ## for NN projection
+    ## for NN/bilinear projection
     radius = 3
     epsilon = 0
 
     ## for bilinear projection
-    bilpar = 30e3
+    neighbours = 32
 
     if (setu['viirs_scanline_projection']) & ('VIIRS' in gatts['sensor']):
         slines = 32
@@ -228,7 +231,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
             source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
             ## set up resampler
             if setu['output_projection_resampling_method'] == 'bilinear':
-                resampler = NumpyBilinearResampler(source_definition, target_definition, bilpar)
+                resampler = NumpyBilinearResampler(source_definition, target_definition, target_pixel_size[0]*radius,
+                                                    neighbours=neighbours, epsilon=epsilon, reduce_data=False)
                 data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
             elif setu['output_projection_resampling_method'] == 'nearest':
                 data_out_stack = kd_tree.resample_nearest(source_definition, data_in_stack, target_definition,
@@ -243,7 +247,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
                                                          lats=lat[i*slines:(i+1)*slines,:])
             ## set up resampler
             if setu['output_projection_resampling_method'] == 'bilinear':
-                resampler = NumpyBilinearResampler(source_definition, target_definition, bilpar)
+                resampler = NumpyBilinearResampler(source_definition, target_definition, target_pixel_size[0]*radius,
+                                                    neighbours=neighbours, epsilon=epsilon, reduce_data=False)
                 data_out_scan = resampler.resample(data_in_stack[i*slines:(i+1)*slines,:,:], fill_value=np.nan)
             elif setu['output_projection_resampling_method'] == 'nearest':
                 data_out_scan = kd_tree.resample_nearest(source_definition, data_in_stack[i*slines:(i+1)*slines,:,:], target_definition,

@@ -68,6 +68,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                     clip = True
                 except:
                     print('Failed to import polygon {}'.format(poly))
+        if (limit is not None) & (setu['limit_buffer'] is not None):
+            print('Applying limit buffer {}'.format(setu['limit_buffer']))
+            print('Old limit: {}'.format(limit))
+            setu['limit_old'] = limit
+            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
+                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
+            print('New limit: {}'.format(limit))
 
         verbosity = setu['verbosity']
         if output is None: output = setu['output']

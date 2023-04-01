@@ -1,9 +1,10 @@
-## list of settings that will be converted to integers
+## list of settings that will be converted to floats
 ## do not edit!
 ##
 min_tgas_aot
 min_tgas_rho
 sza_limit
+limit_buffer
 dsf_percentile
 dsf_filter_percentile
 dsf_min_tile_aot
