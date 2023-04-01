@@ -8,6 +8,8 @@
 ##                2022-07-06 (QV) simultaneous reprojection of multiple datasets (much faster!)
 ##                2022-10-17 (QV) added output_projection_polygon
 ##                2022-10-20 (QV) added nn option
+##                2023-04-01 (QV) added viirs scanlines reprojection
+
 
 def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
@@ -171,9 +173,6 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     if lat is None: lat = ac.shared.nc_data(ncf, 'lat')
     if lon is None: lon = ac.shared.nc_data(ncf, 'lon')
 
-    ## set up source definition
-    source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
-
     ## make new output attributes
     gatts_out = {k:gatts[k] for k in gatts}
     for k in dct:
@@ -200,19 +199,62 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         datasets_att[ds] = att
         data_in = None
 
+    ## for NN projection
+    radius = 3
+    epsilon = 0
+
+    ## for bilinear projection
+    bilpar = 30e3
+
+    if (setu['viirs_scanline_projection']) & ('VIIRS' in gatts['sensor']):
+        slines = 32
+        if 'viirs_slines' in gatts: slines = gatts['viirs_slines']
+        nscans = int(data_in_stack.shape[0]/slines)
+        print('Assuming {} scans of {} lines'.format(nscans, slines))
+        data_out_stack = np.zeros((ny,nx,len(datasets_out))) + np.nan
+    else:
+        nscans = 1
+
     ## reproject dataset
     t0 = time.time()
     print('Projecting datasets {}x{}x{} to {} {}x{}x{}'.format(data_in_stack.shape[0], data_in_stack.shape[1], len(datasets_out),\
                                                 projection, nx, ny, len(datasets_out)))
 
-    ## set up resampler
-    if setu['output_projection_resampling_method'] == 'bilinear':
-        resampler = NumpyBilinearResampler(source_definition, target_definition, 30e3)
-        data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
-    elif setu['output_projection_resampling_method'] == 'nearest':
-        data_out_stack = kd_tree.resample_nearest(source_definition, data_in_stack, target_definition,
-                                                    radius_of_influence=target_pixel_size[0],
-                                                    epsilon=0.5, fill_value=np.nan)
+    ## run through scans (1 if reprojecting all at once)
+    for i in range(nscans):
+        ## one reprojection
+        if nscans == 1:
+            ## set up source definition
+            source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
+            ## set up resampler
+            if setu['output_projection_resampling_method'] == 'bilinear':
+                resampler = NumpyBilinearResampler(source_definition, target_definition, bilpar)
+                data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
+            elif setu['output_projection_resampling_method'] == 'nearest':
+                data_out_stack = kd_tree.resample_nearest(source_definition, data_in_stack, target_definition,
+                                                            radius_of_influence=target_pixel_size[0]*radius,
+                                                            epsilon=epsilon, fill_value=np.nan)
+        ## reprojection per scan
+        else:
+            print('Reprojecting scan {}/{}'.format(i+1, nscans), end='\r')
+            ts0 = time.time()
+            ## set up scan source
+            source_definition = geometry.SwathDefinition(lons=lon[i*slines:(i+1)*slines,:],
+                                                         lats=lat[i*slines:(i+1)*slines,:])
+            ## set up resampler
+            if setu['output_projection_resampling_method'] == 'bilinear':
+                resampler = NumpyBilinearResampler(source_definition, target_definition, bilpar)
+                data_out_scan = resampler.resample(data_in_stack[i*slines:(i+1)*slines,:,:], fill_value=np.nan)
+            elif setu['output_projection_resampling_method'] == 'nearest':
+                data_out_scan = kd_tree.resample_nearest(source_definition, data_in_stack[i*slines:(i+1)*slines,:,:], target_definition,
+                                                            radius_of_influence=target_pixel_size[0]*radius,
+                                                            epsilon=epsilon, fill_value=np.nan)
+            ## put scans in out stack
+            scan_sub = np.where(np.isfinite(data_out_scan) & np.isnan(data_out_stack))
+            data_out_stack[scan_sub] = data_out_scan[scan_sub]
+            data_out_scan = None
+            print('Reprojecting scan {}/{} took {:.1f} seconds'.format(i+1, nscans, time.time()-ts0), end='\r')
+    if nscans >1: print()
 
     data_in_stack = None
     if setu['output_projection_fillnans']:

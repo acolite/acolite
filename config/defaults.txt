@@ -100,6 +100,7 @@ gf_reproject_to_utm=False
 
 ## VIIRS settings
 viirs_option=img+mod
+viirs_scanline_projection=True
 
 ## TACT settings
 tact_run=False
