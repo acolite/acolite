@@ -132,6 +132,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                     ## make sure we are at even pixels
                     csub = [c - c%2 for c in csub]
 
+                    ## make sure we crop at scan lines
+                    if opts[0] == 'mod': sline = 16
+                    if opts[0] == 'img': sline = 32
+                    csub[1] = csub[1] - csub[1]%sline if csub[1] >= sline else 0
+                    csub[3] = csub[3] - csub[3]%sline + sline
+                    if (csub[1] + csub[3] > full_shape[0]): csub[3] = (full_shape[0]-csub[1])
+
+                    ## store crop subset
                     if opts[0] == 'mod':
                         sub = {}
                         sub['mod'] = [c for c in csub]
