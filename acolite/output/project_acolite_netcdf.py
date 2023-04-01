@@ -264,7 +264,11 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     data_in_stack = None
     if setu['output_projection_fillnans']:
         data_out_stack[data_out_stack == 0] = np.nan
-        data_out_stack = ac.shared.fillnan(data_out_stack)
+        if len(data_out_stack.shape) == 3:
+            for di in range(data_out_stack.shape[2]):
+                data_out_stack[:,:,di] = ac.shared.fillnan(data_out_stack[:,:,di])
+        else:
+            data_out_stack[:,:] = ac.shared.fillnan(data_out_stack[:,:])
     t1 = time.time()
     print('Reprojection of {} datasets took {:.1f} seconds'.format(len(datasets_out),t1-t0))
 
