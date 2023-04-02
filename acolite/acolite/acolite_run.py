@@ -139,6 +139,14 @@ def acolite_run(settings, inputfile=None, output=None):
         for l1r in l1r_files:
             gatts = ac.shared.nc_gatts(l1r)
             if 'acolite_file_type' not in gatts: gatts['acolite_file_type'] = 'L1R'
+            if l1r_setu['l1r_crop']:
+                l1r_cropped = ac.output.crop_acolite_netcdf(l1r, output = l1r_setu['output'], limit = l1r_setu['limit'], polygon = l1r_setu['polygon'])
+                if l1r_cropped is not None:
+                    l1r = l1r_cropped
+                else:
+                    print('Cropping L1R {} not successful'.format(l1r))
+                    continue
+
             if l1r_setu['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r, match_file = l1r_setu['export_geotiff_match_file'],
                                                             cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                             skip_geo = l1r_setu['export_geotiff_coordinates'] is False)

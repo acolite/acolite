@@ -21,6 +21,7 @@ polylakes_database=worldlakes
 merge_tiles=False
 merge_zones=True
 extend_region=False
+l1r_crop=False
 
 ## new output settings
 output=None
