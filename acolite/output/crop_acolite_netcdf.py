@@ -13,7 +13,7 @@ def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
 
     if limit is None:
         print("Please provide a four element limit [S, W, N, E] or a polygon file for L1R cropping")
-        return(None)
+        return
 
     gatts = ac.shared.nc_gatts(ncf)
     dn = os.path.dirname(ncf)
@@ -49,5 +49,3 @@ def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
             print('Wrote {} ({}) to {}'.format(ds, d.shape, ofile))
             new = False
         return(ofile)
-
-    return(None)
