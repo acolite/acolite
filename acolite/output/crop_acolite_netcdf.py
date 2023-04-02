@@ -1,7 +1,7 @@
 ## def crop_acolite_netcdf
 ## sample script for cropping acolite NetCDF file
 ## written by Quinten Vanhellemont, RBINS
-## 2023-04-03
+## 2023-04-02
 ## modifications:
 
 def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
@@ -12,8 +12,8 @@ def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
         limit = ac.shared.polygon_limit(polygon)
 
     if limit is None:
-        print("Please provide a four element limit [S, W, N, E] or a polygon file for cropping")
-        return()
+        print("Please provide a four element limit [S, W, N, E] or a polygon file for L1R cropping")
+        return(None)
 
     gatts = ac.shared.nc_gatts(ncf)
     dn = os.path.dirname(ncf)
@@ -49,3 +49,5 @@ def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
             print('Wrote {} ({}) to {}'.format(ds, d.shape, ofile))
             new = False
         return(ofile)
+
+    return(None)
