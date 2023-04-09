@@ -347,6 +347,11 @@ def acolite_l2r(gem,
     settings_file = '{}/acolite_run_{}_l2r_settings.txt'.format(output_,setu['runid'])
     ac.acolite.settings.write(settings_file, setu)
 
+    ## do not allow LUT boundaries ()
+    left, right = np.nan, np.nan
+    if setu['dsf_allow_lut_boundaries']:
+        left, right = None, None
+
     ## setup output file
     ofile = None
     if output_file:
@@ -624,7 +629,7 @@ def acolite_l2r(gem,
                             aotret = np.zeros(aot_band[lut][band_sub].flatten().shape)
                             ## interpolate to observed rhot
                             for ri, crho in enumerate(band_data.flatten()):
-                                aotret[ri] = np.interp(crho, tmp[:,ri], lutdw[lut]['meta']['tau'], left=np.nan, right=np.nan)
+                                aotret[ri] = np.interp(crho, tmp[:,ri], lutdw[lut]['meta']['tau'], left=left, right=right)
                             if verbosity > 4: print('Shape of computed aot: {}'.format(aotret.shape))
                             aot_band[lut][band_sub] = aotret.reshape(aot_band[lut][band_sub].shape)
                         else:
@@ -637,7 +642,7 @@ def acolite_l2r(gem,
                                                                 gem.data_mem['sza'+gk][gki],
                                                                 gem.data_mem['wind'+gk][gki], lutdw[lut]['meta']['tau']))
                                     tmp = tmp.flatten()
-                                    aot_band[lut][gki] = np.interp(band_data[gki], tmp, lutdw[lut]['meta']['tau'])#, left=np.nan, right=np.nan)
+                                    aot_band[lut][gki] = np.interp(band_data[gki], tmp, lutdw[lut]['meta']['tau'], left=left, right=right)
                             else:
                                 tmp = lutdw[lut]['rgi'][b]((gem.data_mem['pressure'+gk],
                                                             lutdw[lut]['ipd'][par],
@@ -648,7 +653,7 @@ def acolite_l2r(gem,
                                 tmp = tmp.flatten()
 
                                 ## interpolate rho path to observation
-                                aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp, lutdw[lut]['meta']['tau'], left=np.nan, right=np.nan)
+                                aot_band[lut][band_sub] = np.interp(band_data[band_sub], tmp, lutdw[lut]['meta']['tau'], left=left, right=right)
 
                     ## mask minimum/maximum tile aots
                     if setu['dsf_aot_estimate'] == 'tiled':
