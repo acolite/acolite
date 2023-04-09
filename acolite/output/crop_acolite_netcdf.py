@@ -2,7 +2,7 @@
 ## sample script for cropping acolite NetCDF file
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-04-02
-## modifications:
+## modifications: 2023-04-09 (QV) Fix for NetCDF without nc_projection
 
 def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
     import os
@@ -40,7 +40,8 @@ def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
 
         new = True
         for ds in datasets:
-            if ds in nc_projection: continue
+            if nc_projection is not None:
+                if ds in nc_projection: continue
             d, da = ac.shared.nc_data(ncf, ds, attributes=True, sub=sub)
 
             ## output dataset
