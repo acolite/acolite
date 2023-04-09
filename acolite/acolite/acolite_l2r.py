@@ -192,6 +192,13 @@ def acolite_l2r(gem,
             geom_mean['sza'] = setu['sza_limit']
             print('Mean SZA after replacing SZA > {}: {:.3f}'.format(setu['sza_limit'],geom_mean['sza']))
 
+    if (geom_mean['vza'] > setu['vza_limit']):
+        print('Warning: VZA out of LUT range')
+        print('Mean VZA: {:.3f}'.format(geom_mean['vza']))
+        if  (setu['vza_limit_replace']):
+            geom_mean['vza'] = setu['vza_limit']
+            print('Mean VZA after replacing VZA > {}: {:.3f}'.format(setu['vza_limit'],geom_mean['vza']))
+
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(geom_mean['sza'], geom_mean['vza'],
                                       uoz=gem.gatts['uoz'], uwv=gem.gatts['uwv'],

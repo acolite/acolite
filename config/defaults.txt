@@ -187,6 +187,10 @@ min_tgas_rho=0.70
 sza_limit_replace=False
 sza_limit=79.999
 
+## replace high VZA to fall within LUT
+vza_limit_replace=False
+vza_limit=71.999
+
 ## cirrus correction (testing - do not use)
 cirrus_correction=False
 cirrus_range=1350,1390

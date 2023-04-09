@@ -4,6 +4,7 @@
 min_tgas_aot
 min_tgas_rho
 sza_limit
+vza_limit
 limit_buffer
 dsf_percentile
 dsf_filter_percentile
