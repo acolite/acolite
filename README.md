@@ -24,9 +24,11 @@ New settings were suggested in:
 
 * Vanhellemont 2020c, [Sensitivity analysis of the dark spectrum fitting atmospheric correction for metre- and decametre-scale satellite imagery using autonomous hyperspectral radiometry](https://doi.org/10.1364/OE.397456)
 
-The adaptation to Sentinel-3/OLCI was presented in:
+The adaptation to Sentinel-3/OLCI and SuperDove was presented in:
 
 * Vanhellemont and Ruddick 2021, [Atmospheric correction of Sentinel-3/OLCI data for mapping of suspended particulate matter and chlorophyll-a concentration in Belgian turbid coastal waters](https://doi.org/10.1016/j.rse.2021.112284)
+
+* Vanhellemont 2023, [Evaluation of eight band SuperDove imagery for aquatic applications](https://doi.org/10.1364/OE.483418)
 
 First results using ACOLITE/DSF for PRISMA are presented in:
 
