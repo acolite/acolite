@@ -7,6 +7,7 @@
 def viirs_l1a_to_l1b(scene, local = None, override_download = False, override_conversion = False,
                      url_base = 'https://oceandata.sci.gsfc.nasa.gov/ob/getfile/'):
     import os, subprocess
+    import acolite as ac
     try:
         ocsswroot = os.environ['OCSSWROOT']
     except:
