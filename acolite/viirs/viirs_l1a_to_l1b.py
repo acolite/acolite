@@ -67,7 +67,7 @@ def viirs_l1a_to_l1b(scene, local = None, override_download = False, override_co
         start = time.time()
         ret = subprocess.run('bash viirs_run.sh', capture_output=True, shell=True)
         print("Finished ocssw VIIRS processing, elapsed Time: {:.1f}s".format(time.time() - start))
-        print(ret.stdout.decode())
+        #print(ret.stdout.decode())
     else:
         print('GEO and L1B files exist locally')
 
