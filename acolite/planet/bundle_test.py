@@ -9,14 +9,19 @@
 ##                2022-01-11 (QV) added AnalyticMS_8b
 ##                2022-02-21 (QV) added Skysat, include support for unzipped API downloads
 ##                2022-10-26 (QV) added scene_id to datafiles
+##                2023-04-17 (QV) fix for Skysat scene_ids and selecting one from multiple files
 
 def bundle_test(bundle_in):
     import os
 
     if os.path.isdir(bundle_in):
         bundle = bundle_in
+        sid = None
     else:
         bundle = os.path.dirname(bundle_in)
+        fn = os.path.basename(bundle_in)
+        sid = fn[0:23]
+        if 'ssc' in fn: sid = fn[0:27]
 
     ## check files in bundle
     files = []
@@ -33,7 +38,12 @@ def bundle_test(bundle_in):
         fname = os.path.basename(file)
         fn,ext = os.path.splitext(fname)
         if len(fn) < 23: continue
-        scene_id = fn[0:23]
+        if sid is None:
+            scene_id = fn[0:23]
+            if 'ssc' in fn: scene_id = fn[0:27]
+        else:
+            scene_id = sid
+        if scene_id not in fn: continue
 
         if ext not in ['.json', '.tif', '.xml']: continue
         band,clp=None,''
