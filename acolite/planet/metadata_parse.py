@@ -28,7 +28,7 @@ def metadata_parse(metafile):
         metadata['sensor'] = metadata['properties']['satellite_id'].replace('SSC', 'Skysat')
         metadata['satellite_sensor'] = metadata['properties']['satellite_id'].replace('SSC', 'Skysat')
         if metadata['satellite_sensor'] in ['Skysat14', 'Skysat15', 'Skysat16', 'Skysat17', 'Skysat18', 'Skysat19']:
-            metadata['sensor'] = 'Skysat14-SkySat19'
+            metadata['sensor'] = 'Skysat14-Skysat19'
 
         metadata['sza'] = 90-metadata['properties']['sun_elevation']
         metadata['saa'] = metadata['properties']['sun_azimuth']
