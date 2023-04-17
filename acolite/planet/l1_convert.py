@@ -107,6 +107,8 @@ def l1_convert(inputfile, output = None, settings = {},
                 print('No SR file found in {}'.format(bundle))
                 continue
 
+        if verbosity > 1: print('Image file {}, metadata file {}'.format(image_file, metafile))
+
         ## read meta data
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
         meta = ac.planet.metadata_parse(metafile)
