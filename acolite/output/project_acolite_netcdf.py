@@ -9,7 +9,7 @@
 ##                2022-10-17 (QV) added output_projection_polygon
 ##                2022-10-20 (QV) added nn option
 ##                2023-04-01 (QV) added viirs scanlines reprojection
-
+##                2023-04-18 (QV) fixed reprojection for viirs overlapping  scanlines
 
 def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
@@ -214,7 +214,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         if 'viirs_slines' in gatts: slines = gatts['viirs_slines']
         nscans = int(data_in_stack.shape[0]/slines)
         print('Assuming {} scans of {} lines'.format(nscans, slines))
-        data_out_stack = np.zeros((ny,nx,len(datasets_out))) + np.nan
+        data_out_stack = np.zeros((ny,nx,len(datasets_out)))
+        data_out_counts = np.zeros((ny,nx,len(datasets_out)), dtype=np.int8)
     else:
         nscans = 1
 
@@ -255,11 +256,18 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
                                                             radius_of_influence=target_pixel_size[0]*radius,
                                                             epsilon=epsilon, fill_value=np.nan)
             ## put scans in out stack
-            scan_sub = np.where(np.isfinite(data_out_scan) & np.isnan(data_out_stack))
-            data_out_stack[scan_sub] = data_out_scan[scan_sub]
+            scan_sub = np.where(np.isfinite(data_out_scan))
+            data_out_stack[scan_sub] += data_out_scan[scan_sub]
+            data_out_counts[scan_sub] += 1
             data_out_scan = None
             print('Reprojecting scan {}/{} took {:.1f} seconds'.format(i+1, nscans, time.time()-ts0), end='\r')
     if nscans >1: print()
+
+    ## compute average overlapping area
+    if nscans >1:
+        data_out_stack/=data_out_counts
+        data_out_stack[data_out_counts==0] = np.nan
+        data_out_counts = None
 
     data_in_stack = None
     if setu['output_projection_fillnans']:
