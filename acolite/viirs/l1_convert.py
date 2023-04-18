@@ -2,7 +2,7 @@
 ## converts VIIRS data to l1r NetCDF for acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-03-30
-## modifications:
+## modifications: 2023-04-18 (QV) check if outside limits
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -86,8 +86,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
         rsrd = ac.shared.rsr_dict(sensor=sensor)
 
         new = True
+        outside = False
         ## run through viirs options
         for vi, viirs_res in enumerate(opts):
+            if outside: continue
             print(vi, viirs_res)
 
             l1bt = 'l1b_{}'.format(viirs_res)
@@ -142,6 +144,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
                     ## get sub
                     csub = ac.shared.geolocation_sub(lat, lon, limit)
+                    if csub is None:
+                        print('Limit outside of scene {}'.format(bundle))
+                        outside = True
+                        continue
                     ## make sure we are at even pixels
                     csub = [c - c%2 for c in csub]
 
@@ -283,6 +289,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         data = None
 
         if limit is not None: sub = None
-        if ofile not in ofiles: ofiles.append(ofile)
+        if not outside:
+            if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)
