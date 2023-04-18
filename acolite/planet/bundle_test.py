@@ -10,9 +10,10 @@
 ##                2022-02-21 (QV) added Skysat, include support for unzipped API downloads
 ##                2022-10-26 (QV) added scene_id to datafiles
 ##                2023-04-17 (QV) fix for Skysat scene_ids and selecting one from multiple files
+##                2023-04-18 (QV) added PSScene and files/PSScene dname options
 
 def bundle_test(bundle_in):
-    import os
+    import os, glob
 
     if os.path.isdir(bundle_in):
         bundle = bundle_in
@@ -27,10 +28,15 @@ def bundle_test(bundle_in):
     files = []
     for f in os.listdir(bundle): files.append(os.path.join(bundle, f))
     ## include files/analytic_udm2 directory contents
-    for dname in ['files', 'analytic', 'analytic_udm2', 'analytic_8b_udm2']:
+    for dname in ['files', 'analytic', 'analytic_udm2', 'analytic_8b_udm2', \
+                  'PSScene', 'files/PSScene']:
         files_dir = os.path.join(bundle, dname)
         if os.path.exists(files_dir):
-            for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f))
+            if 'PSScene' in dname:
+                #for f in glob.glob('{}/*/*/*'.format(files_dir)): files.append(f)
+                for f in glob.glob('{}/*/analytic*/*'.format(files_dir)): files.append(f)
+            else:
+                for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f))
     files.sort()
 
     datafiles = {}
