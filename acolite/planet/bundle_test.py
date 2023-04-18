@@ -11,6 +11,7 @@
 ##                2022-10-26 (QV) added scene_id to datafiles
 ##                2023-04-17 (QV) fix for Skysat scene_ids and selecting one from multiple files
 ##                2023-04-18 (QV) added PSScene and files/PSScene dname options
+##                                added support for NTF files
 
 def bundle_test(bundle_in):
     import os, glob
@@ -50,8 +51,7 @@ def bundle_test(bundle_in):
         else:
             scene_id = sid
         if scene_id not in fn: continue
-
-        if ext not in ['.json', '.tif', '.xml']: continue
+        if ext not in ['.json', '.tif', '.xml', '.ntf']: continue
         band,clp=None,''
         if 'clip' in fn:
             clp='_clip'
@@ -66,6 +66,11 @@ def bundle_test(bundle_in):
            ('AnalyticMS_8b{}.tif'.format(clp) in fname)|\
            ('analytic{}.tif'.format(clp) in fname):
             band = 'analytic'
+        if ('Analytic{}_file_format.ntf'.format(clp) in fname)|\
+           ('AnalyticMS{}_file_format.ntf'.format(clp) in fname)|\
+           ('AnalyticMS_8b{}_file_format.ntf'.format(clp) in fname)|\
+           ('analytic{}_file_format.ntf'.format(clp) in fname):
+            band = 'analytic_ntf'
         if ('DN_udm{}.tif'.format(clp) in fname):
             band = 'udm'
         if ('udm2{}.tif'.format(clp) in fname):

@@ -9,6 +9,7 @@
 ##                2022-08-12 (QV) added reprojection of unrectified data with RPC
 ##                2022-10-26 (QV) changed handling of multi file bundles
 ##                2022-11-14 (QV) added support for outputting Planet SR data
+##                2023-04-18 (QV) added support for NTF files
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -80,6 +81,7 @@ def l1_convert(inputfile, output = None, settings = {},
     for ifile in ifiles:
         bundle, files = ifile
         if (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic' in files))) &\
+           (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic_ntf' in files))) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('sr' in files))):
             print('Bundle {} not recognised'.format(bundle))
@@ -94,6 +96,8 @@ def l1_convert(inputfile, output = None, settings = {},
 
         if 'analytic' in files:
             image_file = files['analytic']['path']
+        elif 'analytic_ntf' in files:
+            image_file = files['analytic_ntf']['path']
         elif 'pansharpened' in files:
             image_file = files['pansharpened']['path']
         image_file_original = '{}'.format(image_file)

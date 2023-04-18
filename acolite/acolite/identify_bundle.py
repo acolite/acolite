@@ -238,6 +238,8 @@ def identify_bundle(bundle, input_type = None, output = None):
                 metafile = files[fk]['metadata_json']['path']
             if 'analytic' in files[fk]:
                 image_file = files[fk]['analytic']['path']
+            elif 'analytic_ntf' in files[fk]:
+                image_file = files[fk]['analytic_ntf']['path']
             elif 'pansharpened' in files[fk]:
                 image_file = files[fk]['pansharpened']['path']
             elif 'sr' in files[fk]:
