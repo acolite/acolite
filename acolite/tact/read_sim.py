@@ -13,5 +13,7 @@ def read_sim(sfil):
                 sdata = {h:[] for h in sheader}
             else:
                 for ih, h in enumerate(sheader):
-                    sdata[h].append(float(sp[ih]))
+                    v = sp[ih]
+                    if ih > 0: v = float(v)
+                    sdata[h].append(v)
     return(sdata)
