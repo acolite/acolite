@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-03-30
 ## modifications: 2023-04-18 (QV) check if outside limits
+##                2023-04-19 (QV) added quality_flags check
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -44,8 +45,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
         if opts[0] == 'mod': slines = 16
         if opts[0] == 'img': slines = 32
 
-        rotate = True
+        ## get quality flags
+        viirs_quality_flags_sum = np.sum(setu['viirs_quality_flags'])
 
+        rotate = True
         skip = False
         for vm in ['mod', 'img']:
             if vm in opts:
@@ -243,16 +246,22 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         dds = f[group][b]
                         atts = {k: dds.attrs[k] for k in dds.attrs.keys()}
 
+                        ## read band quality flags
+                        mds = f[group]['{}_quality_flags'.format(b)]
+                        matts = {k: mds.attrs[k] for k in mds.attrs.keys()}
+
                         if sub is None:
                             data = dds[:]
+                            ql = mds[:]
                         else:
                             #data = dds[sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
                             data = dds[sub[viirs_res][1]:sub[viirs_res][1]+sub[viirs_res][3],\
                                            sub[viirs_res][0]:sub[viirs_res][0]+sub[viirs_res][2]]
-
+                            ql = mds[sub[viirs_res][1]:sub[viirs_res][1]+sub[viirs_res][3],\
+                                           sub[viirs_res][0]:sub[viirs_res][0]+sub[viirs_res][2]]
 
                         ## get mask
-                        mask = data >= 65533
+                        mask = (data >= 65532) | ((ql & (viirs_quality_flags_sum)) != 0)
                         data = data.astype(np.float32)
                         data[mask] = np.nan
 
@@ -287,6 +296,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
                         new = False
                         data = None
+                        ql = None
 
         if limit is not None: sub = None
         if not outside:

@@ -44,6 +44,7 @@ output_projection_xrange
 output_projection_yrange
 s2_dilate_blackfill_iterations
 sub
+viirs_quality_flags
 
 ## GEE
 percentiles
