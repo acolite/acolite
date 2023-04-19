@@ -55,6 +55,7 @@ def tact_gem(gem, output_file = True,
     output_atmosphere = setu['tact_output_atmosphere']
     output_intermediate = setu['tact_output_intermediate']
     reptran = setu['tact_reptran']
+    wave_range = setu['tact_range']
 
     ## detect sensor
     if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
@@ -141,6 +142,7 @@ def tact_gem(gem, output_file = True,
                                                 lon=gem['data']['lon'],
                                                 lat=gem['data']['lat'],
                                                 satsen=gem['gatts']['thermal_sensor'],
+                                                wave_range = wave_range,
                                                 reptran = reptran, source = source)
     for ds in thd:
         gem['data'][ds] = thd[ds]

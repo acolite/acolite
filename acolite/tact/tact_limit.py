@@ -9,7 +9,7 @@
 ##                2022-08-11 (QV) added ecostress and reptran
 
 def tact_limit(isotime, limit=None,
-                  lat = None, lon = None,
+                  lat = None, lon = None, wave_range=[7, 14],
                   source = 'era5', reptran = 'medium',
                   satsen = None, override = False, verbosity = 0, processes = 4):
 
@@ -63,7 +63,7 @@ def tact_limit(isotime, limit=None,
 
     ## run stuff in multiprocessing
     with multiprocessing.Pool(processes=processes) as pool:
-        results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran,
+        results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran, wave_range=wave_range,
                                                 pdate='', rsr_data=rsr_data, obase=None), to_run)
 
     ## read simulation outputs

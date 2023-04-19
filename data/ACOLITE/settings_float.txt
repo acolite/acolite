@@ -44,6 +44,7 @@ output_projection_resolution
 default_projection_resolution
 worldview_reproject_resolution
 eminet_water_threshold
+tact_range
 
 ## GEE
 st_lon

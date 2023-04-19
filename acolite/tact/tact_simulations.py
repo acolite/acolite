@@ -64,8 +64,8 @@ def tact_simulations(sonde, atmosphere="../data/atmmod/afglss.dat", obase=None,
                              parameters=parameters,
                              radiosonde=sonde,
                              reptran = reptran,
+                             wavelength = [wave_range[0]*1000, wave_range[1]*1000],
                              albedo=1-e, thv=0, phi=0, phi0=0)
-
 
             outfile = ac.tact.libradtran_run(runfile)
         data[run] = ac.tact.read_out(outfile,parameters = parameters)

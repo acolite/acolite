@@ -117,6 +117,8 @@ tact_output_atmosphere=False
 tact_output_intermediate=False
 tact_map=True
 ged_fill=True
+## TACT wavelength range (micron)
+tact_range=3.5,14
 
 ## EMINET settings
 eminet_water_fill=True
