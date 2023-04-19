@@ -13,6 +13,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import glob, os
     import acolite as ac
 
+    ## function to optimise BT lut
+    from scipy import optimize
+    def fun(l):
+        k1, k2 = l[0], l[1]
+        tmp = (k2/np.log((k1/ltlut[lutsub])+1))
+        v = np.sqrt(np.nanmean(np.square((tmp-btlut[lutsub]))))
+        return(v)
+
     ## parse inputfile
     if type(inputfile) != list:
         if type(inputfile) == str:
@@ -87,6 +95,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
         ## load rsr
         rsrd = ac.shared.rsr_dict(sensor=sensor)
+        bands_vswir = [b for b in rsrd[sensor]['rsr_bands']]
+        output_bands = [b for b in bands_vswir]
+        if setu['viirs_output_tir']:
+            sensor_tir = '{}_TIR'.format(sensor)
+            rsrd_tir = ac.shared.rsr_dict(sensor=sensor_tir, wave_range = [3, 15])
+            bands_tir = [b for b in rsrd_tir[sensor_tir]['rsr_bands']]
+            output_bands += [b for b in bands_tir]
 
         new = True
         outside = False
@@ -206,7 +221,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
                 ## store cos sun zenith angle
                 mus = np.cos(np.radians(data['sza']))
-                if rotate: mus = np.rot90(mus, k=2)
+                #if rotate: mus = np.rot90(mus, k=2)
 
                 ## track current shape
                 data_shape = mus.shape
@@ -219,9 +234,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         if verbosity > 1: print('Writing geometry {}'.format(ds))
                     else: continue
 
-                    if rotate:
-                        #data[ds] = np.flip(np.rot90(data[ds]))
-                        data[ds] = np.rot90(data[ds], k=2)
+                    if rotate: data[ds] = np.rot90(data[ds], k=2)
 
                     ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts,
                                         netcdf_compression=setu['netcdf_compression'],
@@ -237,10 +250,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                 group = 'observation_data'
                 use_radiance = False
 
-                for b in rsrd[sensor]['rsr_bands']:
-                    ds = 'rhot_{}'.format(rsrd[sensor]['wave_name'][b])
-                    if setu['add_band_name']: ds = 'rhot_{}_{}'.format(b, rsrd[sensor]['wave_name'][b])
-                    #print(b, ds)
+                for b in output_bands:
+                    if b in bands_vswir:
+                        ds = 'rhot_{}'.format(rsrd[sensor]['wave_name'][b])
+                        if setu['add_band_name']: ds = 'rhot_{}_{}'.format(b, rsrd[sensor]['wave_name'][b])
+                    elif b in bands_tir:
+                        ds = 'bt{}'.format(b)
 
                     if b in f[group].keys():
                         dds = f[group][b]
@@ -263,30 +278,73 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         ## get mask
                         mask = (data >= 65532) | ((ql & (viirs_quality_flags_sum)) != 0)
                         data = data.astype(np.float32)
+
+                        ## track if we need to scale by mus
+                        scale_mus = False
+                        if b in bands_vswir:
+                            ds_att = {}
+                            ds_att['band'] = b
+                            ds_att['rhot_ds'] = ds
+                            ds_att['wavelength'] = rsrd[sensor]['wave_nm'][b]
+
+                            ## convert to radiance or reflectance
+                            if (use_radiance) & ('radiance_scale_factor' in atts):
+                                data = (data * atts['radiance_scale_factor']) + atts['radiance_add_offset']
+                                stop
+                            elif (not use_radiance) & ('scale_factor' in atts):
+                                data = (data * atts['scale_factor']) + atts['add_offset']
+                                scale_mus = True
+                            else:
+                                print('Could not convert to radiance/reflectance')
+                                continue
+                        elif b in bands_tir:
+                            ds_att = {}
+                            ds_att['band'] = b
+                            ds_att['bt_ds'] = ds
+                            ds_att['wavelength'] = rsrd_tir[sensor_tir]['wave_nm'][b]
+
+                            # viirs_output_tir_lt = False
+                            # if viirs_output_tir_lt:
+                            #     data_lt = data * 1
+                            #     data_lt[mask] = np.nan
+                            #
+                            #     ## convert to radiance or reflectance
+                            #     if ('scale_factor' in atts):
+                            #         data = (data * atts['scale_factor']) + atts['add_offset']
+                            #     else:
+                            #         print('Could not convert to radiance/reflectance')
+                            #         continue
+
+                            ## read bt lut
+                            btlut = f[group]['{}_brightness_temperature_lut'.format(b)][:]
+                            ## bt lut dimension
+                            xdlut = np.arange(0, 327681 if b == 'M13' else 2**16)
+
+                            ## lut dimension in radiance
+                            ltlut = (xdlut * atts['scale_factor']) + atts['add_offset']
+
+                            ## fit btlut to get K1 and K2
+                            lutsub = np.where(btlut > 0)
+                            xro = optimize.minimize(fun, [1000,1000])
+                            k1, k2 = xro.x[0], xro.x[1]
+                            ds_att['K1_CONSTANT_BAND_{}'.format(b)] = k1
+                            ds_att['K2_CONSTANT_BAND_{}'.format(b)] = k2
+
+                            ## convert to BT
+                            data = np.interp(data, xdlut, btlut)
+
+                        ## mask data
                         data[mask] = np.nan
 
-                        ## convert to radiance or reflectance
-                        if (use_radiance) & ('radiance_scale_factor' in atts):
-                            data = (data * atts['radiance_scale_factor']) + atts['radiance_add_offset']
-                            stop
-                        elif (not use_radiance) & ('scale_factor' in atts):
-                            data = (data * atts['scale_factor']) + atts['add_offset']
-                            ## zoom data
-                            if data.shape != data_shape:
-                                data = scipy.ndimage.zoom(data, data_shape[0]/data.shape[0], order=1) ## order = 1 is linear interp
-                            data /= mus
-                        else:
-                            print('Could not convert to radiance/reflectance')
-                            continue
+                        ## zoom data
+                        if data.shape != data_shape:
+                            data = scipy.ndimage.zoom(data, data_shape[0]/data.shape[0], order=1) ## order = 1 is linear interp
 
-                        ds_att = {}
-                        ds_att['band'] = b
-                        ds_att['rhot_ds'] = ds
-                        ds_att['wavelength'] = rsrd[sensor]['wave_nm'][b]
+                        ## scale by mus
+                        if scale_mus: data /= mus
 
-                        if rotate:
-                            #data = np.flip(np.rot90(data))
-                            data = np.rot90(data, k=2)
+                        ## rotate dataset
+                        if rotate: data = np.rot90(data, k=2)
 
                         ## output dataset
                         ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts,
@@ -295,6 +353,25 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                                             netcdf_compression_level=setu['netcdf_compression_level'])
                         if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
                         new = False
+
+                        ## output Lt
+                        if (b in bands_tir) & (setu['viirs_output_tir_lt']):
+                            ds = 'Lt{}'.format(b)
+                            ds_att = {}
+                            ds_att['band'] = b
+                            ds_att['lt_ds'] = ds
+                            ds_att['wavelength'] = rsrd_tir[sensor_tir]['wave_nm'][b]
+                            ds_att['K1_CONSTANT_BAND_{}'.format(b)] = k1
+                            ds_att['K2_CONSTANT_BAND_{}'.format(b)] = k2
+                            ## convert from BTto Lt
+                            data = ds_att['K1_CONSTANT_BAND_{}'.format(b)]/(np.exp(ds_att['K2_CONSTANT_BAND_{}'.format(b)]/data)-1)
+                            ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts,
+                                                dataset_attributes = ds_att,
+                                                netcdf_compression=setu['netcdf_compression'],
+                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                            if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
+
+                        ## delete datasets
                         data = None
                         ql = None
 
