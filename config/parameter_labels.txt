@@ -177,6 +177,13 @@ st6_vcid_1,270,300,False,Planck_Parchment_RGB,ST6 VCID1,K
 st6_vcid_2,270,300,False,Planck_Parchment_RGB,ST6 VCID2,K
 st10,270,300,False,Planck_Parchment_RGB,ST10,K
 st11,270,300,False,Planck_Parchment_RGB,ST11,K
+sti04,270,300,False,Planck_Parchment_RGB,ST I04,K
+sti05,270,300,False,Planck_Parchment_RGB,ST I05,K
+stm12,270,300,False,Planck_Parchment_RGB,ST M12,K
+stm13,270,300,False,Planck_Parchment_RGB,ST M13,K
+stm14,270,300,False,Planck_Parchment_RGB,ST M14,K
+stm15,270,300,False,Planck_Parchment_RGB,ST M15,K
+stm16,270,300,False,Planck_Parchment_RGB,ST M16,K
 #
 ## Water surface temperature
 wst10,18,24,False,Planck_Parchment_RGB,WST10,°C
