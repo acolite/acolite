@@ -228,8 +228,16 @@ def tact_gem(gem, output_file = True,
                 gem['data'][emk] = np.tile(gem['data'][emk], gem['data']['lat'].shape)
 
             ## K constants
-            k1 = float(gem['gatts']['K1_CONSTANT_BAND_{}'.format(b.upper())])
-            k2 = float(gem['gatts']['K2_CONSTANT_BAND_{}'.format(b.upper())])
+            k1n = 'K1_CONSTANT_BAND_{}'.format(b.upper())
+            k2n = 'K2_CONSTANT_BAND_{}'.format(b.upper())
+            if k1n in gem['gatts']:
+                k1 = float(gem['gatts'][k1n])
+            else:
+                k1 = gem['atts'][btk][k1n]
+            if k2n in gem['gatts']:
+                k2 = float(gem['gatts'][k2n])
+            else:
+                k2 = gem['atts'][btk][k2n]
 
             if ltk not in gem['data']:
                 ## compute lt from bt
@@ -246,6 +254,15 @@ def tact_gem(gem, output_file = True,
             gem['data'][dso] = (k2/np.log((k1/gem['data'][lsk])+1))
             if to_celcius: gem['data'][dso] += -273.15
 
+            gem['atts'][dso] = {}
+            gem['atts'][dso]['units'] = 'K'
+            if btk in gem['atts']:
+                if 'wavelength' in gem['atts'][btk]:
+                    gem['atts'][dso]['wavelength'] = gem['atts'][btk]['wavelength']
+            #if btk in gem['atts']:
+            #    gem['atts'][dso] = {k:gem['atts'][btk][k] for k in gem['atts'][btk]}
+            gem['atts'][dso][k1n] = k1
+            gem['atts'][dso][k2n] = k2
 
     ## write output NetCDF
     if output_file:
