@@ -2,7 +2,7 @@
 ## gets landsat band specific metadata
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
-## modifications:
+## modifications: 2023-04-20 (QV) fix for changed extension case
 
 def metadata_bands(bundle, meta):
     import os
@@ -22,8 +22,18 @@ def metadata_bands(bundle, meta):
             else:
                 par = 'BAND_'+k[4:len(k)-len('_FILE_NAME')]
                 k = 'FILE_NAME_'+par
-            if '.TIF' not in fname: continue
-            file = '{}/{}'.format(bundle, fname)
+            if '.TIF' not in fname.upper(): continue
+            file = None
+            file1 = '{}/{}'.format(bundle, fname)
+            if os.path.exists(file1): file = '{}'.format(file1)
+            ## try changing extension case
+            bn, ex = os.path.splitext(fname)
+            file2 = '{}/{}{}'.format(bundle, bn, ex.lower())
+            if os.path.exists(file2): file = '{}'.format(file2)
+            file3 = '{}/{}{}'.format(bundle, bn, ex.upper())
+            if os.path.exists(file3): file = '{}'.format(file3)
+            if file is None: continue
+
             if os.path.exists(file):
                 if 'SOLAR_AZIMUTH' in k:
                     b = "SAA"

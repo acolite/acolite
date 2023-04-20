@@ -9,6 +9,7 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-02-04 (QV) added QA band output
+##                2023-04-20 (QV) fix for changed extension case
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -480,7 +481,7 @@ def l1_convert(inputfile, output = None, settings = {},
         ## write TOA bands
         if verbosity > 1: print('Converting bands')
         for b in fmeta:
-            if '.TIF' not in fmeta[b]['FILE']: continue
+            if '.TIF' not in fmeta[b]['FILE'].upper(): continue
             if b in setu['landsat_qa_bands']: continue
             if os.path.exists(fmeta[b]['FILE']):
                 if b in waves_names:
