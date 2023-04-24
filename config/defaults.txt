@@ -104,6 +104,7 @@ gf_reproject_to_utm=False
 viirs_option=img+mod
 viirs_scanline_projection=True
 viirs_quality_flags=1,2,4,8,256,512,1024,2048,4096
+viirs_quality_flags=4,8,256,512,1024,2048,4096
 viirs_output_tir=True
 viirs_output_tir_lt=False
 ## apply non water masking using M band
