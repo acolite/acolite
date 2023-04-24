@@ -17,7 +17,7 @@ def bundle_test(bundle):
         sp = bn.split('.')
 
         ## test OCSSW data
-        if sp[0] in ['SNPP_VIIRS', 'JPSS1_VIIRS']:
+        if sp[0] in ['SNPP_VIIRS', 'JPSS1_VIIRS', 'JPSS2_VIIRS']:
             ## data processed from L1A from OCSSW
             ftypes = {'l1b_mod': 'L1B_MOD','geo_mod': 'GEO_MOD',
                       'l1b_img': 'L1B_IMG','geo_img': 'GEO_IMG'}
