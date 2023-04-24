@@ -106,7 +106,16 @@ viirs_scanline_projection=True
 viirs_quality_flags=1,2,4,8,256,512,1024,2048,4096
 viirs_output_tir=True
 viirs_output_tir_lt=False
+## apply non water masking using M band
 viirs_mask_mband=True
+## mask using TOA reflectance for matching I and M bands
+viirs_mask_immixed=True
+viirs_mask_immixed_rat=False
+viirs_mask_immixed_dif=True
+viirs_mask_immixed_bands=I01/M05,I02/M07,I03/M10
+viirs_mask_immixed_bands=I03/M10
+viirs_mask_immixed_maxrat=0.2
+viirs_mask_immixed_maxdif=0.002
 
 ## TACT settings
 tact_run=False
@@ -163,6 +172,7 @@ l2w_mask_cirrus_wave=1373
 l2w_mask_high_toa=True
 l2w_mask_high_toa_threshold=0.3
 l2w_mask_high_toa_wave_range=400,2500
+l2w_mask_mixed=True
 l2w_data_in_memory=False
 
 ## settings for Nechad algorithms
@@ -179,6 +189,7 @@ flag_exponent_cirrus=1
 flag_exponent_toa=2
 flag_exponent_negative=3
 flag_exponent_outofscene=4
+flag_exponent_mixed=5
 
 ## atmospheric correction settings
 atmospheric_correction=True

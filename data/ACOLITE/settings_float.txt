@@ -45,6 +45,8 @@ default_projection_resolution
 worldview_reproject_resolution
 eminet_water_threshold
 tact_range
+viirs_mask_immixed_maxrat
+viirs_mask_immixed_maxdif
 
 ## GEE
 st_lon

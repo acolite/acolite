@@ -24,6 +24,7 @@ flag_exponent_cirrus
 flag_exponent_toa
 flag_exponent_negative
 flag_exponent_outofscene
+flag_exponent_mixed
 rgb_red_wl
 rgb_green_wl
 rgb_blue_wl

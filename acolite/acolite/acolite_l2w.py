@@ -100,6 +100,7 @@ def acolite_l2w(gem,
         if setu['l2w_mask_cirrus']: flag_value += 2**setu['flag_exponent_cirrus']
         if setu['l2w_mask_high_toa']: flag_value += 2**setu['flag_exponent_toa']
         if setu['l2w_mask_negative_rhow']: flag_value += 2**setu['flag_exponent_negative']
+        if setu['l2w_mask_mixed']: flag_value += 2**setu['flag_exponent_mixed']
 
     ## compute mask
     ## non water/swir threshold
@@ -179,6 +180,25 @@ def acolite_l2w(gem,
         neg_mask = (neg_mask) | (cur_data < 0)
     l2_flags = (l2_flags) | (neg_mask.astype(np.int32)*(2**setu['flag_exponent_negative']))
     neg_mask = None
+
+    if ('VIIRS' in gem.gatts['sensor']) & (setu['viirs_mask_immixed']):
+        if verbosity > 3: print('Finding mixed pixels using VIIRS I and M bands.')
+        mix_mask = None
+        if type(setu['viirs_mask_immixed_bands']) is not list:
+            setu['viirs_mask_immixed_bands'] = [setu['viirs_mask_immixed_bands']]
+        for imc in setu['viirs_mask_immixed_bands']:
+            ib, mb = imc.split('/')
+            ds0 = [ds for ds in rhot_ds if ib in ds][0]
+            ds1 = [ds for ds in rhot_ds if mb in ds][0]
+            cur_data0 = gem.data(ds0)
+            cur_data1 = gem.data(ds1)
+            if mix_mask is None: mix_mask = np.zeros(cur_data0.shape).astype(bool)
+            if setu['viirs_mask_immixed_rat']:
+                mix_mask = (mix_mask) | (np.abs(1-(cur_data0/cur_data1)) > setu['viirs_mask_immixed_maxrat'])
+            if setu['viirs_mask_immixed_dif']:
+                mix_mask = (mix_mask) | (np.abs(cur_data0-cur_data1) > setu['viirs_mask_immixed_maxdif'])
+        l2_flags = (l2_flags) | (mix_mask.astype(np.int32)*(2**setu['flag_exponent_mixed']))
+        mix_mask = None
 
     ## list datasets to copy over from L2R
     copy_datasets = ['lon', 'lat']
