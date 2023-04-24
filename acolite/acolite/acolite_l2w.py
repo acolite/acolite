@@ -105,6 +105,10 @@ def acolite_l2w(gem,
     ## non water/swir threshold
     if verbosity > 3: print('Computing non water threshold mask.')
     cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_wave'])
+    ## use M bands for masking
+    if ('VIIRS' in gem.gatts['sensor']) & (setu['viirs_mask_mband']):
+        rhot_waves_m = [int(ds.split('_')[-1]) for ds in rhot_ds if 'M' in ds]
+        cidx,cwave = ac.shared.closest_idx(rhot_waves_m, setu['l2w_mask_wave'])
     cur_par = 'rhot_{}'.format(cwave)
     cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
 

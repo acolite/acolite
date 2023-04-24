@@ -106,6 +106,7 @@ viirs_scanline_projection=True
 viirs_quality_flags=1,2,4,8,256,512,1024,2048,4096
 viirs_output_tir=True
 viirs_output_tir_lt=False
+viirs_mask_mband=True
 
 ## TACT settings
 tact_run=False
