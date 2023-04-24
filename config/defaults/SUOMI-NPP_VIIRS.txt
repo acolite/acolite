@@ -10,3 +10,6 @@ dsf_aot_estimate=tiled
 ## add band names to datasets since there are shared wavelengths
 add_band_name=True
 default_projection_resolution=375,375
+
+## reduce mask smoothing
+l2w_mask_smooth_sigma=1
