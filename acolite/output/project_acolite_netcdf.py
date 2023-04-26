@@ -294,5 +294,14 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
                             nc_projection = nc_projection,
                             dataset_attributes = datasets_att[ds], new = new)
         new = False
+    data_out_stack = None
+
+    ## compute target lon/lat
+    tlon, tlat = ac.shared.projection_geo(dct)
+    ac.output.nc_write(ncfo, 'lon', tlon)
+    ac.output.nc_write(ncfo, 'lat', tlat)
+    tlon = None
+    tlat = None
+
     print('Wrote {}'.format(ncfo))
     return(ncfo)
