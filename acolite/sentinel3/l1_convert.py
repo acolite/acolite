@@ -104,6 +104,15 @@ def l1_convert(inputfile, output = None, settings = {},
                 except:
                     if verbosity > 1: print('Failed to import polygon {}'.format(poly))
 
+        ## add limit buffer
+        if (limit is not None) & (setu['limit_buffer'] is not None):
+            print('Applying limit buffer {}'.format(setu['limit_buffer']))
+            print('Old limit: {}'.format(limit))
+            setu['limit_old'] = limit
+            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
+                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
+            print('New limit: {}'.format(limit))
+
         sub = None
         data_shape = None
         if limit is not None:
