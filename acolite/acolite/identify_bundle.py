@@ -114,6 +114,17 @@ def identify_bundle(bundle, input_type = None, output = None):
         ## end VIIRS
         ################
 
+        ################
+        ## S2Resampling
+        try:
+            ret = ac.s2resampling.bundle_test(bundle)
+            if (ret is not None):
+                input_type = 'S2Resampling'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end S2Resampling
+        ################
 
         ################
         ## Pléiades/SPOT

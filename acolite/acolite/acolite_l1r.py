@@ -215,6 +215,14 @@ def acolite_l1r(bundle, setu, input_type=None):
     ################
 
     ################
+    ## S2Resampling
+    if input_type == 'S2Resampling':
+        l1r_files, setu = ac.s2resampling.l1_convert(bundle, settings = setu)
+    ## end S2Resampling
+    ################
+
+
+    ################
     ## HYPSO
     if input_type == 'HYPSO':
         l1r_files, setu = ac.hypso.l1_convert(bundle, settings = setu)
