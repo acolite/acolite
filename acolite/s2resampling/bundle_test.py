@@ -3,24 +3,31 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-05-02
-## modifications:
+## modifications: 2023-05-05 (QV) update for HROC mosaics
 
 def bundle_test(file):
     import os
     import acolite as ac
 
-    ## sensor
-    dn = os.path.dirname(file)
-    bn = os.path.basename(file)
-    if bn[0:3] == 'S2A':
-        sensor = 'S2A_MSI'
-    elif bn[0:3] == 'S2B':
-        sensor = 'S2B_MSI'
-    else:
-        return
+    ## read gatts
+    gatts = ac.shared.nc_gatts(file)
+
+    ## identify sensor
+    sensor = None
+    if ('platform' in gatts) & ('type' in gatts): ## HROC mosaic
+        if gatts['type'] == 'MSIL1C':
+            sensor = '{}_MSI'.format(gatts['platform'])
+    if sensor is None:
+        dn = os.path.dirname(file)
+        bn = os.path.basename(file)
+        if bn[0:3] == 'S2A':
+            sensor = 'S2A_MSI'
+        elif bn[0:3] == 'S2B':
+            sensor = 'S2B_MSI'
+        else:
+            return
 
     ## start date
-    gatts = ac.shared.nc_gatts(file)
     if 'start_date' not in gatts:
         return
 
