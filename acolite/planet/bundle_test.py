@@ -12,6 +12,7 @@
 ##                2023-04-17 (QV) fix for Skysat scene_ids and selecting one from multiple files
 ##                2023-04-18 (QV) added PSScene and files/PSScene dname options
 ##                                added support for NTF files
+##                2023-05-08 (QV) added support for composite files
 
 def bundle_test(bundle_in):
     import os, glob
@@ -84,6 +85,9 @@ def bundle_test(bundle_in):
         if ('Analytic_SR{}.tif'.format(clp) in fname)|\
            ('AnalyticMS_SR_8b{}.tif'.format(clp) in fname):
             band = 'sr'
+
+        if ('composite.tif' in fname): band = 'composite'
+        if ('composite_udm2.tif' in fname): band = 'composite_udm2'
 
         if band is None: continue
         if os.path.isfile(file):

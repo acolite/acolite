@@ -242,7 +242,9 @@ def identify_bundle(bundle, input_type = None, output = None):
             ## test files
             files = ac.planet.bundle_test(bundle)
             ## files now contains scene_id keys
-            fk = list(files.keys())[0]
+            flist = list(files.keys())
+            flist.sort()
+            fk = flist[0]
             if 'metadata' in files[fk]:
                 metafile = files[fk]['metadata']['path']
             elif 'metadata_json' in files[fk]:
@@ -255,6 +257,9 @@ def identify_bundle(bundle, input_type = None, output = None):
                 image_file = files[fk]['pansharpened']['path']
             elif 'sr' in files[fk]:
                 image_file = files[fk]['sr']['path']
+            elif 'composite' in files[fk]:
+                image_file = files[fk]['composite']['path']
+                metafile = files[flist[-1]]['metadata']['path']
             meta = ac.planet.metadata_parse(metafile)
             if ('platform' in meta) & (os.path.exists(image_file)):
                 input_type = 'Planet'

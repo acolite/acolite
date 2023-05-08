@@ -10,6 +10,7 @@
 ##                2022-10-26 (QV) changed handling of multi file bundles
 ##                2022-11-14 (QV) added support for outputting Planet SR data
 ##                2023-04-18 (QV) added support for NTF files
+##                2023-05-08 (QV) added support for composite files
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -28,7 +29,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 verbosity = 0, vname = ''):
 
     import os, zipfile, shutil, json
-    import dateutil.parser, time
+    import dateutil.parser, time, copy
     import numpy as np
     import acolite as ac
 
@@ -74,17 +75,34 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## test files
         files = ac.planet.bundle_test(bundle)
-        print('Found {} files in {}'.format(len(files), bundle))
-        for fk in files: ifiles.append((bundle, files[fk]))
+        print('Found {} scenes in {}'.format(len(files), bundle))
+        for fk in files: ifiles.append((bundle, files[fk], fk))
 
     ## run through the found files
     for ifile in ifiles:
-        bundle, files = ifile
+        bundle, files, fk = ifile
+        ## composite image copy metadata path from the scene
+        ## matching acquisition time and satellite
+        if ('composite' in files) & ('metadata_json' in files):
+            ## read json metadata
+            with open(files['metadata_json']['path'], 'r') as f:
+                md = json.load(f)
+            ## get filler metadata
+            for fi in ifiles:
+                if 'metadata' not in fi[1]: continue
+                bn = os.path.basename(fi[1]['metadata']['path'])
+                dt = dateutil.parser.parse(md['properties']['acquired'])
+                if (md['properties']['satellite_id'] in bn) & (dt.strftime('%Y%m%d') in bn) & (dt.strftime('%H%M%S') in bn):
+                    files['metadata'] = copy.copy(fi[1]['metadata'])
+        ## end find composite metadata
+
+        ## check if we can process this scene
         if (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic' in files))) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic_ntf' in files))) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))) &\
+           (not ('metadata' in files) & ('composite' in files)) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('sr' in files))):
-            print('Bundle {} not recognised'.format(bundle))
+            print('Bundle {} {} not recognised'.format(bundle, fk))
             continue
 
         metafile = None
@@ -100,6 +118,8 @@ def l1_convert(inputfile, output = None, settings = {},
             image_file = files['analytic_ntf']['path']
         elif 'pansharpened' in files:
             image_file = files['pansharpened']['path']
+        elif 'composite' in files:
+            image_file = files['composite']['path']
         image_file_original = '{}'.format(image_file)
 
         sr_image_file = None
