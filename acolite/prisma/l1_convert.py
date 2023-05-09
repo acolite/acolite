@@ -20,7 +20,9 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     output_lt = setu['output_lt']
     vname = setu['region_name']
     limit = setu['limit']
-    
+    store_l2c = setu['prisma_store_l2c']
+    store_l2c_separate_file = setu['prisma_store_l2c_separate_file']
+
     ## check if ROI polygon is given
     if setu['polylakes']:
         poly = ac.shared.polylakes(setu['polylakes_database'])
@@ -131,7 +133,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         dem = None
 
         ## reading settings
-        src = 'HCO'
+        src = 'HCO' ## coregistered radiance cube
         read_cube = True
 
         ## get geometry from l2 file if present
@@ -207,10 +209,6 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         gatts['sza'] = np.nanmean(np.abs(sza))
 
         with h5py.File(file, mode='r') as f:
-            #lat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lat_key][:]
-            #lon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lon_key][:]
-            #lat[lat>=mask_value] = np.nan
-            #lon[lon>=mask_value] = np.nan
             ## read bands in spectral order
             if read_cube:
                 if sub is None:
@@ -287,13 +285,13 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                                 netcdf_compression_level=setu['netcdf_compression_level'])
             if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
             new = False
-            lon = None
+            if not (store_l2c & store_l2c_separate_file): lon = None
 
             ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=new, attributes=gatts,
                                 netcdf_compression=setu['netcdf_compression'],
                                 netcdf_compression_level=setu['netcdf_compression_level'])
             if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
-            lat = None
+            if not (store_l2c & store_l2c_separate_file): lat = None
 
         ## write geometry
         if os.path.exists(l2file):
@@ -336,16 +334,16 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                                     netcdf_compression_level=setu['netcdf_compression_level'])
 
         ## store l2c data
-        store_l2c = setu['prisma_store_l2c']
-        store_l2c_separate_file = setu['prisma_store_l2c_separate_file']
         if store_l2c & read_cube:
             if store_l2c_separate_file:
                 obase_l2c  = '{}_{}_converted_L2C'.format('PRISMA',  time.strftime('%Y_%m_%d_%H_%M_%S'))
                 ofile_l2c = '{}/{}.nc'.format(odir, obase_l2c)
                 ac.output.nc_write(ofile_l2c, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts,
                                     netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                lat = None
                 ac.output.nc_write(ofile_l2c, 'lon', np.flip(np.rot90(lon)),
                                     netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                lon = None
             else:
                 ofile_l2c = '{}'.format(ofile)
 
