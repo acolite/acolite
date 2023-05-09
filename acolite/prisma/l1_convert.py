@@ -5,6 +5,7 @@
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-02-23 (QV) added option to output L2C reflectances
+##                2023-05-09 (QV) added option to crop
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
@@ -18,6 +19,27 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     if output is None: output = setu['output']
     output_lt = setu['output_lt']
     vname = setu['region_name']
+    limit = setu['limit']
+    
+    ## check if ROI polygon is given
+    if setu['polylakes']:
+        poly = ac.shared.polylakes(setu['polylakes_database'])
+        setu['polygon_limit'] = False
+    else:
+        poly = setu['polygon']
+    clip, clip_mask = False, None
+    if poly is not None:
+        if os.path.exists(poly):
+            try:
+                limit = ac.shared.polygon_limit(poly)
+                if setu['polygon_limit']:
+                    print('Using limit from polygon envelope: {}'.format(limit))
+                else:
+                    limit = setu['limit']
+                clip = True
+            except:
+                print('Failed to import polygon {}'.format(poly))
+    ## end ROI polygon
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -100,64 +122,109 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         ## lon and lat keys
         lat_key = 'Latitude_SWIR'
         lon_key = 'Longitude_SWIR'
+        if 'PRS_L1G_STD_OFFL_' in os.path.basename(file):
+            lat_key = 'Latitude'
+            lon_key = 'Longitude'
+
         ## mask for L1G format
         mask_value = 65535
         dem = None
 
+        ## reading settings
+        src = 'HCO'
+        read_cube = True
+
         ## get geometry from l2 file if present
         l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
-        vza, vaa, sza, saa, raa = None, None, None, None, None
-        if os.path.exists(l2file):
-            with h5py.File(l2file, mode='r') as f:
-                ## L1G format
-                if 'PRS_L1G_STD_OFFL_' in os.path.basename(file):
-                    lat_key = 'Latitude'
-                    lon_key = 'Longitude'
-                    vza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Zenith_Angle'][:]
-                    vaa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Azimuth_Angle'][:]
-                    sza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
-                    saa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Azimuth_Angle'][:]
-
-                    ## apply mask
-                    vza[vza>=mask_value] = np.nan
-                    sza[sza>=mask_value] = np.nan
-                    saa[saa>=mask_value] = np.nan
-                    vaa[vaa>=mask_value] = np.nan
-
-                    ## compute relative azimuth
-                    raa = np.abs(saa - vaa)
-                    raa[raa>180] = 360 - raa[raa>180]
-
-                    ## get DEM data
-                    dem = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Terrain Fields']['DEM'][:]
-                    dem[dem>=mask_value] = np.nan
-                else:
-                    vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][:]
-                    raa = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Rel_Azimuth_Angle'][:]
-                    sza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
-
-                gatts['vza'] = np.nanmean(np.abs(vza))
-                gatts['raa'] = np.nanmean(np.abs(raa))
-                gatts['sza'] = np.nanmean(np.abs(sza))
-        else:
+        if not os.path.exists(l2file):
             print('PRISMA processing only supported when L2 geometry is present.')
             print('Please put {} in the same directory as {}'.format(os.path.basename(l2file), os.path.basename(file)))
             continue
 
-        src = 'HCO'
-        read_cube = True
+        ## read geolocation
         with h5py.File(file, mode='r') as f:
             lat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lat_key][:]
             lon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lon_key][:]
             lat[lat>=mask_value] = np.nan
             lon[lon>=mask_value] = np.nan
+        sub = None
+        if limit is not None:
+            sub = ac.shared.geolocation_sub(lat, lon, limit)
+            if sub is None:
+                print('Limit outside of scene {}'.format(file))
+                continue
+            ## crop to sub
+            lat = lat[sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+            lon = lon[sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+        ## end read geolocation
+
+        ## read geometry
+        vza, vaa, sza, saa, raa = None, None, None, None, None
+        with h5py.File(l2file, mode='r') as f:
+            ## L1G format
+            if 'PRS_L1G_STD_OFFL_' in os.path.basename(file):
+                #lat_key = 'Latitude'
+                #lon_key = 'Longitude'
+                if sub is None:
+                    vza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Zenith_Angle'][:]
+                    vaa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Azimuth_Angle'][:]
+                    sza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
+                    saa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Azimuth_Angle'][:]
+                else:
+                    vza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Zenith_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    vaa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Azimuth_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    sza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Zenith_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    saa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Solar_Azimuth_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+
+                ## apply mask
+                vza[vza>=mask_value] = np.nan
+                sza[sza>=mask_value] = np.nan
+                saa[saa>=mask_value] = np.nan
+                vaa[vaa>=mask_value] = np.nan
+
+                ## compute relative azimuth
+                raa = np.abs(saa - vaa)
+                raa[raa>180] = 360 - raa[raa>180]
+
+                ## get DEM data
+                if sub is None:
+                    dem = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Terrain Fields']['DEM'][:]
+                else:
+                    dem = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Terrain Fields']['DEM'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                dem[dem>=mask_value] = np.nan
+            else:
+                if sub is None:
+                    vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][:]
+                    raa = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Rel_Azimuth_Angle'][:]
+                    sza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Solar_Zenith_Angle'][:]
+                else:
+                    vza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Observing_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    raa = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Rel_Azimuth_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    sza = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Geometric Fields']['Solar_Zenith_Angle'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+
+        gatts['vza'] = np.nanmean(np.abs(vza))
+        gatts['raa'] = np.nanmean(np.abs(raa))
+        gatts['sza'] = np.nanmean(np.abs(sza))
+
+        with h5py.File(file, mode='r') as f:
+            #lat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lat_key][:]
+            #lon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Geolocation Fields'][lon_key][:]
+            #lat[lat>=mask_value] = np.nan
+            #lon[lon>=mask_value] = np.nan
             ## read bands in spectral order
             if read_cube:
-                vnir_data = h5_gatts['Offset_Vnir'] + \
-                            f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][:]/h5_gatts['ScaleFactor_Vnir']
+                if sub is None:
+                    vnir_data = h5_gatts['Offset_Vnir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][:]/h5_gatts['ScaleFactor_Vnir']
+                    swir_data = h5_gatts['Offset_Swir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][:]/h5_gatts['ScaleFactor_Swir']
+                else:
+                    vnir_data = h5_gatts['Offset_Vnir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][sub[1]:sub[1]+sub[3], :, sub[0]:sub[0]+sub[2]]/h5_gatts['ScaleFactor_Vnir']
+                    swir_data = h5_gatts['Offset_Swir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][sub[1]:sub[1]+sub[3], :, sub[0]:sub[0]+sub[2]]/h5_gatts['ScaleFactor_Swir']
+
                 vnir_data[vnir_data>=mask_value] = np.nan
-                swir_data = h5_gatts['Offset_Swir'] + \
-                            f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][:]/h5_gatts['ScaleFactor_Swir']
                 swir_data[swir_data>=mask_value] = np.nan
 
             ## read LOS vectors
@@ -289,8 +356,12 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
 
             ##  read in data cube
             with h5py.File(l2file, mode='r') as f:
-                vnir_l2c_data = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Data Fields']['VNIR_Cube'][:]
-                swir_l2c_data = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Data Fields']['SWIR_Cube'][:]
+                if sub is None:
+                    vnir_l2c_data = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Data Fields']['VNIR_Cube'][:]
+                    swir_l2c_data = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Data Fields']['SWIR_Cube'][:]
+                else:
+                    vnir_l2c_data = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Data Fields']['VNIR_Cube'][sub[1]:sub[1]+sub[3], :, sub[0]:sub[0]+sub[2]]
+                    swir_l2c_data = f['HDFEOS']['SWATHS']['PRS_L2C_HCO']['Data Fields']['SWIR_Cube'][sub[1]:sub[1]+sub[3], :, sub[0]:sub[0]+sub[2]]
 
         ## write TOA data
         for bi, b in enumerate(bands):
@@ -305,8 +376,12 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                     if store_l2c:
                         cdata_l2c = scale_min + (vnir_l2c_data[:, wi, :] * (scale_max - scale_min)) / 65535
                 else:
-                    cdata_radiance = h5_gatts['Offset_Vnir'] + \
-                            f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][:,i,:]/h5_gatts['ScaleFactor_Vnir']
+                    if sub is None:
+                        cdata_radiance = h5_gatts['Offset_Vnir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][:,i,:]/h5_gatts['ScaleFactor_Vnir']
+                    else:
+                        cdata_radiance = h5_gatts['Offset_Vnir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['VNIR_Cube'][sub[1]:sub[1]+sub[3], i, sub[0]:sub[0]+sub[2]]/h5_gatts['ScaleFactor_Vnir']
                     cdata = cdata_radiance * (np.pi * d * d) / (bands[b]['f0'] * cossza)
 
             if bands[b]['instrument'] == 'swir':
@@ -316,8 +391,12 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                     if store_l2c:
                         cdata_l2c = scale_min + (swir_l2c_data[:, wi, :] * (scale_max - scale_min)) / 65535
                 else:
-                    cdata_radiance = h5_gatts['Offset_Swir'] + \
-                            f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][:,i,:]/h5_gatts['ScaleFactor_Swir']
+                    if sub is None:
+                        cdata_radiance = h5_gatts['Offset_Swir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][:,i,:]/h5_gatts['ScaleFactor_Swir']
+                    else:
+                        cdata_radiance = h5_gatts['Offset_Swir'] + \
+                                f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(src)]['Data Fields']['SWIR_Cube'][sub[1]:sub[1]+sub[3], i, sub[0]:sub[0]+sub[2]]/h5_gatts['ScaleFactor_Swir']
                     cdata = cdata_radiance * (np.pi * d * d) / (bands[b]['f0'] * cossza)
 
             ds_att = {k:bands[b][k] for k in bands[b] if k not in ['rsr']}
