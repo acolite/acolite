@@ -428,5 +428,32 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                 cdata_l2c = None
                 print('Wrote rhos_l2c_{}'.format(bands[b]['wave_name']))
 
+        ## output PAN
+        if setu['prisma_output_pan']:
+            psrc = src.replace('H', 'P')
+            with h5py.File(file, mode='r') as f:
+                if sub is None:
+                    pan = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(psrc)]['Data Fields']['Cube'][:]
+                    plat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(psrc)]['Geolocation Fields']['Latitude'][:]
+                    plon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(psrc)]['Geolocation Fields']['Longitude'][:]
+                else:
+                    psub = [s*6 for s in sub]
+                    pan = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(psrc)]['Data Fields']['Cube'][psub[1]:psub[1]+psub[3], psub[0]:psub[0]+psub[2]]
+                    plat = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(psrc)]['Geolocation Fields']['Latitude'][psub[1]:psub[1]+psub[3], psub[0]:psub[0]+psub[2]]
+                    plon = f['HDFEOS']['SWATHS']['PRS_L1_{}'.format(psrc)]['Geolocation Fields']['Longitude'][psub[1]:psub[1]+psub[3], psub[0]:psub[0]+psub[2]]
+
+            ## convert to radiance
+            pan = h5_gatts['Offset_Pan'] + pan / h5_gatts['ScaleFactor_Pan']
+
+            ## output netcdf
+            ofile_pan = '{}/{}_pan.nc'.format(odir, obase)
+            ac.output.nc_write(ofile_pan, 'lon', np.flip(np.rot90(plon)),new = True) #dataset_attributes = ds_att,
+            plon = None
+            ac.output.nc_write(ofile_pan, 'lat', np.flip(np.rot90(plat))) #dataset_attributes = ds_att,
+            plat = None
+            ac.output.nc_write(ofile_pan, 'pan', np.flip(np.rot90(pan))) #dataset_attributes = ds_att,
+            pan = None
+         ## end PAN
+
         ofiles.append(ofile)
     return(ofiles, setu)
