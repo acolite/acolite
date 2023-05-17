@@ -3,23 +3,56 @@
 ;; coefficients provided by various authors, tabulated by QV 201803
 ;; fixed chloc3
 ;; 2021-09-14 fixed blue wavelength for OC2 (wavelength closest to 490)
+;; 2023-05-17 added additional calibrations from O'Reilly and Werdell
+;;            renamed the previous OLCI/MERIS chl_oc4 to chl_oc4m
+;;            renamed the previous OLI MSI chl_oc2 and chl_oc3 to chl_oc2f and chl_oc3f
 ;;
 ;; algorithm	blue_band	green_bands	chl_coef	reference	sensor
-;; L8_OLI from Franz et al 2015
-chl_oc2	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al	L8_OLI
-chl_oc3	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al	L8_OLI
+;; L8_OLI from Franz et al. 2015 https://doi.org/10.1117/1.JRS.9.096070
+chl_oc2f	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al. 2015	L8_OLI
+chl_oc3f	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al. 2015	L8_OLI
+;; L8_OLI from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021
+chl_oc3	443,483	561	0.30963,-2.40052,1.28932,0.52802,-1.33825	O'Reilly and Werdell 2019	L8_OLI
+
 ;; L9_OLI same coefficients as L8_OLI
-chl_oc2	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al	L9_OLI
-chl_oc3	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al	L9_OLI
+chl_oc2f	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al. 2015	L9_OLI
+chl_oc3f	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al. 2015	L9_OLI
+;; L9_OLI from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021
+chl_oc3	443,483	561	0.30963,-2.40052,1.28932,0.52802,-1.33825	O'Reilly and Werdell 2019	L9_OLI
+
 ;; S2A_MSI same coefficients as L8_OLI
-chl_oc2	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al	S2A_MSI
-chl_oc3	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al	S2A_MSI
+chl_oc2f	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al. 2015	S2A_MSI
+chl_oc3f	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al. 2015	S2A_MSI
+;; S2A_MSI from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021 and Pahlevan et al https://doi.org/10.1016/j.rse.2019.111604
+chl_oc2	483	561	0.2389,-1.9369,1.7627,-3.0777,-0.1054	Pahlevan et al. 2020	S2A_MSI
+chl_oc3	443,483	561	0.3308,-2.6684,1.5990,0.5525,-1.4876	Pahlevan et al. 2020	S2A_MSI
+
 ;; S2B_MSI same coefficients as L8_OLI
-chl_oc2	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al	S2B_MSI
-chl_oc3	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al	S2B_MSI
-;; S3A_OLCI/S3B_OLCI from SeaDAS/MERIS https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
-chl_oc4	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	S3A_OLCI
-chl_oc4	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	S3B_OLCI
-;; EN1_MERIS from SeaDAS/MERIS https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
-chl_oc4	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	EN1_MERIS
-chl_oc4	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	EN1_MERIS
+chl_oc2f	483	561	0.1977,-1.8117,1.9743,-2.5635,-0.7218	Franz et al. 2015	S2B_MSI
+chl_oc3f	443,483	561	0.2412,-2.0546,1.1776,-0.5538,-0.4570	Franz et al. 2015	S2B_MSI
+;; S2B_MSI from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021 and Pahlevan et al https://doi.org/10.1016/j.rse.2019.111604
+chl_oc2	483	561	0.2389,-1.9369,1.7627,-3.0777,-0.1054	Pahlevan et al. 2020	S2B_MSI
+chl_oc3	443,483	561	0.3308,-2.6684,1.5990,0.5525,-1.4876	Pahlevan et al. 2020	S2B_MSI
+
+;; S3A_OLCI/S3B_OLCI from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021
+chl_oc4	443,490,510	560	0.42540,-3.21679,2.86907,-0.62628,-1.09333	O'Reilly and Werdell 2019	S3A_OLCI
+chl_oc4	443,490,510	560	0.42540,-3.21679,2.86907,-0.62628,-1.09333	O'Reilly and Werdell 2019	S3B_OLCI
+chl_oc5	412,443,490,510	560	0.43213,-3.13001,3.05479,-1.45176,-0.24947	O'Reilly and Werdell 2019	S3A_OLCI
+chl_oc5	412,443,490,510	560	0.43213,-3.13001,3.05479,-1.45176,-0.24947	O'Reilly and Werdell 2019	S3B_OLCI
+;; EN1_MERIS from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021
+chl_oc4	443,490,510	560	0.42487,-3.20974,2.89721,-0.75258,-0.98259	O'Reilly and Werdell 2019	EN1_MERIS
+chl_oc5	412,443,490,510	560	0.43282,-3.12934,3.04872,-1.43479,-0.25474	O'Reilly and Werdell 2019	EN1_MERIS
+
+;; VIIRS from O'Reilly and Werdell https://doi.org/10.1016/j.rse.2019.04.021
+chl_oc3	443,486	551	0.23548,-2.63001,1.65498,0.16117,-1.37247	O'Reilly and Werdell 2019	SUOMI-NPP_VIIRS
+chl_oc4	410,443,486	551	0.26101,-2.53974,1.63454,-0.21157,-0.66549	O'Reilly and Werdell 2019	SUOMI-NPP_VIIRS
+chl_oc3	443,486	551	0.23548,-2.63001,1.65498,0.16117,-1.37247	O'Reilly and Werdell 2019	JPSS-1_VIIRS
+chl_oc4	410,443,486	551	0.26101,-2.53974,1.63454,-0.21157,-0.66549	O'Reilly and Werdell 2019	JPSS-1_VIIRS
+chl_oc3	443,486	551	0.23548,-2.63001,1.65498,0.16117,-1.37247	O'Reilly and Werdell 2019	JPSS-2_VIIRS
+chl_oc4	410,443,486	551	0.26101,-2.53974,1.63454,-0.21157,-0.66549	O'Reilly and Werdell 2019	JPSS-2_VIIRS
+
+;; S3A_OLCI/S3B_OLCI from SeaDAS/MERIS (old data) https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
+chl_oc4m	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	S3A_OLCI
+chl_oc4m	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	S3B_OLCI
+;; EN1_MERIS from SeaDAS/MERIS (old data) https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
+chl_oc4m	443,490,510	560	0.3255,-2.7677,2.4409,-1.1288,-0.4990	SeaDAS	EN1_MERIS
