@@ -59,6 +59,8 @@ chl_oc3s,0.03,30,True,Calgae255,CHL OC3 SeaDAS,mgm$^{-3}$
 ## CHL_CI
 ci,-0.02,0.02,False,Calgae255,CI,sr$^{-1}$
 chl_ci,0.03,30,True,Calgae255,CHL CI,mgm$^{-3}$
+chl_ocx,0.03,30,True,Calgae255,CHL OCx,mgm$^{-3}$
+chlor_a,0.03,30,True,Calgae255,CHL CI/OCx,mgm$^{-3}$
 #
 ## CHL_RE
 #

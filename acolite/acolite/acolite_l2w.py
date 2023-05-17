@@ -93,6 +93,29 @@ def acolite_l2w(gem,
                 if wn == 'nan': continue
                 setu['l2w_parameters'].append(k.replace('_*', '_{}').format(wn))
 
+    ## determine chl_ocx dataset for chlor_a
+    if 'chlor_a' in setu['l2w_parameters']:
+        ## remove chlor_a parameter
+        setu['l2w_parameters'].remove('chlor_a')
+        ## load config
+        cx_file = ac.config['data_dir']+'/Shared/algorithms/chl_ci/chl_ocx.txt'
+        cx_cfg = ac.acolite.settings.read(cx_file)
+        ## determine parameters
+        if gem.gatts['sensor'] not in cx_cfg:
+            print('chl_ocx not configured for {}'.format(gem.gatts['sensor']))
+            print('Not outputting chlor_a')
+        else:
+            cx_par = cx_cfg[gem.gatts['sensor']]
+            print('Using {} as chl_ocx for {}'.format(cx_par, gem.gatts['sensor']))
+            if cx_par not in setu['l2w_parameters']:
+                setu['l2w_parameters'].append(cx_par)
+            if 'chlor_a' not in setu['l2w_parameters']:
+                setu['l2w_parameters'].append('chlor_a')
+            ## move chl_ci to the end if it is in the list
+            setu['l2w_parameters'].append('chl_ci')
+            setu['l2w_parameters'].remove('chl_ci')
+    ## end determine chl_ocx
+
     ## compute flag value to mask for water products
     flag_value = 0
     if setu['l2w_mask']:
@@ -601,7 +624,7 @@ def acolite_l2w(gem,
 
         #############################
         ## CHL_CI
-        if 'chl_ci' in cur_par:
+        if (cur_par[0:6] == 'chl_ci') | (cur_par[0:7] == 'chlor_a'):
             mask = True ## water parameter so apply mask
             ## load config
             ci_file = ac.config['data_dir']+'/Shared/algorithms/chl_ci/defaults.txt'
@@ -629,7 +652,7 @@ def acolite_l2w(gem,
 
             ## determine green shift
             green_shift = None
-            if green_diff >= ci_cfg['wave_green_diff']:
+            if green_diff > ci_cfg['wave_green_diff']:
                 for k in ci_cfg:
                     if 'shift' in k:
                         if (green_wave >= ci_cfg[k][0]) & (green_wave <= ci_cfg[k][1]):
@@ -652,23 +675,42 @@ def acolite_l2w(gem,
                 ## determine pixels for both shifting methods
                 sub1 = np.where(tmp_data[1] < green_shift[2])
                 sub2 = np.where(tmp_data[1] >= green_shift[2])
-
                 ## shift data
                 tmp_data[1][sub1] = np.power(10, (green_shift[3]*np.log10(tmp_data[1][sub1])-green_shift[4]))
                 tmp_data[1][sub2] = green_shift[5] * tmp_data[1][sub2] + green_shift[6]
 
             ## compute ci
-            par_name = 'chl_ci'
             par_data['ci'] = tmp_data[1] - (tmp_data[0] \
                                 + (selected_waves[1]-selected_waves[0]) / (selected_waves[2] - selected_waves[0]) \
                                 * (tmp_data[2]-tmp_data[0]))
             par_atts['ci'] = par_attributes
-            par_data[par_name] = np.power(10, ci_cfg['a0CI'] + ci_cfg['a1CI'] * par_data['ci'])
-            ## mask outside of bounds
+            tmp_data = None
+
+            ## compute chl_ci
+            par_data['chl_ci'] = np.power(10, ci_cfg['a0CI'] + ci_cfg['a1CI'] * par_data['ci'])
+            par_atts['chl_ci'] = par_attributes
+
+            ## compute chlor_a
+            if (cur_par[0:7] == 'chlor_a') | ('chlor_a' in setu['l2w_parameters']):
+                ## read chl_ocx
+                par_data['chl_ocx'], par_atts['chl_ocx'] = ac.shared.nc_data(ofile, cx_par, attributes=True)
+
+                ## copy chl_ci
+                par_data['chlor_a'] = par_data['chl_ci'] * 1.0
+                par_atts['chlor_a'] = par_attributes
+                ## blend chl_ocx
+                sub = (par_data['chl_ci'] > ci_cfg['t1']) & (par_data['chl_ci'] <= ci_cfg['t2'])
+                alpha = (par_data['chl_ci'][sub] - ci_cfg['t1']) / (ci_cfg['t2']-ci_cfg['t1'])
+                beta = (ci_cfg['t2'] - par_data['chl_ci'][sub]) / (ci_cfg['t2']-ci_cfg['t1'])
+                par_data['chlor_a'][sub] = alpha*par_data['chl_ocx'][sub] + beta*par_data['chl_ci'][sub]
+                ## replace chl_ocx
+                sub = par_data['chl_ci'] > ci_cfg['t2']
+                par_data['chlor_a'][sub] = par_data['chl_ocx'][sub]
+
+            ## mask chl_ci outside of bounds
             if ci_cfg['mask_t2']:
-                sub = par_data[par_name] > ci_cfg['t2']
-                par_data[par_name][sub] = np.nan
-            par_atts[par_name] = par_attributes
+                sub = par_data['chl_ci'] > ci_cfg['t2']
+                par_data['chl_ci'][sub] = np.nan
         ## end CHL_CI
         #############################
 
