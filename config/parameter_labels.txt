@@ -50,6 +50,11 @@ tur_dogliotti2022_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2022,FNU
 chl_oc2,0.03,30,True,Calgae255,CHL OC2,mgm$^{-3}$
 chl_oc3,0.03,30,True,Calgae255,CHL OC3,mgm$^{-3}$
 chl_oc4,0.03,30,True,Calgae255,CHL OC4,mgm$^{-3}$
+chl_oc5,0.03,30,True,Calgae255,CHL OC5,mgm$^{-3}$
+## custom CHL_OC
+chl_oc4m,0.03,30,True,Calgae255,CHL OC4 SeaDAS,mgm$^{-3}$
+chl_oc2f,0.03,30,True,Calgae255,CHL OC2 Franz2015,mgm$^{-3}$
+chl_oc3f,0.03,30,True,Calgae255,CHL OC3 Franz2015,mgm$^{-3}$
 #
 ## CHL_RE
 #
