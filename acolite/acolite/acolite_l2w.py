@@ -600,6 +600,79 @@ def acolite_l2w(gem,
         #############################
 
         #############################
+        ## CHL_CI
+        if 'chl_ci' in cur_par:
+            mask = True ## water parameter so apply mask
+            ## load config
+            ci_file = ac.config['data_dir']+'/Shared/algorithms/chl_ci/defaults.txt'
+            ci_cfg = ac.acolite.settings.read(ci_file)
+            for k in ci_cfg:
+                if type(ci_cfg[k]) == bool: continue
+                if type(ci_cfg[k]) == list:
+                    ci_cfg[k] = [float(v) for v in ci_cfg[k]]
+                else:
+                    ci_cfg[k] = float(ci_cfg[k])
+            par_attributes = {'algorithm':'Chlorophyll a CI', 'dataset':'rhos'}
+            par_attributes['reference']='Hu et al. 2012'
+
+            ## find required datasets
+            required_datasets = []
+            selected_waves = []
+            green_diff = 0
+            for w in ci_cfg['wave']:
+                wi, ws = ac.shared.closest_idx(rhos_waves, w)
+                if w == ci_cfg['wave'][1]:
+                    green_wave = ws
+                    green_diff = np.abs(ws-w)
+                required_datasets.append(rhos_ds[wi])
+                selected_waves.append(float(ws))
+
+            ## determine green shift
+            green_shift = None
+            if green_diff >= ci_cfg['wave_green_diff']:
+                for k in ci_cfg:
+                    if 'shift' in k:
+                        if (green_wave >= ci_cfg[k][0]) & (green_wave <= ci_cfg[k][1]):
+                            green_shift = ci_cfg[k]
+                            selected_waves[1] = ci_cfg['wave'][1]
+                            break
+                if green_shift == None:
+                    print('Green band cannot be shifted for CI')
+                    continue
+
+            ## get data
+            for di, cur_ds in enumerate(required_datasets):
+                print(cur_ds)
+                if di == 0: tmp_data = []
+                cur_data = gem.data(cur_ds) / np.pi
+                tmp_data.append(cur_data)
+
+            ## perform green shift
+            if green_shift != None:
+                ## determine pixels for both shifting methods
+                sub1 = np.where(tmp_data[1] < green_shift[2])
+                sub2 = np.where(tmp_data[1] >= green_shift[2])
+
+                ## shift data
+                tmp_data[1][sub1] = np.power(10, (green_shift[3]*np.log10(tmp_data[1][sub1])-green_shift[4]))
+                tmp_data[1][sub2] = green_shift[5] * tmp_data[1][sub2] + green_shift[6]
+
+            ## compute ci
+            par_name = 'chl_ci'
+            par_data['ci'] = tmp_data[1] - (tmp_data[0] \
+                                + (selected_waves[1]-selected_waves[0]) / (selected_waves[2] - selected_waves[0]) \
+                                * (tmp_data[2]-tmp_data[0]))
+            par_atts['ci'] = par_attributes
+            par_data[par_name] = np.power(10, ci_cfg['a0CI'] + ci_cfg['a1CI'] * par_data['ci'])
+            ## mask outside of bounds
+            if ci_cfg['mask_t2']:
+                sub = par_data[par_name] > ci_cfg['t2']
+                par_data[par_name][sub] = np.nan
+            par_atts[par_name] = par_attributes
+        ## end CHL_CI
+        #############################
+
+        #############################
         ## CHL_RE
         if (cur_par[0:6] == 'chl_re'):
             par_name = cur_par
