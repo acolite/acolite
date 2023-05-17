@@ -628,6 +628,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## check size and tile if necessary
     tiled_transfer = False
     tile_size = [606,606]
+    tile_size = [306,306]
     tiles_grid = 1,1
     if ((odim[0]*odim[1]*13)*9 > 50331648) or (odim[0]>tile_size[0]) or (odim[1]>tile_size[1]): #((odim[0]*odim[1]) > (tile_size[0]*tile_size[1])):
         print('Warning large dataset: {}x{}'.format(odim[0],odim[1]))
