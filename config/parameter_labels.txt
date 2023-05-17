@@ -55,6 +55,7 @@ chl_oc5,0.03,30,True,Calgae255,CHL OC5,mgm$^{-3}$
 chl_oc4m,0.03,30,True,Calgae255,CHL OC4 SeaDAS,mgm$^{-3}$
 chl_oc2f,0.03,30,True,Calgae255,CHL OC2 Franz2015,mgm$^{-3}$
 chl_oc3f,0.03,30,True,Calgae255,CHL OC3 Franz2015,mgm$^{-3}$
+chl_oc3s,0.03,30,True,Calgae255,CHL OC3 SeaDAS,mgm$^{-3}$
 ## CHL_CI
 ci,-0.02,0.02,False,Calgae255,CI,sr$^{-1}$
 chl_ci,0.03,30,True,Calgae255,CHL CI,mgm$^{-3}$
