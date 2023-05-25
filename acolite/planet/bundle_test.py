@@ -13,6 +13,7 @@
 ##                2023-04-18 (QV) added PSScene and files/PSScene dname options
 ##                                added support for NTF files
 ##                2023-05-08 (QV) added support for composite files
+##                2023-05-25 (QV) set sid to None if manifest is given
 
 def bundle_test(bundle_in):
     import os, glob
@@ -21,10 +22,13 @@ def bundle_test(bundle_in):
         bundle = bundle_in
         sid = None
     else:
-        bundle = os.path.dirname(bundle_in)
+        bundle = os.path.dirname(bundle_in) #+ os.path.sep
         fn = os.path.basename(bundle_in)
-        sid = fn[0:23]
-        if 'ssc' in fn: sid = fn[0:27]
+        if fn == 'manifest.json':
+            sid = None
+        else:
+            sid = fn[0:23]
+            if 'ssc' in fn: sid = fn[0:27]
 
     ## check files in bundle
     files = []
