@@ -184,6 +184,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         sub['mod'] = [int(c/2) for c in csub]
                         sub['img'] = [c for c in csub]
 
+                    ## add subset to gatts
+                    gatts['viirs_mod_sub'] = sub['mod']
+                    gatts['viirs_img_sub'] = sub['img']
+
             ## load GEO data
             if vi == 0:
                 with h5py.File(geo, mode='r') as f:
