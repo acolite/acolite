@@ -203,11 +203,11 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         data_in = None
 
     ## for NN/bilinear projection
-    radius = 3
-    epsilon = 0
+    radius = setu['output_projection_radius']
+    epsilon = setu['output_projection_epsilon']
 
     ## for bilinear projection
-    neighbours = 32
+    neighbours = setu['output_projection_neighbours']
 
     if (setu['viirs_scanline_projection']) & ('VIIRS' in gatts['sensor']):
         slines = 32

@@ -439,6 +439,10 @@ output_projection_resolution_align=True
 output_projection_resampling_method=bilinear
 default_projection_resolution=None
 output_projection_fillnans=False
+# projection resampling settings
+output_projection_radius=3
+output_projection_epsilon=0
+output_projection_neighbours=32
 
 # reproject input tif files if projection cannot be determined
 reproject_inputfile=False
