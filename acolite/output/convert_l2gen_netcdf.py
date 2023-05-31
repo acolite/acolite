@@ -29,7 +29,7 @@ def convert_l2gen_netcdf(ifile, output=None, file_type = 'L2S', \
     datasets_nav = ac.shared.nc_datasets(ifile, group='navigation_data')
 
     ## add sensor for ACOLITE funs
-    gatts['sensor'] = '{}_{}'.format(gatts['platform'], gatts['instrument'])
+    gatts['sensor'] = '{}_{}'.format(gatts['platform'], gatts['instrument']).upper()
 
     ## determine additional masking
     l2_flags, att = ac.shared.nc_data(ifile, 'l2_flags', group='geophysical_data', attributes=True)
