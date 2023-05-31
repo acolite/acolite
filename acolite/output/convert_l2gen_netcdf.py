@@ -17,7 +17,7 @@ def convert_l2gen_netcdf(ifile, output=None, file_type = 'L2S', \
     bn = os.path.basename(ifile)
     bno = bn.replace('.nc', '_{}.nc'.format(file_type))
     ofile = '{}/{}'.format(output if output is not None else dn, bno)
-    if not os.path.exists(os.path.basename(ofile)): os.makedirs(os.path.basename(ofile))
+    if not os.path.exists(os.path.dirname(ofile)): os.makedirs(os.path.dirname(ofile))
 
     ## read gatts and dataset info
     gatts = ac.shared.nc_gatts(ifile)
