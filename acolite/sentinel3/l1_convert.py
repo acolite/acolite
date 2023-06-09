@@ -49,7 +49,8 @@ def l1_convert(inputfile, output = None, settings = {},
         dfiles.sort()
 
         ## find xml files
-        mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
+        mfile = [os.path.basename(f) for f in glob.glob('{}/xfdumanifest.xml'.format(bundle))]
+        if len(mfile)==0: mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
         if len(mfile)==1: mfile = mfile[0]
 
         t0 = time.time()
