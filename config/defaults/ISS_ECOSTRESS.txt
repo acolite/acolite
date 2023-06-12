@@ -5,4 +5,5 @@
 ## settings you want to change from the ones in this defaults file.
 ##
 
-## empty file
+## default resolution
+default_projection_resolution=70,70
