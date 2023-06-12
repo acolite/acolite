@@ -34,6 +34,7 @@ def identify_bundle(bundle, input_type = None, output = None):
             gatts = ac.shared.nc_gatts(bundle)
             datasets = ac.shared.nc_datasets(bundle)
             rhot_ds = [ds for ds in datasets if 'rhot_' in ds]
+            rhot_ds += [ds for ds in datasets if ds[0:2]=='bt']
             if (gatts['generated_by'] == 'ACOLITE') & (len(rhot_ds) != 0):
                 input_type = 'ACOLITE'
                 break ## exit loop
