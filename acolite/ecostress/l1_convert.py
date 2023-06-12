@@ -58,6 +58,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
         tdiff = (edate - sdate)
         dt = sdate + datetime.timedelta(days=tdiff.days/2, seconds=tdiff.seconds/2)
         isodate = dt.isoformat()[0:19]
+        if 'Z' not in isodate: isodate+='Z'
 
         use_bt_lut = False
         ## read BT LUT
