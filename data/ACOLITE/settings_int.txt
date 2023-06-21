@@ -56,3 +56,4 @@ task_check_sleep
 day_range
 minimum_crop_size
 output_scale
+tile_size

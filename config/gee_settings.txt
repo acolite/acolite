@@ -17,6 +17,8 @@ output_scale=None
 
 ## check minimum dimension (skip very narrow images)
 minimum_crop_size=None
+## tile size for download tiling (depends on number of bands and GEE download limits)
+tile_size=606,606
 
 ## dates to check
 ## if end date is None, day_range days will be added to start date
