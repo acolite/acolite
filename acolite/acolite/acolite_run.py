@@ -197,7 +197,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
                         if l2r_setu['pans']:
                             pr = ac.acolite.acolite_pans(ncf, settings = l2r_setu)
-                            if pr != ():
+                            if pr is not None:
                                 if 'l2r_pans' not in processed[ni]: processed[ni]['l2r_pans']=[]
                                 processed[ni]['l2r_pans'].append(pr)
 
@@ -232,7 +232,7 @@ def acolite_run(settings, inputfile=None, output=None):
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
                 ret = ac.tact.tact_gem(l1r, settings = l1r_setu, verbosity = ac.config['verbosity'])
-                if ret != ():
+                if ret is not None:
                     l2t_files.append(ret)
                     if l1r_setu['l2t_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l1r_setu['export_geotiff_match_file'],
                                                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],

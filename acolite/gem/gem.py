@@ -75,7 +75,7 @@ class gem(object):
                         self.data_mem[ds] = cdata
                         self.data_att[ds] = catt
                 else:
-                    return()
+                    return
             if return_data:
                 if attributes:
                     return(cdata, catt)

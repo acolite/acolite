@@ -176,7 +176,7 @@ def acolite_l2r(gem,
         gem.data(ds, store=True, return_data=False)
         if (ds == 'sza'):
             sza = gem.data(ds, store=True, return_data=True)
-            if sza != ():
+            if sza is not None:
                 high_sza = np.where(sza>setu['sza_limit'])
                 if len(high_sza[0]) > 0:
                     print('Warning: SZA out of LUT range')

@@ -15,7 +15,7 @@ def acolite_pans(ncf, output = None, settings = {}):
     ncfp = ncf.replace('_L2R.nc', '_L1R_pan.nc')
     if not os.path.exists(ncfp):
         print('No L1R_pan.nc file available for {}'.format(ncf))
-        return()
+        return
 
     ## parse settings
     setu = ac.acolite.settings.parse(None, settings=settings)
@@ -27,7 +27,7 @@ def acolite_pans(ncf, output = None, settings = {}):
     gatts = ac.shared.nc_gatts(ncf)
     if gatts['sensor'] not in setu['pans_sensors']:
         print('Pan sharpening not supported for {}'.format(gatts['sensor']))
-        return()
+        return
 
     ## output file
     ncfo = ncf.replace('.nc', '_pans_{}.nc'.format(setu['pans_method']))

@@ -60,7 +60,7 @@ def tact_gem(gem, output_file = True,
     ## detect sensor
     if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
         if verbosity > 0: print('TACT Processing of {} not supported'.format(gem['gatts']['sensor']))
-        return()
+        return
 
     ## check if we need to run tact
     run_tact = False
@@ -69,7 +69,7 @@ def tact_gem(gem, output_file = True,
         if dsi in gem['datasets']: run_tact = True
     if not run_tact:
         print('No thermal bands for {} (bands {}) in {}'.format(gem['gatts']['sensor'], ','.join(gem['gatts']['thermal_bands']), gemf))
-        return()
+        return
 
     ## check blackfill
     if setu['blackfill_skip']:
@@ -83,14 +83,14 @@ def tact_gem(gem, output_file = True,
         band_data = None
         if (nbf/npx) >= float(setu['blackfill_max']):
             if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
-            return()
+            return
 
     if source == 'era5':
         max_date = (datetime.datetime.now() - datetime.timedelta(days=92)).isoformat()
         if gem['gatts']['isodate'] > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format(source, max_date))
             print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
-            return()
+            return
 
     ## load emissivity data
     if emissivity_file is not None:
