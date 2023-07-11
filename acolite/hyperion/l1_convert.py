@@ -3,7 +3,8 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-04
 ## modifications:  2021-12-31 (QV) new handling of settings
-##                2022-01-04 (QV) added netcdf compression
+##                 2022-01-04 (QV) added netcdf compression
+##                 2023-07-11 (QV) import defaults before loading F0
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -21,6 +22,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+
+    ## get sensor specific settings
+    satellite_sensor = 'EO1_HYPERION'
+    setu = ac.acolite.settings.parse(satellite_sensor, settings=settings)
 
     ## get F0 for radiance -> reflectance computation
     f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
@@ -62,9 +67,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         satellite = metadata['PRODUCT_METADATA']['SPACECRAFT_ID']
 
         gatts['sensor'] = '{}_{}'.format(satellite, sensor)
+        if gatts['sensor'] != satellite_sensor:
+            print(satellite_sensor, gatts['sensor'])
+            continue
 
-        ## get sensor specific settings
-        setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
         verbosity = setu['verbosity']
         limit = setu['limit']
         vname = setu['region_name']
