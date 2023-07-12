@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-11-09 (QV) updates for PNEO processing
 ##                2023-02-21 (QV) new handling for unprojected and projected data
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True, percentiles = (0,1,5,10,25,50,75,90,95,99,100),
@@ -243,14 +244,10 @@ def l1_convert(inputfile, output = None, settings = {},
                 if ('lat' not in datasets) or ('lon' not in datasets):
                     if verbosity > 1: print('Writing geolocation lon/lat')
                     lon, lat = ac.pleiades.geo.ll(meta, sub=sub)
-                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
                     lon = None
                     if verbosity > 1: print('Wrote lon')
-                    ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, 'lat', lat)
                     lat = None
                     if verbosity > 1: print('Wrote lat')
                     new = False
@@ -411,10 +408,7 @@ def l1_convert(inputfile, output = None, settings = {},
                             ## write to netcdf file
                             ac.output.nc_write(pofile, ds, data_full, replace_nan=True, #attributes=gatts,
                                                 new=new_pan, dataset_attributes = ds_att,
-                                                nc_projection=nc_projection_pan, update_projection=update_projection_pan,
-                                                netcdf_compression=setu['netcdf_compression'],
-                                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                                nc_projection=nc_projection_pan, update_projection=update_projection_pan)
                             data_full = None
                             update_projection_pan = False
                             new_pan = False
@@ -444,28 +438,21 @@ def l1_convert(inputfile, output = None, settings = {},
                             lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
                             print(lon.shape)
                             ac.output.nc_write(ofile, 'lon', lon, double=True,
-                                                nc_projection=nc_projection, update_projection=update_projection,
-                                                netcdf_compression=setu['netcdf_compression'],
-                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                                                nc_projection=nc_projection, update_projection=update_projection)
                             lon = None
                             update_projection = False
 
                             if verbosity > 1: print('Wrote lon')
                             print(lat.shape)
                             ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                                nc_projection=nc_projection, update_projection=update_projection,
-                                                netcdf_compression=setu['netcdf_compression'],
-                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                                                nc_projection=nc_projection, update_projection=update_projection)
                             lat = None
                             if verbosity > 1: print('Wrote lat')
                             new=False
 
                         ## write to netcdf file
                         ac.output.nc_write(ofile, ds, data_full, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att,
-                                            nc_projection=nc_projection, update_projection=update_projection,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'],
-                                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                            nc_projection=nc_projection, update_projection=update_projection)
                         update_projection = False
                         new = False
                         if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data_full.shape))
@@ -479,14 +466,10 @@ def l1_convert(inputfile, output = None, settings = {},
             if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
                 if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
-                ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lat', lat)
                 if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
                 lat = None
                 new=False
@@ -573,17 +556,11 @@ def l1_convert(inputfile, output = None, settings = {},
                     ## write to netcdf file
                     if (ii == 0):
                         ac.output.nc_write(ofile, ds, data, attributes=gatts, new=new,
-                                           dataset_attributes = ds_att, nc_projection=nc_projection,
-                                           netcdf_compression=setu['netcdf_compression'],
-                                           netcdf_compression_level=setu['netcdf_compression_level'],
-                                           netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                           dataset_attributes = ds_att, nc_projection=nc_projection)
                         new = False
                     else: ## second iteration is pan at native resolution
                         ac.output.nc_write(pofile, ds, data, new=new_pan,
-                                           dataset_attributes = ds_att, nc_projection=nc_projection_pan,
-                                           netcdf_compression=setu['netcdf_compression'],
-                                           netcdf_compression_level=setu['netcdf_compression_level'],
-                                           netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                           dataset_attributes = ds_att, nc_projection=nc_projection_pan)
                         new_pan = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
         if verbosity > 1:

@@ -3,11 +3,9 @@
 ## function for ACOLITE processing QV 2021-06-09
 ## modifications: 2021-12-31 (QV) skip TOA radiances when creating the RTOA dataset
 ##                2022-01-04 (QV) added netcdf compression
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
-def noise_reduction(ncf, rename=True,
-                         netcdf_compression=False,
-                         netcdf_compression_level=4,
-                         netcdf_compression_least_significant_digit=None):
+def noise_reduction(ncf, rename=True):
     import numpy as np
     from scipy.ndimage import gaussian_filter
     import acolite as ac
@@ -176,14 +174,10 @@ def noise_reduction(ncf, rename=True,
     dix = 0
     for di, ds in enumerate(datasets):
         if 'rhot_' in ds:
-            ac.output.nc_write(ofile, ds, RTOAcal2[:,:,dix], dataset_attributes=ds_att[ds], attributes=gatts, new=new,
-                               netcdf_compression=netcdf_compression, netcdf_compression_level=netcdf_compression_level,
-                               netcdf_compression_least_significant_digit=netcdf_compression_least_significant_digit)
+            ac.output.nc_write(ofile, ds, RTOAcal2[:,:,dix], dataset_attributes=ds_att[ds], attributes=gatts, new=new)
             dix += 1
         else:
             tmp, att = ac.shared.nc_data(ncf, ds, attributes=True)
-            ac.output.nc_write(ofile, ds, tmp, dataset_attributes=att, attributes=gatts, new=new,
-                               netcdf_compression=netcdf_compression, netcdf_compression_level=netcdf_compression_level,
-                               netcdf_compression_least_significant_digit=netcdf_compression_least_significant_digit)
+            ac.output.nc_write(ofile, ds, tmp, dataset_attributes=att, attributes=gatts, new=new)
         new = False
     return(ofile)

@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-03-09
 ## modifications: 2023-03-27 (QV) fixed issue with band naming
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -149,53 +150,33 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         ## write lat/lon
         if (setu['output_geolocation']) & (new):
             if verbosity > 1: print('Writing geolocation lon/lat')
-            ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new,nc_projection=nc_projection)
             if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
 
-            ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lat', lat)
             if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
             new=False
 
         ## write geometry
         if (setu['output_geometry']):
             if verbosity > 1: print('Writing geometry')
-            ac.output.nc_write(ofile, 'vza', vza, attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'vza', vza, attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote vza ({})'.format(vza.shape))
             vza = None
             new=False
 
-            ac.output.nc_write(ofile, 'vaa', vaa, attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'vaa', vaa, attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote vaa ({})'.format(vaa.shape))
             vaa = None
 
-            ac.output.nc_write(ofile, 'sza', sza, attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'sza', sza, attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote sza ({})'.format(sza.shape))
 
-            ac.output.nc_write(ofile, 'saa', saa, attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'saa', saa, attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote saa ({})'.format(saa.shape))
             saa = None
 
-            ac.output.nc_write(ofile, 'raa', raa, attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'raa', raa, attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote raa ({})'.format(raa.shape))
             raa = None
 
@@ -224,10 +205,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             if setu['output_lt']:
                 ## write toa radiance
                 ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                      dataset_attributes = ds_att, new = new, attributes = gatts,
-                                      netcdf_compression=setu['netcdf_compression'],
-                                      netcdf_compression_level=setu['netcdf_compression_level'],
-                                      netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                      dataset_attributes = ds_att, new = new, attributes = gatts)
                 new = False
                 print('Wrote Lt_{}'.format(bands[b]['wave_name']))
 
@@ -237,10 +215,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
             ## write toa reflectance
             ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,
-                                dataset_attributes = ds_att, new = new, attributes = gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                dataset_attributes = ds_att, new = new, attributes = gatts)
             cdata = None
             new = False
             print('Wrote rhot_{}'.format(bands[b]['wave_name']))

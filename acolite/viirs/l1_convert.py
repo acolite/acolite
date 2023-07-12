@@ -4,6 +4,7 @@
 ## 2023-03-30
 ## modifications: 2023-04-18 (QV) check if outside limits
 ##                2023-04-19 (QV) added quality_flags check
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -240,9 +241,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
                     if rotate: data[ds] = np.rot90(data[ds], k=2)
 
-                    ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts)
                     if verbosity > 1: print('Wrote {} ({})'.format(ds, data[ds].shape))
                     new = False
                     del data[ds]
@@ -351,10 +350,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                         if rotate: data = np.rot90(data, k=2)
 
                         ## output dataset
-                        ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts,
-                                            dataset_attributes = ds_att,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'])
+                        ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts, dataset_attributes = ds_att)
                         if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
                         new = False
 
@@ -369,10 +365,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                             ds_att['K2_CONSTANT_BAND_{}'.format(b)] = k2
                             ## convert from BTto Lt
                             data = ds_att['K1_CONSTANT_BAND_{}'.format(b)]/(np.exp(ds_att['K2_CONSTANT_BAND_{}'.format(b)]/data)-1)
-                            ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts,
-                                                dataset_attributes = ds_att,
-                                                netcdf_compression=setu['netcdf_compression'],
-                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                            ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts, dataset_attributes = ds_att)
                             if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
 
                         ## delete datasets

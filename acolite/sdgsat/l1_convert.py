@@ -4,6 +4,7 @@
 ## 2023-01-03
 ## modifications: 2023-02-18 (QV) added merging of A and B scenes
 ##                2023-02-19 (QV) fixed merged scene nc_projection
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import os
@@ -214,15 +215,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
                 if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
 
-                ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lat', lat)
                 if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
                 lat = None
                 new=False
@@ -231,14 +228,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             if (setu['output_xy']):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'xm', x, new=new,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'xm', x, new=new)
                 if verbosity > 1: print('Wrote xm ({})'.format(x.shape))
                 x = None
-                ac.output.nc_write(ofile, 'ym', y,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'ym', y)
                 if verbosity > 1: print('Wrote ym ({})'.format(y.shape))
                 y = None
                 new=False
@@ -271,11 +264,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                     if setu['output_lt']:
                         ds = 'Lt_{}'.format(rsrd['wave_name'][band])
                         ## write toa radiance
-                        ac.output.nc_write(ofile, ds, data,
-                                      dataset_attributes = ds_att,
-                                      netcdf_compression=setu['netcdf_compression'],
-                                      netcdf_compression_level=setu['netcdf_compression_level'],
-                                      netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                        ac.output.nc_write(ofile, ds, data, dataset_attributes = ds_att)
 
                     ## convert to rhot
                     ds = 'rhot_{}'.format(rsrd['wave_name'][band])
@@ -292,10 +281,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
                     ## write to netcdf file
                     ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
-                                            new=new, dataset_attributes = ds_att, nc_projection=nc_projection,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'],
-                                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                            new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
                     new = False
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 

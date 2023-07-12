@@ -2,7 +2,7 @@
 ## converts EMIT L1B RAD data to l1r NetCDF for acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-09
-## modifications:
+## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import netCDF4, os
@@ -119,24 +119,17 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
         ## write lat/lon
         if (setu['output_geolocation']) & (new):
             if verbosity > 1: print('Writing geolocation lon/lat')
-            ac.output.nc_write(ofile, 'lon', loc['lon'], attributes=gatts, new=new,
-                               double=True, nc_projection=nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lon', loc['lon'], attributes=gatts, new=new, nc_projection=nc_projection)
             if verbosity > 1: print('Wrote lon ({})'.format(loc['lon'].shape))
 
-            ac.output.nc_write(ofile, 'lat', loc['lat'], double=True,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lat', loc['lat'], double=True)
             if verbosity > 1: print('Wrote lat ({})'.format(loc['lat'].shape))
             new=False
 
         if setu['output_geometry']:
             if verbosity > 1: print('Writing geometry')
             for k in geom:
-                ac.output.nc_write(ofile, k, geom[k], attributes=gatts, new=new,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, k, geom[k], attributes=gatts, new=new)
                 if verbosity > 1: print('Wrote {} ({})'.format(k, geom[k].shape))
                 new=False
 
@@ -155,10 +148,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             if setu['output_lt']:
                 ## write toa radiance
                 ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                      dataset_attributes = ds_att, new = new, attributes = gatts,
-                                      netcdf_compression=setu['netcdf_compression'],
-                                      netcdf_compression_level=setu['netcdf_compression_level'],
-                                      netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                      dataset_attributes = ds_att, new = new, attributes = gatts)
                 new = False
                 print('Wrote Lt_{}'.format(bands[b]['wave_name']))
 
@@ -168,10 +158,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
 
             ## write toa reflectance
             ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,
-                                dataset_attributes = ds_att, new = new, attributes = gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                dataset_attributes = ds_att, new = new, attributes = gatts)
             cdata = None
             new = False
             print('Wrote rhot_{}'.format(bands[b]['wave_name']))

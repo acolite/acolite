@@ -9,6 +9,7 @@
 ##                2022-07-15 (QV) added option to select most common model for non-fixed DSF
 ##                2022-09-24 (QV) removed special case for DESIS
 ##                2023-03-30 (QV) added option to include band name in rhot/rhos datasets
+##                2023-07-12 (QV) removed netcdf_compression settings from gem call
 
 def acolite_l2r(gem,
                 output = None,
@@ -364,10 +365,7 @@ def acolite_l2r(gem,
         else:
             ofile = '{}'.format(target_file)
 
-        gemo = ac.gem.gem(ofile, new=True,
-                          netcdf_compression=setu['netcdf_compression'],
-                          netcdf_compression_level=setu['netcdf_compression_level'],
-                          netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+        gemo = ac.gem.gem(ofile, new=True)
 
         gemo.nc_projection = nc_projection
         gemo.bands = gem.bands

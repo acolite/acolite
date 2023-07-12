@@ -68,6 +68,10 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
             if re.match(p, dataset): pdisc = ac.param['discretisation'][p]
     if pdisc is not None: discretise = pdisc['discretise']
     if discretise: fillvalue = pdisc['add_offset']
+    ## compression options for current run
+    netcdf_compression = ac.settings['run']['netcdf_compression']
+    netcdf_compression_level = ac.settings['run']['netcdf_compression_level']
+    netcdf_compression_least_significant_digit = ac.settings['run']['netcdf_compression_least_significant_digit']
 
     ## set attributes from provided/defaults
     if atts is not None:

@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-02-23 (QV) added option to output L2C reflectances
 ##                2023-05-09 (QV) added option to crop
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
@@ -280,16 +281,12 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         new = True
         if (setu['output_geolocation']) & (new):
             if verbosity > 1: print('Writing geolocation lon/lat')
-            ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)), new=new, attributes=gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)), new=new, attributes=gatts)
             if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
             new = False
             if not (store_l2c & store_l2c_separate_file): lon = None
 
-            ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=new, attributes=gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=new, attributes=gatts)
             if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
             if not (store_l2c & store_l2c_separate_file): lat = None
 
@@ -297,52 +294,38 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         if os.path.exists(l2file):
             if (setu['output_geometry']):
                 if verbosity > 1: print('Writing geometry')
-                ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)), attributes=gatts, new=new,
-                                   netcdf_compression=setu['netcdf_compression'],
-                                   netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)), attributes=gatts, new=new)
                 if verbosity > 1: print('Wrote vza ({})'.format(vza.shape))
                 vza = None
                 new = False
                 if vaa is not None:
-                    ac.output.nc_write(ofile, 'vaa', np.flip(np.rot90(vaa)), attributes=gatts, new=new,
-                                       netcdf_compression=setu['netcdf_compression'],
-                                       netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, 'vaa', np.flip(np.rot90(vaa)), attributes=gatts, new=new)
                     if verbosity > 1: print('Wrote vaa ({})'.format(vaa.shape))
                     vaa = None
 
-                ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)), attributes=gatts, new=new,
-                                   netcdf_compression=setu['netcdf_compression'],
-                                   netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)), attributes=gatts, new=new)
                 if verbosity > 1: print('Wrote sza ({})'.format(sza.shape))
 
                 if saa is not None:
-                    ac.output.nc_write(ofile, 'saa', np.flip(np.rot90(saa)), attributes=gatts, new=new,
-                                       netcdf_compression=setu['netcdf_compression'],
-                                       netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, 'saa', np.flip(np.rot90(saa)), attributes=gatts, new=new)
                     if verbosity > 1: print('Wrote saa ({})'.format(saa.shape))
                     saa = None
 
-                ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)), attributes=gatts, new=new,
-                                   netcdf_compression=setu['netcdf_compression'],
-                                   netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)), attributes=gatts, new=new)
                 if verbosity > 1: print('Wrote raa ({})'.format(raa.shape))
                 raa = None
 
             if dem is not None:
-                ac.output.nc_write(ofile, 'dem', np.flip(np.rot90(dem)),
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'dem', np.flip(np.rot90(dem)))
 
         ## store l2c data
         if store_l2c & read_cube:
             if store_l2c_separate_file:
                 obase_l2c  = '{}_{}_converted_L2C'.format('PRISMA',  time.strftime('%Y_%m_%d_%H_%M_%S'))
                 ofile_l2c = '{}/{}.nc'.format(odir, obase_l2c)
-                ac.output.nc_write(ofile_l2c, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile_l2c, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts)
                 lat = None
-                ac.output.nc_write(ofile_l2c, 'lon', np.flip(np.rot90(lon)),
-                                    netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile_l2c, 'lon', np.flip(np.rot90(lon)))
                 lon = None
             else:
                 ofile_l2c = '{}'.format(ofile)
@@ -401,29 +384,20 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
 
             if output_lt:
                 ## write toa radiance
-                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata_radiance)),
-                              dataset_attributes = ds_att,
-                              netcdf_compression=setu['netcdf_compression'],
-                              netcdf_compression_level=setu['netcdf_compression_level'],
-                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']),
+                                    np.flip(np.rot90(cdata_radiance)),dataset_attributes = ds_att)
                 cdata_radiance = None
 
             ## write toa reflectance
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata)),
-                              dataset_attributes = ds_att,
-                              netcdf_compression=setu['netcdf_compression'],
-                              netcdf_compression_level=setu['netcdf_compression_level'],
-                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']),
+                                    np.flip(np.rot90(cdata)), dataset_attributes = ds_att)
             cdata = None
             print('Wrote rhot_{}'.format(bands[b]['wave_name']))
 
             ## store L2C data
             if store_l2c & read_cube:
-                ac.output.nc_write(ofile_l2c, 'rhos_l2c_{}'.format(bands[b]['wave_name']), np.flip(np.rot90(cdata_l2c)),
-                                  dataset_attributes = ds_att,
-                                  netcdf_compression=setu['netcdf_compression'],
-                                  netcdf_compression_level=setu['netcdf_compression_level'],
-                                  netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                ac.output.nc_write(ofile_l2c, 'rhos_l2c_{}'.format(bands[b]['wave_name']),
+                                    np.flip(np.rot90(cdata_l2c)),dataset_attributes = ds_att)
                 ofile_l2c_new = False
                 cdata_l2c = None
                 print('Wrote rhos_l2c_{}'.format(bands[b]['wave_name']))

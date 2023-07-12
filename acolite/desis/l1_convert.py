@@ -8,6 +8,7 @@
 ##                2022-04-15 (QV) fixed polygon masking
 ##                2022-09-24 (QV) fixed DESIS band naming
 ##                                aligned DESIS RSR handling with other hyperspectral sensors
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -181,13 +182,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             ## compute lat/lon
             lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel = False)
             print(lat.shape)
-            ac.output.nc_write(ofile, 'lat', lat, new = new, attributes = gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lat', lat, new = new, attributes = gatts)
             lat = None
-            ac.output.nc_write(ofile, 'lon', lon,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'lon', lon)
             lon = None
             new = False
 
@@ -230,10 +227,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             if output_lt:
                 ## write toa radiance
                 ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                            attributes = gatts, dataset_attributes = ds_att, new = new,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'],
-                                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                            attributes = gatts, dataset_attributes = ds_att, new = new)
                 new = False
 
             ## compute reflectance
@@ -241,10 +235,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             cdata_radiance = None
 
             ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                            attributes = gatts, dataset_attributes = ds_att, new = new,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'],
-                                            netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                            attributes = gatts, dataset_attributes = ds_att, new = new)
             cdata = None
             new = False
         cube = None

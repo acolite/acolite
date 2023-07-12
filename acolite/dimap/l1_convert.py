@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-14
 ## modifications:
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
     import os, glob
@@ -193,9 +194,7 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
             if verbosity > 1: print('Writing geolocation')
             dsets = {'lon':'longitude', 'lat':'latitude'}
             for ds in dsets:
-                ac.output.nc_write(ofile, ds, data[dsets[ds]], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, ds, data[dsets[ds]], new=new, attributes=gatts)
                 new = False
 
         ## output geometry
@@ -204,9 +203,7 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
             dsets = {'sza':'SZA', 'vza':'OZA', 'raa': 'RAA',
                      'saa': 'SAA', 'vaa':'OAA', 'pressure': 'sea_level_pressure'}
             for ds in dsets:
-                ac.output.nc_write(ofile, ds, tpg_int[dsets[ds]], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, ds, tpg_int[dsets[ds]], new=new, attributes=gatts)
                 new = False
 
         ## is the F0 already corrected for Sun - Earth distance?
@@ -240,20 +237,13 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
 
             ## write toa radiance
             if setu['output_lt']:
-                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data['{}_radiance'.format(band)],
-                              dataset_attributes = ds_att,
-                              netcdf_compression=setu['netcdf_compression'],
-                              netcdf_compression_level=setu['netcdf_compression_level'],
-                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data['{}_radiance'.format(band)],dataset_attributes = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data['{}_radiance'.format(band)].shape))
 
             ## compute toa reflectance
             d = (np.pi * data['{}_radiance'.format(band)] * se2) / (data['solar_flux_band_{}'.format(bidx)] * mus)
 
-            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
             if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
             new = False
             d = None

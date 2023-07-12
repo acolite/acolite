@@ -2,7 +2,7 @@
 ## converts S2Resampling NC file to ACOLITE L1R file
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-05-02
-## modifications:
+## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -80,9 +80,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         new = True
         for dso in data:
             print('Writing {}'.format(dso))
-            ac.output.nc_write(ofile, dso, data[dso], new=new, attributes=gatts,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, dso, data[dso], new=new, attributes=gatts)
             new = False
             data[dso] = None
 
@@ -94,9 +92,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             print(ds, dso)
             d, att = ac.shared.nc_data(bundle, ds, attributes=True)
 
-            ac.output.nc_write(ofile, dso, d,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, dso, d)
 
             ## add band specific geometry data
             if setu['geometry_per_band']:
@@ -107,26 +103,20 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                 d, att = ac.shared.nc_data(bundle, 'view_zenith_B{}'.format(b), attributes=True)
                 dso = 'vza_{}'.format(rsrd['wave_name'][b])
                 print(dso)
-                ac.output.nc_write(ofile, dso, d,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, dso, d)
 
                 ## read band view azimuth angle
                 d, att = ac.shared.nc_data(bundle, 'view_azimuth_B{}'.format(b), attributes=True)
                 dso = 'vaa_{}'.format(rsrd['wave_name'][b])
                 print(dso)
-                ac.output.nc_write(ofile, dso, d,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, dso, d)
 
                 dso = 'raa_{}'.format(rsrd['wave_name'][b])
                 d = np.abs(saa - d)
                 raasub = np.where(d > 180)
                 d[raasub] = np.abs(360 - d[raasub])
                 print(dso)
-                ac.output.nc_write(ofile, dso, d,
-                                            netcdf_compression=setu['netcdf_compression'],
-                                            netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, dso, d)
 
         ofiles.append(ofile)
     return(ofiles, setu)

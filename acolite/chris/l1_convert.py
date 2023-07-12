@@ -4,6 +4,7 @@
 ## 2021-06-08
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
     from pyhdf.SD import SD,SDC
@@ -214,24 +215,14 @@ def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
             ## output TOA radiance
             if output_radiance:
                 ds = 'L_{}'.format(wave)
-                ac.output.nc_write(ofile, ds, cur_data,
-                                   dataset_attributes=ds_att,
-                                   attributes=gatts, new=new,
-                                   netcdf_compression=setu['netcdf_compression'],
-                                   netcdf_compression_level=setu['netcdf_compression_level'],
-                                   netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                ac.output.nc_write(ofile, ds, cur_data,dataset_attributes=ds_att,attributes=gatts, new=new)
                 new = False
                 if verbosity > 2: print('Wrote {} to {}'.format(ds, ofile))
 
             ## output TOA reflectance
             cur_data *= (np.pi*se_distance*se_distance) / (f0_bands[b]*1000 * mu0)
             ds = 'rhot_{}'.format(wave)
-            ac.output.nc_write(ofile, ds, cur_data,
-                               dataset_attributes=ds_att,
-                               attributes=gatts, new=new,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'],
-                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+            ac.output.nc_write(ofile, ds, cur_data, dataset_attributes=ds_att, attributes=gatts, new=new)
             if verbosity > 2: print('Wrote {} to {}'.format(ds, ofile))
             new = False
         hdf = None
@@ -239,10 +230,7 @@ def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
         ## apply noise reduction
         if noise_reduction:
             print('Applying CHRIS Noise Reduction')
-            ofile = ac.chris.noise_reduction(ofile, rename=True,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+            ofile = ac.chris.noise_reduction(ofile, rename=True)
 
         if ofile not in ofiles: ofiles.append(ofile)
 

@@ -15,6 +15,7 @@
 ##                2023-01-02 (QV) updated projection handling and scene centre lat/lon computation
 ##                2023-02-01 (QV) added extra parameters output for L2 ST data
 ##                2023-06-21 (QV) new version using computePixels, previous version renamed to agh_old
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, datetime, dateutil.parser, requests, json, time
@@ -1082,32 +1083,24 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         lon, lat = ac.shared.projection_geo(dct, add_half_pixel=True)
 
         ## write lon
-        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection)
         if verbosity > 1: print('Wrote lon')
         lon = None
 
         ## write lat
-        ac.output.nc_write(ofile, 'lat', lat, double=True,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lat', lat, double=True)
         if verbosity > 1: print('Wrote lat')
         lat = None
         new = False
 
         if geom_data is not None:
             for bi, b in enumerate(['SAA', 'SZA', 'VAA', 'VZA']):
-                ac.output.nc_write(ofile, b.lower(), geom_data[bi,:,:],
-                                         netcdf_compression=setu['netcdf_compression'],
-                                         netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, b.lower(), geom_data[bi,:,:])
                 if verbosity > 1: print('Wrote {}'.format(b.lower()))
             ## compute raa
             raa = np.abs(geom_data[0,:,:]-geom_data[2,:,:])
             raa[raa>180] = np.abs(360 - raa[raa>180])
-            ac.output.nc_write(ofile, 'raa', raa,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'raa', raa)
             if verbosity > 1: print('Wrote raa')
             raa = None
             geom_data = None
@@ -1126,8 +1119,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 sr_ds = 'rhos_sr_{}'.format(wave_name)
                 ## write sr data
                 if sr_data is not None:
-                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att)
                     print('Wrote {}'.format(sr_ds))
                     bii += 1
             else:
@@ -1138,14 +1130,12 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
                 ## write rhot data
                 if rhot_data is not None:
-                    ac.output.nc_write(ofile, rhot_ds, rhot_data[bi, :, :], dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, rhot_ds, rhot_data[bi, :, :], dataset_attributes=att)
                     print('Wrote {}'.format(rhot_ds))
 
                 ## write rhos data
                 if (att['tt_gas'] > min_tgas_rho) & (rhos_data is not None):
-                    ac.output.nc_write(ofile, rhos_ds, rhos_data[bi, :, :], dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, rhos_ds, rhos_data[bi, :, :], dataset_attributes=att)
                     print('Wrote {}'.format(rhos_ds))
 
         ## write Landsat L2 ST
@@ -1159,8 +1149,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     ## mask out of scene data
                     cur_data = sr_data[bii, :, :] * 1.0
                     cur_data[cur_data<=thermal_add_factor] = np.nan
-                    ac.output.nc_write(ofile, sr_ds, cur_data, dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, sr_ds, cur_data, dataset_attributes=att)
                     print('Wrote {} ({})'.format(sr_ds, cur_data.shape))
                     cur_data = None
                     bii += 1
@@ -1171,8 +1160,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     att = {'band': b}
                     if sp_data is not None:
                         cur_data = sp_data[bi, :, :]
-                        ac.output.nc_write(ofile, b, cur_data, dataset_attributes=att,
-                                           netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                        ac.output.nc_write(ofile, b, cur_data, dataset_attributes=att)
                         print('Wrote {} ({})'.format(b, cur_data.shape))
                         cur_data = None
         ## end write Landsat L2 ST
@@ -1186,8 +1174,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 if rhot_data is not None:
                     cur_data = rhot_data[bi, :, :] * 1.0
                     dso = b.replace('B', 'bt')
-                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att)
                     print('Wrote {} ({})'.format(dso, cur_data.shape))
                     cur_data = None
 
@@ -1198,8 +1185,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         else:
                             cur_data = st_data * 1.0
                         dso = b.replace('B', 'st')
-                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att,
-                                           netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att)
                         print('Wrote {} ({})'.format(dso, cur_data.shape))
                         cur_data = None
                         bii += 1

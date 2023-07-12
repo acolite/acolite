@@ -11,6 +11,7 @@
 ##                2022-11-09 (QV) change of F0 in radiance to reflectance correction, depending on whether smile correction was applied
 ##                2023-02-14 (QV) added Lt outputs, user defined subset,
 ##                                fixed tpg interpolation, update from scipy.interpolate.interp2d to scipy.interpolate.RegularGridInterpolator
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -364,9 +365,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if output_geolocation:
             if verbosity > 1: print('Writing geolocation')
             for ds in ['lon', 'lat']:
-                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts)
                 new = False
 
         ## output geometry
@@ -380,15 +379,10 @@ def l1_convert(inputfile, output = None, settings = {},
                         ko = 'vaa'
                     else:
                         ko = k.lower()
-                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts)
                     new = False
                 elif k in ['sea_level_pressure']:
-                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'],
-                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts)
                     new = False
                 else:
                     continue
@@ -423,11 +417,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
             ## write toa radiance
             if setu['output_lt']:
-                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],
-                              dataset_attributes = ds_att,
-                              netcdf_compression=setu['netcdf_compression'],
-                              netcdf_compression_level=setu['netcdf_compression_level'],
-                              netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],dataset_attributes = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
 
             ## convert to reflectance
@@ -436,10 +426,7 @@ def l1_convert(inputfile, output = None, settings = {},
             d = d.data
             d[mask] = np.nan
 
-            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
             if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
             new = False
             d = None

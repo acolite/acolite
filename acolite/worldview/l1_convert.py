@@ -5,6 +5,7 @@
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-11-14 (QV) added subsetting of projected data
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -269,18 +270,15 @@ def l1_convert(inputfile, output = None,
         if output_geolocation:
             if verbosity > 1: print('{} - Writing lat/lon'.format(datetime.datetime.now().isoformat()[0:19]))
             if dct is not None: ## compute from projection info
+                print('lat/lon computed from projection info')
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
                 ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
-                                                nc_projection = nc_projection,
-                                                netcdf_compression=setu['netcdf_compression'],
-                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                                                nc_projection = nc_projection)
                 lat = None
-                ac.output.nc_write(ofile, 'lon', lon,
-                                                nc_projection = nc_projection,
-                                                netcdf_compression=setu['netcdf_compression'],
-                                                netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lon', lon, nc_projection = nc_projection)
                 lon = None
             else: ## compute from corners given in metadata
+                print('lat/lon interpolated from metadata corners')
                 pcol = [0, global_dims[1], global_dims[1], 0]
                 prow = [0, 0, global_dims[0], global_dims[0]]
                 plon = []
@@ -298,13 +296,8 @@ def l1_convert(inputfile, output = None,
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
                 ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts,
-                                        nc_projection = nc_projection,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
-                ac.output.nc_write(ofile, 'lon', zlon(x, y),
-                                        nc_projection = nc_projection,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                                        nc_projection = nc_projection)
+                ac.output.nc_write(ofile, 'lon', zlon(x, y), nc_projection = nc_projection)
                 x = None
                 y = None
                 zlat = None
@@ -400,10 +393,7 @@ def l1_convert(inputfile, output = None,
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att,
-                                nc_projection = nc_projection,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                nc_projection = nc_projection)
             if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             new = False
             data_full = None
