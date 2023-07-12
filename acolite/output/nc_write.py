@@ -67,6 +67,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         for p in ac.param['discretisation']:
             if re.match(p, dataset): pdisc = ac.param['discretisation'][p]
     if pdisc is not None: discretise = pdisc['discretise']
+    if discretise: fillvalue = pdisc['add_offset']
 
     ## set attributes from provided/defaults
     if atts is not None:
