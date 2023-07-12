@@ -13,6 +13,7 @@ from .acolite_luts import *
 from .identify_bundle import *
 from .inputfile_test import *
 from .parameter_scaling import *
+from .parameter_discretisation import *
 
 from . import settings
 from . import logging

@@ -118,7 +118,13 @@ for t in config:
 if 'verbosity' not in config: config['verbosity'] = 5
 
 ## read parameter scaling and settings
-param = {'scaling':acolite.parameter_scaling()}
+param = {'scaling':acolite.parameter_scaling(), 'discretisation': acolite.parameter_discretisation()}
 import json
 with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
     param['attributes'] = json.load(f)
+
+## read default processing settings
+## run will be updated with sensor defaults and user settings
+settings = {}
+settings['defaults'] = acolite.settings.load(None)
+settings['run'] = {k:settings['defaults'][k] for k in settings['defaults']}

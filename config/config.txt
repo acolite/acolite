@@ -6,6 +6,7 @@
 defaults=$ACDIR/config/defaults.txt
 parameter_labels=$ACDIR/config/parameter_labels.txt
 parameter_cf_attributes=$ACDIR/config/parameter_cf_attributes.json
+parameter_discretisation=$ACDIR/config/parameter_discretisation.txt
 
 ## Data directory
 data_dir=$ACDIR/data

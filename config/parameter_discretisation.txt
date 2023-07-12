@@ -1,0 +1,10 @@
+## ACOLITE Python output parameter typing/discretisation configuration
+## next line is the header - should be before any parameter lines
+header=parameter,discretise,source_type,target_type,add_offset,scale_factor
+#
+## generic reflectances
+#
+rhot_*,True,float32,float32,0,1
+rhos_*,True,float32,float32,0,1
+rhot_*,True,float32,uint16,-0.1,0.0001
+rhos_*,True,float32,uint16,-0.1,0.0001

@@ -22,6 +22,8 @@
 ##                QV 2021-07-19 change to using setncattr
 ##                QV 2021-12-08 added nc_projection
 ##                QV 2022-11-09 added option to update nc_projection
+##                QV 2023-07-11 added discretisation
+
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -57,6 +59,14 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                         atts['wavelength'] = wave
                     except:
                         pass
+
+    ## load discretisation settings
+    pdisc, discretise = None, False
+    netcdf_discretisation = ac.settings['run']['netcdf_discretisation']
+    if netcdf_discretisation:
+        for p in ac.param['discretisation']:
+            if re.match(p, dataset): pdisc = ac.param['discretisation'][p]
+    if pdisc is not None: discretise = pdisc['discretise']
 
     ## set attributes from provided/defaults
     if atts is not None:
@@ -203,17 +213,27 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         else:
             netcdf_least_significant_digit = None if netcdf_compression_least_significant_digit is None else 1 * netcdf_compression_least_significant_digit
 
-        var = nc.createVariable(dataset,data.dtype,('y','x'),
+        ## select dataset type, default type or target type if discretising
+        dtype = data.dtype if (not discretise) else pdisc['target_type']
+
+        ## create variable
+        var = nc.createVariable(dataset,dtype,('y','x'),
                                 fill_value=fillvalue,
                                 zlib=netcdf_compression, complevel=netcdf_compression_level,
                                 least_significant_digit=netcdf_least_significant_digit,
                                 chunksizes=chunksizes)
 
+        ## add discretisation
+        if discretise:
+            var.scale_factor = pdisc['scale_factor']
+            var.add_offset = pdisc['add_offset']
+            var.set_auto_scale(True)
+
         if wavelength is not None: var.setncattr('wavelength', float(wavelength))
         ## set attributes
         if dataset_attributes is not None:
             for att in dataset_attributes.keys():
-                if att in ['_FillValue']: continue
+                if att in ['_FillValue', 'scale_factor', 'add_offset']: continue
                 var.setncattr(att, dataset_attributes[att])
 
         ## add grid mapping key if there is projection set
