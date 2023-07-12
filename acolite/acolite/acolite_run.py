@@ -18,7 +18,9 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## get user settings
     ## these are updated with sensor specific settings in acolite_l2r
-    setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
+    ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+    for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
+    setu = {k: ac.settings['user'][k] for k in ac.settings['user']}
     l1r_setu = None
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
     if 'output' not in setu: setu['output'] = os.getcwd()

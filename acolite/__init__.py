@@ -123,8 +123,8 @@ import json
 with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
     param['attributes'] = json.load(f)
 
-## read default processing settings
-## run will be updated with sensor defaults and user settings
 settings = {}
-settings['defaults'] = acolite.settings.load(None)
+## read default processing settings
+settings['defaults'] =  acolite.settings.parse(None, settings=acolite.settings.load(None), merge=False)
+## copy defaults to run, run will be updated with user settings and sensor defaults
 settings['run'] = {k:settings['defaults'][k] for k in settings['defaults']}
