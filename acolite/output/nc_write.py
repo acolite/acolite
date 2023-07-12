@@ -22,8 +22,7 @@
 ##                QV 2021-07-19 change to using setncattr
 ##                QV 2021-12-08 added nc_projection
 ##                QV 2022-11-09 added option to update nc_projection
-##                QV 2023-07-11 added discretisation
-
+##                QV 2023-07-12 added discretisation
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -67,7 +66,12 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         for p in ac.param['discretisation']:
             if re.match(p, dataset): pdisc = ac.param['discretisation'][p]
     if pdisc is not None: discretise = pdisc['discretise']
-    if discretise: fillvalue = pdisc['add_offset']
+
+    ## set fill value to minimum in the discretisation
+    if discretise:
+        if pdisc['source_type'] != pdisc['target_type']:
+            fillvalue = pdisc['add_offset']
+
     ## compression options for current run
     netcdf_compression = ac.settings['run']['netcdf_compression']
     netcdf_compression_level = ac.settings['run']['netcdf_compression_level']
@@ -222,11 +226,9 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         dtype = data.dtype if (not discretise) else pdisc['target_type']
 
         ## create variable
-        var = nc.createVariable(dataset,dtype,('y','x'),
-                                fill_value=fillvalue,
-                                zlib=netcdf_compression, complevel=netcdf_compression_level,
-                                least_significant_digit=netcdf_least_significant_digit,
-                                chunksizes=chunksizes)
+        var = nc.createVariable(dataset,dtype,('y','x'), fill_value = fillvalue, chunksizes = chunksizes,
+                                zlib = netcdf_compression, complevel = netcdf_compression_level,
+                                least_significant_digit = netcdf_least_significant_digit)
 
         ## add discretisation
         if discretise:
