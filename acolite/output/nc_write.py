@@ -91,7 +91,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         nc.setncattr('product_type', 'NetCDF' )
         nc.setncattr('metadata_profile', 'beam' )
         nc.setncattr('metadata_version', '0.5' )
-        nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs')
+        nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs:Lt')
 
         ## CF convention
         nc.setncattr('Conventions', 'CF-1.7')
