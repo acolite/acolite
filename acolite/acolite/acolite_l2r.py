@@ -899,6 +899,13 @@ def acolite_l2r(gem,
 
         if (exp_b1 is None) or (exp_b2 is None): stop
 
+        print('Selected bands {} and {} for EXP processing'.format(exp_b1, exp_b2))
+        if (gem.bands[exp_b1]['rhot_ds'] not in gem.datasets) | (gem.bands[exp_b2]['rhot_ds'] not in gem.datasets):
+            print('Selected bands are not available in {}'.format(gemf))
+            if (gem.bands[exp_b1]['rhot_ds'] not in gem.datasets): print('EXP B1: {}'.format(gem.bands[exp_b1]['rhot_ds']))
+            if (gem.bands[exp_b2]['rhot_ds'] not in gem.datasets): print('EXP B2: {}'.format(gem.bands[exp_b2]['rhot_ds']))
+            return()
+
         ## determine processing option
         if (short_wv < 900) & (long_wv < 900):
             exp_option = 'red/NIR'
