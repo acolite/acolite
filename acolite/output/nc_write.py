@@ -63,8 +63,11 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
     pdisc, discretise = None, False
     netcdf_discretisation = ac.settings['run']['netcdf_discretisation']
     if netcdf_discretisation:
-        for p in ac.param['discretisation']:
-            if re.match(p, dataset): pdisc = ac.param['discretisation'][p]
+        if dataset in ac.param['discretisation']:
+            pdisc = ac.param['discretisation'][dataset]
+        else:
+            for p in ac.param['discretisation']:
+                if re.match(p, dataset): pdisc = ac.param['discretisation'][p]
     if pdisc is not None: discretise = pdisc['discretise']
 
     ## set fill value to minimum in the discretisation
