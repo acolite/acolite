@@ -13,3 +13,6 @@ default_projection_resolution=375,375
 
 ## reduce mask smoothing
 l2w_mask_smooth_sigma=1
+
+## reprojection fill range
+output_projection_filldistance=1
