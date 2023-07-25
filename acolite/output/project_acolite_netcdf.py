@@ -284,15 +284,8 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     new = True
     for di, ds in enumerate(datasets_out):
         if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
-        lsd = None
-        if ds not in ['lat', 'lon', 'vza', 'sza', 'vaa', 'saa', 'raa']:
-            lsd = setu['netcdf_compression_least_significant_digit']
-        ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], attributes = gatts_out,
-                            netcdf_compression=setu['netcdf_compression'],
-                            netcdf_compression_level=setu['netcdf_compression_level'],
-                            netcdf_compression_least_significant_digit=lsd,
-                            nc_projection = nc_projection,
-                            dataset_attributes = datasets_att[ds], new = new)
+        ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], dataset_attributes = datasets_att[ds],
+                            attributes = gatts_out, nc_projection = nc_projection,  new = new)
         new = False
     data_out_stack = None
 
