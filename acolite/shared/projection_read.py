@@ -4,7 +4,6 @@
 ## 2021-02-24
 ## modifications: 2022-08-06 (QV) added Wkt, set up Proj from Wkt
 ##                2022-12-13 (QV) use transform from world file if available
-##                2023-07-25 (QV) removed proj4 string
 
 def projection_read(file):
     from pyproj import Proj
@@ -68,7 +67,7 @@ def projection_read(file):
 
     ## make acolite generic dict
     dct = {'p': p, 'epsg': p.crs.to_epsg(),
-           'Wkt': Wkt,
+           'Wkt': Wkt,  'proj4_string': src.ExportToProj4(), #p.crs.to_proj4()
            'xrange': xrange, 'yrange': yrange,
            'xdim':dimx, 'ydim': dimy,
            'dimensions':(dimx, dimy),
