@@ -62,7 +62,7 @@ def acolite_map(ncf, output = None,
                 pard = {k:pscale[cparl][k] for k in pscale[cparl]}
             else:
                 pard = {'log':False, 'name':cpar, 'unit': ''}
-                pard['cmap'] = 'Planck_Parchment_RGB'
+                pard['cmap'] = setu['map_default_colormap']#'Planck_Parchment_RGB'
             ## do auto ranging
             if setu['map_auto_range'] | ('min' not in pard) | ('max' not in pard):
                 drange = np.nanpercentile(im, setu['map_auto_range_percentiles'])
