@@ -4,6 +4,7 @@
 ## 2021-02-24
 ## modifications: 2022-08-06 (QV) added Wkt, set up Proj from Wkt
 ##                2022-12-13 (QV) use transform from world file if available
+##                2023-07-25 (QV) removed proj4 string
 
 def projection_read(file):
     from pyproj import Proj
@@ -21,7 +22,6 @@ def projection_read(file):
     src = osr.SpatialReference()
     src.ImportFromWkt(projection)
     Wkt = src.ExportToWkt()
-    proj4_string = src.ExportToProj4()
     p = Proj(Wkt)
 
     ## find world file if present
@@ -71,7 +71,6 @@ def projection_read(file):
            'Wkt': Wkt,
            'xrange': xrange, 'yrange': yrange,
            'xdim':dimx, 'ydim': dimy,
-           'proj4_string':proj4_string,
            'dimensions':(dimx, dimy),
            'pixel_size': pixel_size}
     dct['projection'] = 'EPSG:{}'.format(dct['epsg'])

@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-23
 ## modifications: 2021-02-23 (QV) renamed from crop_to_polygon
+##                2023-07-25 (QV) removed proj4 string
 
 def polygon_crop(source, poly, return_sub = False):
     import os
@@ -10,24 +11,35 @@ def polygon_crop(source, poly, return_sub = False):
     from osgeo import ogr,osr,gdal
 
     ## if target is a file copy information from there
+    wkt = None
+    epsg = None
     if type(source) is str:
         if os.path.exists(source):
             g = gdal.Open(source)
             xSrc = g.RasterXSize
             ySrc = g.RasterYSize
             gt = g.GetGeoTransform()
-            pr = osr.SpatialReference(wkt=g.GetProjection()).ExportToProj4()
+            wkt = g.GetProjection()
             g = None
     elif type(source) is dict:
         xSrc = source['xdim']
         ySrc = source['ydim']
         gt = source['xrange'][0], source['pixel_size'][0], 0.0,\
              source['yrange'][0], 0.0, source['pixel_size'][1]
-        pr = source['proj4_string']
+        if 'Wkt' in source:
+            wkt = source['Wkt']
+        else:
+            epsg = source['epsg']
 
     srs = osr.SpatialReference()
-    srs.ImportFromProj4(pr)
-    wkt = srs.ExportToWkt()
+    if wkt is not None:
+        srs.ImportFromWkt(wkt)
+    elif epsg is not None:
+        srs.ImportFromEPSG(epsg)
+        wkt = srs.ExportToWkt()
+    else:
+        print('Failed to determine projection.')
+        return
 
     ## in memory source dataset based chosen band
     drv = gdal.GetDriverByName('MEM')
