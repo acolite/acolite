@@ -541,7 +541,10 @@ def acolite_map(ncf, output = None,
             ## read data
             tmp = ac.shared.nc_data(ncf, ds)
             im = tmp.data
-            im[tmp.mask] = np.nan
+            if type(im) in [np.float32, np.float64]:
+                im[tmp.mask] = np.nan
+            else:
+                im[tmp.mask] = 0
             tmp = None
 
         ## plot figure
