@@ -47,6 +47,7 @@ s2_dilate_blackfill_iterations
 sub
 viirs_quality_flags
 output_projection_neighbours
+output_projection_filldistance
 
 ## GEE
 percentiles
