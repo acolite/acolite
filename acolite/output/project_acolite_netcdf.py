@@ -10,8 +10,9 @@
 ##                2022-10-20 (QV) added nn option
 ##                2023-04-01 (QV) added viirs scanlines reprojection
 ##                2023-04-18 (QV) fixed reprojection for viirs overlapping  scanlines
+##                2023-07-25 (QV) added counts output
 
-def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
+def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, output_counts = False):
 
     import os, time
     from pyproj import Proj
@@ -267,7 +268,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     if nscans >1:
         data_out_stack/=data_out_counts
         data_out_stack[data_out_counts==0] = np.nan
-        data_out_counts = None
+        if not output_counts: data_out_counts = None
 
     data_in_stack = None
     if setu['output_projection_fillnans']:
@@ -287,7 +288,12 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], dataset_attributes = datasets_att[ds],
                             attributes = gatts_out, nc_projection = nc_projection,  new = new)
         new = False
+        if output_counts:
+            if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds+'_n', data_out_counts[:,:,di].shape[0], data_out_counts[:,:,di].shape[1]))
+            ac.output.nc_write(ncfo, ds+'_n', data_out_counts[:,:,di])
+
     data_out_stack = None
+    data_out_counts = None
 
     ## compute target lon/lat
     tlon, tlat = ac.shared.projection_geo(dct)
