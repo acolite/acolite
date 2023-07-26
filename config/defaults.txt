@@ -440,7 +440,7 @@ output_projection_resolution_align=True
 output_projection_resampling_method=bilinear
 default_projection_resolution=None
 output_projection_fillnans=False
-output_projection_filldistance=None
+output_projection_filldistance=1
 # projection resampling settings
 output_projection_radius=3
 output_projection_epsilon=0
