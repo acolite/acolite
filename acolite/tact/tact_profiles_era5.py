@@ -133,7 +133,7 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
 
                 except BaseException as err:
                     print('Could not open {}'.format(url))
-                    print(f"Error {err=}, {type(err)=}")
+                    print("Error {}, {}".format(err, type(err)))
                     if it < 2: time.sleep(10)
                     pass
                 it +=1

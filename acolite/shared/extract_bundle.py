@@ -32,7 +32,7 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
             if file_dir is not None: targ_bundle = '{}/{}'.format(output, file_dir)
             extracted = True
         except BaseException as err:
-            if verbosity>1: print(f"Extraction error {err=}, {type(err)=}")
+            if verbosity>1: print("Extraction error {}, {}".format(err, type(err)))
             pass
     ## end tar file
 
@@ -57,7 +57,7 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
             if file_dir is not None: targ_bundle = '{}/{}'.format(output, file_dir)
             extracted = True
         except BaseException as err:
-            if verbosity>1: print(f"Extraction error {err=}, {type(err)=}")
+            if verbosity>1: print("Extraction error {}, {}".format(err, type(err)))
             pass
     ## end zip file
 

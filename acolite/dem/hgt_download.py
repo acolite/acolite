@@ -24,7 +24,7 @@ def hgt_download(tile, url_base, hgt_dir = None, override = False):
             if os.path.exists(f_local):
                 print('Downloaded {}'.format(f_local))
         except BaseException as err:
-            print(f"Download error {err=}, {type(err)=}")
+            print("Download error {}, {}".format(err, type(err)))
             print('Downloading {} failed'.format(f_local))
             pass
 

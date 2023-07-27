@@ -242,6 +242,6 @@ def acolite_l1r(bundle, setu, input_type=None):
         except KeyError:
             print('Not deleting extracted file as "delete_extracted_input" is not in settings.')
         except BaseException as err:
-            print(f"Error removing extracted files {err=}, {type(err)=}")
+            print("Error removing extracted files {}, {}".format(err, type(err)))
 
     return(l1r_files, setu, bundle)
