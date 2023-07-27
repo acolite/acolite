@@ -328,7 +328,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                         dct = ac.shared.projection_sub_dct(dct, sub)
                                         nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
                                 except BaseException as err:
-                                    print(f"Could not determine projection from {ifile_=} error {err=}, {ifile_=}, {type(err)=}")
+                                    print("Could not determine projection from {} error {}".format(ifile_, type(err)))
                                     pass
                         else:
                             if pmeta is None: continue
@@ -349,7 +349,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                     dct_pan = ac.shared.projection_sub_dct(dct_pan, pansub)
                                     nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
                             except BaseException as err:
-                                print(f"Could not determine projection from {pifile=} error {err=}, {pifile=}, {type(err)=}")
+                                print("Could not determine projection from {} error {}".format(pifile, type(err)))
                                 pass
 
                         nodata = data == np.uint16(meta['NODATA'])
