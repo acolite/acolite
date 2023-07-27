@@ -2,9 +2,10 @@
 ## warps dataset given source to projection dict
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-23
-## modifications:
+## modifications: 2022-09-22 (QV) added rpc_dem option
+##                2023-07-25 (QV) removed proj4 string
 
-def warp_from_source(source, dct, data, warp_to = None):
+def warp_from_source(source, dct, data, warp_to = None, rpc_dem=None):
     import os
     from osgeo import ogr,osr,gdal
 
@@ -15,7 +16,8 @@ def warp_from_source(source, dct, data, warp_to = None):
             xSrc = g.RasterXSize
             ySrc = g.RasterYSize
             gt = g.GetGeoTransform()
-            pr = osr.SpatialReference(wkt=g.GetProjection()).ExportToProj4()
+            wkt = g.GetProjection()
+            RPCs = g.GetMetadata('RPC')
             g = None
         else:
             print('Could not access {}'.format(source))
@@ -25,11 +27,20 @@ def warp_from_source(source, dct, data, warp_to = None):
         ySrc = source['ydim']
         gt = source['xrange'][0], source['pixel_size'][0], 0.0,\
              source['yrange'][0], 0.0, source['pixel_size'][1]
-        pr = source['proj4_string']
+        if 'Wkt' in source:
+            wkt = source['Wkt']
+        else:
+            epsg = source['epsg']
 
     srs = osr.SpatialReference()
-    srs.ImportFromProj4(pr)
-    wkt = srs.ExportToWkt()
+    if wkt is not None:
+        srs.ImportFromWkt(wkt)
+    elif epsg is not None:
+        srs.ImportFromEPSG(epsg)
+        wkt = srs.ExportToWkt()
+    else:
+        print('Failed to determine projection.')
+        return
 
     ## in memory source dataset based chosen band
     drv = gdal.GetDriverByName('MEM')
@@ -89,6 +100,12 @@ def warp_from_source(source, dct, data, warp_to = None):
         if len(warp_to_region) >= 5:
             warp_alg = warp_to_region[4]
 
+        ## add transformeroptions
+        rpc = False
+        if len(RPCs) > 0: rpc = True
+        transformerOptions = []
+        if rpc_dem is not None: transformerOptions+=['RPC_DEM={}'.format(rpc_dem)]
+
         ## warp in memory and read dataset to array
         ## https://gdal.org/python/osgeo.gdal-module.html
         #ds = gdal.Warp('', source_ds,
@@ -101,6 +118,7 @@ def warp_from_source(source, dct, data, warp_to = None):
                         xRes = xRes, yRes = yRes,
                         outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
                         dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
+                        rpc = rpc, transformerOptions = transformerOptions,
                         format='VRT', resampleAlg=warp_alg)
 
         data = ds.ReadAsArray()

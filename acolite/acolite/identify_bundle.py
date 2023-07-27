@@ -34,6 +34,7 @@ def identify_bundle(bundle, input_type = None, output = None):
             gatts = ac.shared.nc_gatts(bundle)
             datasets = ac.shared.nc_datasets(bundle)
             rhot_ds = [ds for ds in datasets if 'rhot_' in ds]
+            rhot_ds += [ds for ds in datasets if ds[0:2]=='bt']
             if (gatts['generated_by'] == 'ACOLITE') & (len(rhot_ds) != 0):
                 input_type = 'ACOLITE'
                 break ## exit loop
@@ -100,6 +101,30 @@ def identify_bundle(bundle, input_type = None, output = None):
         except:
             pass ## continue to next sensor
         ## end Sentinel-3
+        ################
+
+        ################
+        ## VIIRS
+        try:
+            ret = ac.viirs.bundle_test(bundle)
+            if (ret is not None):
+                input_type = 'VIIRS'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end VIIRS
+        ################
+
+        ################
+        ## S2Resampling
+        try:
+            ret = ac.s2resampling.bundle_test(bundle)
+            if (ret is not None):
+                input_type = 'S2Resampling'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end S2Resampling
         ################
 
         ################
@@ -218,17 +243,24 @@ def identify_bundle(bundle, input_type = None, output = None):
             ## test files
             files = ac.planet.bundle_test(bundle)
             ## files now contains scene_id keys
-            fk = list(files.keys())[0]
+            flist = list(files.keys())
+            flist.sort()
+            fk = flist[0]
             if 'metadata' in files[fk]:
                 metafile = files[fk]['metadata']['path']
             elif 'metadata_json' in files[fk]:
                 metafile = files[fk]['metadata_json']['path']
             if 'analytic' in files[fk]:
                 image_file = files[fk]['analytic']['path']
+            elif 'analytic_ntf' in files[fk]:
+                image_file = files[fk]['analytic_ntf']['path']
             elif 'pansharpened' in files[fk]:
                 image_file = files[fk]['pansharpened']['path']
             elif 'sr' in files[fk]:
                 image_file = files[fk]['sr']['path']
+            elif 'composite' in files[fk]:
+                image_file = files[fk]['composite']['path']
+                metafile = files[flist[-1]]['metadata']['path']
             meta = ac.planet.metadata_parse(metafile)
             if ('platform' in meta) & (os.path.exists(image_file)):
                 input_type = 'Planet'
@@ -340,12 +372,52 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## EMIT
+        try:
+            meta = ac.shared.nc_gatts(bundle)
+            if (meta['instrument'] == 'EMIT') & ('L1B' in meta['title']):
+                input_type = 'EMIT'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end EMIT
+        ################
+
+        ################
+        ## DIMAP
+        try:
+            dimfile, datfile = ac.dimap.bundle_test(bundle)
+            meta = ac.dimap.metadata(dimfile)
+            if (meta['met_format'] == 'DIMAP') & (meta['met_dataset'] == 'BEAM-PRODUCT'):
+                input_type = 'DIMAP'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end DIMAP
+        ################
+
+        ################
+        ## HYPSO
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            datasets = ac.shared.nc_datasets(bundle)
+            if (gatts['instrument'] == 'HYPSO-1 Hyperspectral Imager'):
+                input_type = 'HYPSO'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end HYPSO
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified
     if (input_type is None) & (zipped) & (os.path.exists(bundle)) & (bundle != orig_bundle):
         shutil.rmtree(bundle)
         bundle = '{}'.format(orig_bundle)
+
+    print('Identified {} as {} type'.format(orig_bundle, input_type))
 
     ## return input_type
     return(input_type, bundle, zipped, extracted_path)

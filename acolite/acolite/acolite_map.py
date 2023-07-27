@@ -62,7 +62,7 @@ def acolite_map(ncf, output = None,
                 pard = {k:pscale[cparl][k] for k in pscale[cparl]}
             else:
                 pard = {'log':False, 'name':cpar, 'unit': ''}
-                pard['cmap'] = 'Planck_Parchment_RGB'
+                pard['cmap'] = setu['map_default_colormap']#'Planck_Parchment_RGB'
             ## do auto ranging
             if setu['map_auto_range'] | ('min' not in pard) | ('max' not in pard):
                 drange = np.nanpercentile(im, setu['map_auto_range_percentiles'])
@@ -479,24 +479,31 @@ def acolite_map(ncf, output = None,
                     ds_base = 'rhot_'
                 else:
                     ds_base = '_'.join(ds_base[0]) + '_'
+                    if setu['add_band_name']: ds_base = 'rhot_'
+
             if cpar == 'rgb_rhos':
                 ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhos_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhos_'
                 else:
                     ds_base = '_'.join(ds_base[0]) + '_'
+                    if setu['add_band_name']: ds_base = 'rhos_'
+
             if cpar == 'rgb_rhorc':
                 ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhorc_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhorc_'
                 else:
                     ds_base = '_'.join(ds_base[0]) + '_'
+                    if setu['add_band_name']: ds_base = 'rhorc_'
+
             if cpar == 'rgb_rhow':
                 ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhow_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhow_'
                 else:
                     ds_base = '_'.join(ds_base[0]) + '_'
+                    if setu['add_band_name']: ds_base = 'rhow_'
 
             rho_ds = [ds for ds in datasets if ds_base in ds]
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
@@ -504,7 +511,9 @@ def acolite_map(ncf, output = None,
             ## read and stack rgb
             for iw, w in enumerate(rgb_wave):
                 wi, ww = ac.shared.closest_idx(rho_wv, w)
-                data = ac.shared.nc_data(ncf, '{}{}'.format(ds_base,ww))
+                #ds_name = '{}{}'.format(ds_base,ww)
+                ds_name = [ds for ds in datasets if (ds_base in ds) & ('{:.0f}'.format(ww) in ds)][0]
+                data = ac.shared.nc_data(ncf, ds_name)
 
                 ## autoscale rgb to percentiles
                 if setu['rgb_autoscale']:
@@ -532,7 +541,10 @@ def acolite_map(ncf, output = None,
             ## read data
             tmp = ac.shared.nc_data(ncf, ds)
             im = tmp.data
-            im[tmp.mask] = np.nan
+            if type(im) in [np.float32, np.float64]:
+                im[tmp.mask] = np.nan
+            else:
+                im[tmp.mask] = 0
             tmp = None
 
         ## plot figure

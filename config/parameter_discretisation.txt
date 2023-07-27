@@ -1,0 +1,32 @@
+## ACOLITE Python output parameter typing/discretisation configuration
+## next line is the header - should be before any parameter lines
+header=parameter,discretise,source_type,target_type,add_offset,scale_factor
+#
+## geolocation and geometry
+#
+lon,True,float32,float32,0,1
+lat,True,float32,float32,0,1
+sza,True,float32,float32,0,1
+vza,True,float32,float32,0,1
+saa,True,float32,float32,0,1
+vaa,True,float32,float32,0,1
+raa,True,float32,float32,0,1
+vza_*,True,float32,float32,0,1
+vaa_*,True,float32,float32,0,1
+raa_*,True,float32,float32,0,1
+#
+## generic reflectances
+#
+rhot_*,True,float32,uint16,-0.1,0.0001
+rhos_*,True,float32,uint16,-0.1,0.0001
+rhorc_*,True,float32,uint16,-0.1,0.0001
+rhow_*,True,float32,uint16,-0.1,0.0001
+Rrs_*,True,float32,uint16,-0.03,0.00003
+#
+## generic products
+#
+TUR_*,True,float32,uint16,-10,0.01
+SPM_*,True,float32,uint16,-10,0.01
+p3qaa_zSD,True,float32,uint16,-10,0.01
+p3qaa_zSD_biased,True,float32,uint16,-10,0.01
+p3qaa,True,float32,uint16,-0.1,0.001

@@ -6,6 +6,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-01-14
 ## modifications: 2022-02-06 (QV) added vza
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import os, zipfile, shutil
@@ -264,14 +265,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
                 lon = None
                 if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lat', lat)
                 lat = None
                 if verbosity > 1: print('Wrote lat')
                 new=False
@@ -285,14 +282,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'x', x, new=new)
                 x = None
                 if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'y', y)
                 y = None
                 if verbosity > 1: print('Wrote y')
                 new=False
@@ -355,10 +348,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             ## write to netcdf file
             ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
-                                new=new, dataset_attributes = ds_att, nc_projection=nc_projection,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 

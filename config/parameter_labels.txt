@@ -50,6 +50,17 @@ tur_dogliotti2022_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2022,FNU
 chl_oc2,0.03,30,True,Calgae255,CHL OC2,mgm$^{-3}$
 chl_oc3,0.03,30,True,Calgae255,CHL OC3,mgm$^{-3}$
 chl_oc4,0.03,30,True,Calgae255,CHL OC4,mgm$^{-3}$
+chl_oc5,0.03,30,True,Calgae255,CHL OC5,mgm$^{-3}$
+## custom CHL_OC
+chl_oc4m,0.03,30,True,Calgae255,CHL OC4 SeaDAS,mgm$^{-3}$
+chl_oc2f,0.03,30,True,Calgae255,CHL OC2 Franz2015,mgm$^{-3}$
+chl_oc3f,0.03,30,True,Calgae255,CHL OC3 Franz2015,mgm$^{-3}$
+chl_oc3s,0.03,30,True,Calgae255,CHL OC3 SeaDAS,mgm$^{-3}$
+## CHL_CI
+ci,-0.02,0.02,False,Calgae255,CI,sr$^{-1}$
+chl_ci,0.03,30,True,Calgae255,CHL CI,mgm$^{-3}$
+chl_ocx,0.03,30,True,Calgae255,CHL OCx,mgm$^{-3}$
+chlor_a,0.03,30,True,Calgae255,CHL CI/OCx,mgm$^{-3}$
 #
 ## CHL_RE
 #
@@ -177,6 +188,13 @@ st6_vcid_1,270,300,False,Planck_Parchment_RGB,ST6 VCID1,K
 st6_vcid_2,270,300,False,Planck_Parchment_RGB,ST6 VCID2,K
 st10,270,300,False,Planck_Parchment_RGB,ST10,K
 st11,270,300,False,Planck_Parchment_RGB,ST11,K
+sti04,270,300,False,Planck_Parchment_RGB,ST I04,K
+sti05,270,300,False,Planck_Parchment_RGB,ST I05,K
+stm12,270,300,False,Planck_Parchment_RGB,ST M12,K
+stm13,270,300,False,Planck_Parchment_RGB,ST M13,K
+stm14,270,300,False,Planck_Parchment_RGB,ST M14,K
+stm15,270,300,False,Planck_Parchment_RGB,ST M15,K
+stm16,270,300,False,Planck_Parchment_RGB,ST M16,K
 #
 ## Water surface temperature
 wst10,18,24,False,Planck_Parchment_RGB,WST10,°C

@@ -8,8 +8,11 @@
 ##                2022-07-06 (QV) simultaneous reprojection of multiple datasets (much faster!)
 ##                2022-10-17 (QV) added output_projection_polygon
 ##                2022-10-20 (QV) added nn option
+##                2023-04-01 (QV) added viirs scanlines reprojection
+##                2023-04-18 (QV) fixed reprojection for viirs overlapping  scanlines
+##                2023-07-25 (QV) added counts output
 
-def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
+def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, output_counts = False):
 
     import os, time
     from pyproj import Proj
@@ -44,6 +47,9 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
 
     if (setu['output_projection_limit'] is None) & (setu['output_projection_polygon'] is not None):
         setu['output_projection_limit'] = ac.shared.polygon_limit(setu['output_projection_polygon'])
+
+    if (setu['output_projection_limit'] is None) & ('limit_old' in setu):
+        setu['output_projection_limit'] = [l for l in setu['limit_old']]
 
     if (setu['output_projection_limit'] is None) & (setu['limit'] is not None):
         setu['output_projection_limit'] = [l for l in setu['limit']]
@@ -171,12 +177,12 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     if lat is None: lat = ac.shared.nc_data(ncf, 'lat')
     if lon is None: lon = ac.shared.nc_data(ncf, 'lon')
 
-    ## set up source definition
-    source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
-
     ## make new output attributes
     gatts_out = {k:gatts[k] for k in gatts}
-    for k in dct: gatts_out[k] = dct[k]
+    for k in dct:
+        if k == 'p': continue
+        gatts_out[k] = dct[k]
+
     gatts_out['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
     ## update oname in gatts
     gatts_out['oname'] = oname
@@ -197,24 +203,81 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
         datasets_att[ds] = att
         data_in = None
 
+    ## for NN/bilinear projection
+    radius = setu['output_projection_radius']
+    epsilon = setu['output_projection_epsilon']
+
+    ## for bilinear projection
+    neighbours = setu['output_projection_neighbours']
+
+    if (setu['viirs_scanline_projection']) & ('VIIRS' in gatts['sensor']):
+        slines = 32
+        if 'viirs_slines' in gatts: slines = gatts['viirs_slines']
+        nscans = int(data_in_stack.shape[0]/slines)
+        print('Assuming {} scans of {} lines'.format(nscans, slines))
+        data_out_stack = np.zeros((ny,nx,len(datasets_out)))
+        data_out_counts = np.zeros((ny,nx,len(datasets_out)), dtype=np.int8)
+    else:
+        nscans = 1
+
     ## reproject dataset
     t0 = time.time()
     print('Projecting datasets {}x{}x{} to {} {}x{}x{}'.format(data_in_stack.shape[0], data_in_stack.shape[1], len(datasets_out),\
                                                 projection, nx, ny, len(datasets_out)))
 
-    ## set up resampler
-    if setu['output_projection_resampling_method'] == 'bilinear':
-        resampler = NumpyBilinearResampler(source_definition, target_definition, 30e3)
-        data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
-    elif setu['output_projection_resampling_method'] == 'nearest':
-        data_out_stack = kd_tree.resample_nearest(source_definition, data_in_stack, target_definition,
-                                                    radius_of_influence=target_pixel_size[0],
-                                                    epsilon=0.5, fill_value=np.nan)
+    ## run through scans (1 if reprojecting all at once)
+    for i in range(nscans):
+        ## one reprojection
+        if nscans == 1:
+            ## set up source definition
+            source_definition = geometry.SwathDefinition(lons=lon, lats=lat)
+            ## set up resampler
+            if setu['output_projection_resampling_method'] == 'bilinear':
+                resampler = NumpyBilinearResampler(source_definition, target_definition, target_pixel_size[0]*radius,
+                                                    neighbours=neighbours, epsilon=epsilon, reduce_data=False)
+                data_out_stack = resampler.resample(data_in_stack, fill_value=np.nan)
+            elif setu['output_projection_resampling_method'] == 'nearest':
+                data_out_stack = kd_tree.resample_nearest(source_definition, data_in_stack, target_definition,
+                                                            radius_of_influence=target_pixel_size[0]*radius,
+                                                            epsilon=epsilon, fill_value=np.nan)
+        ## reprojection per scan
+        else:
+            print('Reprojecting scan {}/{}'.format(i+1, nscans), end='\r')
+            ts0 = time.time()
+            ## set up scan source
+            source_definition = geometry.SwathDefinition(lons=lon[i*slines:(i+1)*slines,:],
+                                                         lats=lat[i*slines:(i+1)*slines,:])
+            ## set up resampler
+            if setu['output_projection_resampling_method'] == 'bilinear':
+                resampler = NumpyBilinearResampler(source_definition, target_definition, target_pixel_size[0]*radius,
+                                                    neighbours=neighbours, epsilon=epsilon, reduce_data=False)
+                data_out_scan = resampler.resample(data_in_stack[i*slines:(i+1)*slines,:,:], fill_value=np.nan)
+            elif setu['output_projection_resampling_method'] == 'nearest':
+                data_out_scan = kd_tree.resample_nearest(source_definition, data_in_stack[i*slines:(i+1)*slines,:,:], target_definition,
+                                                            radius_of_influence=target_pixel_size[0]*radius,
+                                                            epsilon=epsilon, fill_value=np.nan)
+            ## put scans in out stack
+            scan_sub = np.where(np.isfinite(data_out_scan))
+            data_out_stack[scan_sub] += data_out_scan[scan_sub]
+            data_out_counts[scan_sub] += 1
+            data_out_scan = None
+            print('Reprojecting scan {}/{} took {:.1f} seconds'.format(i+1, nscans, time.time()-ts0), end='\r')
+    if nscans >1: print()
+
+    ## compute average overlapping area
+    if nscans >1:
+        data_out_stack/=data_out_counts
+        data_out_stack[data_out_counts==0] = np.nan
+        if not output_counts: data_out_counts = None
 
     data_in_stack = None
     if setu['output_projection_fillnans']:
         data_out_stack[data_out_stack == 0] = np.nan
-        data_out_stack = ac.shared.fillnan(data_out_stack)
+        if len(data_out_stack.shape) == 3:
+            for di in range(data_out_stack.shape[2]):
+                data_out_stack[:,:,di] = ac.shared.fillnan(data_out_stack[:,:,di], max_distance=setu['output_projection_filldistance'])
+        else:
+            data_out_stack[:,:] = ac.shared.fillnan(data_out_stack[:,:], max_distance=setu['output_projection_filldistance'])
     t1 = time.time()
     print('Reprojection of {} datasets took {:.1f} seconds'.format(len(datasets_out),t1-t0))
 
@@ -222,15 +285,22 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None):
     new = True
     for di, ds in enumerate(datasets_out):
         if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
-        lsd = None
-        if ds not in ['lat', 'lon', 'vza', 'sza', 'vaa', 'saa', 'raa']:
-            lsd = setu['netcdf_compression_least_significant_digit']
-        ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], attributes = gatts_out,
-                            netcdf_compression=setu['netcdf_compression'],
-                            netcdf_compression_level=setu['netcdf_compression_level'],
-                            netcdf_compression_least_significant_digit=lsd,
-                            nc_projection = nc_projection,
-                            dataset_attributes = datasets_att[ds], new = new)
+        ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], dataset_attributes = datasets_att[ds],
+                            attributes = gatts_out, nc_projection = nc_projection,  new = new)
         new = False
+        if output_counts:
+            if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds+'_n', data_out_counts[:,:,di].shape[0], data_out_counts[:,:,di].shape[1]))
+            ac.output.nc_write(ncfo, ds+'_n', data_out_counts[:,:,di])
+
+    data_out_stack = None
+    data_out_counts = None
+
+    ## compute target lon/lat
+    tlon, tlat = ac.shared.projection_geo(dct)
+    ac.output.nc_write(ncfo, 'lon', tlon)
+    ac.output.nc_write(ncfo, 'lat', tlat)
+    tlon = None
+    tlat = None
+
     print('Wrote {}'.format(ncfo))
     return(ncfo)

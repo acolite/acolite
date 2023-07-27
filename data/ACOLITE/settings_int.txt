@@ -24,6 +24,7 @@ flag_exponent_cirrus
 flag_exponent_toa
 flag_exponent_negative
 flag_exponent_outofscene
+flag_exponent_mixed
 rgb_red_wl
 rgb_green_wl
 rgb_blue_wl
@@ -43,6 +44,10 @@ netcdf_compression_least_significant_digit
 output_projection_xrange
 output_projection_yrange
 s2_dilate_blackfill_iterations
+sub
+viirs_quality_flags
+output_projection_neighbours
+output_projection_filldistance
 
 ## GEE
 percentiles
@@ -52,3 +57,4 @@ task_check_sleep
 day_range
 minimum_crop_size
 output_scale
+tile_size

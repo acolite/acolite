@@ -108,7 +108,7 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
             os.remove(outfile)
 
         ## use gdal_merge to merge RGB bands
-        if use_gdal_merge_import:
+        if setu['use_gdal_merge_import']:
             ## run using imported gdal_merge
             ## gives file name errors when running batch processing
             ## so generate default out.tif and rename

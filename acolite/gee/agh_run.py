@@ -6,11 +6,17 @@
 ## modifications: 2022-04-14 (QV) changed settings parsing, added option to add region name to output
 ##                2022-12-25 (QV) added SR option
 ##                2022-12-27 (QV) added offline TACT option
+##                2023-06-21 (QV) use agh_old and added return_im keyword
 
-def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}):
+def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}, return_im=False, old_agh=True):
     import acolite as ac
-    from acolite import gee
     import os, time
+
+    import ee
+    #ee.Initialize(opt_url='https://earthengine-highvolume.googleapis.com')
+    #ee.Authenticate() ## assume ee use is authenticated in current environment
+
+    from acolite import gee
 
     ## get defaults
     s = ac.acolite.settings.read(ac.config['path']+'/config/gee_settings.txt')
@@ -41,6 +47,7 @@ def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}):
                                  limit = setg['limit'], st_lat = setg['st_lat'], st_lon = setg['st_lon'])
 
     print('Found images ', len(images), images)
+    if return_im: return(images, imColl)
 
     ## run through images
     for image in images:
@@ -54,7 +61,10 @@ def agh_run(settings={}, acolite_settings=None, rsrd = {}, lutd = {}):
 
         ## run AGH processing
         t0 = time.time()
-        ret = gee.agh(image, imColl, rsrd=rsrd, lutd=lutd, settings=setg)
+        if old_agh:
+            ret = gee.agh_old(image, imColl, rsrd=rsrd, lutd=lutd, settings=setg)
+        else:
+            ret = gee.agh(image, imColl, rsrd=rsrd, lutd=lutd, settings=setg)
         t1 = time.time()
         print('AGH processing finished in {:.1f} seconds'.format(t1-t0))
 

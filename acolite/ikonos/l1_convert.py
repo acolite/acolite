@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-09-15
 ## modifications: 2022-11-21 (QV) added support for older/other metadata version from BELSPO
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None,
                settings = {},
@@ -126,7 +127,7 @@ def l1_convert(inputfile, output = None,
                     cal = {'pan': 161, 'blu': 79, 'grn': 81, 'red': 105, 'nir': 93}
                 elif isodate > '2001-02-22':
                     cal = {'pan': 161, 'blu': 91, 'grn': 91, 'red': 119, 'nir': 105}
-                    
+
             # IKONOS band widths
             bandwidths = {'pan': 403, 'blu': 71.3, 'grn': 88.6, 'red': 65.8, 'nir': 95.4}
 
@@ -202,14 +203,9 @@ def l1_convert(inputfile, output = None,
                     if dct is not None: ## compute from projection info
                         lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
                         ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
-                                                        nc_projection = nc_projection,
-                                                        netcdf_compression=setu['netcdf_compression'],
-                                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                                                        nc_projection = nc_projection)
                         lat = None
-                        ac.output.nc_write(ofile, 'lon', lon,
-                                                        nc_projection = nc_projection,
-                                                        netcdf_compression=setu['netcdf_compression'],
-                                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                        ac.output.nc_write(ofile, 'lon', lon, nc_projection = nc_projection)
                         lon = None
                         new = False
 
@@ -252,10 +248,7 @@ def l1_convert(inputfile, output = None,
                     ac.output.nc_write(pofile, ds, data, replace_nan=True, attributes=gatts,
                                        global_dims=global_dims_pan,
                                        new=new_pan, dataset_attributes = ds_att,
-                                       nc_projection=nc_projection_pan, update_projection=True,
-                                       netcdf_compression=setu['netcdf_compression'],
-                                       netcdf_compression_level=setu['netcdf_compression_level'],
-                                       netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                       nc_projection=nc_projection_pan, update_projection=True)
                     new_pan = False
 
                     ## mask data before zooming
@@ -267,11 +260,7 @@ def l1_convert(inputfile, output = None,
 
                 ## write to netcdf file
                 if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data.shape))
-                ac.output.nc_write(ofile, ds, data, attributes = gatts, new = new, dataset_attributes = ds_att,
-                                    nc_projection = nc_projection,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'],
-                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                ac.output.nc_write(ofile, ds, data, attributes = gatts, new = new, dataset_attributes = ds_att, nc_projection = nc_projection)
                 if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data.shape))
                 new = False
                 data = None

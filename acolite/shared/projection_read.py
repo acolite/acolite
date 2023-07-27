@@ -21,7 +21,6 @@ def projection_read(file):
     src = osr.SpatialReference()
     src.ImportFromWkt(projection)
     Wkt = src.ExportToWkt()
-    proj4_string = src.ExportToProj4()
     p = Proj(Wkt)
 
     ## find world file if present
@@ -68,10 +67,9 @@ def projection_read(file):
 
     ## make acolite generic dict
     dct = {'p': p, 'epsg': p.crs.to_epsg(),
-           'Wkt': Wkt,
+           'Wkt': Wkt,  'proj4_string': src.ExportToProj4(), #p.crs.to_proj4()
            'xrange': xrange, 'yrange': yrange,
            'xdim':dimx, 'ydim': dimy,
-           'proj4_string':proj4_string,
            'dimensions':(dimx, dimy),
            'pixel_size': pixel_size}
     dct['projection'] = 'EPSG:{}'.format(dct['epsg'])

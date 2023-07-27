@@ -9,7 +9,7 @@
 ##                2022-08-11 (QV) added ecostress and reptran
 
 def tact_limit(isotime, limit=None,
-                  lat = None, lon = None,
+                  lat = None, lon = None, wave_range=[7, 14],
                   source = 'era5', reptran = 'medium',
                   satsen = None, override = False, verbosity = 0, processes = 4):
 
@@ -27,7 +27,7 @@ def tact_limit(isotime, limit=None,
     c_time = dt.hour + dt.minute/60 + dt.second/3600
 
     source_default = 'era5'
-    if source not in ['era5', 'gdas1', 'ncep.reanalysis2']: # 'ncep.reanalysis',
+    if source not in ['era5', 'gdas1', 'ncep.reanalysis2', 'merra2']: # 'ncep.reanalysis',
         print('Source {} not configured. Using {}.'.format(source, source_default))
         source = '{}'.format(source_default)
 
@@ -53,6 +53,8 @@ def tact_limit(isotime, limit=None,
         cells, to_run = ac.tact.tact_profiles_era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source == 'gdas1':
         cells, to_run = ac.tact.tact_profiles_gdas1(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+    if source in ['merra2']:
+        cells, to_run = ac.tact.tact_profiles_merra2(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source in ['ncep.reanalysis', 'ncep.reanalysis2']:
         cells, to_run = ac.tact.tact_profiles_ncep(isotime, limit, obase = obase, override = override, verbosity = verbosity, source = source)
 
@@ -61,7 +63,7 @@ def tact_limit(isotime, limit=None,
 
     ## run stuff in multiprocessing
     with multiprocessing.Pool(processes=processes) as pool:
-        results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran,
+        results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran, wave_range=wave_range,
                                                 pdate='', rsr_data=rsr_data, obase=None), to_run)
 
     ## read simulation outputs

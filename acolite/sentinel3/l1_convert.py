@@ -9,6 +9,9 @@
 ##                2022-10-06 (QV) added back in tgas after smile correction
 ##                2022-11-03 (QV) update sensor/metadata parsing
 ##                2022-11-09 (QV) change of F0 in radiance to reflectance correction, depending on whether smile correction was applied
+##                2023-02-14 (QV) added Lt outputs, user defined subset,
+##                                fixed tpg interpolation, update from scipy.interpolate.interp2d to scipy.interpolate.RegularGridInterpolator
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -47,7 +50,8 @@ def l1_convert(inputfile, output = None, settings = {},
         dfiles.sort()
 
         ## find xml files
-        mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
+        mfile = [os.path.basename(f) for f in glob.glob('{}/xfdumanifest.xml'.format(bundle))]
+        if len(mfile)==0: mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
         if len(mfile)==1: mfile = mfile[0]
 
         t0 = time.time()
@@ -102,6 +106,15 @@ def l1_convert(inputfile, output = None, settings = {},
                 except:
                     if verbosity > 1: print('Failed to import polygon {}'.format(poly))
 
+        ## add limit buffer
+        if (limit is not None) & (setu['limit_buffer'] is not None):
+            print('Applying limit buffer {}'.format(setu['limit_buffer']))
+            print('Old limit: {}'.format(limit))
+            setu['limit_old'] = limit
+            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
+                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
+            print('New limit: {}'.format(limit))
+
         sub = None
         data_shape = None
         if limit is not None:
@@ -109,6 +122,10 @@ def l1_convert(inputfile, output = None, settings = {},
             if sub is None:
                 if verbosity > 1: print('Limit {} out of scene {}'.format(limit, bundle))
                 continue
+
+        ## user defined sub if limit or polygon are not set
+        if sub is None:
+            if 'sub' in setu: sub = setu['sub']
 
         ## read data
         dshape = None
@@ -154,6 +171,12 @@ def l1_convert(inputfile, output = None, settings = {},
                             data[ds] = data_
         ## end read data
 
+        ## global attributes
+        dtime = dateutil.parser.parse(start_time)
+        doy = dtime.strftime('%j')
+        se_distance = ac.shared.distance_se(doy)
+        isodate = dtime.isoformat()
+
         ## create full scene tpgs
         full_scene = False
         if sub is None:
@@ -167,9 +190,18 @@ def l1_convert(inputfile, output = None, settings = {},
             suby = np.arange(sub[1],sub[1]+sub[3])+0.5
 
         ## interpolate tie point grids
+        x_sub = gatts['ac_subsampling_factor']
+        y_sub = gatts['al_subsampling_factor']
+        x_off = 0
+        y_off = 0
         tpg_shape = meta['tie_geo_coordinates']['latitude'].shape
-        tpx = np.linspace(0,data_shape[1]-1,tpg_shape[1])
-        tpy = np.linspace(0,data_shape[0]-1,tpg_shape[0])
+        tpx = (np.arange(tpg_shape[1])*x_sub) + x_off
+        tpy = (np.arange(tpg_shape[0])*y_sub) + y_off
+
+        ## 2d for RGI
+        subx_ = np.tile(subx, (len(suby),1))
+        suby_ = (np.tile(suby, len(subx)).reshape(subx_.shape[1], subx_.shape[0])).T
+
         tpg = {}
         for k in meta.keys():
             if 'tie_' in k:
@@ -179,8 +211,9 @@ def l1_convert(inputfile, output = None, settings = {},
                     if meta[k][l].shape != tpg_shape:
                         print('{}-{} tpg shape {} not supported'.format(k,l,meta[k][l].shape))
                         continue
-                    z = scipy.interpolate.interp2d(tpx, tpy, meta[k][l])
-                    tpg[l] = z(subx,suby)
+                    dtype_in = meta[k][l].dtype
+                    rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], meta[k][l].astype(np.float64), bounds_error=False, fill_value=None)
+                    tpg[l] = rgi((suby_,subx_)).astype(dtype_in)
 
         ## compute relative azimuth TPG
         tpg['RAA'] = abs(tpg['SAA']-tpg['OAA'])
@@ -188,25 +221,40 @@ def l1_convert(inputfile, output = None, settings = {},
         ## cosine of sun zenith angle
         mu = np.cos(tpg['SZA']*(np.pi/180))
 
-
         ## average geometry
         sza = np.nanmean(tpg['SZA'])
         vza = np.nanmean(tpg['OZA'])
         raa = np.nanmean(tpg['RAA'])
+        ## center lat and lon
+        clat = np.nanmean(tpg['latitude'])
+        clon = np.nanmean(tpg['longitude'])
 
         ## compute gas transmittance
-        use_supplied_ancillary = True
-        uoz_default=0.3
-        uwv_default=1.5
-        if use_supplied_ancillary:
+        uoz = None
+        uwv = None
+        pressure = None
+        if (setu['use_supplied_ancillary']) & (not setu['ancillary_data']):
             ## convert ozone from kg.m-2 to cm.atm
-            uoz = np.nanmean(tpg['total_ozone'])/0.02141419
+            setu['uoz_default'] = np.nanmean(tpg['total_ozone'])/0.02141419
             ## convert water from kg.m-2 to g.cm-2
-            uwv = np.nanmean(tpg['total_columnar_water_vapour'])/10
+            setu['uwv_default'] = np.nanmean(tpg['total_columnar_water_vapour'])/10
+            setu['pressure'] = np.nanmean(tpg['sea_level_pressure'])
         else:
-            ## can get other ancillary here
-            uoz = uoz_default
-            uwv = uwv_default
+            if setu['ancillary_data']:
+                print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(isodate, clon, clat))
+                anc = ac.ac.ancillary.get(dtime, clon, clat)
+                ## overwrite the defaults
+                if ('ozone' in anc): setu['uoz_default'] = anc['ozone']['interp']/1000. ## convert from MET data
+                if ('p_water' in anc): setu['uwv_default'] = anc['p_water']['interp']/10. ## convert from MET data
+                if ('z_wind' in anc) & ('m_wind' in anc) & (setu['wind'] is None):
+                    setu['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
+                if ('press' in anc) & (setu['pressure'] == setu['pressure_default']):
+                    setu['pressure'] = anc['press']['interp']
+
+        if uoz is None: uoz = setu['uoz_default']
+        if uwv is None: uwv = setu['uwv_default']
+        if pressure is None: pressure = setu['pressure']
+        print('current uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(uoz, uwv, pressure))
 
         ## for smile correction
         ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
@@ -218,8 +266,8 @@ def l1_convert(inputfile, output = None, settings = {},
             di = meta['instrument_data']['detector_index'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
         ## smile correction - from l2gen smile.c
-        if verbosity > 1: print('Running smile correction')
         if smile_correction:
+            if verbosity > 1: print('Running smile correction')
             ## gas_correction
             if setu['smile_correction_tgas']:
                 if verbosity > 2: print('{} - Gas correction before smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
@@ -275,12 +323,6 @@ def l1_convert(inputfile, output = None, settings = {},
                 for band in bands_data: data['{}_radiance'.format(band)]*=ttg['tt_gas'][band]
         ## end smile correction
 
-        ## global attributes
-        dtime = dateutil.parser.parse(start_time)
-        doy = dtime.strftime('%j')
-        se_distance = ac.shared.distance_se(doy)
-        isodate = dtime.isoformat()
-
         ## read rsr
         waves_mu = rsrd[sensor]['wave_mu']
         waves_names = rsrd[sensor]['wave_name']
@@ -297,8 +339,12 @@ def l1_convert(inputfile, output = None, settings = {},
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
                      'isodate':isodate, 'global_dims':data_shape,
                      'se_distance': se_distance, 'acolite_file_type': 'L1R'}
+        gatts['pressure'] = pressure
+        gatts['uoz'] = uoz
+        gatts['uwv'] = uwv
 
         if limit is not None: gatts['limit'] = limit
+        if sub is not None: gatts['sub'] = sub
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
@@ -319,9 +365,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if output_geolocation:
             if verbosity > 1: print('Writing geolocation')
             for ds in ['lon', 'lat']:
-                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts)
                 new = False
 
         ## output geometry
@@ -335,15 +379,10 @@ def l1_convert(inputfile, output = None, settings = {},
                         ko = 'vaa'
                     else:
                         ko = k.lower()
-                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts)
                     new = False
                 elif k in ['sea_level_pressure']:
-                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'],
-                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts)
                     new = False
                 else:
                     continue
@@ -373,19 +412,21 @@ def l1_convert(inputfile, output = None, settings = {},
 
             dname = dnames[iw]
 
+            ds_att  = {'wavelength':float(wave)}
+            for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
+
+            ## write toa radiance
+            if setu['output_lt']:
+                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],dataset_attributes = ds_att)
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
+
             ## convert to reflectance
             d = (np.pi * data[dname] * se2) / (f0*mu)
             mask = d.mask
             d = d.data
             d[mask] = np.nan
 
-            ds_att  = {'wavelength':float(wave)}
-            for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
-
-            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
             if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
             new = False
             d = None

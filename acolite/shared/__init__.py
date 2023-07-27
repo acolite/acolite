@@ -30,6 +30,7 @@ from .datascl import *
 from .closest_idx import *
 from .isodate_to_yday import *
 from .download_file import *
+from .hdr import *
 
 from .region_box import *
 from .region_find import *
@@ -51,6 +52,7 @@ from .warp_and_merge import *
 from .warp_from_source import *
 from .warp_inputfile import *
 from .polygon_crop import *
+from .polygon_from_wkt import *
 from .polygon_limit import *
 from .reproject2 import *
 

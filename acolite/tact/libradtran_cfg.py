@@ -4,7 +4,7 @@
 ##         2022-08-11 (QV) extended wavelength range, added option to use reptran if available
 
 def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
-               ths=0.0, phi=0.0, phi0=0.0, atmosphere=None,
+               ths=0.0, phi=0.0, phi0=0.0, atmosphere=None, wavelength = [7000, 14000],
                reptran = 'medium', zout = ['SUR', 'TOA'], parameters = ['lambda','eup','uu'],
                radiosonde = None, sur_temperature=None, brightness=False, runfile=None):
 
@@ -17,7 +17,7 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
         config=[
             "data_files_path {}/data".format(ac.config['libradtran_dir']),
             'source thermal',
-            'wavelength 7000 14000',
+            'wavelength {} {}'.format(wavelength[0], wavelength[1]),
             'albedo {}'.format(albedo),
             'rte_solver disort',
             'zout {}'.format(' '.join(zout)),

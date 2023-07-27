@@ -2,8 +2,10 @@
 ## converts HYPERION L1T bundle to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-04
-## modifications:  2021-12-31 (QV) new handling of settings
+## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
+##                2023-07-11 (QV) import defaults before loading F0
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -21,6 +23,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+
+    ## get sensor specific settings
+    satellite_sensor = 'EO1_HYPERION'
+    setu = ac.acolite.settings.parse(satellite_sensor, settings=settings)
 
     ## get F0 for radiance -> reflectance computation
     f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
@@ -62,9 +68,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         satellite = metadata['PRODUCT_METADATA']['SPACECRAFT_ID']
 
         gatts['sensor'] = '{}_{}'.format(satellite, sensor)
+        if gatts['sensor'] != satellite_sensor:
+            print(satellite_sensor, gatts['sensor'])
+            continue
 
-        ## get sensor specific settings
-        setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
         verbosity = setu['verbosity']
         limit = setu['limit']
         vname = setu['region_name']
@@ -142,15 +149,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
         ## compute longitude and latitude
         lon, lat = ac.shared.projection_geo(dct_prj)
-        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
-                            netcdf_compression=setu['netcdf_compression'],
-                            netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
         if verbosity > 1: print('Wrote lon')
         lon = None
 
-        ac.output.nc_write(ofile, 'lat', lat, double=True,
-                            netcdf_compression=setu['netcdf_compression'],
-                            netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lat', lat)
         if verbosity > 1: print('Wrote lat')
         lat = None
         new = False
@@ -176,10 +179,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             ## write toa radiance
             if output_lt:
                 ac.output.nc_write(ofile, 'Lt_{}'.format(ds_att['wave_name']), cdata_radiance,
-                                   attributes = gatts, dataset_attributes = ds_att, new=new,
-                                   netcdf_compression=setu['netcdf_compression'],
-                                   netcdf_compression_level=setu['netcdf_compression_level'],
-                                   netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                   attributes = gatts, dataset_attributes = ds_att, new=new)
                 new = False
 
             ## compute toa reflectance
@@ -187,13 +187,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             ## write toa reflectance
             ac.output.nc_write(ofile, 'rhot_{}'.format(ds_att['wave_name']), cdata,
-                               attributes = gatts, dataset_attributes = ds_att, new=new,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'],
-                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                               attributes = gatts, dataset_attributes = ds_att, new=new)
             new = False
-
-
 
         ofiles.append(ofile)
     return(ofiles, setu)

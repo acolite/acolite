@@ -2,6 +2,7 @@
 ## finds image files and metadata files for SDGSAT1 KX10 bundle
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-01-03
+## modifications: 2023-02-18 (QV) track all tiffs
 
 def bundle_test(bundle, sen='KX10_MII'):
     import glob, os
@@ -20,8 +21,8 @@ def bundle_test(bundle, sen='KX10_MII'):
         dn = os.path.dirname(mf)
         bn = os.path.basename(mf)
         sn = bn.replace('.meta.xml', '')
-
-        im = glob.glob('{}/{}_*.tif'.format(dn, sn))[0]
+        im = glob.glob('{}/{}_*.tif'.format(dn, sn))#[0]
+        im.sort()
         imgfiles.append(im)
 
         cf = '{}/{}'.format(dn, bn.replace('.meta.xml', '.calib.xml'))

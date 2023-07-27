@@ -1,0 +1,17 @@
+## configuration file for CHL_CI and CHL_OCX algorithm
+## this file identifies which CHL_OC should be used as CHL_OCX
+## Hu et al. 2012 https://doi.org/10.1029/2011JC007395
+## Hu et al. 2019 https://doi.org/10.1029/2019JC014941
+## https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
+
+S2A_MSI=chl_oc3
+S2B_MSI=chl_oc3
+L8_OLI=chl_oc3
+L9_OLI=chl_oc3
+
+S3A_OLCI=chl_oc4
+S3B_OLCI=chl_oc4
+
+SUOMI-NPP_VIIRS=chl_oc3s
+JPSS-1_VIIRS=chl_oc3s
+JPSS-2_VIIRS=chl_oc3s

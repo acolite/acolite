@@ -12,6 +12,8 @@
 ## settings for cropping
 region_name=
 limit=None
+limit_buffer=None
+sub=None
 polygon=None
 polygon_limit=True
 polylakes=False
@@ -19,6 +21,7 @@ polylakes_database=worldlakes
 merge_tiles=False
 merge_zones=True
 extend_region=False
+l1r_crop=False
 
 ## new output settings
 output=None
@@ -27,14 +30,23 @@ output_xy=False
 output_geometry=True
 output_rhorc=False
 
+## add band names to datasets
+## not supported for all sensors
+add_band_name=False
+
+## compute contrabands
+compute_contrabands=False
+
 ## netcdf options
 netcdf_projection=True
 netcdf_compression=False
 netcdf_compression_level=4
 netcdf_compression_least_significant_digit=None
+netcdf_discretisation=False
 
-## Landsat OLI options
-oli_orange_band=True
+## Landsat options
+landsat_qa_bands=PIXEL,RADSAT,SATURATION
+landsat_qa_output=False
 
 ## Sentinel-2 options
 s2_target_res=10
@@ -59,6 +71,7 @@ geometry_override=False
 smile_correction=True
 smile_correction_tgas=True
 use_tpg=True
+use_supplied_ancillary=True
 
 ## WorldView only (optional)
 inputfile_swir=None
@@ -76,6 +89,7 @@ pleiades_skip_pan=False
 prisma_rhot_per_pixel_sza=True
 prisma_store_l2c=False
 prisma_store_l2c_separate_file=True
+prisma_output_pan=False
 
 ## CHRIS
 chris_interband_calibration=True
@@ -88,6 +102,24 @@ desis_mask_ql=True
 clear_scratch=True
 gf_reproject_to_utm=False
 
+## VIIRS settings
+viirs_option=img+mod
+viirs_scanline_projection=True
+viirs_quality_flags=1,2,4,8,256,512,1024,2048,4096
+viirs_quality_flags=4,8,512,1024,2048,4096
+viirs_output_tir=True
+viirs_output_tir_lt=False
+## apply non water masking using M band
+viirs_mask_mband=True
+## mask using TOA reflectance for matching I and M bands
+viirs_mask_immixed=True
+viirs_mask_immixed_rat=False
+viirs_mask_immixed_dif=True
+viirs_mask_immixed_bands=I01/M05,I02/M07,I03/M10
+viirs_mask_immixed_bands=I03/M10
+viirs_mask_immixed_maxrat=0.2
+viirs_mask_immixed_maxdif=0.002
+
 ## TACT settings
 tact_run=False
 tact_profile_source=era5
@@ -98,6 +130,8 @@ tact_output_atmosphere=False
 tact_output_intermediate=False
 tact_map=True
 ged_fill=True
+## TACT wavelength range (micron)
+tact_range=3.5,14
 
 ## EMINET settings
 eminet_water_fill=True
@@ -141,6 +175,7 @@ l2w_mask_cirrus_wave=1373
 l2w_mask_high_toa=True
 l2w_mask_high_toa_threshold=0.3
 l2w_mask_high_toa_wave_range=400,2500
+l2w_mask_mixed=True
 l2w_data_in_memory=False
 
 ## settings for Nechad algorithms
@@ -157,6 +192,7 @@ flag_exponent_cirrus=1
 flag_exponent_toa=2
 flag_exponent_negative=3
 flag_exponent_outofscene=4
+flag_exponent_mixed=5
 
 ## atmospheric correction settings
 atmospheric_correction=True
@@ -171,6 +207,10 @@ min_tgas_rho=0.70
 sza_limit_replace=False
 sza_limit=79.999
 
+## replace high VZA to fall within LUT
+vza_limit_replace=False
+vza_limit=71.999
+
 ## cirrus correction (testing - do not use)
 cirrus_correction=False
 cirrus_range=1350,1390
@@ -183,6 +223,7 @@ ancillary_data=True
 uoz_default=0.3
 uwv_default=1.5
 pressure=None
+pressure_default=1013.25
 elevation=None
 
 ## DEM options
@@ -235,6 +276,7 @@ dsf_spectrum_option=intercept
 dsf_percentile=1
 dsf_intercept_pixels=1000
 dsf_minimum_segment_size=1
+dsf_allow_lut_boundaries=False
 
 ## apply percentile filter to TOA data
 dsf_filter_rhot=False
@@ -256,6 +298,7 @@ dsf_aot_most_common_model=True
 dsf_model_selection=min_drmsd
 dsf_min_tile_cover=0.10
 dsf_min_tile_aot=0.01
+dsf_max_tile_aot=1.20
 dsf_write_tiled_parameters=False
 dsf_wave_range=400,2500
 dsf_exclude_bands=None
@@ -364,6 +407,7 @@ export_geotiff_match_file=None
 export_cloud_optimized_geotiff=False
 l1r_export_geotiff_rgb=False
 l2r_export_geotiff_rgb=False
+use_gdal_merge_import=False
 
 # delete NetCDFs
 l1r_delete_netcdf=False
@@ -396,10 +440,16 @@ output_projection_resolution_align=True
 output_projection_resampling_method=bilinear
 default_projection_resolution=None
 output_projection_fillnans=False
+output_projection_filldistance=1
+# projection resampling settings
+output_projection_radius=3
+output_projection_epsilon=0
+output_projection_neighbours=32
 
 # reproject input tif files if projection cannot be determined
 reproject_inputfile=False
 reproject_inputfile_force=False
+reproject_inputfile_dem=False
 
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2

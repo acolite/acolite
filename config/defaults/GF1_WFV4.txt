@@ -16,3 +16,5 @@ dsf_tile_dimensions=1000,1000
 dsf_spectrum_option=percentile
 dsf_percentile=1
 dsf_aot_estimate=fixed
+
+default_projection_resolution=16,16

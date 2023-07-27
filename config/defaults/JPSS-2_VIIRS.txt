@@ -1,0 +1,18 @@
+## ACOLITE default settings for JPSS-2_VIIRS
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+dsf_aot_estimate=tiled
+
+## add band names to datasets since there are shared wavelengths
+add_band_name=True
+default_projection_resolution=375,375
+
+## reduce mask smoothing
+l2w_mask_smooth_sigma=1
+
+## reprojection fill range
+output_projection_filldistance=1

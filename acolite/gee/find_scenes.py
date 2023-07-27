@@ -11,7 +11,7 @@ def find_scenes(isodate_start, isodate_end=None, day_range=1,
                 sensors=['L4_TM', 'L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI']):
     import ee
     #ee.Authenticate() ## assume ee use is authenticated in current environment
-    ee.Initialize()
+    #ee.Initialize()
 
     import dateutil.parser, datetime
 

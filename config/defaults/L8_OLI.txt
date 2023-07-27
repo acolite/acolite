@@ -16,3 +16,4 @@ gains_toa=1,1,1,1,1,1,1,1,1
 dsf_intercept_pixels=200
 dsf_tile_dimensions=200,200
 luts_reduce_dimensions=True
+compute_contrabands=True

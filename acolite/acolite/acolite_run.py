@@ -7,6 +7,7 @@
 ##                2022-03-04 (QV) moved inputfile testing to inputfile_test
 ##                2022-07-25 (QV) avoid deleting original inputfiles
 ##                2022-09-19 (QV) printout platform info
+##                2023-02-06 (QV) added WKT polygon output
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -17,12 +18,27 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## get user settings
     ## these are updated with sensor specific settings in acolite_l2r
-    setu = ac.acolite.settings.parse(None, settings=settings, merge=False)
+    ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+    for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
+    setu = {k: ac.settings['user'][k] for k in ac.settings['user']}
     l1r_setu = None
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
     if 'output' not in setu: setu['output'] = os.getcwd()
     if 'verbosity' in setu: ac.config['verbosity'] = int(setu['verbosity'])
 
+    ## check if polygon is a file or WKT
+    if 'polygon' in setu:
+        if setu['polygon'] is not None:
+            if not os.path.exists(setu['polygon']):
+                try:
+                    polygon_new = ac.shared.polygon_from_wkt(setu['polygon'], file = '{}/polygon_{}.json'.format(setu['output'], setu['runid']))
+                    setu['polygon_old'] = '{}'.format(setu['polygon'])
+                    setu['polygon'] = '{}'.format(polygon_new)
+                except:
+                    print('Provided is not a valid WKT polygon')
+                    print(setu['polygon'])
+                    setu['polygon'] = None
+                    pass
     new_path = None
     if 'new_path' in setu: new_path = '{}'.format(setu['new_path'])
 
@@ -36,7 +52,7 @@ def acolite_run(settings, inputfile=None, output=None):
     ## log file for l1r generation
     log_file = '{}/acolite_run_{}_log_file.txt'.format(setu['output'],setu['runid'])
     log = ac.acolite.logging.LogTee(log_file)
-    
+
     print('Running ACOLITE processing - {}'.format(ac.version))
     print('Python - {} - {}'.format(ac.python['platform'], ac.python['version']).replace('\n', ''))
     print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
@@ -125,6 +141,14 @@ def acolite_run(settings, inputfile=None, output=None):
         for l1r in l1r_files:
             gatts = ac.shared.nc_gatts(l1r)
             if 'acolite_file_type' not in gatts: gatts['acolite_file_type'] = 'L1R'
+            if l1r_setu['l1r_crop']:
+                l1r_cropped = ac.output.crop_acolite_netcdf(l1r, output = l1r_setu['output'], limit = l1r_setu['limit'], polygon = l1r_setu['polygon'])
+                if l1r_cropped is not None:
+                    l1r = l1r_cropped
+                else:
+                    print('Cropping L1R {} not successful'.format(l1r))
+                    continue
+
             if l1r_setu['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r, match_file = l1r_setu['export_geotiff_match_file'],
                                                             cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                             skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
@@ -175,7 +199,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
                         if l2r_setu['pans']:
                             pr = ac.acolite.acolite_pans(ncf, settings = l2r_setu)
-                            if pr != ():
+                            if pr is not None:
                                 if 'l2r_pans' not in processed[ni]: processed[ni]['l2r_pans']=[]
                                 processed[ni]['l2r_pans'].append(pr)
 
@@ -210,7 +234,7 @@ def acolite_run(settings, inputfile=None, output=None):
             ## run TACT thermal atmospheric correction
             if l1r_setu['tact_run']:
                 ret = ac.tact.tact_gem(l1r, settings = l1r_setu, verbosity = ac.config['verbosity'])
-                if ret != ():
+                if ret is not None:
                     l2t_files.append(ret)
                     if l1r_setu['l2t_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l1r_setu['export_geotiff_match_file'],
                                                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
@@ -301,6 +325,9 @@ def acolite_run(settings, inputfile=None, output=None):
         if l1r_setu['delete_acolite_run_text_files']:
             tfiles = glob.glob('{}/acolite_run_{}_*.txt'.format(l1r_setu['output'], l1r_setu['runid']))
             for tf in tfiles: os.remove(tf)
+            if 'polygon_old' in l1r_setu:
+                if l1r_setu['polygon_old'] != l1r_setu['polygon']:
+                    os.remove(l1r_setu['polygon'])
     except KeyError:
         print('Not removing text files as "delete_acolite_run_text_files" is not in settings.')
     except BaseException as err:

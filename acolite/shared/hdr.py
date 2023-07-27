@@ -1,6 +1,8 @@
-## Read DESIS ENVI hdr file
+## Read ENVI hdr file
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-08-10
+##
+## modifications: 2023-02-07 (QV) moved from desis to shared, fix for non list data
 
 def hdr(headerfile):
     with open(headerfile, 'r', encoding='utf-8') as f:
@@ -29,5 +31,8 @@ def hdr(headerfile):
                  'data type', 'byte order', 'data ignore value']:
             header[k] = int(header[k])
         if k in ['wavelength', 'fwhm', 'data gain values', 'data offset values']:
-            header[k] = [float(v) for v in header[k]]
+            if type(header[k]) == list:
+                header[k] = [float(v) for v in header[k]]
+            else:
+                header[k] = float(header[k])
     return(header)

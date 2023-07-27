@@ -1,12 +1,15 @@
-## list of settings that will be converted to integers
+## list of settings that will be converted to floats
 ## do not edit!
 ##
 min_tgas_aot
 min_tgas_rho
 sza_limit
+vza_limit
+limit_buffer
 dsf_percentile
 dsf_filter_percentile
 dsf_min_tile_aot
+dsf_max_tile_aot
 dsf_min_tile_cover
 exp_swir_threshold
 exp_fixed_epsilon_percentile
@@ -15,6 +18,8 @@ dem_pressure_percentile
 elevation
 uoz_default
 uwv_default
+pressure
+pressure_default
 wind_default
 wind
 cirrus_range
@@ -39,6 +44,11 @@ output_projection_resolution
 default_projection_resolution
 worldview_reproject_resolution
 eminet_water_threshold
+tact_range
+viirs_mask_immixed_maxrat
+viirs_mask_immixed_maxdif
+output_projection_radius
+output_projection_epsilon
 
 ## GEE
 st_lon

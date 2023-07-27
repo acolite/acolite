@@ -9,6 +9,9 @@
 ##                2022-08-12 (QV) added reprojection of unrectified data with RPC
 ##                2022-10-26 (QV) changed handling of multi file bundles
 ##                2022-11-14 (QV) added support for outputting Planet SR data
+##                2023-04-18 (QV) added support for NTF files
+##                2023-05-08 (QV) added support for composite files
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -27,7 +30,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 verbosity = 0, vname = ''):
 
     import os, zipfile, shutil, json
-    import dateutil.parser, time
+    import dateutil.parser, time, copy
     import numpy as np
     import acolite as ac
 
@@ -73,16 +76,34 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## test files
         files = ac.planet.bundle_test(bundle)
-        print('Found {} files in {}'.format(len(files), bundle))
-        for fk in files: ifiles.append((bundle, files[fk]))
+        print('Found {} scenes in {}'.format(len(files), bundle))
+        for fk in files: ifiles.append((bundle, files[fk], fk))
 
     ## run through the found files
     for ifile in ifiles:
-        bundle, files = ifile
+        bundle, files, fk = ifile
+        ## composite image copy metadata path from the scene
+        ## matching acquisition time and satellite
+        if ('composite' in files) & ('metadata_json' in files):
+            ## read json metadata
+            with open(files['metadata_json']['path'], 'r') as f:
+                md = json.load(f)
+            ## get filler metadata
+            for fi in ifiles:
+                if 'metadata' not in fi[1]: continue
+                bn = os.path.basename(fi[1]['metadata']['path'])
+                dt = dateutil.parser.parse(md['properties']['acquired'])
+                if (md['properties']['satellite_id'] in bn) & (dt.strftime('%Y%m%d') in bn) & (dt.strftime('%H%M%S') in bn):
+                    files['metadata'] = copy.copy(fi[1]['metadata'])
+        ## end find composite metadata
+
+        ## check if we can process this scene
         if (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic' in files))) &\
+           (not ((('metadata' in files) | ('metadata_json' in files)) & ('analytic_ntf' in files))) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('pansharpened' in files))) &\
+           (not ('metadata' in files) & ('composite' in files)) &\
            (not ((('metadata' in files) | ('metadata_json' in files)) & ('sr' in files))):
-            print('Bundle {} not recognised'.format(bundle))
+            print('Bundle {} {} not recognised'.format(bundle, fk))
             continue
 
         metafile = None
@@ -94,8 +115,12 @@ def l1_convert(inputfile, output = None, settings = {},
 
         if 'analytic' in files:
             image_file = files['analytic']['path']
+        elif 'analytic_ntf' in files:
+            image_file = files['analytic_ntf']['path']
         elif 'pansharpened' in files:
             image_file = files['pansharpened']['path']
+        elif 'composite' in files:
+            image_file = files['composite']['path']
         image_file_original = '{}'.format(image_file)
 
         sr_image_file = None
@@ -106,6 +131,8 @@ def l1_convert(inputfile, output = None, settings = {},
             if (sr_image_file is None):
                 print('No SR file found in {}'.format(bundle))
                 continue
+
+        if verbosity > 1: print('Image file {}, metadata file {}'.format(image_file, metafile))
 
         ## read meta data
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
@@ -155,14 +182,11 @@ def l1_convert(inputfile, output = None, settings = {},
                     except:
                         print('Failed to import polygon {}'.format(poly))
 
-            ## check if merging settings make sense
-            if (limit is None) & (merge_tiles):
-                if verbosity > 0: print("Merging tiles not supported without ROI limit")
-                merge_tiles = False
             if merge_tiles:
+                if (limit is None):
+                    if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
                 merge_zones = True
                 extend_region = True
-
         sub = None
 
         ## read rsr
@@ -347,16 +371,12 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
+                if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
-                if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'lat', lat)
+                if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
                 lat = None
-                if verbosity > 1: print('Wrote lat')
                 new=False
 
         ## write x/y
@@ -368,16 +388,12 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'xm', x, new=new)
+                if verbosity > 1: print('Wrote xm ({})'.format(x.shape))
                 x = None
-                if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, 'ym', y)
+                if verbosity > 1: print('Wrote ym ({})'.format(y.shape))
                 y = None
-                if verbosity > 1: print('Wrote y')
                 new=False
 
         ## convert bands TOA
@@ -438,10 +454,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
             ## write to netcdf file
             ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
-                                new=new, dataset_attributes = ds_att, nc_projection=nc_projection,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'],
-                                netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
@@ -478,10 +491,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ## write to netcdf file
                 ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, update_attributes=update_attributes,
-                                    new=new, dataset_attributes = ds_att, nc_projection=nc_projection,
-                                    netcdf_compression=setu['netcdf_compression'],
-                                    netcdf_compression_level=setu['netcdf_compression_level'],
-                                    netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                    new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
                 new = False
                 update_attributes = False
                 if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))

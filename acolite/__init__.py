@@ -6,6 +6,7 @@ from acolite import pleiades
 from acolite import worldview
 from acolite import venus
 from acolite import ikonos
+from acolite import viirs
 
 from acolite import chris
 from acolite import prisma
@@ -13,12 +14,16 @@ from acolite import hico
 from acolite import hyperion
 from acolite import desis
 from acolite import enmap
+from acolite import emit
+from acolite import hypso
 
 from acolite import gf
 from acolite import amazonia
 from acolite import formosat
 from acolite import ecostress
 from acolite import sdgsat
+from acolite import dimap
+from acolite import s2resampling
 
 from acolite import ac
 from acolite import aerlut
@@ -113,7 +118,13 @@ for t in config:
 if 'verbosity' not in config: config['verbosity'] = 5
 
 ## read parameter scaling and settings
-param = {'scaling':acolite.parameter_scaling()}
+param = {'scaling':acolite.parameter_scaling(), 'discretisation': acolite.parameter_discretisation()}
 import json
 with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
     param['attributes'] = json.load(f)
+
+settings = {}
+## read default processing settings
+settings['defaults'] =  acolite.settings.parse(None, settings=acolite.settings.load(None), merge=False)
+## copy defaults to run, run will be updated with user settings and sensor defaults
+settings['run'] = {k:settings['defaults'][k] for k in settings['defaults']}

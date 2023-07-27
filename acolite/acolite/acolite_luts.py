@@ -49,8 +49,9 @@ def acolite_luts(sensor = None, hyper = False,
     ## run through wanted sensors
     for s in sensors:
         if s is not None:
-            if s in ['L5_TM_B6', 'L7_ETM_B6', 'EO1_ALI_ORANGE',
-                     'L8_OLI_ORANGE', 'L8_TIRS', 'L9_OLI_ORANGE', 'L9_TIRS']: continue ## skip thermals
+            if s in ['L5_TM_B6', 'L7_ETM_B6', 'L8_TIRS', 'L9_TIRS']: continue ## skip thermals
+            if s in ['EO1_ALI_ORANGE', 'L8_OLI_ORANGE', 'L9_OLI_ORANGE']: continue ## skip contrabands
+            if '_CONTRA' in s: continue ## skip contrabands
             if 'DESIS' in s: continue ## skip DESIS
 
         print('Testing {}'.format('sensor {}'.format(s) if s is not None else 'generic LUT'))

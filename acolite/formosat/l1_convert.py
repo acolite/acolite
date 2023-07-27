@@ -2,7 +2,7 @@
 ## converts FORMOSAT5 bundle to l1r NetCDF for acolite-gen
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-04-12
-## modifications:
+## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -26,7 +26,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
     ## get F0 for radiance -> reflectance computation
     f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-
 
     ofiles = []
     for bundle in inputfile:
@@ -126,14 +125,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if setu['output_geolocation']:
                     if verbosity > 1: print('Computing latitude/longitude')
                     lon, lat = ac.shared.projection_geo(prj, add_half_pixel=True)
-                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
                     lon = None
                     if verbosity > 1: print('Wrote lon')
-                    ac.output.nc_write(ofile, 'lat', lat, double=True,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, 'lat', lat)
                     lat = None
                     if verbosity > 1: print('Wrote lat')
                     new=False
@@ -157,10 +152,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if output_lt:
                     ## write toa radiance
                     ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                        attributes = gatts, dataset_attributes = bands[b], new = new,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'],
-                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                        attributes = gatts, dataset_attributes = bands[b], new = new)
                     new = False
 
                 ## compute reflectance
@@ -168,10 +160,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 cdata_radiance = None
 
                 ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                        attributes = gatts, dataset_attributes = bands[b], new = new,
-                                        netcdf_compression=setu['netcdf_compression'],
-                                        netcdf_compression_level=setu['netcdf_compression_level'],
-                                        netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
+                                        attributes = gatts, dataset_attributes = bands[b], new = new)
                 cdata = None
                 new = False
 

@@ -33,6 +33,15 @@ def read(ncf, sub = None, skip_datasets = [], load_data=True):
     elif gem['gatts']['sensor'] == 'L7_ETM':
         gem['gatts']['thermal_sensor'] = 'L7_ETM'
         gem['gatts']['thermal_bands'] = ['6_vcid_1', '6_vcid_2', '6_VCID_1', '6_VCID_2']
+    elif gem['gatts']['sensor'] == 'SUOMI-NPP_VIIRS':
+        gem['gatts']['thermal_sensor'] = 'SUOMI-NPP_VIIRS_TIR'
+        gem['gatts']['thermal_bands'] = ['I04', 'I05', 'M12', 'M13', 'M14', 'M15', 'M16']
+    elif gem['gatts']['sensor'] == 'JPSS-1_VIIRS':
+        gem['gatts']['thermal_sensor'] = 'JPSS-1_VIIRS_TIR'
+        gem['gatts']['thermal_bands'] = ['I04', 'I05', 'M12', 'M13', 'M14', 'M15', 'M16']
+    elif gem['gatts']['sensor'] == 'JPSS-2_VIIRS':
+        gem['gatts']['thermal_sensor'] = 'JPSS-2_VIIRS_TIR'
+        gem['gatts']['thermal_bands'] = ['I04', 'I05', 'M12', 'M13', 'M14', 'M15', 'M16']
 
     if 'projection_key' in gem['gatts']:
         gem['nc_projection'] = ac.shared.nc_read_projection(ncf)

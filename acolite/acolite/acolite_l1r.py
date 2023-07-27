@@ -81,6 +81,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ################
 
     ################
+    ## VIIRS
+    if input_type == 'VIIRS':
+        l1r_files, setu = ac.viirs.l1_convert(bundle, settings = setu)
+    ## end VIIRS
+    ################
+
+    ################
     ## Pléiades/SPOT
     if input_type == 'Pléiades':
         l1r_files, setu = ac.pleiades.l1_convert(bundle, settings = setu)
@@ -191,6 +198,35 @@ def acolite_l1r(bundle, setu, input_type=None):
     if input_type == 'ENMAP':
         l1r_files, setu = ac.enmap.l1_convert(bundle, settings = setu)
     ## end ENMAP
+    ################
+
+    ################
+    ## EMIT
+    if input_type == 'EMIT':
+        l1r_files, setu = ac.emit.l1_convert(bundle, settings = setu)
+    ## end EMIT
+    ################
+
+    ################
+    ## DIMAP
+    if input_type == 'DIMAP':
+        l1r_files, setu = ac.dimap.l1_convert(bundle, settings = setu)
+    ## end DIMAP
+    ################
+
+    ################
+    ## S2Resampling
+    if input_type == 'S2Resampling':
+        l1r_files, setu = ac.s2resampling.l1_convert(bundle, settings = setu)
+    ## end S2Resampling
+    ################
+
+
+    ################
+    ## HYPSO
+    if input_type == 'HYPSO':
+        l1r_files, setu = ac.hypso.l1_convert(bundle, settings = setu)
+    ## end HYPSO
     ################
 
     ## remove extracted files

@@ -13,9 +13,12 @@
 ##                2022-12-25 (QV) added SR option
 ##                2022-12-27 (QV) fixed SR computation (for ST data) and added hybrid/offline TACT run
 ##                2023-01-02 (QV) updated projection handling and scene centre lat/lon computation
+##                2023-02-01 (QV) added extra parameters output for L2 ST data
+##                2023-06-21 (QV) new version using computePixels, previous version renamed to agh_old
+##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
-    import os, datetime, dateutil.parser, requests, json
+    import os, datetime, dateutil.parser, requests, json, time
     import acolite as ac
     from acolite import gee ## currently not imported in main acolite
 
@@ -26,7 +29,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     import ee
     #ee.Authenticate() ## assume ee use is authenticated in current environment
-    ee.Initialize()
+    #ee.Initialize(opt_url='https://earthengine-highvolume.googleapis.com')
 
     uoz = settings['uoz_default']
     uwv = settings['uwv_default']
@@ -71,18 +74,21 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
     ## output file names for combined file
     ## used to determine NetCDF name, also for Google Drive outputs
+    ## now .tif rather than .zip
     ext = ''
     if len(rname) >= 0: ext = '_{}'.format(rname)
     rhot_file = pid+'_rhot'+ext
-    rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
+    rhot_file_local = '{}/{}.tif'.format(output,rhot_file)
     rhos_file = pid+'_rhos'+ext
-    rhos_file_local = '{}/{}.zip'.format(output,rhos_file)
+    rhos_file_local = '{}/{}.tif'.format(output,rhos_file)
     geom_file = pid+'_geom'+ext
-    geom_file_local = '{}/{}.zip'.format(output,geom_file)
+    geom_file_local = '{}/{}.tif'.format(output,geom_file)
     sr_file = pid+'_sr'+ext
-    sr_file_local = '{}/{}.zip'.format(output,sr_file)
+    sr_file_local = '{}/{}.tif'.format(output,sr_file)
     st_file = pid+'_st'+ext
-    st_file_local = '{}/{}.zip'.format(output,st_file)
+    st_file_local = '{}/{}.tif'.format(output,st_file)
+    sp_file = pid+'_sp'+ext
+    sp_file_local = '{}/{}.tif'.format(output,sp_file)
 
     ## file type for file name
     file_type = 'L1R_GEE'
@@ -107,30 +113,32 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     scale = p.nominalScale().getInfo()
     if settings['output_scale'] is not None: scale = settings['output_scale']
 
-    if limit is not None:
-        if settings['strict_subset']:
-            ## determin strict lat/lon rectangle box
-            region = ee.Geometry.BBox(limit[1], limit[0], limit[3], limit[2])
-        else:
-            ## determine image bounding box
-            imx = []
-            imy = []
-            for ii in [[1,0], [1,2], [3,0], [3,2]]:
-                ## make point geometry
-                pt = ee.Geometry.Point([limit[ii[0]], limit[ii[1]]])
-
-                ## get pixel coordinates in x/y
-                tmp = ee.Image.clip(i.pixelCoordinates(i.select(tar_band).projection()),pt)
-                ret = ee.Image.reduceRegion(tmp, ee.Reducer.toList()).getInfo()
-                imx.append(ret['x'][0])
-                imy.append(ret['y'][0])
-
-            ## use pixel coordinates from image to make new subset
-            eesub = ee.List([min(imx), min(imy), max(imx), max(imy)])
-            region = ee.Geometry.Rectangle(eesub, p, True, False)
-
-    ## subset here if local aot is to be computed
-    if (limit is not None) & (settings['subset_aot']): i = i.clip(region)
+    # #if (limit is not None) & (settings['subset_aot']) & (settings['run_hybrid_tact']):
+    # if (limit is not None):
+    #     if settings['strict_subset']:
+    #         ## determin strict lat/lon rectangle box
+    #         region = ee.Geometry.BBox(limit[1], limit[0], limit[3], limit[2])
+    #     else:
+    #         ## determine image bounding box
+    #         imx = []
+    #         imy = []
+    #         for ii in [[1,0], [1,2], [3,0], [3,2]]:
+    #             ## make point geometry
+    #             pt = ee.Geometry.Point([limit[ii[0]], limit[ii[1]]])
+    #
+    #             ## get pixel coordinates in x/y
+    #             tmp = ee.Image.clip(i.pixelCoordinates(i.select(tar_band).projection()),pt)
+    #             ret = ee.Image.reduceRegion(tmp, ee.Reducer.toList()).getInfo()
+    #             imx.append(ret['x'][0])
+    #             imy.append(ret['y'][0])
+    #
+    #         ## use pixel coordinates from image to make new subset
+    #         eesub = ee.List([min(imx), min(imy), max(imx), max(imy)])
+    #         region = ee.Geometry.Rectangle(eesub, p, True, False)
+    #
+    # ## subset here if local aot is to be computed
+    # #if (limit is not None) & (settings['subset_aot']) & (settings['run_hybrid_tact']): i = i.clip(region)
+    # if (limit is not None) & (settings['subset_aot']): i = i.clip(region)
 
     ## get image info
     im = i.getInfo()
@@ -139,22 +147,31 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     for b in im['bands']:
         if b['id'] == tar_band:
             odim = b['dimensions']
-            origin = b['origin']
+            if 'origin' in b:
+                 origin = b['origin']
+                 print('Region dimensions {}'.format(odim))
+                 print('Region origin {}'.format(origin))
+            else:
+                 origin = 0, 0
+                 print('Scene dimensions {}'.format(odim))
+                 print('Scene origin {}'.format(origin))
             crs = b['crs']
             crs_transform = b['crs_transform']
-            print('Region dimensions {}'.format(odim))
-            print('Region origin {}'.format(origin))
+            transform = b['crs_transform']
             print(crs)
             print(crs_transform)
 
     ## set up projection
-    prj = osr.SpatialReference()
-    prj.ImportFromEPSG(int(crs.split(':')[-1]))
-    Wkt = prj.ExportToWkt()
-    wp = Proj(Wkt)
+    # prj = osr.SpatialReference()
+    # prj.ImportFromEPSG(int(crs.split(':')[-1]))
+    # Wkt = prj.ExportToWkt()
+    # wp = Proj(Wkt)
     ## find scene center
+    # nx = origin[0] + odim[0]/2
+    # ny = origin[1] + odim[1]/2
     nx = origin[0] + odim[0]/2
     ny = origin[1] + odim[1]/2
+    wp = Proj(proj_crs)
     mlon, mlat = wp(crs_transform[2]+nx*crs_transform[0], crs_transform[5]+ny*crs_transform[4], inverse=True)
     ll = {'longitude': mlon, 'latitude': mlat}
     print('Scene centre: {:.5f}E {:.5f}N'.format(ll['longitude'], ll['latitude']))
@@ -166,6 +183,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         tile_name = '{}'.format(im['properties']['MGRS_TILE'])
         satellite = pid[0:3]
         sensor = '{}_MSI'.format(satellite)
+        satellite_sensor = '{}_MSI'.format(satellite)
         scale_factor = 0.0001
         add_factor = 0
         if (im['properties']['PROCESSING_BASELINE'][1]>='4') & ~('S2_HARMONIZED' in im['id']):
@@ -209,14 +227,14 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     dt = dateutil.parser.parse(dtime)
 
     if settings['run_hybrid_tact']:
-        max_date = (datetime.datetime.now() - datetime.timedelta(days=90)).isoformat()
+        max_date = (datetime.datetime.now() - datetime.timedelta(days=91)).isoformat()
         if dt.isoformat() > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format('era5', max_date))
             #print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
             return()
 
     if settings['use_scene_name']:
-        ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
+        ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.tif', '.nc')
     else:
         obase  = '{}_{}_{}_{}{}'.format(satellite_sensor,  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
         ofile = '{}/{}.nc'.format(os.path.dirname(rhot_file_local), obase)
@@ -228,6 +246,11 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     if sensor not in rsrd:
         print('Loading RSRs: {}'.format(sensor))
         rsrd[sensor] = ac.shared.rsr_dict(sensor=sensor)[sensor]
+
+
+    ## select product again
+    ## cropped product seems to give empty tiles
+    ##i = imColl.filter(ee.Filter.eq(fkey, pid)).first()
 
     ## if processing rhot
     if not settings['surface_reflectance']:
@@ -369,6 +392,37 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         sr_info = i_sr.getInfo()
         obands_sr = [ib['id'] for ib in sr_info['bands']]
         print(obands_sr)
+
+        ## add extra par for ST
+        st_par = None
+        st_par_bands = []
+        if 'PROCESSING_LEVEL' in im['properties']:
+            if (sensor[0] == 'L') & (settings['store_sp']) & (im['properties']['PROCESSING_LEVEL'] == 'L2SP'):
+                sp_scale = {'ST_B6': 0.00341802, 'ST_B10': 0.00341802,
+                            'ST_ATRAN': 0.0001, 'ST_CDIST': 0.01,
+                            'ST_DRAD': 0.001, 'ST_EMIS': 0.0001,
+                            'ST_EMSD': 0.0001, 'ST_QA': 0.01,
+                            'ST_TRAD': 0.001,'ST_URAD': 0.001}
+
+                sp_offset = {'ST_B6': 149, 'ST_B10': 149,
+                             'ST_ATRAN': 0, 'ST_CDIST': 0,
+                             'ST_DRAD': 0, 'ST_EMIS': 0,
+                             'ST_EMSD': 0,'ST_QA': 0,
+                             'ST_TRAD': 0,'ST_URAD': 0}
+
+                for b in im['bands']:
+                    bname = b['id']
+                    if bname[0:2] == 'ST':
+                        print(bname)
+                        sp = i.expression('(DN * {}) + {} '.format(sp_scale[bname],sp_offset[bname]),
+                                          {'DN': i.select(bname)})
+                        if st_par is None:
+                            st_par = ee.Image(sp)
+                        else:
+                            st_par = st_par.addBands(sp)
+                        st_par_bands.append(bname)
+                    else:
+                        continue
     else:
         ## make rhot dataset
         i_rhot = None
@@ -590,49 +644,94 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             obands_st = [ib['id'] for ib in st_info['bands']]
 
 
-    ## check size and tile if necessary
-    tiled_transfer = False
-    tile_size = [606,606]
-    tiles_grid = 1,1
-    if ((odim[0]*odim[1]*13)*9 > 50331648) or (odim[0]>tile_size[0]) or (odim[1]>tile_size[1]): #((odim[0]*odim[1]) > (tile_size[0]*tile_size[1])):
-        print('Warning large dataset: {}x{}'.format(odim[0],odim[1]))
-        tiled_transfer = True
-        tiles_grid = int(np.ceil(odim[0]/tile_size[0])), int(np.ceil(odim[1]/tile_size[1]))
+    # ## check size and tile if necessary
+    # tiled_transfer = False
+    # tile_size = [606,606]
+    # tile_size = [306,306]
+    # tiles_grid = 1,1
+    # if ((odim[0]*odim[1]*13)*9 > 50331648) or (odim[0]>tile_size[0]) or (odim[1]>tile_size[1]): #((odim[0]*odim[1]) > (tile_size[0]*tile_size[1])):
+    #     print('Warning large dataset: {}x{}'.format(odim[0],odim[1]))
+    #     tiled_transfer = True
+    #     tiles_grid = int(np.ceil(odim[0]/tile_size[0])), int(np.ceil(odim[1]/tile_size[1]))
+    # num_tiles = tiles_grid[0]*tiles_grid[1]
+    #
+    # ## identify tiles
+    # if tiled_transfer:
+    #     tiles = []
+    #     tn = 0
+    #     for ti in range(tiles_grid[0]):
+    #         for tj in range(tiles_grid[1]):
+    #             ti0 = ti*tile_size[0]
+    #             ti1 = min((ti+1)*tile_size[0], odim[0])
+    #             tj0 = tj*tile_size[1]
+    #             tj1 = min((tj+1)*tile_size[1], odim[1])
+    #             tiles.append([ti0, ti1, tj0, tj1, 't{}'.format(str(tn).zfill(3))])
+    #             print('tile', tiles[-1])
+    #             tn+=1
+    # else:
+    #     tiles = [[0,odim[0], 0,odim[1],'']]
+
+    #tile_size = [606,606]
+    tile_size = settings['tile_size']
+    tiled_transfer = True
+
+    ## get original image subset
+    ## for getPixels computePixels grid
+    ## can replace some subsetting code above as well, to be done
+    if limit is None:
+        porigin = 0.,0.
+    else:
+        ## project limit to image CRS
+        bbox = np.asarray(wp((limit[1], limit[3], limit[3], limit[1]),
+                            (limit[0], limit[0], limit[2], limit[2]), ))
+        ## move to nearest pixel - 60 m works for both S2 and Landsat
+        bbox -= bbox % 60
+        ## ROI x and y ranges
+        xrange = np.asarray((min(bbox[0]), max(bbox[0])))
+        yrange = np.asarray((max(bbox[1]), min(bbox[1])))
+        xdim = (xrange[1]-xrange[0])/transform[0]
+        ydim = (yrange[1]-yrange[0])/transform[4]
+        ## ROI x and y pixel ranges
+        xprange = (xrange-transform[2]) / transform[0]
+        yprange = (yrange-transform[5]) / transform[4]
+        rdim = int(xprange[1]-xprange[0]), int(yprange[1]-yprange[0])
+        ## origin of subset in image
+        porigin = xprange[0], yprange[0]
+    ## tiles in original pixel grid
+    print(porigin)
+    print(rdim)
+    ptiles = []
+    tn = 0
+    tiles_grid = int(np.ceil(rdim[0]/tile_size[0])), int(np.ceil(rdim[1]/tile_size[1]))
     num_tiles = tiles_grid[0]*tiles_grid[1]
-
-    ## identify tiles
-    if tiled_transfer:
-        tiles = []
-        tn = 0
-        for ti in range(tiles_grid[0]):
-            for tj in range(tiles_grid[1]):
-                ti0 = ti*tile_size[0]
-                ti1 = min((ti+1)*tile_size[0], odim[0])
-                tj0 = tj*tile_size[1]
-                tj1 = min((tj+1)*tile_size[1], odim[1])
-                tiles.append([ti0, ti1, tj0, tj1, 't{}'.format(str(tn).zfill(3))])
-                print('tile', tiles[-1])
-                tn+=1
-    else:
-        tiles = [[0,odim[0], 0,odim[1],'']]
-    print('Running download with {} tiles'.format(len(tiles)))
-
-    ## set output config for rhot
-    output_config = {'description': rhot_file, 'folder':'ACOLITE', 'scale': scale}
-
-    ## test if setting crs works
-    output_config['crs'] = proj_crs
-    output_config['crs_transform'] = proj['transform']
-
-    ## set output dir
-    if settings['drive_output'] is not None: output_config['folder'] = settings['drive_output']
-    if limit is not None:
-        output_config['region'] = region
-    else:
-        output_config['region'] = i.geometry()
+    for ti in range(tiles_grid[0]):
+        for tj in range(tiles_grid[1]):
+            ti0 = max(porigin[0], porigin[0]+ti*tile_size[0])
+            ti1 = min(porigin[0]+(ti+1)*tile_size[0], porigin[0]+rdim[0])#, odim[0])
+            tj0 = max(porigin[1], porigin[1]+tj*tile_size[1])
+            tj1 = min(porigin[1]+(tj+1)*tile_size[1], porigin[1]+rdim[1])#, odim[1])
+            ptiles.append([ti0, ti1, tj0, tj1, 't{}'.format(str(tn).zfill(3))])
+            print('tile', ptiles[-1])
+            tn+=1
+    print(transform)
+    print('Running download with {} tiles'.format(len(ptiles)))
 
     ## output data to drive
     if settings['store_output_google_drive']:
+        ## set output config for rhot
+        output_config = {'description': rhot_file, 'folder':'ACOLITE', 'scale': scale}
+
+        ## test if setting crs works
+        output_config['crs'] = proj_crs
+        output_config['crs_transform'] = proj['transform']
+
+        ## set output dir
+        if settings['drive_output'] is not None: output_config['folder'] = settings['drive_output']
+        if limit is not None:
+            output_config['region'] = region
+        else:
+            output_config['region'] = i.geometry()
+
         if settings['surface_reflectance']:
             if settings['store_sr']:
                 output_config['description'] = sr_file
@@ -679,117 +778,132 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         rhos_files = []
         sr_files = []
         st_files = []
+        sp_files = []
 
-        for ti, tile in enumerate(tiles):
+        for ti, tile in enumerate(ptiles):
             ## output file names
             ext = ''
             if len(rname) >= 0: ext = '_{}'.format(rname)
             if tiled_transfer:
                 tile_id = tile[4]
                 ext+='_'+tile_id
-                print('Getting tile {} {}/{}'.format(tile_id, ti+1, num_tiles))
-                ## use pixel coordinates to make tile subset
-                mins = ee.List([origin[0]+tile[0], origin[1]+tile[2]])
-                maxs = ee.List([origin[0]+tile[1], origin[1]+tile[3]])
-                ## set output region to this tile
-                rect = ee.Geometry.Rectangle(mins.cat(maxs), p, True, False)#.transform("EPSG:4326")
-                output_config['region'] = rect
+
+            print(tile)
+            tdim = tile[1]-tile[0], tile[3]-tile[2]
+            print(tdim)
+            tilex = transform[2] + tile[0] * transform[0]
+            tiley = transform[5] + tile[2] * transform[4]
+            #print(tile)
+            print(tilex, tiley)
 
             ## set output names for this tile
             rhot_file_tile = pid+'_rhot'+ext
-            rhot_file_tile_local = '{}/{}.zip'.format(output,rhot_file_tile)
+            rhot_file_tile_local = '{}/{}.tif'.format(output,rhot_file_tile)
             rhos_file_tile = pid+'_rhos'+ext
-            rhos_file_tile_local = '{}/{}.zip'.format(output,rhos_file_tile)
+            rhos_file_tile_local = '{}/{}.tif'.format(output,rhos_file_tile)
             geom_file_tile = pid+'_geom'+ext
-            geom_file_tile_local = '{}/{}.zip'.format(output,geom_file_tile)
+            geom_file_tile_local = '{}/{}.tif'.format(output,geom_file_tile)
             sr_file_tile = pid+'_sr'+ext
-            sr_file_tile_local = '{}/{}.zip'.format(output,sr_file_tile)
+            sr_file_tile_local = '{}/{}.tif'.format(output,sr_file_tile)
             st_file_tile = pid+'_st'+ext
-            st_file_tile_local = '{}/{}.zip'.format(output,st_file_tile)
+            st_file_tile_local = '{}/{}.tif'.format(output,st_file_tile)
+            sp_file_tile = pid+'_sp'+ext
+            sp_file_tile_local = '{}/{}.tif'.format(output,sp_file_tile)
 
+            ## set up grid
+            grid = {
+                'dimensions': {
+                    'width': tdim[0],
+                    'height': tdim[1]
+                },
+                'affineTransform': {
+                    'scaleX': transform[0],
+                    'shearX': 0,
+                    'translateX': tilex,
+                    'shearY': 0,
+                    'scaleY': transform[4],
+                    'translateY': tiley,
+                },
+                'crsCode': proj_crs,
+            }
+
+            print(grid)
+
+            ## store data
             ## write geometry (tile)
             if settings['store_geom'] & (i_geom is not None):
-                output_config['description'] = geom_file_tile
-                url = i_geom.getDownloadUrl({
-                    'name': output_config['description'],
-                    'bands': obands_geom,
-                    'region': output_config['region'],
-                    'scale': output_config['scale'],
-                    'crs': output_config['crs'],
-                    'crs_transform': output_config['crs_transform'],
-                    'filePerBand': False})
-                print('Downloading {}'.format(geom_file_tile))
-                response = requests.get(url)
+                ## set up request
+                request = {'expression': (i_geom),'fileFormat': 'GEO_TIFF',
+                            'grid': grid,'bandIds': obands_geom}
+                ## get pixels
+                tmp = ee.data.computePixels(request)
+                print('geom', len(tmp))
+                ## write data
                 with open(geom_file_tile_local, 'wb') as f:
-                    f.write(response.content)
+                    f.write(tmp)
                 geom_files.append(geom_file_tile_local)
 
-            ## write rhot (tile)
+            ## write surface reflectance
             if settings['surface_reflectance']:
                 if settings['store_sr']:
-                    output_config['description'] = sr_file_tile
-                    url = i_sr.getDownloadUrl({
-                            'name': output_config['description'],
-                            'bands': obands_sr,
-                            'region': output_config['region'],
-                            'scale': output_config['scale'],
-                            'crs': output_config['crs'],
-                            'crs_transform': output_config['crs_transform'],
-                            'filePerBand': False})
-                    print('Downloading {}'.format(sr_file_tile))
-                    response = requests.get(url)
-                    with open(sr_file_tile_local, 'wb') as f:
-                        f.write(response.content)
+                    ## set up request
+                    request = {'expression': (i_sr),'fileFormat': 'GEO_TIFF',
+                                'grid': grid,'bandIds': obands_sr}
+                    ## get pixels
+                    tmp = ee.data.computePixels(request)
+                    print('sr', len(tmp))
+                    ## write data
+                    with open(sr_file_tile, 'wb') as f:
+                        f.write(tmp)
                     sr_files.append(sr_file_tile_local)
+                if settings['store_sp'] & (st_par != None):
+                    ## set up request
+                    request = {'expression': (st_par),'fileFormat': 'GEO_TIFF',
+                                'grid': grid,'bandIds': obands_sp}
+                    ## get pixels
+                    tmp = ee.data.computePixels(request)
+                    print('sp', len(tmp))
+                    ## write data
+                    with open(sp_file_tile_local, 'wb') as f:
+                        f.write(tmp)
+                    sp_files.append(sp_file_tile_local)
+            ## write rhot and rhos
             else:
+                ## write rhot
                 if settings['store_rhot']:
-                    output_config['description'] = rhot_file_tile
-                    url = i_rhot.getDownloadUrl({
-                            'name': output_config['description'],
-                            'bands': obands_rhot,
-                            'region': output_config['region'],
-                            'scale': output_config['scale'],
-                            'crs': output_config['crs'],
-                            'crs_transform': output_config['crs_transform'],
-                            'filePerBand': False})
-                    print('Downloading {}'.format(rhot_file_tile))
-                    response = requests.get(url)
+                    ## set up request
+                    request = {'expression': (i_rhot),'fileFormat': 'GEO_TIFF',
+                                'grid': grid,'bandIds': obands_rhot, 'workloadTag': tile[-1]}
+                    ## get pixels
+                    tmp = ee.data.computePixels(request)
+                    print('rhot', len(tmp))
+                    ## write data
                     with open(rhot_file_tile_local, 'wb') as f:
-                        f.write(response.content)
+                        f.write(tmp)
                     rhot_files.append(rhot_file_tile_local)
-
-                ## write rhos (tile)
+                ## write rhos
                 if settings['store_rhos'] & settings['run_hybrid_dsf']:
-                    output_config['description'] = rhos_file_tile
-                    url = i_rhos.getDownloadUrl({
-                        'name': output_config['description'],
-                        'bands': obands_rhos,
-                        'region': output_config['region'],
-                        'scale': output_config['scale'],
-                        'crs': output_config['crs'],
-                        'crs_transform': output_config['crs_transform'],
-                        'filePerBand': False})
-                    print('Downloading {}'.format(rhos_file_tile))
-                    response = requests.get(url)
+                    ## set up request
+                    request = {'expression': (i_rhos),'fileFormat': 'GEO_TIFF',
+                                'grid': grid,'bandIds': obands_rhos}
+                    ## get pixels
+                    tmp = ee.data.computePixels(request)
+                    print('rhos', len(tmp))
+                    ## write data
                     with open(rhos_file_tile_local, 'wb') as f:
-                        f.write(response.content)
+                        f.write(tmp)
                     rhos_files.append(rhos_file_tile_local)
-
-                ## write rhos (tile)
+                ## write st
                 if settings['store_st'] & settings['run_hybrid_tact']:
-                    output_config['description'] = st_file_tile
-                    url = i_st.getDownloadUrl({
-                        'name': output_config['description'],
-                        'bands': obands_st,
-                        'region': output_config['region'],
-                        'scale': output_config['scale'],
-                        'crs': output_config['crs'],
-                        'crs_transform': output_config['crs_transform'],
-                        'filePerBand': False})
-                    print('Downloading {}'.format(st_file_tile))
-                    response = requests.get(url)
+                    ## set up request
+                    request = {'expression': (i_st),'fileFormat': 'GEO_TIFF',
+                                'grid': grid,'bandIds': obands_st}
+                    ## get pixels
+                    tmp = ee.data.computePixels(request)
+                    print('st', len(tmp))
+                    ## write data
                     with open(st_file_tile_local, 'wb') as f:
-                        f.write(response.content)
+                        f.write(tmp)
                     st_files.append(st_file_tile_local)
     ## end store local files
 
@@ -806,86 +920,101 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         geom_data = None
         sr_data = None
         st_data = None
+        sp_data = None
 
-        for ti, tile in enumerate(tiles):
-            print(tile[4])
+        for ti, ptile in enumerate(ptiles):
+            ## tile dimensions
+            xp = ptile[1]-ptile[0]
+            yp = ptile[3]-ptile[2]
+            ## output tile position
+            tile = int(ptile[0] - porigin[0]), int(ptile[1] - porigin[0]), \
+                   int(ptile[2] - porigin[1]), int(ptile[3] - porigin[1])
             file_proj = None
 
             if settings['surface_reflectance']:
-                srf = sr_files[ti]
-                sr_image_file = '/vsizip/{}/{}.tif'.format(srf, os.path.basename(os.path.splitext(srf)[0]))
+                sr_image_file = sr_files[ti]
                 ## read sr
-                if os.path.exists(srf):
+                if os.path.exists(sr_image_file):
                     file_proj = '{}'.format(sr_image_file)
                     ds = gdal.Open(sr_image_file)
                     if num_tiles == 1:
                         sr_data = ds.ReadAsArray()
                     else:
-                        if sr_data is None: sr_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        if sr_data is None: sr_data = np.zeros((ds.RasterCount, rdim[1], rdim[0]))+np.nan
                         sr_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
                     sr_data[sr_data==0.0] = np.nan
+
+                if settings['store_sp'] & (st_par != None):
+                    sp_image_file = sp_files[ti]
+                    ## read sp
+                    if os.path.exists(sp_image_file):
+                        file_proj = '{}'.format(sp_image_file)
+                        ds = gdal.Open(sp_image_file)
+                        if num_tiles == 1:
+                            sp_data = ds.ReadAsArray()
+                        else:
+                            if sp_data is None: sp_data = np.zeros((ds.RasterCount, rdim[1], rdim[0]))+np.nan
+                            sp_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
+                        ds = None
+                        #sr_data[sr_data==0.0] = np.nan
             else:
                 ## read rhot data
                 if len(rhot_files) == num_tiles:
-                    rhotf = rhot_files[ti]
-                    rhot_image_file = '/vsizip/{}/{}.tif'.format(rhotf, os.path.basename(os.path.splitext(rhotf)[0]))
+                    rhot_image_file = rhot_files[ti]
                     ## read rhot
-                    if os.path.exists(rhotf):
+                    if os.path.exists(rhot_image_file):
                         file_proj = '{}'.format(rhot_image_file)
                         ds = gdal.Open(rhot_image_file)
                         if num_tiles == 1:
                             rhot_data = ds.ReadAsArray()
                         else:
-                            if rhot_data is None: rhot_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                            if rhot_data is None: rhot_data = np.zeros((ds.RasterCount, rdim[1], rdim[0]))+np.nan
                             rhot_data[:, tile[2]:tile[3], tile[0]:tile[1]] = ds.ReadAsArray()
                         ds = None
                         rhot_data[rhot_data==0.0] = np.nan
 
                 ## read rhos data
                 if len(rhos_files) == num_tiles:
-                    rhosf = rhos_files[ti]
-                    rhos_image_file = '/vsizip/{}/{}.tif'.format(rhosf, os.path.basename(os.path.splitext(rhosf)[0]))
+                    rhos_image_file = rhos_files[ti]
                     ## read rhos
-                    if os.path.exists(rhosf):
+                    if os.path.exists(rhos_image_file):
                         file_proj = '{}'.format(rhos_image_file)
                         ds = gdal.Open(rhos_image_file)
                         if num_tiles == 1:
                             rhos_data = ds.ReadAsArray()
                         else:
-                            if rhos_data is None: rhos_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                            if rhos_data is None: rhos_data = np.zeros((ds.RasterCount, rdim[1], rdim[0]))+np.nan
                             rhos_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
                         ds = None
                     rhos_data[rhos_data==0.0] = np.nan
 
             ## read geom data
             if len(geom_files) == num_tiles:
-                geomf = geom_files[ti]
-                geom_image_file = '/vsizip/{}/{}.tif'.format(geomf, os.path.basename(os.path.splitext(geomf)[0]))
+                geom_image_file = geom_files[ti]
                 ## read geom
-                if os.path.exists(geomf):
+                if os.path.exists(geom_image_file):
                     file_proj = '{}'.format(geom_image_file)
                     ds = gdal.Open(geom_image_file)
                     if num_tiles == 1:
                         geom_data = ds.ReadAsArray()
                     else:
-                        if geom_data is None: geom_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        if geom_data is None: geom_data = np.zeros((ds.RasterCount, rdim[1], rdim[0]))+np.nan
                         geom_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
 
             ## read st data
             if len(st_files) == num_tiles:
-                stf = st_files[ti]
-                st_image_file = '/vsizip/{}/{}.tif'.format(stf, os.path.basename(os.path.splitext(stf)[0]))
+                st_image_file = st_files[ti]
                 print(st_image_file)
                 ## read geom
-                if os.path.exists(stf):
+                if os.path.exists(st_image_file):
                     file_proj = '{}'.format(st_image_file)
                     ds = gdal.Open(st_image_file)
                     if num_tiles == 1:
                         st_data = ds.ReadAsArray()
                     else:
-                        if stdata is None: st_data = np.zeros((ds.RasterCount, odim[1], odim[0]))+np.nan
+                        if stdata is None: st_data = np.zeros((ds.RasterCount, rdim[1], rdim[0]))+np.nan
                         st_data[:, tile[2]:tile[3],tile[0]:tile[1]] = ds.ReadAsArray()
                     ds = None
 
@@ -941,10 +1070,8 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         ## output file names
         ext = ''
         if len(rname) >= 0: ext = '_{}'.format(rname)
-        #rhot_file = pid+'_rhot'+ext
-        #rhot_file_local = '{}/{}.zip'.format(output,rhot_file)
         if settings['use_scene_name']:
-            ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.zip', '.nc')
+            ofile = rhot_file_local.replace('_rhot', '_{}'.format(file_type)).replace('.tif', '.nc')
         else:
             obase  = '{}_{}_{}_{}{}'.format(gatts['satellite_sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), tile_name, file_type, ext)
             ofile = '{}/{}.nc'.format(os.path.dirname(rhot_file_local), obase)
@@ -956,32 +1083,24 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         lon, lat = ac.shared.projection_geo(dct, add_half_pixel=True)
 
         ## write lon
-        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, double=True, nc_projection=nc_projection)
         if verbosity > 1: print('Wrote lon')
         lon = None
 
         ## write lat
-        ac.output.nc_write(ofile, 'lat', lat, double=True,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'])
+        ac.output.nc_write(ofile, 'lat', lat, double=True)
         if verbosity > 1: print('Wrote lat')
         lat = None
         new = False
 
         if geom_data is not None:
             for bi, b in enumerate(['SAA', 'SZA', 'VAA', 'VZA']):
-                ac.output.nc_write(ofile, b.lower(), geom_data[bi,:,:],
-                                         netcdf_compression=setu['netcdf_compression'],
-                                         netcdf_compression_level=setu['netcdf_compression_level'])
+                ac.output.nc_write(ofile, b.lower(), geom_data[bi,:,:])
                 if verbosity > 1: print('Wrote {}'.format(b.lower()))
             ## compute raa
             raa = np.abs(geom_data[0,:,:]-geom_data[2,:,:])
             raa[raa>180] = np.abs(360 - raa[raa>180])
-            ac.output.nc_write(ofile, 'raa', raa,
-                                netcdf_compression=setu['netcdf_compression'],
-                                netcdf_compression_level=setu['netcdf_compression_level'])
+            ac.output.nc_write(ofile, 'raa', raa)
             if verbosity > 1: print('Wrote raa')
             raa = None
             geom_data = None
@@ -1000,8 +1119,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 sr_ds = 'rhos_sr_{}'.format(wave_name)
                 ## write sr data
                 if sr_data is not None:
-                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, sr_ds, sr_data[bii, :, :], dataset_attributes=att)
                     print('Wrote {}'.format(sr_ds))
                     bii += 1
             else:
@@ -1012,14 +1130,12 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
                 ## write rhot data
                 if rhot_data is not None:
-                    ac.output.nc_write(ofile, rhot_ds, rhot_data[bi, :, :], dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, rhot_ds, rhot_data[bi, :, :], dataset_attributes=att)
                     print('Wrote {}'.format(rhot_ds))
 
                 ## write rhos data
                 if (att['tt_gas'] > min_tgas_rho) & (rhos_data is not None):
-                    ac.output.nc_write(ofile, rhos_ds, rhos_data[bi, :, :], dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, rhos_ds, rhos_data[bi, :, :], dataset_attributes=att)
                     print('Wrote {}'.format(rhos_ds))
 
         ## write Landsat L2 ST
@@ -1033,11 +1149,20 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     ## mask out of scene data
                     cur_data = sr_data[bii, :, :] * 1.0
                     cur_data[cur_data<=thermal_add_factor] = np.nan
-                    ac.output.nc_write(ofile, sr_ds, cur_data, dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, sr_ds, cur_data, dataset_attributes=att)
                     print('Wrote {} ({})'.format(sr_ds, cur_data.shape))
                     cur_data = None
                     bii += 1
+
+            ## output extra st parameters
+            if len(st_par_bands) != 0:
+                for bi, b in enumerate(st_par_bands):
+                    att = {'band': b}
+                    if sp_data is not None:
+                        cur_data = sp_data[bi, :, :]
+                        ac.output.nc_write(ofile, b, cur_data, dataset_attributes=att)
+                        print('Wrote {} ({})'.format(b, cur_data.shape))
+                        cur_data = None
         ## end write Landsat L2 ST
 
         if not settings['surface_reflectance']:
@@ -1049,8 +1174,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                 if rhot_data is not None:
                     cur_data = rhot_data[bi, :, :] * 1.0
                     dso = b.replace('B', 'bt')
-                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att,
-                                       netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                    ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att)
                     print('Wrote {} ({})'.format(dso, cur_data.shape))
                     cur_data = None
 
@@ -1061,8 +1185,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                         else:
                             cur_data = st_data * 1.0
                         dso = b.replace('B', 'st')
-                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att,
-                                           netcdf_compression=setu['netcdf_compression'], netcdf_compression_level=setu['netcdf_compression_level'])
+                        ac.output.nc_write(ofile, dso, cur_data, dataset_attributes=att)
                         print('Wrote {} ({})'.format(dso, cur_data.shape))
                         cur_data = None
                         bii += 1
@@ -1076,7 +1199,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
 
         ## clear intermediate files
         if settings['store_output_locally'] & settings['clear_output_zip_files']:
-            for zfile in rhot_files+geom_files+rhos_files+sr_files:
+            for zfile in rhot_files+geom_files+rhos_files+sr_files+sp_files:
                 if os.path.exists(zfile):
                     print('Removing {}'.format(zfile))
                     os.remove(zfile)

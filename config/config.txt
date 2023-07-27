@@ -6,6 +6,7 @@
 defaults=$ACDIR/config/defaults.txt
 parameter_labels=$ACDIR/config/parameter_labels.txt
 parameter_cf_attributes=$ACDIR/config/parameter_cf_attributes.json
+parameter_discretisation=$ACDIR/config/parameter_discretisation.txt
 
 ## Data directory
 data_dir=$ACDIR/data
@@ -50,7 +51,7 @@ EARTHDATA_u=
 EARTHDATA_p=
 
 ## list of hyperspectral sensors (do not edit)
-hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI,ENMAP_HSI
+hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI,ENMAP_HSI,ISS_EMIT,HYPSO1
 
 ## list of thermal sensors (do not edit)
-thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,TERRA_ASTER_TIR
+thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,TERRA_ASTER_TIR,JPSS-1_VIIRS_TIR,JPSS-2_VIIRS_TIR,SUOMI-NPP_VIIRS_TIR

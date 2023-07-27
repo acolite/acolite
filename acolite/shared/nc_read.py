@@ -1,9 +1,16 @@
-## QV 2021-11-17 updated file handling
+## series of NetCDF reading functions
+## written by Quinten Vanhellemont, RBINS
+##
+## modifications:
+##              2021-11-17 (QV) updated file handling
+##              2023-05-31 (QV) added group keyword
 
 # read dataset and global attributes from netcdf
-def nc_read(file, dataset):
+def nc_read(file, dataset, group = None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
+        if group is not None:
+            if group in nc.groups: nc = nc.groups[group]
         gatts = {attr : getattr(nc,attr) for attr in nc.ncattrs()}
         out_array = nc.variables[dataset][:]
     return (out_array, gatts)
@@ -11,9 +18,11 @@ def nc_read(file, dataset):
 # read dataset from netcdf
 # Last updates: 2016-12-19 (QV) added crop (x0,x1,y0,y1)
 ##              2017-03-16 (QV) added sub keyword (xoff, yoff, xcount, ycount)
-def nc_data(file, dataset, crop=False, sub=None, attributes=False):
+def nc_data(file, dataset, crop=False, sub=None, attributes=False, group=None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
+        if group is not None:
+            if group in nc.groups: nc = nc.groups[group]
         if sub is None:
             if crop is False:
                 data = nc.variables[dataset][:]
@@ -31,9 +40,11 @@ def nc_data(file, dataset, crop=False, sub=None, attributes=False):
         return(data)
 
 ## get attributes for given dataset
-def nc_atts(file, dataset):
+def nc_atts(file, dataset, group = None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
+        if group is not None:
+            if group in nc.groups: nc = nc.groups[group]
         atts = {attr : getattr(nc.variables[dataset],attr) for attr in nc.variables[dataset].ncattrs()}
     return atts
 
@@ -45,8 +56,11 @@ def nc_gatts(file):
     return gatts
 
 # read datasets in netcdf
-def nc_datasets(file):
+# Last updates: 2023-05-31 (QV) added group keyword
+def nc_datasets(file, group = None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
+        if group is not None:
+            if group in nc.groups: nc = nc.groups[group]
         ds = list(nc.variables.keys())
     return ds

@@ -1,0 +1,28 @@
+## configuration file for CHL_CI and CHL_OCX algorithm
+## this files sets the coefficients of the CI algorithm
+## Hu et al. 2012 https://doi.org/10.1029/2011JC007395
+## Hu et al. 2019 https://doi.org/10.1029/2019JC014941
+## https://oceancolor.gsfc.nasa.gov/atbd/chlor_a/
+
+## blue, green, red wavelengths
+wave=443,555,670
+
+## CHL coefficients
+a0CI=-0.4287
+a1CI=230.47
+
+## band shifting green
+wave_green_diff=2
+
+## shifting parameters w0, w1, sw, a1, b1, a2, b2
+shift_543_547=543,547,0.001723,0.986,0.081495,1.031,0.000216
+shift_548_552=548,552,0.001597,0.988,0.062195,1.014,0.000128
+shift_558_562=558,562,0.001148,1.023,-0.103624,0.979,-0.000121
+shift_563_567=563,567,0.000891,1.039,-0.183044,0.971,-0.000170
+
+## blending edges for CI
+t1=0.25
+t2=0.35
+
+## mask CHL above edges
+mask_t2=True
