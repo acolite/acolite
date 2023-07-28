@@ -1499,7 +1499,7 @@ def acolite_l2r(gem,
             ## sub_gc has the idx for non masked data with rhos_ref below the masking threshold
             gc_mask_data = gemo.data(gc_mask)
 
-            if gc_mask_data == (): ## can be an empty tuple for night time images (should not be processed, but this avoids a crash)
+            if gc_mask_data is None: ## reference rhos dataset can be missing for night time images (tgas computation goes negative)
                 print('No glint mask could be determined.')
             else:
                 sub_gc = np.where(np.isfinite(gc_mask_data) & \
