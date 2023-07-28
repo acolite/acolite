@@ -124,7 +124,7 @@ def acolite_run(settings, inputfile=None, output=None):
             rep = []
             for ncf in processed[ni]['l1r']:
                 ncfo = ac.output.project_acolite_netcdf(ncf, settings=settings)
-                if ncfo == (): continue
+                if ncfo is None: continue
                 rep.append(ncfo)
             if len(rep) > 0:
                 processed[ni]['l1r_swath'] = [ncf for ncf in processed[ni]['l1r']]
@@ -261,7 +261,7 @@ def acolite_run(settings, inputfile=None, output=None):
                 if otype not in processed[i]: continue
                 for ncf in processed[i][otype]:
                     ncfo = ac.output.project_acolite_netcdf(ncf, settings=settings)
-                    if ncfo == (): continue
+                    if ncfo is None: continue
                     reprojected.append(ncfo)
 
                     ## make rgb  maps

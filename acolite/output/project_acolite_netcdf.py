@@ -27,17 +27,17 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
         gatts = ac.shared.nc_gatts(ncf)
     except:
         print('Error accessing {}, is this a NetCDF file?'.format(ncf))
-        return()
+        return
 
     if ('sensor' not in gatts):
         print('No sensor attribute in file {}'.format(ncf))
-        return()
+        return
 
     ## read datasets
     datasets = ac.shared.nc_datasets(ncf)
     if ('lat' not in datasets) or ('lon' not in datasets):
         print('No lat/lon found in file {}'.format(ncf))
-        return()
+        return
 
     lon = None
     lat = None
@@ -67,7 +67,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
     if setu['output_projection_resolution'] is not None:
         if len(setu['output_projection_resolution']) != 2:
             print('Provide a two element target_pixel_size.')
-            return()
+            return
         else:
             target_pixel_size = [float(v) for v in setu['output_projection_resolution']]
             target_pixel_size[1] *= -1
@@ -80,7 +80,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
     if setu['output_projection_limit'] is not None:
         if len(setu['output_projection_limit']) != 4:
             print('Provide a four element output_projection_limit.')
-            return()
+            return
         else:
             limit = [float(v) for v in setu['output_projection_limit']]
 
@@ -94,7 +94,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
     else:
         if not setu['output_projection_metres']:
             print('Provide a four element output_projection_limit.')
-            return()
+            return
 
     ## projection
     if setu['output_projection_epsg'] is not None:
@@ -107,7 +107,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
         projection = setu['output_projection_proj4']
     else:
         print('No EPSG or proj4 string provided.')
-        return()
+        return
 
     ## user provided x and yrange
     if setu['output_projection_metres']:
@@ -115,13 +115,13 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
         yrange_region = setu['output_projection_yrange']
         if (xrange_region is None) or  (yrange_region is None):
             print('Provide a output_projection_xrange and output_projection_yrange.')
-            return()
+            return
         if len(xrange_region) != 2:
             print('Provide a two element output_projection_xrange.')
-            return()
+            return
         if len(yrange_region) != 2:
             print('Provide a two element output_projection_yrange.')
-            return()
+            return
 
     ## create output file name
     bn = os.path.basename(ncf)
