@@ -558,7 +558,8 @@ def acolite_l2w(gem,
             par_attributes['reference']='Novoa et al. 2017'
 
             ## read config dict
-            novoa_dict = ac.parameters.novoa.coef()
+            novoa_config='defaults'
+            novoa_dict = ac.shared.import_config('{}/Shared/algorithms/Novoa/{}.txt'.format(ac.config['data_dir'], novoa_config), parse=True)
 
             ## find suitable bands for Novoa red-NIR switching algorithm
             tur_waves = []
