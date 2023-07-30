@@ -93,7 +93,11 @@ chl_re_bramich,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
 ## indices
 #
 fai,-0.04,0.06,False,default,FAI $\rho_s$ (Hu et al. 2009),-
+fai_i,-0.04,0.06,False,default,FAI (I) $\rho_s$ (Hu et al. 2009),-
+fai_m,-0.04,0.06,False,default,FAI (M) $\rho_s$ (Hu et al. 2009),-
 fai_rhot,-0.04,0.06,False,default,FAI $\rho_t$ (Hu et al. 2009),-
+fai_rhot_i,-0.04,0.06,False,default,FAI (I) $\rho_t$ (Hu et al. 2009),-
+fai_rhot_m,-0.04,0.06,False,default,FAI (M) $\rho_t$ (Hu et al. 2009),-
 fait,0,1,False,default,FAIT (Dogliotti et al. 2018),-
 #
 ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),-
