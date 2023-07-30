@@ -1,7 +1,7 @@
 ;; Coefficients for Dogliotti et al., 2018 FAIT algorithm
 ;;
 ;;
-;; formatting for ACOLITE processing QV, Jul. 2018 
+;; formatting for ACOLITE processing QV, Jul. 2018
 ;;
 
 ;; limit on the FAI (fai > fait_fai_threshold is floating)
@@ -23,3 +23,6 @@ fait_a_threshold_OLI = 5
 
 ;; S2 MSI
 fait_a_threshold_MSI = 0
+
+;; VIIRS - taken as MODIS
+fait_a_threshold_VIIRS = 10
