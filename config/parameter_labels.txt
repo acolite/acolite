@@ -98,7 +98,11 @@ fait,0,1,False,default,FAIT (Dogliotti et al. 2018),-
 #
 ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),-
 ndvi,-0.5,0.5,False,default,NDVI $\rho_s$,-
+ndvi_i,-0.5,0.5,False,default,NDVI (I) $\rho_s$,-
+ndvi_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,-
 ndvi_rhot,-0.5,0.5,False,default,NDVI $\rho_t$,-
+ndvi_rhot_i,-0.5,0.5,False,default,NDVI (I) $\rho_t$,-
+ndvi_rhot_m,-0.5,0.5,False,default,NDVI (M) $\rho_t$,-
 #
 slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),-
 #
