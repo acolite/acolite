@@ -1261,6 +1261,8 @@ def acolite_l2w(gem,
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_OLI'])
             elif gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_MSI'])
+            elif 'VIIRS' in gem.gatts['sensor']:
+                fait_a_threshold = float(fait_cfg['fait_a_threshold_VIIRS'])
             else:
                 print('Parameter {} not configured for {}.'.format(par_name,gem.gatts['sensor']))
                 continue
@@ -1272,58 +1274,95 @@ def acolite_l2w(gem,
             par_attributes['L_limit'] = fait_L_limit
             par_attributes['a_threshold'] = fait_a_threshold
 
+            ## wavelengths and max wavelength difference
+            fai_diff = [10, 10, 30, 30, 80]
+            req_waves = [490, 560, 660, 865, 1610]
+
             ## select bands
             required_datasets,req_waves_selected = [],[]
             ds_waves = [w for w in rhos_waves]
+            ds_names = [ds for ds in rhos_ds]
+            if cur_par=='fai_rhot':
+                par_attributes['dataset']='rhot'
+                ds_waves = [w for w in rhot_waves]
+                ds_names = [ds for ds in rhot_ds]
 
-            ## wavelengths and max wavelength difference
-            fai_diff = [10, 10, 10, 30, 80]
-            req_waves = [490, 560, 660, 865, 1610]
-            for i, reqw in enumerate(req_waves):
-                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
-                if abs(float(selwave)-float(reqw)) > fai_diff[i]: continue
-                selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                required_datasets.append(selds)
-                req_waves_selected.append(selwave)
-            par_attributes['waves']=req_waves_selected
-            if len(required_datasets) != len(req_waves): continue
+            ## number of products possible (for VIIRS use both I and M bands)
+            fai_products = 1
+            if 'VIIRS' in gem.gatts['sensor']: fai_products = 2
 
-            ## get data
-            for di, cur_ds in enumerate(required_datasets):
-                if di == 0: tmp_data = []
-                cur_data = 1.0 * gem.data(cur_ds)
-                tmp_data.append(cur_data)
+            ## find bands to use
+            fai_waves = []
+            fai_datasets = []
+            for pi in range(fai_products):
+                fai_waves.append([])
+                fai_datasets.append([])
 
-            ## compute fait
-            fai_sc = (float(par_attributes['waves'][3])-float(par_attributes['waves'][2]))/\
-                     (float(par_attributes['waves'][4])-float(par_attributes['waves'][2]))
-            nir_prime = tmp_data[2] + \
-                        (tmp_data[4]-tmp_data[2]) * fai_sc
-            par_data[par_name] = tmp_data[3] - nir_prime
-            par_atts[par_name] = par_attributes
-            nir_prime = None
+                for ci, cw in enumerate(req_waves):
+                    if 'VIIRS' in gem.gatts['sensor']:
+                        band_prefix = {0:'I', 1:'M'}[pi]
+                        ## override for M bands to make RGB
+                        if ci <= 1: band_prefix = 'M'
+                        ds_names_ = [ds for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        ds_waves_ = [ds_waves[ii] for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        wi, wv = ac.shared.closest_idx(ds_waves_, cw)
+                        ds = ds_names_[wi]
+                        print(ds_names_)
+                        print(ds_waves_)
+                    else:
+                        wi, wv = ac.shared.closest_idx(ds_waves, cw)
+                        ds = ds_names[wi]
+                    if wv > cw+fai_diff[ci]: continue
+                    if wv < cw-fai_diff[ci]: continue
+                    fai_waves[pi].append(wv)
+                    fai_datasets[pi].append(ds)
 
-            ## make lab coordinates
-            for i in range(3):
-                data = ac.shared.datascl(tmp_data[i], dmin=0, dmax=fait_rgb_limit)
-                if i == 0:
-                    rgb = data
-                else:
-                    rgb = np.dstack((rgb,data))
-                data = None
-            lab = skimage.color.rgb2lab(rgb)
-            rgb = None
+            ## run through needed products
+            for pi in range(fai_products):
+                if len(fai_datasets[pi]) != len(req_waves): continue
+                par_attributes['waves']=fai_waves[pi]
 
-            ## check FAI > 0
-            par_data[par_name][par_data[par_name] >= fait_fai_threshold] = 1.0
-            par_data[par_name][par_data[par_name] < fait_fai_threshold] = 0.0
+                ## output parameter name
+                par_name = '{}'.format(cur_par)
+                if 'VIIRS' in gem.gatts['sensor']:
+                    par_name += '_{}'.format(fai_datasets[pi][-1][5].upper())
 
-            ## check turbidity based on red threshold
-            par_data[par_name][tmp_data[2] > fait_red_threshold] = 0.0
+                ## get data
+                for di, cur_ds in enumerate(fai_datasets[pi]):
+                    if di == 0: tmp_data = []
+                    cur_data = 1.0 * gem.data(cur_ds)
+                    tmp_data.append(cur_data)
 
-            ## check L and a
-            par_data[par_name][lab[:,:,0] >= fait_L_limit] = 0.0
-            par_data[par_name][lab[:,:,1] >= fait_a_threshold] = 0.0
+                ## compute fait
+                fai_sc = (float(par_attributes['waves'][3])-float(par_attributes['waves'][2]))/\
+                         (float(par_attributes['waves'][4])-float(par_attributes['waves'][2]))
+                nir_prime = tmp_data[2] + \
+                            (tmp_data[4]-tmp_data[2]) * fai_sc
+                par_data[par_name] = tmp_data[3] - nir_prime
+                par_atts[par_name] = par_attributes
+                nir_prime = None
+
+                ## make lab coordinates
+                for i in range(3):
+                    data = ac.shared.datascl(tmp_data[i], dmin=0, dmax=fait_rgb_limit)
+                    if i == 0:
+                        rgb = data
+                    else:
+                        rgb = np.dstack((rgb,data))
+                    data = None
+                lab = skimage.color.rgb2lab(rgb)
+                rgb = None
+
+                ## check FAI > 0
+                par_data[par_name][par_data[par_name] >= fait_fai_threshold] = 1.0
+                par_data[par_name][par_data[par_name] < fait_fai_threshold] = 0.0
+
+                ## check turbidity based on red threshold
+                par_data[par_name][tmp_data[2] > fait_red_threshold] = 0.0
+
+                ## check L and a
+                par_data[par_name][lab[:,:,0] >= fait_L_limit] = 0.0
+                par_data[par_name][lab[:,:,1] >= fait_a_threshold] = 0.0
             lab = None
         ## end FAIT
         #############################
