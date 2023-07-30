@@ -4,6 +4,10 @@
 ## formatting for ACOLITE processing QV, Jul. 2018
 ##
 
+## wavelengths and maximum difference
+fait_diff=10,10,30,30,80
+fait_wave=490,560,660,865,1610
+
 ## limit on the FAI (fai > fait_fai_threshold is floating)
 fait_fai_threshold = 0.
 

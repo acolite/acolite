@@ -1277,8 +1277,8 @@ def acolite_l2w(gem,
             par_attributes['a_threshold'] = fait_a_threshold
 
             ## wavelengths and max wavelength difference
-            fai_diff = [10, 10, 30, 30, 80]
-            req_waves = [490, 560, 660, 865, 1610]
+            fai_diff = fait_cfg['fait_diff']
+            req_waves = fait_cfg['fait_wave']
 
             ## select bands
             required_datasets,req_waves_selected = [],[]
