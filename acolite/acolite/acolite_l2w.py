@@ -1172,36 +1172,68 @@ def acolite_l2w(gem,
             par_attributes['reference']='Hu et al. 2009'
             par_attributes['algorithm']=''
 
+            ## wavelengths and max wavelength difference
+            req_waves = [660,865,1610]
+            fai_diff = [30, 30, 80]
+
             ## select bands
             required_datasets,req_waves_selected = [],[]
             ds_waves = [w for w in rhos_waves]
+            ds_names = [ds for ds in rhos_ds]
             if cur_par=='fai_rhot':
                 par_attributes['dataset']='rhot'
                 ds_waves = [w for w in rhot_waves]
-            ## wavelengths and max wavelength difference
-            fai_diff = [10, 30, 80]
-            req_waves = [660,865,1610]
-            for i, reqw in enumerate(req_waves):
-                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
-                if abs(float(selwave)-float(reqw)) > fai_diff[i]: continue
-                selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                required_datasets.append(selds)
-                req_waves_selected.append(selwave)
-            par_attributes['waves']=req_waves_selected
-            if len(required_datasets) != len(req_waves): continue
+                ds_names = [ds for ds in rhot_ds]
 
-            ## get data
-            for di, cur_ds in enumerate(required_datasets):
-                if di == 0: tmp_data = []
-                cur_data = 1.0 * gem.data(cur_ds)
-                tmp_data.append(cur_data)
-            ## compute fai
-            fai_sc = (float(par_attributes['waves'][1])-float(par_attributes['waves'][0]))/\
-                     (float(par_attributes['waves'][2])-float(par_attributes['waves'][0]))
-            nir_prime = tmp_data[0] + (tmp_data[2]-tmp_data[0]) * fai_sc
-            par_data[par_name] = tmp_data[1] - nir_prime
-            par_atts[par_name] = par_attributes
-            tmp_data = None
+            ## number of products possible (for VIIRS use both I and M bands)
+            fai_products = 1
+            if 'VIIRS' in gem.gatts['sensor']: fai_products = 2
+
+            ## find red and NIR bands to use
+            fai_waves = []
+            fai_datasets = []
+            for pi in range(fai_products):
+                fai_waves.append([])
+                fai_datasets.append([])
+
+                for ci, cw in enumerate(req_waves):
+                    if 'VIIRS' in gem.gatts['sensor']:
+                        band_prefix = {0:'I', 1:'M'}[pi]
+                        ds_names_ = [ds for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        ds_waves_ = [ds_waves[ii] for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        wi, wv = ac.shared.closest_idx(ds_waves_, cw)
+                        ds = ds_names_[wi]
+                    else:
+                        wi, wv = ac.shared.closest_idx(ds_waves, cw)
+                        ds = ds_names[wi]
+                    if wv > cw+fai_diff[ci]: continue
+                    if wv < cw-fai_diff[ci]: continue
+                    fai_waves[pi].append(wv)
+                    fai_datasets[pi].append(ds)
+
+            ## run through needed products
+            for pi in range(fai_products):
+                if len(fai_datasets[pi]) != len(req_waves): continue
+                par_attributes['waves']=fai_waves[pi]
+
+                ## output parameter name
+                par_name = '{}'.format(cur_par)
+                if 'VIIRS' in gem.gatts['sensor']:
+                    par_name += '_{}'.format(fai_datasets[pi][0][5].upper())
+
+                ## get data
+                for di, cur_ds in enumerate(fai_datasets[pi]):
+                    if di == 0: tmp_data = []
+                    cur_data = 1.0 * gem.data(cur_ds)
+                    tmp_data.append(cur_data)
+
+                ## compute fai
+                fai_sc = (float(par_attributes['waves'][1])-float(par_attributes['waves'][0]))/\
+                         (float(par_attributes['waves'][2])-float(par_attributes['waves'][0]))
+                nir_prime = tmp_data[0] + (tmp_data[2]-tmp_data[0]) * fai_sc
+                par_data[par_name] = tmp_data[1] - nir_prime
+                par_atts[par_name] = par_attributes
+                tmp_data = None
         ## end FAI
         #############################
 
@@ -1330,7 +1362,6 @@ def acolite_l2w(gem,
                 ndvi_datasets.append([])
 
                 for ci, cw in enumerate(req_waves):
-                    ## compute Novoa SPM for both I and M bands
                     if 'VIIRS' in gem.gatts['sensor']:
                         band_prefix = {0:'I', 1:'M'}[pi]
                         ds_names_ = [ds for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
@@ -1368,6 +1399,7 @@ def acolite_l2w(gem,
                 par_atts[par_name] = par_attributes
                 tmp_data = None
         ## end NDVI
+        #############################
 
         #############################
         ## NDCI
