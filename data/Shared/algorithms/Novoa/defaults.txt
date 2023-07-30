@@ -1,0 +1,30 @@
+## Coefficients to compute Novoa turbidity and suspended particulate matter algorithms
+## based on Nechad et al band specific calibration
+
+## required wavelengths for Novoa SPM/TUR mixing
+novoa_waves_req=665,865
+
+## maximum difference for wavelengths
+novoa_waves_off=40,40
+
+## algorithm to use (currently nechad_centre and nechad_average)
+novoa_algorithm=nechad_average
+novoa_algorithm=nechad_centre
+
+## output band switching results
+novoa_output_switch=False
+
+## algorithm switching bounds
+## Novoa switches based on rhow in the red band
+## green band for < rhow_switch_red[0] (currently not used)
+## green+red between rhow_switch_red[0] and rhow_switch_red[1]
+## red between rhow_switch_red[1] and rhow_switch_nir[0]
+## red+nir between rhow_switch_nir[0] and rhow_switch_nir[1]
+## nir above rhow_switch_nir[1]
+##
+## settings for Gironde
+rhow_switch_red=0.007,0.016
+rhow_switch_nir=0.08,0.12
+## settings for Bourgneuf
+#rhow_switch_red=0.007,0.016
+#rhow_switch_nir=0.046,0.09

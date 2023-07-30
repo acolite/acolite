@@ -550,6 +550,147 @@ def acolite_l2w(gem,
         #############################
 
         #############################
+        ## start Novoa blended turbidity
+        if 'novoa2017' in cur_par:
+            mask = True ## water parameter so apply mask
+            #novoa_par = cur_par.split('_')[0][0]
+            novoa_par = {'t':'tur', 's':'spm'}[cur_par.split('_')[0][0].lower()]
+            par_attributes = {'algorithm':'Novoa et al. 2017', 'title':'Novoa Turbidity'}
+            par_attributes['reference']='Novoa et al. 2017'
+
+            ## read config dict
+            novoa_dict = ac.parameters.novoa.coef()
+
+            ## find suitable bands for Novoa red-NIR switching algorithm
+            tur_waves = []
+            tur_bands = []
+            for b in rsrd[gem.gatts['sensor']]['wave_name']:
+                w = rsrd[gem.gatts['sensor']]['wave_nm'][b]
+                if (w >= setu['nechad_range'][0]) and (w <= setu['nechad_range'][1]):
+                    tur_waves.append(w)
+                    tur_bands.append(b)
+
+            ## number of products possible (for VIIRS use both I and M bands)
+            novoa_products = 1
+            if 'VIIRS' in gem.gatts['sensor']: novoa_products = 2
+
+            ## find red and NIR bands to use
+            novoa_bands = []
+            novoa_waves = []
+            for pi in range(novoa_products):
+                novoa_bands.append([])
+                novoa_waves.append([])
+
+                for ci, cw in enumerate(novoa_dict['novoa_waves_req']):
+                    ## compute Novoa SPM for both I and M bands
+                    if 'VIIRS' in gem.gatts['sensor']:
+                        band_prefix = {0:'I', 1:'M'}[pi]
+                        tur_waves_ = [w for ii, w in enumerate(tur_waves) if tur_bands[ii][0] == band_prefix]
+                        tur_bands_ = [b for b in tur_bands if b[0] == band_prefix]
+                        wi, wv = ac.shared.closest_idx(tur_waves_, cw)
+                        b = tur_bands_[wi]
+                    else:
+                        wi, wv = ac.shared.closest_idx(tur_waves, cw)
+                        b = tur_bands[wi]
+                    if wv > [cw+novoa_dict['novoa_waves_off'][ci]]: continue
+                    if wv < [cw-novoa_dict['novoa_waves_off'][ci]]: continue
+                    novoa_bands[pi].append(b)
+                    novoa_waves[pi].append(wv)
+
+            if 'nechad' in novoa_dict['novoa_algorithm']:
+                print(novoa_dict)
+
+                ## run through needed products
+                for pi in range(novoa_products):
+                    if len(novoa_bands[pi]) != 2: continue
+                    ## used bands
+                    redb, nirb = novoa_bands[pi]
+                    redw, nirw = novoa_waves[pi]
+                    print(redb, nirb)
+                    print(redw, nirw)
+
+                    ## output parameter name
+                    par_name = '{}_novoa'.format(novoa_par)
+                    if 'VIIRS' in gem.gatts['sensor']:
+                        par_name += '_{}'.format(redb[0].upper())
+                    print(par_name)
+
+                    ## find proper rhos datasets
+                    red_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(redw) in ds)][0]
+                    nir_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(nirw) in ds)][0]
+                    print(red_ds, nir_ds)
+
+                    A_Nechad_red, C_Nechad_red = None, None
+                    A_Nechad_nir, C_Nechad_nir = None, None
+
+                    ## find Nechad calibration for this band
+                    if novoa_dict['novoa_algorithm'] == 'nechad_centre':
+                        A_Nechad_red, C_Nechad_red = ac.parameters.nechad.coef_band(cur_par.split('_')[0], wave=redw)
+                        A_Nechad_nir, C_Nechad_nir = ac.parameters.nechad.coef_band(cur_par.split('_')[0], wave=nirw)
+                    if novoa_dict['novoa_algorithm'] == 'nechad_average':
+                        A_Nechad_red, C_Nechad_red = ac.parameters.nechad.coef_band(cur_par.split('_')[0], sensor=gem.gatts['sensor'], band=redb)
+                        A_Nechad_nir, C_Nechad_nir = ac.parameters.nechad.coef_band(cur_par.split('_')[0], sensor=gem.gatts['sensor'], band=nirb)
+
+                    ## if we have A and C we can continue
+                    if (A_Nechad_red is not None) & (C_Nechad_red is not None) &\
+                       (A_Nechad_nir is not None) & (C_Nechad_nir is not None):
+                        print(A_Nechad_red, C_Nechad_red)
+                        print(A_Nechad_nir, C_Nechad_nir)
+
+                        ## load datasets
+                        red_data = 1.0 * gem.data(red_ds)
+                        nir_data = 1.0 * gem.data(nir_ds)
+
+                        ## compute red and NIR turbidity
+                        red_tur = (A_Nechad_red * red_data) / (1.-(red_data/C_Nechad_red))
+                        red_tur[red_tur<0] = np.nan
+                        nir_tur = (A_Nechad_nir * nir_data) / (1.-(nir_data/C_Nechad_nir))
+                        nir_tur[nir_tur<0] = np.nan
+
+                        ## mask Nechad product in non-linear regime
+                        #red_mask = np.where(red_data >= (setu['nechad_max_rhow_C_factor'] * C_Nechad_red))
+                        #red_tur[red_mask] = np.nan
+                        #nir_mask = np.where(nir_data >= (setu['nechad_max_rhow_C_factor'] * C_Nechad_nir))
+                        #nir_tur[nir_mask] = np.nan
+                        nir_data = None
+
+                        ## determine switching bounds to use red/NIR bands
+                        redi = np.where(red_data <= novoa_dict['rhow_switch_nir'][0])
+                        niri = np.where(red_data >= novoa_dict['rhow_switch_nir'][1])
+
+                        ## log blending bounds ratio
+                        logb = np.log(novoa_dict['rhow_switch_nir'][1]/novoa_dict['rhow_switch_nir'][0])
+
+                        ## blended product
+                        tur_blend = red_tur * np.log(novoa_dict['rhow_switch_nir'][1]/red_data) / logb + \
+                                    nir_tur * np.log(red_data/novoa_dict['rhow_switch_nir'][0]) / logb
+
+                        ## indices for red-NIR blend
+                        rnblend = np.where((red_data > novoa_dict['rhow_switch_nir'][0]) &\
+                                           (red_data < novoa_dict['rhow_switch_nir'][1]) &\
+                                           (np.isfinite(tur_blend)))
+
+                        ## composite algorithm
+                        par_data[par_name] = red_tur
+                        par_data[par_name][niri] = nir_tur[niri]
+                        par_data[par_name][rnblend] = tur_blend[rnblend]
+                        par_atts[par_name] = par_attributes
+
+                        ## track algorithm
+                        if novoa_dict['novoa_output_switch']:
+                            alg = np.zeros(par_data[par_name].shape)
+                            alg[redi] = 3
+                            alg[rnblend] = 4
+                            alg[niri] = 5
+                            par_data[par_name+'_switch'] = alg
+                            par_atts[par_name+'_switch'] = par_attributes
+            else:
+                print('Algorithm "{}" for Novoa not supported.'.format(novoa_dict['novoa_algorithm']))
+                continue
+        ## end Novoa blended turbidity
+        #############################
+
+        #############################
         ## CHL_OC
         if 'chl_oc' in cur_par:
             mask = True ## water parameter so apply mask

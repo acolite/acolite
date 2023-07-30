@@ -2,6 +2,7 @@ from . import castagna
 from . import chl_oc
 from . import chl_re
 from . import nechad
+from . import novoa
 from . import dogliotti
 from . import pitarch
 from . import qaa
