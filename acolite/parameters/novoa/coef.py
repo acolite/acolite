@@ -21,5 +21,7 @@ def coef(config='defaults'):
             except:
                 dct[split[0]] = split[1]
             if len(dct[split[0]]) == 1: dct[split[0]]=dct[split[0]][0]
-
+            if dct[split[0]] in ['True','true']: dct[split[0]]=True
+            if dct[split[0]] in ['False','false']: dct[split[0]]=False
+            if dct[split[0]] in ['None','none']: dct[split[0]]=None
     return(dct)
