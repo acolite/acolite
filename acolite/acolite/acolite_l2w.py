@@ -374,28 +374,18 @@ def acolite_l2w(gem,
 
             ## band center
             if nechad_parameter == 'centre':
-                #par_name = '{}_Nechad{}_{}'.format(nechad_par, cal_year, cw)
                 par_base = '{}_Nechad{}'.format(nechad_par, cal_year)
-                nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
-                didx,algwave = ac.shared.closest_idx(nechad_dict['wave'], cw)
-                A_Nechad = nechad_dict['A'][didx]
-                C_Nechad = nechad_dict['C'][didx]
+                A_Nechad, C_Nechad = ac.parameters.nechad.coef_band(nechad_par, cal_year = cal_year, wave = cw)
 
             ## resampled to band
             if nechad_parameter == 'resampled':
-                #par_name = '{}_Nechad{}Ave_{}'.format(nechad_par, cal_year, cw)
                 par_base = '{}_Nechad{}Ave'.format(nechad_par, cal_year)
-                nechad_dict = ac.parameters.nechad.coef_hyper(nechad_par)
-                ## resample parameters to band
-                cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem.gatts['sensor']]['rsr'])
-                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, 1/nechad_dict['A'], rsrd[gem.gatts['sensor']]['rsr'])
-                adct = {k:1/adct[k] for k in adct}
-                A_Nechad = adct[nechad_band]
-                C_Nechad = cdct[nechad_band]
+                A_Nechad, C_Nechad = ac.parameters.nechad.coef_band(nechad_par, cal_year = cal_year, \
+                                                                sensor = gem.gatts['sensor'], band = nechad_band, \
+                                                                rsr = rsrd[gem.gatts['sensor']]['rsr'])
 
             ## resampled to band by Nechad 2016
             if nechad_parameter == '2016':
-                #par_name = '{}_Nechad2016_{}'.format(nechad_par, cw)
                 par_base = '{}_Nechad2016'.format(nechad_par)
                 par_attributes['algorithm']='2016 calibration'
                 nechad_dict = ac.parameters.nechad.coef_2016()
