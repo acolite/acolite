@@ -5,17 +5,20 @@
 ## modifications:
 ##                2018-07-18 (QV) changed acolite import name
 ##                2021-03-09 (QV) adapted for acg
+##                2023-07-30 (QV) added year, added "S" as alias for SPM
 
-def coef_hyper(par):
+def coef_hyper(par, year = None):
     import os,sys
     import acolite as ac
     import numpy as np
 
-    if par.upper() in ['SPM', 'TSM']:
-        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//SPM_N2010_Published.txt'
+    if par.upper() in ['S', 'SPM', 'TSM']:
+        if year is None: year = 2010
+        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//SPM_N{}_Published.txt'.format(year)
 
     if par.upper() in ['T', 'TUR', 'TURBIDITY']:
-        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//Turbidity_N2009_Published.txt'
+        if year is None: year = 2009
+        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//Turbidity_N{}_Published.txt'.format(year)
 
     keys = ['wave','A','B','Rsq','C']
     data = {k:[] for k in keys}
