@@ -1252,7 +1252,7 @@ def acolite_l2w(gem,
             par_attributes['algorithm']=''
 
             ## read config
-            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.txt'.format(ac.config['data_dir']))
+            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.txt'.format(ac.config['data_dir']), parse=True)
             fait_fai_threshold = float(fait_cfg['fait_fai_threshold'])
             fait_red_threshold = float(fait_cfg['fait_red_threshold'])
             fait_rgb_limit = float(fait_cfg['fait_rgb_limit'])
@@ -1308,8 +1308,6 @@ def acolite_l2w(gem,
                         ds_waves_ = [ds_waves[ii] for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
                         wi, wv = ac.shared.closest_idx(ds_waves_, cw)
                         ds = ds_names_[wi]
-                        print(ds_names_)
-                        print(ds_waves_)
                     else:
                         wi, wv = ac.shared.closest_idx(ds_waves, cw)
                         ds = ds_names[wi]
@@ -1364,6 +1362,12 @@ def acolite_l2w(gem,
                 ## check L and a
                 par_data[par_name][lab[:,:,0] >= fait_L_limit] = 0.0
                 par_data[par_name][lab[:,:,1] >= fait_a_threshold] = 0.0
+
+                ## optionally output Lab data
+                if fait_cfg['fait_output_lab']:
+                    for ii, lb in enumerate(['L','a', 'b']):
+                        par_data['fait_Lab_{}'.format(lb)] = lab[:,:,ii]
+                        par_atts['fait_Lab_{}'.format(lb)] = {}
             lab = None
         ## end FAIT
         #############################
