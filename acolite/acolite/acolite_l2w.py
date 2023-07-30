@@ -1299,42 +1299,74 @@ def acolite_l2w(gem,
         #############################
         ## NDVI
         if (cur_par == 'ndvi') | (cur_par == 'ndvi_rhot'):
-            par_name = cur_par
             mask = False ## no water mask
             par_split = cur_par.split('_')
             par_attributes = {'algorithm':'NDVI', 'dataset':'rhos'}
             par_attributes['reference']=''
             par_attributes['algorithm']=''
 
-            ## select bands
-            required_datasets,req_waves_selected = [],[]
-            ds_waves = [w for w in rhos_waves]
-            if cur_par=='ndvi_rhot':
-                par_attributes['dataset']='rhot'
-                ds_waves = [w for w in rhot_waves]
-
             ## wavelengths and max wavelength difference
             ndvi_diff = [40, 100]
             req_waves = [660,865]
-            for i, reqw in enumerate(req_waves):
-                widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
-                if abs(float(selwave)-float(reqw)) > ndvi_diff[i]: continue
-                selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                required_datasets.append(selds)
-                req_waves_selected.append(selwave)
-            par_attributes['waves']=req_waves_selected
-            if len(required_datasets) != len(req_waves): continue
-            ## get data
-            for di, cur_ds in enumerate(required_datasets):
-                if di == 0: tmp_data = []
-                cur_data = 1.0 * gem.data(cur_ds)
-                tmp_data.append(cur_data)
 
-            ## compute ndvi
-            par_data[par_name] = (tmp_data[1]-tmp_data[0])/\
-                                   (tmp_data[1]+tmp_data[0])
-            par_atts[par_name] = par_attributes
-            tmp_data = None
+            ## select bands
+            required_datasets,req_waves_selected = [],[]
+            ds_waves = [w for w in rhos_waves]
+            ds_names = [ds for ds in rhos_ds]
+            if cur_par=='ndvi_rhot':
+                par_attributes['dataset']='rhot'
+                ds_waves = [w for w in rhot_waves]
+                ds_names = [ds for ds in rhot_ds]
+
+            ## number of products possible (for VIIRS use both I and M bands)
+            ndvi_products = 1
+            if 'VIIRS' in gem.gatts['sensor']: ndvi_products = 2
+
+            ## find red and NIR bands to use
+            ndvi_waves = []
+            ndvi_datasets = []
+            for pi in range(ndvi_products):
+                ndvi_waves.append([])
+                ndvi_datasets.append([])
+
+                for ci, cw in enumerate(req_waves):
+                    ## compute Novoa SPM for both I and M bands
+                    if 'VIIRS' in gem.gatts['sensor']:
+                        band_prefix = {0:'I', 1:'M'}[pi]
+                        ds_names_ = [ds for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        ds_waves_ = [ds_waves[ii] for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        wi, wv = ac.shared.closest_idx(ds_waves_, cw)
+                        ds = ds_names_[wi]
+                    else:
+                        wi, wv = ac.shared.closest_idx(ds_waves, cw)
+                        ds = ds_names[wi]
+                    if wv > cw+ndvi_diff[ci]: continue
+                    if wv < cw-ndvi_diff[ci]: continue
+                    ndvi_waves[pi].append(wv)
+                    ndvi_datasets[pi].append(ds)
+
+
+            ## run through needed products
+            for pi in range(ndvi_products):
+                if len(ndvi_datasets[pi]) != len(req_waves): continue
+                par_attributes['waves']=ndvi_waves[pi]
+
+                ## output parameter name
+                par_name = '{}'.format(cur_par)
+                if 'VIIRS' in gem.gatts['sensor']:
+                    par_name += '_{}'.format(ndvi_datasets[pi][0][5].upper())
+
+                ## get data
+                for di, cur_ds in enumerate(ndvi_datasets[pi]):
+                    if di == 0: tmp_data = []
+                    cur_data = 1.0 * gem.data(cur_ds)
+                    tmp_data.append(cur_data)
+
+                ## compute ndvi
+                par_data[par_name] = (tmp_data[1]-tmp_data[0])/\
+                                       (tmp_data[1]+tmp_data[0])
+                par_atts[par_name] = par_attributes
+                tmp_data = None
         ## end NDVI
 
         #############################
