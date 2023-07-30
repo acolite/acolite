@@ -22,6 +22,7 @@ aot_550,0,0.5,False,viridis,$\tau_{a} 550 nm$,-
 spm_nechad,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
 spm_nechad_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
 spm_nechad2010_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
+spm_nechad2010ave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad (Ave),gm$^{-3}$
 spm_nechad2016,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
 spm_nechad2016_*,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
 spm_nechadave,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
@@ -32,6 +33,7 @@ spm_nechadave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
 tur_nechad,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
 tur_nechad_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
 tur_nechad2009_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
+tur_nechad2009ave_*,1,100,True,Planck_Parchment_RGB,T Nechad (Ave),FNU
 tur_nechad2016,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 tur_nechad2016_*,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 tur_nechadave,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
