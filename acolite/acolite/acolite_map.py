@@ -505,7 +505,7 @@ def acolite_map(ncf, output = None,
                     ds_base = '_'.join(ds_base[0]) + '_'
                     if setu['add_band_name']: ds_base = 'rhow_'
 
-            rho_ds = [ds for ds in datasets if ds_base in ds]
+            rho_ds = [ds for ds in datasets if ds_base in ds[0:len(ds_base)]]
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
             if len(rho_wv) < 3: continue
             ## read and stack rgb
