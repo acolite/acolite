@@ -1264,6 +1264,7 @@ def acolite_l2w(gem,
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_MSI'])
             elif 'VIIRS' in gem.gatts['sensor']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_VIIRS'])
+                fait_red_threshold = float(fait_cfg['fait_red_threshold_VIIRS'])
             else:
                 print('Parameter {} not configured for {}.'.format(par_name,gem.gatts['sensor']))
                 continue

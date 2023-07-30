@@ -28,3 +28,4 @@ fait_a_threshold_MSI = 0
 
 ## VIIRS - taken as MODIS
 fait_a_threshold_VIIRS = 10
+fait_red_threshold_VIIRS = 0.09
