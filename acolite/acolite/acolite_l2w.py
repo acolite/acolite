@@ -554,7 +554,7 @@ def acolite_l2w(gem,
         if 'novoa2017' in cur_par:
             mask = True ## water parameter so apply mask
             #novoa_par = cur_par.split('_')[0][0]
-            novoa_par = {'t':'tur', 's':'spm'}[cur_par.split('_')[0][0].lower()]
+            novoa_par = {'t':'TUR', 's':'SPM'}[cur_par.split('_')[0][0].lower()]
             par_attributes = {'algorithm':'Novoa et al. 2017', 'title':'Novoa Turbidity'}
             par_attributes['reference']='Novoa et al. 2017'
 
@@ -610,7 +610,7 @@ def acolite_l2w(gem,
                     print(redw, nirw)
 
                     ## output parameter name
-                    par_name = '{}_novoa'.format(novoa_par)
+                    par_name = '{}_Novoa2017'.format(novoa_par)
                     if 'VIIRS' in gem.gatts['sensor']:
                         par_name += '_{}'.format(redb[0].upper())
                     print(par_name)
