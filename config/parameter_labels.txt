@@ -99,6 +99,9 @@ fai_rhot,-0.04,0.06,False,default,FAI $\rho_t$ (Hu et al. 2009),-
 fai_rhot_i,-0.04,0.06,False,default,FAI (I) $\rho_t$ (Hu et al. 2009),-
 fai_rhot_m,-0.04,0.06,False,default,FAI (M) $\rho_t$ (Hu et al. 2009),-
 fait,0,1,False,default,FAIT (Dogliotti et al. 2018),-
+fait_i,0,1,False,default,FAIT (I) (Dogliotti et al. 2018),-
+fait_m,0,1,False,default,FAIT (M) (Dogliotti et al. 2018),-
+
 #
 ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),-
 ndvi,-0.5,0.5,False,default,NDVI $\rho_s$,-
