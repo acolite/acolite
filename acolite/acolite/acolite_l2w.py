@@ -553,7 +553,6 @@ def acolite_l2w(gem,
         ## start Novoa blended turbidity
         if 'novoa2017' in cur_par:
             mask = True ## water parameter so apply mask
-            #novoa_par = cur_par.split('_')[0][0]
             novoa_par = {'t':'TUR', 's':'SPM'}[cur_par.split('_')[0][0].lower()]
             par_attributes = {'algorithm':'Novoa et al. 2017', 'title':'Novoa Turbidity'}
             par_attributes['reference']='Novoa et al. 2017'
@@ -606,24 +605,18 @@ def acolite_l2w(gem,
                     ## used bands
                     redb, nirb = novoa_bands[pi]
                     redw, nirw = novoa_waves[pi]
-                    print(redb, nirb)
-                    print(redw, nirw)
-
                     ## output parameter name
                     par_name = '{}_Novoa2017'.format(novoa_par)
                     if 'VIIRS' in gem.gatts['sensor']:
                         par_name += '_{}'.format(redb[0].upper())
-                    print(par_name)
 
                     ## find proper rhos datasets
                     red_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(redw) in ds)][0]
                     nir_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(nirw) in ds)][0]
-                    print(red_ds, nir_ds)
-
-                    A_Nechad_red, C_Nechad_red = None, None
-                    A_Nechad_nir, C_Nechad_nir = None, None
 
                     ## find Nechad calibration for this band
+                    A_Nechad_red, C_Nechad_red = None, None
+                    A_Nechad_nir, C_Nechad_nir = None, None
                     if novoa_dict['novoa_algorithm'] == 'nechad_centre':
                         A_Nechad_red, C_Nechad_red = ac.parameters.nechad.coef_band(cur_par.split('_')[0], wave=redw)
                         A_Nechad_nir, C_Nechad_nir = ac.parameters.nechad.coef_band(cur_par.split('_')[0], wave=nirw)
@@ -634,8 +627,10 @@ def acolite_l2w(gem,
                     ## if we have A and C we can continue
                     if (A_Nechad_red is not None) & (C_Nechad_red is not None) &\
                        (A_Nechad_nir is not None) & (C_Nechad_nir is not None):
-                        print(A_Nechad_red, C_Nechad_red)
-                        print(A_Nechad_nir, C_Nechad_nir)
+                        par_attributes['A_Nechad_red']=A_Nechad_red
+                        par_attributes['C_Nechad_red']=C_Nechad_red
+                        par_attributes['A_Nechad_nir']=A_Nechad_nir
+                        par_attributes['C_Nechad_nir']=C_Nechad_nir
 
                         ## load datasets
                         red_data = 1.0 * gem.data(red_ds)
