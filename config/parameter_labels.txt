@@ -98,6 +98,12 @@ fai_m,-0.04,0.06,False,default,FAI (M) $\rho_s$ (Hu et al. 2009),-
 fai_rhot,-0.04,0.06,False,default,FAI $\rho_t$ (Hu et al. 2009),-
 fai_rhot_i,-0.04,0.06,False,default,FAI (I) $\rho_t$ (Hu et al. 2009),-
 fai_rhot_m,-0.04,0.06,False,default,FAI (M) $\rho_t$ (Hu et al. 2009),-
+afai,-0.04,0.06,False,default,AFAI $\rho_s$ (Wang et Hu 2016),-
+afai_i,-0.04,0.06,False,default,AFAI (I) $\rho_s$ (Wang et Hu 2016),-
+afai_m,-0.04,0.06,False,default,AFAI (M) $\rho_s$ (Wang et Hu 2016),-
+afai_rhot,-0.04,0.06,False,default,AFAI $\rho_t$ (Wang et Hu 2016),-
+afai_rhot_i,-0.04,0.06,False,default,AFAI (I) $\rho_t$ (Wang et Hu 2016),-
+afai_rhot_m,-0.04,0.06,False,default,AFAI (M) $\rho_t$ (Wang et Hu 2016),-
 fait,0,1,False,default,FAIT (Dogliotti et al. 2018),-
 fait_i,0,1,False,default,FAIT (I) (Dogliotti et al. 2018),-
 fait_m,0,1,False,default,FAIT (M) (Dogliotti et al. 2018),-
