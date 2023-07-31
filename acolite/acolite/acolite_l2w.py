@@ -1210,8 +1210,9 @@ def acolite_l2w(gem,
                 for ci, cw in enumerate(req_waves):
                     if 'VIIRS' in gem.gatts['sensor']:
                         band_prefix = {0:'I', 1:'M'}[pi]
-                        if (par_attributes['standard_name']=='afai') & (ci == 1):
-                            band_prefix = 'M' ## override 750 wavelength to M band
+                        if (par_attributes['standard_name']=='afai') & (pi == 0):
+                            continue ## skip I band based one
+                            if (ci == 1): band_prefix = 'M' ## override 750 wavelength to M band
                         ds_names_ = [ds for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
                         ds_waves_ = [ds_waves[ii] for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
                         wi, wv = ac.shared.closest_idx(ds_waves_, cw)
