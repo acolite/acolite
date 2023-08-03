@@ -45,6 +45,12 @@ libradtran_dir=$ACDIR/external/libRadtran-2.0.2
 ## other configuration
 ##
 
+## URL to retrieve LUT files
+## main URL
+lut_url=https://raw.githubusercontent.com/acolite/acolite_luts/main
+## URL for China
+#lut_url=https://raw.gitmirror.com/acolite/acolite_luts/main
+
 ## EarthData credentials (will be set to environment variables by acolite)
 ## alternatively use .netrc for machine earthdata
 EARTHDATA_u=

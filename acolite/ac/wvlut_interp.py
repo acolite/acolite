@@ -10,13 +10,16 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2021-02-24 (QV) new interpolation, lut is determined here and read generically
 ##                2022-11-17 (QV) added 2D interpolation for a given sensor
+##                2023-08-03 (QV) get lut url from ac.config
 
-def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2,
-                  remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2, remote_base = None):
     import os, sys
     import scipy.interpolate
     import acolite as ac
     import numpy as np
+
+    ## use URL from main config
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
 
     ## input geometry dimensions
     dim = np.atleast_1d(ths).shape
@@ -31,9 +34,13 @@ def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2,
     if (not os.path.isfile(lutnc)):
         remote_lut = '{}/WV/{}'.format(remote_base, os.path.basename(lutnc))
         try:
+            print('Getting remote LUT {}'.format(remote_lut))
             ac.shared.download_file(remote_lut, lutnc)
+            print('Testing LUT {}'.format(lutnc))
+            lut, meta = ac.shared.lutnc_import(lutnc) # test LUT
         except:
             print('Could not download remote lut {} to {}'.format(remote_lut, lutnc))
+            if os.path.exists(lutnc): os.remove(lutnc)
 
     ## import LUT
     if os.path.exists(lutnc):

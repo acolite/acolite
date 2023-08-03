@@ -9,14 +9,18 @@
 ##               2021-03-01 (QV) removed separate luts for wind speed
 ##               2021-05-31 (QV) added remote lut retrieval
 ##               2021-07-20 (QV) added retrieval of generic LUTs
+##                2023-08-03 (QV) get lut url from ac.config
 
 def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, override=False,
-                    get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+                    get_remote = True, remote_base = None):
     import os
     import numpy as np
     import scipy.interpolate
     from netCDF4 import Dataset
     import acolite as ac
+    
+    ## use URL from main config
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
 
     if True:
             lutdir = '{}/{}/'.format(ac.config['lut_dir'], '-'.join(lutbase.split('-')[1:3]))

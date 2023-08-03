@@ -11,14 +11,18 @@
 ##                  2021-06-08 (QV) added lut par subsetting
 ##                  2021-07-20 (QV) added retrieval of generic LUTs
 ##                  2021-10-22 (QV) compute ttot if not in LUT
+##                2023-08-03 (QV) get lut url from ac.config
 
 def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                override = False, sensor = None, get_remote = True,
-               remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+               remote_base = None):
 
     import os, sys
     import numpy as np
     import acolite as ac
+
+    ## use URL from main config
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
 
     lutnc=lutdir+'/'+lutid+'.nc'
     lut = None

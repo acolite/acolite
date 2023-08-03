@@ -4,15 +4,19 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-06-22
 ## modifications: 2022-11-17 (QV) added 2D interpolation for a given sensor, removed waves keyword
+##                2023-08-03 (QV) get lut url from ac.config
 
 def gaslut_interp(sza, vza, pressure = 1013, sensor = None,
                   lutconfig = '202106F', pars = ['ttdica','ttoxyg','ttniox','ttmeth'],
-                  remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+                  remote_base = None):
     import os, sys
     import acolite as ac
     from netCDF4 import Dataset
     import scipy.interpolate
     import numpy as np
+
+    ## use URL from main config
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
 
     ## input geometry dimensions
     dim = np.atleast_1d(sza).shape

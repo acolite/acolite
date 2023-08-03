@@ -5,18 +5,22 @@
 ## last updates: 2021-05-31 (QV) added remote lut retrieval
 ##               2021-10-24 (QV) added pressures and get_remote as keyword to other functions
 ##               2021-10-25 (QV) test if the wind dimension is != 1 or missing
+##                2023-08-03 (QV) get lut url from ac.config
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
                        pressures = [500, 750, 1013, 1100],
                        base_luts = ['ACOLITE-LUT-202110-MOD1', 'ACOLITE-LUT-202110-MOD2'],
                        rsky_lut = 'ACOLITE-RSKY-202102-82W',
-                       get_remote = True, remote_base = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'):
+                       get_remote = True, remote_base = None):
     import acolite as ac
     import numpy as np
     from netCDF4 import Dataset
     import scipy.interpolate
     import time, os
+
+    ## use URL from main config
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
 
     if lutdw is None:
         rsrf = ac.config['data_dir']+'/RSR/{}.txt'.format(sensor)
