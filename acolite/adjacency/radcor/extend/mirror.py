@@ -1,10 +1,16 @@
+## def mirror
 ## extend image by mirroring edges
-## QV 2021-07-07 from AC R code .extend_scene_v0.9
+## based on AC R code .extend_scene_v0.9
+##
+## written by Quinten Vanhellemont, RBINS
+## 2021-07-07
+## modifications: 2023-08-04 (QV) renamed from mirror, added to extend dir
 
-def extend(d, idp, fill_nan=True):
+
+def mirror(d, idp, fill_nan=True):
     import numpy as np
     import acolite as ac
-    
+
     dim = d.shape
     data_ext = np.zeros((dim[0]+idp*2, dim[1]+idp*2))
 
