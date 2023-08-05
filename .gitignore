@@ -1,0 +1,15 @@
+# Specifies untracked files that git should ignore
+
+#--------------------------------------------------------------------
+# Specific to ACOLITE
+
+data/LUT/
+data/MET/
+
+#--------------------------------------------------------------------
+# Specific to python
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
