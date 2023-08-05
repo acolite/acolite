@@ -72,7 +72,7 @@ else:
 
     gitdir = '{}/.git'.format(path)
     gd = {}
-    if os.path.exists(gitdir):
+    if os.path.isdir(gitdir):
         gitfiles = os.listdir(gitdir)
 
         for f in ['ORIG_HEAD', 'FETCH_HEAD', 'HEAD']:
