@@ -3,13 +3,51 @@
 #--------------------------------------------------------------------
 # Specific to ACOLITE
 
+# LUTs and MET data
 data/LUT/
 data/MET/
 
+# Simulations for TACT
+data/TACT/grid
+
+# External datasets, software and scratch data
+external/
+scratch/
+
+# Region polygons
+data/Regions/
+
+# DEM and GED files
+data/Copernicus_DSM_COG_10/
+data/Copernicus_DSM_COG_30/
+data/GED/AG100.003
+data/GED/AG100.003_h5
+data/SRTM/SRTMGL1/
+data/SRTM/SRTMGL3/
+
+# Algorithm development files
+data/Shared/Algorithms/P3QAA/*/
+data/Shared/DEM/
+data/Shared/psf_raster*
+data/Shared/apsfs_model*
+data/EMINET/
+
+# Native resolution TSIS data
+data/Solar/Coddington*native*
+
+# ECOSTRESS
+data/ECOSTRESS/EcostressBrightnessTemperatureV01.h5
+data/ECOSTRESS/index/*
+
 #--------------------------------------------------------------------
-# Specific to python
+# Specific to Python
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+#--------------------------------------------------------------------
+# Specific to Mac
+
+.DS_Store
