@@ -7,16 +7,17 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-02
-## modifications:
+## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 
-def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosity = 5,
-              url_base = 'https://goldsmr5.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2I3NPASM.5.12.4/{}/{}/MERRA2_400.inst3_3d_asm_Np.{}.nc4'):
+def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosity = 5, url_base = None):
+    print(isotime, limit)
 
     import os, json
     import time, dateutil.parser, datetime
     import requests, netrc
     import numpy as np
 
+    import acolite as ac
 
     ## load auth
     nr = netrc.netrc()
@@ -30,6 +31,9 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
         print('Error: could not load earthdata credentials')
         return()
 
+    if url_base is None:
+        url_base = '{}'.format(ac.config['tact_thredds_url_merra2'])
+        print('Using base URL {}'.format(url_base))
 
     if obase is None:
         obase = os.path.abspath(ac.config['grid_dir']) + '/merra2/'
@@ -40,8 +44,8 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
     c_time = dt.hour + dt.minute/60 + dt.second/3600
 
     ## set up url
-    url = url_base.format(dt.year, str(dt.month).zfill(2), dt.strftime('%Y%m%d'))
-
+    url = '{}/{}/{}/MERRA2_400.inst3_3d_asm_Np.{}.nc4'.format(url_base, dt.year, str(dt.month).zfill(2), dt.strftime('%Y%m%d'))
+    print(url)
 
     ## load dimensions
     parstr = 'lat[0:1:360],lev[0:1:41],lon[0:1:575],time[0:1:7]'
@@ -106,6 +110,7 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
 
     ## get data
     url_ascii = '{}.ascii?{}'.format(url, parstr)
+    print(url_ascii)
     ret = requests.get(url_ascii, auth = auth)
     s = ret.content.decode('utf-8').split('\n')
 

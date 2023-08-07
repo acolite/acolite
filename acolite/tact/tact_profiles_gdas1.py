@@ -7,11 +7,10 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-02
-## modifications:
-##
+## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 
 def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosity = 5,
-               url_base = 'https://rda.ucar.edu/thredds/dodsC/files/g/ds083.3', geo_step = 0.25):
+               url_base = None, geo_step = 0.25):
 
     import os
     import netCDF4
@@ -23,6 +22,10 @@ def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosit
 
     if obase is None:
         os.path.abspath(ac.config['grid_dir']) + '/gdas1/'
+
+    if url_base is None:
+        url_base = '{}'.format(ac.config['tact_thredds_url_gdas1'])
+        print('Using base URL {}'.format(url_base))
 
     ## parse date
     dt = dateutil.parser.parse(isotime)

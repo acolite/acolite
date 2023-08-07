@@ -9,11 +9,11 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-03
-## modifications:
+## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 ##
 
 def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity = 5,
-              source = 'ncep.reanalysis2', url_base = 'https://psl.noaa.gov/thredds/dodsC/Datasets/', geo_step = 2.5, time_step = 6):
+              source = 'ncep.reanalysis2', url_base = None, geo_step = 2.5, time_step = 6):
 
     import os
     import netCDF4
@@ -30,6 +30,10 @@ def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity
 
     if obase is None:
         obase = os.path.abspath(ac.config['grid_dir']) + '/{}/'.format(source)
+
+    if url_base is None:
+        url_base = '{}'.format(ac.config['tact_thredds_url_ncep'])
+        print('Using base URL {}'.format(url_base))
 
     ## parse date
     dt = dateutil.parser.parse(isotime)

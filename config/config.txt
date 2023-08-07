@@ -45,6 +45,12 @@ libradtran_dir=$ACDIR/external/libRadtran-2.0.2
 ## other configuration
 ##
 
+## TACT THREDDS data URLs
+tact_thredds_url_era5=https://thredds.rda.ucar.edu/thredds/dodsC/files/g/ds633.0/e5.oper.an.pl
+tact_thredds_url_gdas1=https://thredds.rda.ucar.edu/thredds/dodsC/files/g/ds083.3
+tact_thredds_url_merra2=https://goldsmr5.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2I3NPASM.5.12.4
+tact_thredds_url_ncep=https://psl.noaa.gov/thredds/dodsC/Datasets
+
 ## URL to retrieve LUT files
 ## main URL
 lut_url=https://raw.githubusercontent.com/acolite/acolite_luts/main

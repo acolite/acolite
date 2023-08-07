@@ -11,9 +11,10 @@
 ##                                flipped lats subset
 ##                2023-01-29 (QV) added iteration in case NetCDF I/O error occurs
 ##                2023-01-30 (QV) added grib option
+##                2023-08-07 (QV) moved url_base to ACOLITE config file
 
 def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = False,
-              url_base = 'https://rda.ucar.edu/thredds/dodsC/files/g/ds633.0/e5.oper.an.pl', geo_step = 0.25):
+              url_base = None, geo_step = 0.25):
 
     import os, time
     import netCDF4
@@ -24,6 +25,10 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
 
     if obase is None:
         obase = os.path.abspath(ac.config['grid_dir']) + '/era5/'
+
+    if url_base is None:
+        url_base = '{}'.format(ac.config['tact_thredds_url_era5'])
+        print('Using base URL {}'.format(url_base))
 
     ## parse date
     dt = dateutil.parser.parse(isotime)
