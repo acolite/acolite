@@ -91,7 +91,7 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
     lon_cells = [bound_w + i*lon_step for i in range(nlon)]
 
     ## offset west longitudes
-    lon_cells = [c_lon if c_lon >= 0 else c_lon + 360 for c_lon in lon_cells]
+    #lon_cells = [c_lon if c_lon >= 0 else c_lon + 360 for c_lon in lon_cells]
 
     ## bounding cell indices
     xbounds = [np.argsort(np.abs(dims['lon']-min(lon_cells)))[0], np.argsort(np.abs(dims['lon']-max(lon_cells)))[0]]
