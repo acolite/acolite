@@ -22,6 +22,9 @@ def tact_limit(isotime, limit=None,
     import acolite as ac
     import datetime, dateutil.parser
 
+    ## get verbosity from run settings
+    verbosity = ac.settings['run']['verbosity']
+
     dt = dateutil.parser.parse(isotime)
     isodate = dt.isoformat()[0:10]
     c_time = dt.hour + dt.minute/60 + dt.second/3600

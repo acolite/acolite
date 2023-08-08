@@ -27,6 +27,9 @@ def tact_gem(gem, output_file = True,
     import numpy as np
     import acolite as ac
 
+    ## get verbosity from run settings
+    verbosity = ac.settings['run']['verbosity']
+
     ## determine datasets to skip
     if type(gem) is str:
         datasets = ac.shared.nc_datasets(gem)
