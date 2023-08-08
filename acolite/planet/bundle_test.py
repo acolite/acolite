@@ -39,8 +39,8 @@ def bundle_test(bundle_in):
         files_dir = os.path.join(bundle, dname)
         if os.path.exists(files_dir):
             if 'PSScene' in dname:
-                #for f in glob.glob('{}/*/*/*'.format(files_dir)): files.append(f)
-                for f in glob.glob('{}/*/analytic*/*'.format(files_dir)): files.append(f)
+                for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f)) ## newer zip bundles
+                for f in glob.glob('{}/*/analytic*/*'.format(files_dir)): files.append(f) ## older zip bundles
             else:
                 for f in os.listdir(files_dir): files.append(os.path.join(files_dir, f))
     files.sort()
