@@ -340,7 +340,9 @@ def acolite_gui(*args, version=None):
             self.acolite_settings['inputfile']=self.tinput.get(1.0,END).strip()
             self.acolite_settings['output']=self.toutput.get(1.0,END).strip()
 
+            ## get polygon and set to None if not provided
             self.acolite_settings['polygon']=self.tpoly.get(1.0,END).strip()
+            if (self.acolite_settings['polygon']==''): self.acolite_settings['polygon'] = None
 
             ## get l2w parameters
             l2w_parameters=self.tl2wpar.get(1.0,END).strip().split(',')
