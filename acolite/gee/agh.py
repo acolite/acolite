@@ -853,7 +853,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     tmp = ee.data.computePixels(request)
                     print('sr', len(tmp))
                     ## write data
-                    with open(sr_file_tile, 'wb') as f:
+                    with open(sr_file_tile_local, 'wb') as f:
                         f.write(tmp)
                     sr_files.append(sr_file_tile_local)
                 if settings['store_sp'] & (st_par != None):
