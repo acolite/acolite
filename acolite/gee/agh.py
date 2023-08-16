@@ -464,7 +464,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         print('Getting geometry and gas transmittance')
         ## get geometry percentiles
         geom_percentile = 50
-        prc = i.reduceRegion(reducer= ee.Reducer.percentile([geom_percentile]), bestEffort=True).getInfo()
+        prc = i.reduceRegion(reducer= ee.Reducer.percentile([geom_percentile]), bestEffort=True, maxPixels=1e13).getInfo() #
         for b in bands:
             ### get geometry if available
             if b in ['SAA', 'SZA', 'VAA', 'VZA']:
@@ -485,7 +485,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             ## get rhot percentiles
             percentiles = settings['percentiles']
             print('Extracting rhot percentiles')
-            prc = i_rhot.reduceRegion(reducer= ee.Reducer.percentile(percentiles), bestEffort=True).getInfo()
+            prc = i_rhot.reduceRegion(reducer= ee.Reducer.percentile(percentiles), bestEffort=True, maxPixels=1e13).getInfo()
             prc_data = {p: {b: prc['{}_p{}'.format(b,p)] for b in obands_rhot} for p in percentiles}
 
             ## fit aerosol models
