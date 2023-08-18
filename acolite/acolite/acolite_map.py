@@ -58,6 +58,9 @@ def acolite_map(ncf, output = None,
             if ('{}_*'.format('_'.join(sp[0:-1])) in pscale) & (cparl not in pscale):
                 pard = {k:pscale['{}_*'.format('_'.join(sp[0:-1]))][k] for k in pscale['{}_*'.format('_'.join(sp[0:-1]))]}
                 wave = sp[-1]
+            elif ('{}_*'.format(sp[0]) in pscale) & (cparl not in pscale):
+                pard = {k:pscale['{}_*'.format(sp[0])][k] for k in pscale['{}_*'.format(sp[0])]}
+                wave = sp[-1]
             elif cparl in pscale:
                 pard = {k:pscale[cparl][k] for k in pscale[cparl]}
             else:
