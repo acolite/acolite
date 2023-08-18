@@ -4,18 +4,19 @@ header=parameter,min,max,log,cmap,name,unit
 #
 ## generic reflectances
 #
-rhot_*,0,0.15,False,Greys_r,$\rho_{t}$,-
-rhorc_*,0,0.15,False,Greys_r,$\rho_{rc}$,-
-rhos_*,0,0.1,False,Greys_r,$\rho_{s}$,-
-rhow_*,0,0.1,False,Greys_r,$\rho_{w}$,-
+rhot_*,0,0.15,False,Greys_r,$\rho_{t}$,1
+rhorc_*,0,0.15,False,Greys_r,$\rho_{rc}$,1
+rhos_*,0,0.1,False,Greys_r,$\rho_{s}$,1
+rhow_*,0,0.1,False,Greys_r,$\rho_{w}$,1
+rhow_*,0,0.14,False,Greys_r,$\rho_{w}$,1
 rrs_*,0,0.03,False,Greys_r,$Rrs$,$sr^{-1}$
-rhog_*,0,0.02,False,Greys_r,$\rho_{g}$,-
-rhoe_*,0,0.02,False,Greys_r,$\rho_{e}$,-
-rho_cirrus,0,0.05,False,Greys_r,$\rho_{cirrus}$,-
+rhog_*,0,0.02,False,Greys_r,$\rho_{g}$,1
+rhoe_*,0,0.02,False,Greys_r,$\rho_{e}$,1
+rho_cirrus,0,0.05,False,Greys_r,$\rho_{cirrus}$,1
 #
 ## AOT
 #
-aot_550,0,0.5,False,viridis,$\tau_{a} 550 nm$,-
+aot_550,0,0.5,False,viridis,$\tau_{a} 550 nm$,1
 #
 ## SPM Nechad with generic option
 #
@@ -61,6 +62,8 @@ spm_novoa2017_m,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017 (M),FNU
 spm_novoa2017_switch,0,5,True,default,Novoa 2017 Switch,1
 spm_novoa2017_i_switch,0,5,True,default,Novoa 2017 Switch (I),1
 spm_novoa2017_m_switch,0,5,True,default,Novoa 2017 Switch (M),1
+tur_novoa2017_i,0,40,False,Planck_Parchment_RGB,T Novoa 2017 (I),FNU
+tur_novoa2017_m,0,40,False,Planck_Parchment_RGB,T Novoa 2017 (M),FNU
 #
 ## CHL_OC
 #
@@ -92,32 +95,32 @@ chl_re_bramich,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
 #
 ## indices
 #
-fai,-0.04,0.06,False,default,FAI $\rho_s$ (Hu et al. 2009),-
-fai_i,-0.04,0.06,False,default,FAI (I) $\rho_s$ (Hu et al. 2009),-
-fai_m,-0.04,0.06,False,default,FAI (M) $\rho_s$ (Hu et al. 2009),-
-fai_rhot,-0.04,0.06,False,default,FAI $\rho_t$ (Hu et al. 2009),-
-fai_rhot_i,-0.04,0.06,False,default,FAI (I) $\rho_t$ (Hu et al. 2009),-
-fai_rhot_m,-0.04,0.06,False,default,FAI (M) $\rho_t$ (Hu et al. 2009),-
-afai,-0.04,0.06,False,default,AFAI $\rho_s$ (Wang et Hu 2016),-
-afai_i,-0.04,0.06,False,default,AFAI (I) $\rho_s$ (Wang et Hu 2016),-
-afai_m,-0.04,0.06,False,default,AFAI (M) $\rho_s$ (Wang et Hu 2016),-
-afai_rhot,-0.04,0.06,False,default,AFAI $\rho_t$ (Wang et Hu 2016),-
-afai_rhot_i,-0.04,0.06,False,default,AFAI (I) $\rho_t$ (Wang et Hu 2016),-
-afai_rhot_m,-0.04,0.06,False,default,AFAI (M) $\rho_t$ (Wang et Hu 2016),-
-fait,0,1,False,default,FAIT (Dogliotti et al. 2018),-
-fait_i,0,1,False,default,FAIT (I) (Dogliotti et al. 2018),-
-fait_m,0,1,False,default,FAIT (M) (Dogliotti et al. 2018),-
+fai,-0.04,0.06,False,default,FAI $\rho_s$ (Hu et al. 2009),1
+fai_i,-0.04,0.06,False,default,FAI (I) $\rho_s$ (Hu et al. 2009),1
+fai_m,-0.04,0.06,False,default,FAI (M) $\rho_s$ (Hu et al. 2009),1
+fai_rhot,-0.04,0.06,False,default,FAI $\rho_t$ (Hu et al. 2009),1
+fai_rhot_i,-0.04,0.06,False,default,FAI (I) $\rho_t$ (Hu et al. 2009),1
+fai_rhot_m,-0.04,0.06,False,default,FAI (M) $\rho_t$ (Hu et al. 2009),1
+afai,-0.04,0.06,False,default,AFAI $\rho_s$ (Wang et Hu 2016),1
+afai_i,-0.04,0.06,False,default,AFAI (I) $\rho_s$ (Wang et Hu 2016),1
+afai_m,-0.04,0.06,False,default,AFAI (M) $\rho_s$ (Wang et Hu 2016),1
+afai_rhot,-0.04,0.06,False,default,AFAI $\rho_t$ (Wang et Hu 2016),1
+afai_rhot_i,-0.04,0.06,False,default,AFAI (I) $\rho_t$ (Wang et Hu 2016),1
+afai_rhot_m,-0.04,0.06,False,default,AFAI (M) $\rho_t$ (Wang et Hu 2016),1
+fait,0,1,False,default,FAIT (Dogliotti et al. 2018),1
+fait_i,0,1,False,default,FAIT (I) (Dogliotti et al. 2018),1
+fait_m,0,1,False,default,FAIT (M) (Dogliotti et al. 2018),1
 
 #
-ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),-
-ndvi,-0.5,0.5,False,default,NDVI $\rho_s$,-
-ndvi_i,-0.5,0.5,False,default,NDVI (I) $\rho_s$,-
-ndvi_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,-
-ndvi_rhot,-0.5,0.5,False,default,NDVI $\rho_t$,-
-ndvi_rhot_i,-0.5,0.5,False,default,NDVI (I) $\rho_t$,-
-ndvi_rhot_m,-0.5,0.5,False,default,NDVI (M) $\rho_t$,-
+ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),1
+ndvi,-0.5,0.5,False,default,NDVI $\rho_s$,1
+ndvi_i,-0.5,0.5,False,default,NDVI (I) $\rho_s$,1
+ndvi_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,1
+ndvi_rhot,-0.5,0.5,False,default,NDVI $\rho_t$,1
+ndvi_rhot_i,-0.5,0.5,False,default,NDVI (I) $\rho_t$,1
+ndvi_rhot_m,-0.5,0.5,False,default,NDVI (M) $\rho_t$,1
 #
-slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),-
+slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),1
 #
 ## Thermal BT
 #
@@ -242,11 +245,11 @@ hue_angle,0,360,False,hsv,Hue Angle (Van der Woerd),°
 hue_angle_pitarch,0,360,False,hsv,Hue Angle (Pitarch),°
 #
 ## OLH
-olh,0,0.04,False,Calgae255,OLH,-
+olh,0,0.04,False,Calgae255,OLH,1
 #
 ## QAA
 qaa_rrs_*,0.0,0.06,False,Greys_r,QAA $rrs$,$sr^{-1}$
-qaa_u_*,0.2,0.4,False,Greys_r,QAA $u$,-
+qaa_u_*,0.2,0.4,False,Greys_r,QAA $u$,1
 qaa_v5_a_*,0.0,0.8,False,default,QAA v5 $a$,$m^{-1}$
 qaa_v6_a_*,0.0,0.8,False,default,QAA v6 $a$,$m^{-1}$
 qaa_v5_bbp_*,0.0,0.3,False,default,QAA v5 $bbp$,$m^{-1}$
@@ -265,7 +268,7 @@ p3qaa_bb_*,0.0,0.4,False,default,P3QAA $b_b$,$m^{-1}$
 p3qaa_kd_*,0.2,4.0,False,default,P3QAA $K_d$,$m^{-1}$
 p3qaa_zsd,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$,$m$
 p3qaa_zsd_biased,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$ biased,$m$
-p3qaa_eta,0.5,0.7,False,default,P3QAA $\eta$,-
+p3qaa_eta,0.5,0.7,False,default,P3QAA $\eta$,1
 #
 ## DEM
 dem,0,1000,False,Planck_Parchment_RGB,DEM,m
