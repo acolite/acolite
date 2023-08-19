@@ -211,7 +211,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
     neighbours = setu['output_projection_neighbours']
 
     if (setu['viirs_scanline_projection']) & ('VIIRS' in gatts['sensor']):
-        slines = 32
+        slines = setu['viirs_scanline_width']
         if 'viirs_slines' in gatts: slines = gatts['viirs_slines']
         nscans = int(data_in_stack.shape[0]/slines)
         print('Assuming {} scans of {} lines'.format(nscans, slines))
