@@ -16,3 +16,8 @@ l2w_mask_smooth_sigma=1
 
 ## reprojection fill range
 output_projection_filldistance=1
+
+## RGB wavelengths
+rgb_red_wl=670
+rgb_green_wl=560
+rgb_blue_wl=480
