@@ -92,7 +92,7 @@ prisma_store_l2c_separate_file=True
 prisma_output_pan=False
 
 ## CHRIS
-chris_interband_calibration=True
+chris_interband_calibration=False
 chris_noise_reduction=True
 
 ## DESIS

@@ -19,6 +19,6 @@ dsf_spectrum_option=percentile
 dsf_percentile=1
 merge_tiles=False
 
-chris_interband_calibration=True
+chris_interband_calibration=False
 chris_noise_reduction=True
 output_lt=False
