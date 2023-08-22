@@ -4,6 +4,7 @@
 ## modifications: 2021-12-31 (QV) skip TOA radiances when creating the RTOA dataset
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2023-08-22 (QV) set max wavelength index to number of bands in rtoa array
 
 def noise_reduction(ncf, rename=True):
     import numpy as np
@@ -57,6 +58,7 @@ def noise_reduction(ncf, rename=True):
 
     ## get array shape
     nrow, ncol, nwl = RTOA.shape
+    max_wavelength_index = nwl * 1
 
     ## interband calibration already done
     RTOAcal1 = RTOA * 1.0
@@ -94,7 +96,7 @@ def noise_reduction(ncf, rename=True):
         iwl=DD[2][d]
         if np.isnan(RTOAcal1[irow, icol, iwl]) == False:
             wmin = max(iwl-2, 0)
-            wmax = min(iwl+2, 61)
+            wmax = min(iwl+2, max_wavelength_index-1)
             Wup = 0
             Wdown = 0
             for w in np.arange(wmin, wmax, 1):
@@ -118,9 +120,9 @@ def noise_reduction(ncf, rename=True):
     DISTmat = np.ones([nrow, ncol])
     for i in range(ncol-1):  ##column
         for j in range(nrow):  ##ligne
-            a = np.ones([1,1,62])
+            a = np.ones([1,1,max_wavelength_index])
             a[0,0,:] = RTOAcal1d[j, i, :]
-            b = np.ones([1,62])
+            b = np.ones([1,max_wavelength_index])
             b[0,:] = RTOAcal1d[j,i+1,:]
             R = spectral_angles(a, b)
             DISTmat[j,i] = R[0][0][0]
