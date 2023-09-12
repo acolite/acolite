@@ -39,6 +39,8 @@ from acolite import adjacency
 from acolite import gem
 from acolite import parameters
 
+from acolite import cdse
+
 ## ignore numpy errors
 import numpy as np
 olderr = np.seterr(all='ignore')

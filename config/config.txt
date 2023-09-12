@@ -62,6 +62,15 @@ lut_url=https://raw.githubusercontent.com/acolite/acolite_luts/main
 EARTHDATA_u=
 EARTHDATA_p=
 
+## CDSE urls
+CDSE_odata=https://catalogue.dataspace.copernicus.eu/odata/v1
+CDSE_auth=https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
+
+## CDSE credentials
+## alternatively use .netrc for machine cdse
+CDSE_u=
+CDSE_p=
+
 ## list of hyperspectral sensors (do not edit)
 hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI,ENMAP_HSI,ISS_EMIT,HYPSO1
 
