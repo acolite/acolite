@@ -5,6 +5,9 @@
 ## link to readme: https://copernicus-dem-30m.s3.amazonaws.com/readme.html
 ## link to public release: https://spacedata.copernicus.eu/blogs/-/blogs/copernicus-dem-30-meter-dataset-now-publicly-available
 ##
+## Data are now also available from Copernicus PRISM
+## https://sentinels.copernicus.eu/web/sentinel/-/copernicus-dem-new-direct-data-download-access
+##
 ## function written by Quinten Vanhellemont, RBINS
 ## 2022-07-06
 ## modifications: 2022-07-30 (QV) added dem_tile check

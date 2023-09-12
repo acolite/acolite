@@ -20,6 +20,8 @@ data/Regions/
 # DEM and GED files
 data/Copernicus_DSM_COG_10/
 data/Copernicus_DSM_COG_30/
+data/COP-DEM*
+
 data/GED/AG100.003
 data/GED/AG100.003_h5
 data/SRTM/SRTMGL1/

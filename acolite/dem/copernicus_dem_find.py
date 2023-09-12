@@ -1,5 +1,5 @@
 ## def copernicus_dem_find
-## finds AWS Copernicus COGs for given limit
+## finds Copernicus DEM TIFs or COGs for given limit
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-07-05
 
