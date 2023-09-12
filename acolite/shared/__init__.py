@@ -56,6 +56,9 @@ from .polygon_from_wkt import *
 from .polygon_limit import *
 from .reproject2 import *
 
+from .polygon_wkt import *
+from .limit_wkt import *
+
 from .similarity_read import *
 from .gauss_response import *
 from .sun_position import *
