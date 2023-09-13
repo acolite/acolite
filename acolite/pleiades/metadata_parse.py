@@ -203,9 +203,8 @@ def metadata_parse(metafile, pan=False):
     ## set some defaults
     metadata['sza'] = 90. - metadata['GEOMETRY'][1]['SUN_ELEVATION']
     metadata['vza'] = metadata['GEOMETRY'][1]['VIEWING_ANGLE']
-    metadata['raa'] = abs(metadata['GEOMETRY'][1]['SUN_AZIMUTH'] - metadata['GEOMETRY'][1]['VIEWING_AZIMUTH'])
+    metadata['raa'] = metadata['GEOMETRY'][1]['SUN_AZIMUTH'] - metadata['GEOMETRY'][1]['VIEWING_AZIMUTH']
+    if metadata['raa'] < 0: metadata['raa'] = 180 - abs(metadata['raa'])
     while metadata['raa'] > 180: metadata['raa'] = abs(metadata['raa']-360)
-    ## QV 2023-09-13 change relative azimuth convention
-    metadata['raa'] = 180 - metadata['raa']
 
     return(metadata)
