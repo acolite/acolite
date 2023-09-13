@@ -12,8 +12,9 @@ def import_config(file, parse=False):
                 line = line.strip()
                 if len(line) == 0: continue
                 if line[0] in ['#', ';', '%']: continue
-                split=line.split('=')
-                if len(split) != 2: continue
+                first = line.find('=')
+                if first <1: continue
+                split = line[0:first], line[first+1:]
                 split = [s.strip() for s in split]
                 if parse:
                     split[1] = split[1].split(',')

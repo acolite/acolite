@@ -21,8 +21,9 @@ def read(file):
                 for c in ['#',';']:
                     line = line.split(c)[0]
                     if len(line) == 0: continue
-                split = line.split('=')
-                if len(split) < 2: continue
+                first = line.find('=')
+                if first <1: continue
+                split = line[0:first], line[first+1:]
 
                 ## store settings
                 split = [s.strip() for s in split]
