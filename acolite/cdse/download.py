@@ -14,14 +14,18 @@ def download(urls, output = None, auth = None, auth_url = None,
 
     ## get auth for download
     if auth is None:
-        ## get auth from netrc file
-        nr = netrc.netrc()
-        ret = nr.authenticators('cdse')
-        if ret is not None:
-            login, account, password = ret
-            login = login.strip('"')
-            password = password.strip('"')
-            auth = (login, password)
+
+        try:
+            ## get auth from netrc file
+            nr = netrc.netrc()
+            ret = nr.authenticators('cdse')
+            if ret is not None:
+                login, account, password = ret
+                login = login.strip('"')
+                password = password.strip('"')
+                auth = (login, password)
+        except:
+            pass
 
         ## get auth from environment
         if auth is None:
