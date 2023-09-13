@@ -204,7 +204,7 @@ def metadata_parse(metafile, pan=False):
     metadata['sza'] = 90. - metadata['GEOMETRY'][1]['SUN_ELEVATION']
     metadata['vza'] = metadata['GEOMETRY'][1]['VIEWING_ANGLE']
     metadata['raa'] = metadata['GEOMETRY'][1]['SUN_AZIMUTH'] - metadata['GEOMETRY'][1]['VIEWING_AZIMUTH']
-    if metadata['raa'] < 0: metadata['raa'] = 180 - abs(metadata['raa'])
+    while metadata['raa'] < 0: metadata['raa'] = 180 - abs(metadata['raa'])
     while metadata['raa'] > 180: metadata['raa'] = abs(metadata['raa']-360)
 
     return(metadata)
