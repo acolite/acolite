@@ -98,7 +98,8 @@ def l1_convert(inputfile, output = None, settings = {},
         gatts = {'sensor':meta['sensor'], 'satellite':meta['satellite'],
                  'satellite_sensor':'{}_{}'.format(meta['satellite'], meta['sensor']),
                  'isodate':isodate,
-                 'sza':meta['sza'], 'vza':meta['vza'], 'raa':meta['raa'], 'se_distance': se_distance,
+                 'sza':meta['sza'], 'vza':meta['vza'], 'saa':meta['saa'],'vaa':meta['vaa'],
+                 'raa':meta['raa'], 'se_distance': se_distance,
                  'mus': np.cos(meta['sza']*(np.pi/180.)),
                  'acolite_file_type': 'L1R'}
 
