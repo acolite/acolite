@@ -354,6 +354,8 @@ def l1_convert(inputfile, output = None, settings = {},
 
                         nodata = data == np.uint16(meta['NODATA'])
                         nodata2 = data == 1
+                        saturated = data >= np.uint16(meta['SATURATED']) -1
+
                         print(idx, b, btags[b])
                         data = data.astype(np.float32)
                         if (meta['RADIOMETRIC_PROCESSING'] == 'RADIANCE') | (meta['RADIOMETRIC_PROCESSING'] == 'BASIC'):
@@ -383,6 +385,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                         data[nodata] = np.nan
                         data[nodata2] = np.nan
+                        data[saturated] = np.nan
 
                         ds = 'rhot_{}'.format(rsrd['wave_name'][b])
                         ds_att = {'wavelength':rsrd['wave_nm'][b]}
@@ -520,6 +523,8 @@ def l1_convert(inputfile, output = None, settings = {},
                             data_in = ac.shared.read_band(tfile_, idx=idx, sub=sub, warp_to=warp_to_pan, rpc_dem=rpc_dem)
                         nodata = data_in == np.uint16(meta['NODATA'])
                         nodata2 = data_in == 1
+                        saturated = data_in >= np.uint16(meta['SATURATED']) -1
+
                         data_in = data_in.astype(np.float32)
                         if it == 0:
                             data = data_in
