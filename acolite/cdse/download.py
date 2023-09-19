@@ -2,11 +2,11 @@
 ## download urls combinations from CDSE
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
-## modifications:
+## modifications: 2023-09-19 (QV) retrieve access token per url to avoid time outs
 
 def download(urls, output = None, auth = None, auth_url = None,
                   extract_zip = True, remove_zip = True, override = False, verbosity = 1):
-    import os, requests, netrc
+    import os, requests, netrc, time
     import acolite as ac
 
     ## get authentication URL from config
@@ -44,13 +44,6 @@ def download(urls, output = None, auth = None, auth_url = None,
         print('Please add them to your .netrc file, environment varialbles, or ACOLITE config file.')
         return()
 
-    ## get access token
-    data = {"client_id": "cdse-public", "grant_type":
-            "password","username": auth[0], "password": auth[1]}
-    response = requests.post(auth_url, data=data, verify=True, allow_redirects=False)
-    access_token = response.json()['access_token']
-    if verbosity > 1: print(access_token)
-
     if output is None:
         cwd = os.getcwd()
         if verbosity > 0: print('No output directory given, will download to current working directory: {}'.format(cwd))
@@ -59,10 +52,6 @@ def download(urls, output = None, auth = None, auth_url = None,
     ## create path
     if not os.path.exists(output): os.makedirs(output)
 
-    ## set up download session
-    session = requests.Session()
-    session.headers["Authorization"] = f"Bearer {access_token}"
-
     ## still convert to list if only one url or scene given
     if type(urls) is str: urls = [urls]
 
@@ -70,6 +59,20 @@ def download(urls, output = None, auth = None, auth_url = None,
     if verbosity > 0: print('Downloading {} scenes'.format(len(urls)))
     lfiles, zfiles = [], []
     for ui, url in enumerate(urls):
+
+        ## get access token - do it per url
+        if verbosity > 1: print('Getting CDSE access token')
+        data = {"client_id": "cdse-public", "grant_type":
+                "password","username": auth[0], "password": auth[1]}
+        response = requests.post(auth_url, data=data, verify=True, allow_redirects=False)
+        access_token = response.json()['access_token']
+        if verbosity > 1: print(access_token)
+        time.sleep(3)
+
+        ## set up download session
+        session = requests.Session()
+        session.headers["Authorization"] = f"Bearer {access_token}"
+
         ## find out scene name
         response = requests.get(url.strip('/$value'))
         scene_atts = response.json()
