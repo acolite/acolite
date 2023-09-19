@@ -90,6 +90,7 @@ def download(urls, output = None, auth = None, auth_url = None,
                 response = session.get(url, allow_redirects=False)
 
             ## download file
+            if os.path.exists(zfile): os.remove(zfile)
             dl = session.get(url, verify=False, allow_redirects=True)
             print('Writing file to {}'.format(zfile))
             if (dl.ok):
@@ -108,11 +109,14 @@ def download(urls, output = None, auth = None, auth_url = None,
             if os.path.exists(zfile):
                 print('Extracting {}'.format(zfile))
                 ac.shared.extract_bundle(zfile, targ_bundle=lfile)
-                print('Wrote {}'.format(lfile))
+                if not os.path.exists(lfile):
+                    print('Error extracting {}'.format(zfile))
+                else:
+                    print('Wrote {}'.format(lfile))
 
             ## remove downloaded zip file after extraction
             if remove_zip:
-                if os.path.exists(zfile):
+                if os.path.exists(zfile) & os.path.exists(lfile):
                     print('Deleting {}'.format(zfile))
                     os.remove(zfile)
                     print('Deleted {}'.format(zfile))
