@@ -92,8 +92,14 @@ def download(urls, output = None, auth = None, auth_url = None,
             ## download file
             dl = session.get(url, verify=False, allow_redirects=True)
             print('Writing file to {}'.format(zfile))
-            with open(zfile, 'wb') as p:
-                p.write(dl.content)
+            if (dl.ok):
+                with open(zfile, 'wb') as p:
+                    for chunk in dl.iter_content(chunk_size=1024*1024):
+                        if chunk: # filter out keep-alive new chunks
+                            p.write(chunk)
+            else:
+                print('An error occurred trying to download.')
+
         else:
             print('Local copy of {} exists'.format(scene))
 
