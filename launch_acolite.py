@@ -13,7 +13,7 @@ def launch_acolite():
     freeze_support()
 
     ## import sys to parse arguments
-    import sys
+    import sys, os
     import datetime
     import argparse
 
@@ -65,6 +65,10 @@ def launch_acolite():
         if args.settings is None:
             print('No settings file given')
             return()
+        if not os.path.exists(args.settings):
+            print('Settings file {} does not exist.'.format(args.settings))
+            return()
+
 
         ac.acolite.acolite_run(args.settings, inputfile=inputfile, output=output)
     else:
