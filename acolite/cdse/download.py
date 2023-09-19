@@ -56,6 +56,9 @@ def download(urls, output = None, auth = None, auth_url = None,
         if verbosity > 0: print('No output directory given, will download to current working directory: {}'.format(cwd))
         output = '{}'.format(cwd)
 
+    ## create path
+    if not os.path.exists(output): os.makedirs(output)
+
     ## set up download session
     session = requests.Session()
     session.headers["Authorization"] = f"Bearer {access_token}"
