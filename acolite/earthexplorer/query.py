@@ -2,11 +2,11 @@
 ## queries EarthExplorer for landsat scenes
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-19
-## modifications: 2023-09-20 (QV) moved roi_wkt to function
+## modifications: 2023-09-20 (QV) moved roi_wkt to function, added cloudCoverFilter
 
 def query(scene = None, collection = 2, level = 1, landsat_type = None,
                start_date = None, end_date = None,  roi = None,
-               verbosity = 1,
+               verbosity = 1, cloud_cover = None,
                max_results = 1000, api_url = None, attributes = False):
 
     import os, requests, json, netrc
@@ -115,6 +115,9 @@ def query(scene = None, collection = 2, level = 1, landsat_type = None,
                 edate = dateutil.parser.parse(end_date)
                 edate += datetime.timedelta(days=1) ## add one day to include end date data
                 query['acquisitionFilter']['end'] = edate.isoformat()
+
+        if (cloud_cover is not None):
+            query['cloudCoverFilter'] = {'max': cloud_cover, 'min': 0, 'includeUnknown': False}
 
         data = {"datasetName": dataset, "sceneFilter": query, "maxResults": max_results, "metadataType": "full"}
         if verbosity > 3: print(data)
