@@ -55,6 +55,7 @@ from .polygon_crop import *
 from .polygon_from_wkt import *
 from .polygon_limit import *
 from .reproject2 import *
+from .roi_wkt import *
 
 from .polygon_wkt import *
 from .limit_wkt import *

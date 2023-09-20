@@ -2,7 +2,7 @@
 ## queries CDSE for scenes
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
-## modifications:
+## modifications: 2023-09-20 (QV) moved roi_wkt to function
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None,
@@ -48,38 +48,7 @@ def query(scene = None, collection = None, product = None,
 
     ## determine WKT from provided ROI
     wkt = None
-    limit = None
-    if (roi is not None):
-        if type(roi) is str:
-            ## try to read from polygon
-            if os.path.exists(roi):
-                try:
-                    wkt = ac.shared.polygon_wkt(roi)
-                except:
-                    pass
-
-            ## try if roi is valid wkt
-            if wkt is None:
-                try:
-                    geom = ogr.CreateGeometryFromWkt(roi)
-                    if geom is not None: wkt  = '{}'.format(roi)
-                except:
-                    pass
-
-            ## maybe its a limit string
-            if wkt is None:
-                if len(roi.split(',')) == 4: limit = [float(r.strip()) for r in roi.split(',')]
-
-        ## try if roi is limit list
-        if wkt is None:
-            if type(roi) is list:
-                if len(roi) == 4: limit = [r for r in roi]
-            if limit is not None:
-                try:
-                    wkt = ac.shared.limit_wkt(limit)
-                except:
-                    pass
-
+    if (roi is not None): wkt = ac.shared.roi_wkt(roi)
     if wkt is not None:
         if verbosity > 1: print('Using WKT for query: {}'.format(wkt))
 
