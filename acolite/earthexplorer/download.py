@@ -2,13 +2,23 @@
 ## download scenes from EarthExplorer
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-19
-## modifications:
+## modifications: 2023-09-20 (QV) removed lxml and use HTMLparser
 
 def download(entity_list, dataset_list, identifier_list, output = None,
                   extract_tar = True, remove_tar = True, override = False, verbosity = 1):
     import os, requests, json, re, netrc, time
     import acolite as ac
-    from lxml.html import fromstring
+    #from lxml.html import fromstring
+    from html.parser import HTMLParser
+    class MyHTMLParser(HTMLParser):
+        entityid = None
+        dataproductid = None
+        def handle_starttag(self, tag, attrs):
+            dattrs = dict(attrs)
+            if (dattrs.get('title') == 'Download Product') &\
+               (dattrs.get('class') == 'btn btn-secondary secondaryDownloadButton'):
+                    self.entityid = dattrs['data-entityid']
+                    self.dataproductid = dattrs['data-productid']
 
     ## get output directory
     if output is None:
@@ -64,17 +74,23 @@ def download(entity_list, dataset_list, identifier_list, output = None,
             ## get scene download page
             response = session.get('{}/options/{}/{}'.format(ac.config['EARTHEXPLORER_download'], dataset_id, entity_id))
 
-            ## parse html
-            tree = fromstring(response.text)
-
             ### get data-entityid and data-productid from Download Product button
             if verbosity > 1: print('Getting data-entityid and data-productid from Download Product button')
-            entityid = None
-            dataproductid = None
-            for c in tree.find_class('btn btn-secondary secondaryDownloadButton'):
-                if c.get('title') == 'Download Product':
-                    entityid = c.get('data-entityid')
-                    dataproductid = c.get('data-productid')
+
+            ## parse html
+            #tree = fromstring(response.text)
+            #entityid = None
+            #dataproductid = None
+            #for c in tree.find_class('btn btn-secondary secondaryDownloadButton'):
+            #    if c.get('title') == 'Download Product':
+            #        entityid = c.get('data-entityid')
+            #        dataproductid = c.get('data-productid')
+
+            ## parse html
+            parser = MyHTMLParser()
+            parser.feed(response.text)
+            entityid, dataproductid = parser.entityid, parser.dataproductid
+            parser.close()
 
             if (entityid is None) | (dataproductid is None):
                 print('Could not identifiy entity/dataproduct identifiers for {}'.format(scene_id))
