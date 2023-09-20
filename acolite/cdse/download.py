@@ -4,7 +4,7 @@
 ## 2023-09-12
 ## modifications: 2023-09-19 (QV) retrieve access token per url to avoid time outs
 
-def download(urls, output = None, auth = None, auth_url = None,
+def download(urls, output = None, auth = None, auth_url = None, netrc_machine = 'cdse',
                   extract_zip = True, remove_zip = True, override = False, verbosity = 1):
     import os, requests, netrc, time
     import acolite as ac
@@ -18,7 +18,7 @@ def download(urls, output = None, auth = None, auth_url = None,
         try:
             ## get auth from netrc file
             nr = netrc.netrc()
-            ret = nr.authenticators('cdse')
+            ret = nr.authenticators(netrc_machine)
             if ret is not None:
                 login, account, password = ret
                 login = login.strip('"')

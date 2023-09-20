@@ -4,7 +4,7 @@
 ## 2023-09-19
 ## modifications:
 
-def auth(api_url = None, return_auth = False):
+def auth(api_url = None, return_auth = False, netrc_machine = 'earthdata'):
     import os, requests, json, netrc
     import acolite as ac
 
@@ -12,7 +12,7 @@ def auth(api_url = None, return_auth = False):
 
     ## get auth from netrc file
     nr = netrc.netrc()
-    ret = nr.authenticators('earthexplorer')
+    ret = nr.authenticators(netrc_machine)
     if ret is not None:
         login, account, password = ret
         login = login.strip('"')
