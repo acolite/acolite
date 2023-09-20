@@ -23,10 +23,30 @@ def query(scene = None, collection = 2, level = 1, landsat_type = None,
         print('Could not get EarthExplorer access token!')
         return
 
+    ## get landsat_type from scene
+    if scene is not None:
+        landsat_type = None
+        if scene[3] in ['8','9']:
+            landsat_type = 'ot'
+        if scene[3] in ['4','5']:
+            landsat_type = 'tm'
+        if scene[3] in ['7']:
+            landsat_type = 'etm'
+        if landsat_type is None:
+            print('Could not determine landsat_type based on scene name "{}"'.format(scene))
+            return
+        print('Assuming landsat_type "{}" based on scene name'.format(scene))
+
     ## set up dataset
+    landsat_type_default = 'ot'
     if landsat_type is None:
-        landsat_type_default = 'ot'
         print('Assuming landsat_type "ot" (Landsat 8, Landsat 9 OLI/TIRS)')
+        print('Options for landsat_type: "ot" (L8/L9),  "tm" (L4/L5), "etm" (L7)')
+        landsat_type = '{}'.format(landsat_type_default)
+
+    if landsat_type not in ['ot', 'tm', 'etm']:
+        print('landsat_type "{}" not supported'.format(landsat_type))
+        print('Using landsat_type "ot" (Landsat 8, Landsat 9 OLI/TIRS)')
         print('Options for landsat_type: "ot" (L8/L9),  "tm" (L4/L5), "etm" (L7)')
         landsat_type = '{}'.format(landsat_type_default)
 
