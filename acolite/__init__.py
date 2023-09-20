@@ -40,6 +40,7 @@ from acolite import gem
 from acolite import parameters
 
 from acolite import cdse
+from acolite import earthexplorer
 
 ## ignore numpy errors
 import numpy as np
