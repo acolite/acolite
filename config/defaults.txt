@@ -458,6 +458,6 @@ luts_pressures=500,750,1013,1100
 luts_reduce_dimensions=False
 slicing=False
 
-# CDSE
-cdse_download=False
-cdse_download_directory=None
+# CDSE or EarthExplorer download
+scene_download=False
+scene_download_directory=None
