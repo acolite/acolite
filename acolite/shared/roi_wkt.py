@@ -10,6 +10,7 @@ def roi_wkt(roi):
     from osgeo import ogr,osr,gdal
 
     wkt = None
+    limit = None
     if type(roi) is str:
         ## try to read from polygon
         if os.path.exists(roi):
