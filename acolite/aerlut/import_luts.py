@@ -28,7 +28,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
     ## indices for reducing LUT size
     vza_sub = [0, -1]
     aot_sub = [0, -1]
-    print(par, add_rsky)
+    #print(par, add_rsky)
 
     if add_rsky:
         klist = ['utott', 'dtott', 'astot', 'romix']
