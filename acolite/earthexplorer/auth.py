@@ -2,9 +2,9 @@
 ## gets authentication token from USGS EarthExplorer API
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-19
-## modifications:
+## modifications: 2023-09-25 (QV) changed to separate earthexplorer credentials
 
-def auth(api_url = None, return_auth = False, netrc_machine = 'earthdata'):
+def auth(api_url = None, return_auth = False, netrc_machine = 'earthexplorer'):
     import os, requests, json, netrc
     import acolite as ac
 
@@ -24,18 +24,18 @@ def auth(api_url = None, return_auth = False, netrc_machine = 'earthdata'):
 
     ## get auth from environment
     if auth is None:
-        if ('EARTHDATA_u' in os.environ) & \
-           ('EARTHDATA_p' in os.environ):
-            auth = (os.environ['EARTHDATA_u'], os.environ['EARTHDATA_p'])
+        if ('EARTHEXPLORER_u' in os.environ) & \
+           ('EARTHEXPLORER_p' in os.environ):
+            auth = (os.environ['EARTHEXPLORER_u'], os.environ['EARTHEXPLORER_p'])
 
     ## get auth from config
     if auth is None:
-        if (ac.config['EARTHDATA_u'] != '') & \
-           (ac.config['EARTHDATA_p'] != ''):
-            auth = (ac.config['EARTHDATA_u'], ac.config['EARTHDATA_p'])
+        if (ac.config['EARTHEXPLORER_u'] != '') & \
+           (ac.config['EARTHEXPLORER_p'] != ''):
+            auth = (ac.config['EARTHEXPLORER_u'], ac.config['EARTHEXPLORER_p'])
 
     if auth is None:
-        print('Could not determine EarthData credentials. Please add them to your .netrc file or ACOLITE config file.')
+        print('Could not determine EarthExplorer credentials. Please add them to your .netrc file or ACOLITE config file.')
         return
 
     ## get api URL from config

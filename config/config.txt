@@ -67,6 +67,11 @@ EARTHEXPLORER_api=https://m2m.cr.usgs.gov/api/api/json/stable
 EARTHEXPLORER_download=https://earthexplorer.usgs.gov/download
 EARTHEXPLORER_ers=https://ers.cr.usgs.gov
 
+## EarthExplorer credentials
+## alternatively use .netrc vor machine earthexplorer
+EARTHEXPLORER_u=
+EARTHEXPLORER_p=
+
 ## CDSE urls
 CDSE_odata=https://catalogue.dataspace.copernicus.eu/odata/v1
 CDSE_auth=https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
