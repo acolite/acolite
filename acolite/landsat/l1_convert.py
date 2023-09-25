@@ -457,13 +457,13 @@ def l1_convert(inputfile, output = None, settings = {},
                 datasets = ac.shared.nc_datasets(ofile)
             else:
                 datasets = []
-            if ('x' not in datasets) or ('y' not in datasets):
+            if ('xx' not in datasets) or ('yy' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False)
-                ac.output.nc_write(ofile, 'x', x, new=new)
-                if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y)
-                if verbosity > 1: print('Wrote y')
+                ac.output.nc_write(ofile, 'xx', x, new=new)
+                if verbosity > 1: print('Wrote xx')
+                ac.output.nc_write(ofile, 'yy', y)
+                if verbosity > 1: print('Wrote yy')
                 new=False
 
         ## write TOA bands
