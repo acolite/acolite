@@ -12,7 +12,7 @@ def auth(api_url = None, return_auth = False, netrc_machine = 'earthexplorer'):
     auth = ac.shared.auth(netrc_machine)
 
     if auth is None:
-        print('Could not determine {} credentials {}_u and {}_p.'.format(netrc_machine, netrc_machine, netrc_machine))
+        print('Could not determine {} credentials {}_u and {}_p.'.format(netrc_machine.upper(), netrc_machine.upper(), netrc_machine.upper()))
         print('Please add them to your .netrc file, environment variables, or ACOLITE config file.')
         return()
 
