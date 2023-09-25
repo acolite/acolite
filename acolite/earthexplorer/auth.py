@@ -8,35 +8,13 @@ def auth(api_url = None, return_auth = False, netrc_machine = 'earthexplorer'):
     import os, requests, json, netrc
     import acolite as ac
 
-    auth = None
-
-    ## get auth from netrc file
-    try:
-        nr = netrc.netrc()
-        ret = nr.authenticators(netrc_machine)
-        if ret is not None:
-            login, account, password = ret
-            login = login.strip('"')
-            password = password.strip('"')
-            auth = (login, password)
-    except:
-        pass
-
-    ## get auth from environment
-    if auth is None:
-        if ('EARTHEXPLORER_u' in os.environ) & \
-           ('EARTHEXPLORER_p' in os.environ):
-            auth = (os.environ['EARTHEXPLORER_u'], os.environ['EARTHEXPLORER_p'])
-
-    ## get auth from config
-    if auth is None:
-        if (ac.config['EARTHEXPLORER_u'] != '') & \
-           (ac.config['EARTHEXPLORER_p'] != ''):
-            auth = (ac.config['EARTHEXPLORER_u'], ac.config['EARTHEXPLORER_p'])
+    ## get credentials
+    auth = ac.shared.auth(netrc_machine)
 
     if auth is None:
-        print('Could not determine EarthExplorer credentials. Please add them to your .netrc file or ACOLITE config file.')
-        return
+        print('Could not determine {} credentials {}_u and {}_p.'.format(netrc_machine, netrc_machine, netrc_machine))
+        print('Please add them to your .netrc file, environment variables, or ACOLITE config file.')
+        return()
 
     ## get api URL from config
     if api_url is None: api_url = ac.config['EARTHEXPLORER_api']

@@ -1,3 +1,5 @@
+from .auth import auth
+
 from .f0_get import *
 
 from .rsr_read import *

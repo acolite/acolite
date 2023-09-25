@@ -12,36 +12,12 @@ def download(urls, output = None, auth = None, auth_url = None, netrc_machine = 
     ## get authentication URL from config
     if auth_url is None: auth_url = ac.config['CDSE_auth']
 
-    ## get auth for download
-    if auth is None:
-
-        try:
-            ## get auth from netrc file
-            nr = netrc.netrc()
-            ret = nr.authenticators(netrc_machine)
-            if ret is not None:
-                login, account, password = ret
-                login = login.strip('"')
-                password = password.strip('"')
-                auth = (login, password)
-        except:
-            pass
-
-        ## get auth from environment
-        if auth is None:
-            if ('CDSE_u' in os.environ) & \
-               ('CDSE_p' in os.environ):
-                auth = (os.environ['CDSE_u'], os.environ['CDSE_p'])
-
-        ## get auth from config
-        if auth is None:
-            if (ac.config['CDSE_u'] != '') & \
-               (ac.config['CDSE_p'] != ''):
-                auth = (ac.config['CDSE_u'], ac.config['CDSE_p'])
+    ## get credentials
+    if auth is None: auth = ac.shared.auth(netrc_machine)
 
     if auth is None:
         print('Could not determine CDSE credentials CDSE_u and CDSE_p.')
-        print('Please add them to your .netrc file, environment varialbles, or ACOLITE config file.')
+        print('Please add them to your .netrc file, environment variables, or ACOLITE config file.')
         return()
 
     if output is None:
