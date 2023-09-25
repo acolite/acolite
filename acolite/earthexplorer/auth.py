@@ -11,13 +11,16 @@ def auth(api_url = None, return_auth = False, netrc_machine = 'earthdata'):
     auth = None
 
     ## get auth from netrc file
-    nr = netrc.netrc()
-    ret = nr.authenticators(netrc_machine)
-    if ret is not None:
-        login, account, password = ret
-        login = login.strip('"')
-        password = password.strip('"')
-        auth = (login, password)
+    try:
+        nr = netrc.netrc()
+        ret = nr.authenticators(netrc_machine)
+        if ret is not None:
+            login, account, password = ret
+            login = login.strip('"')
+            password = password.strip('"')
+            auth = (login, password)
+    except:
+        pass
 
     ## get auth from environment
     if auth is None:
