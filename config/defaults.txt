@@ -263,6 +263,20 @@ acstar3_write_rhoa=True
 acstar3_write_rhoe=True
 acstar3_ex=3
 acstar3_mask_edges=True
+radcor_initial_aot=0.3
+radcor_psf_radius=3.5
+radcor_psf_rescale=False
+radcor_psf_complete_method=neighborhood
+radcor_force_model=None
+radcor_force_aot=None
+radcor_expand_edge=True
+radcor_expand_method=mirror
+radcor_mask_edges=True
+radcor_fft_stack=False
+radcor_write_rhot=True
+radcor_write_rhoe=True
+radcor_bratio_option=percentile
+radcor_bratio_percentile=1
 
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled

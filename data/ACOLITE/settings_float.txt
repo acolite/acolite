@@ -49,6 +49,9 @@ viirs_mask_immixed_maxrat
 viirs_mask_immixed_maxdif
 output_projection_radius
 output_projection_epsilon
+radcor_psf_radius
+radcor_initial_aot
+radcor_bratio_percentile
 
 ## GEE
 st_lon
