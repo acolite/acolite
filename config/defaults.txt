@@ -411,6 +411,8 @@ map_projected=False
 map_raster=False
 map_pcolormesh=False
 map_cartopy=False
+xtick_rotation=0
+ytick_rotation=0
 
 # GeoTIFF export options
 l1r_export_geotiff=False

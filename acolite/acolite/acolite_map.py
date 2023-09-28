@@ -153,6 +153,11 @@ def acolite_map(ncf, output = None,
                         plt.ylim(limit[0],limit[2])
                     plt.xticks(**font)
                     plt.yticks(**font)
+
+                    ## rotate tick labels
+                    plt.xticks(rotation = setu['xtick_rotation'])
+                    plt.yticks(rotation = setu['ytick_rotation'])
+
                 else:
                     axim = plt.imshow(im, norm=norm, cmap=cmap)
                     if scene_mask is not None:
