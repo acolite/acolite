@@ -52,8 +52,8 @@ output_projection_epsilon
 radcor_psf_radius
 radcor_initial_aot
 radcor_bratio_percentile
-xtick_rotation
-ytick_rotation
+map_xtick_rotation
+map_ytick_rotation
 
 ## GEE
 st_lon

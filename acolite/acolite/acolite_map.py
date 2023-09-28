@@ -155,8 +155,8 @@ def acolite_map(ncf, output = None,
                     plt.yticks(**font)
 
                     ## rotate tick labels
-                    plt.xticks(rotation = setu['xtick_rotation'])
-                    plt.yticks(rotation = setu['ytick_rotation'])
+                    plt.xticks(rotation = setu['map_xtick_rotation'])
+                    plt.yticks(rotation = setu['map_ytick_rotation'])
 
                 else:
                     axim = plt.imshow(im, norm=norm, cmap=cmap)
@@ -165,15 +165,15 @@ def acolite_map(ncf, output = None,
 
                     plt.axis('off')
             else: ## cartopy
-                axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs)
-                gl = ax.gridlines(draw_labels=True, linewidth=1, color='white', alpha=0.75, linestyle='--')
+                axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs, norm=norm, cmap=cmap)
+                gl = ax.gridlines(draw_labels=True, linewidth=1, color=setu['map_gridline_color'], alpha=0.75, linestyle='--')
                 gl.top_labels = False
                 gl.left_labels = True
                 gl.bottom_labels = True
                 gl.right_labels = False
                 ## set size and rotation of ticklabels
-                gl.xlabel_style = {'size': setu['map_fontsize'], 'rotation': setu['xtick_rotation']}
-                gl.ylabel_style = {'size': setu['map_fontsize'], 'rotation': setu['ytick_rotation']}
+                gl.xlabel_style = {'size': setu['map_fontsize'], 'rotation': setu['map_xtick_rotation']}
+                gl.ylabel_style = {'size': setu['map_fontsize'], 'rotation': setu['map_ytick_rotation']}
 
                 ## format ticks
                 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
