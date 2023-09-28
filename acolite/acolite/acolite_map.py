@@ -166,11 +166,19 @@ def acolite_map(ncf, output = None,
                     plt.axis('off')
             else: ## cartopy
                 axim = ax.imshow(im, origin='upper', extent=img_extent, transform=image_crs)
-                gl = ax.gridlines(draw_labels=True)
-                gl.xlabels_top = False
-                gl.ylabels_left = True
-                gl.xlabels_bottom = True
-                gl.ylabels_right = False
+                gl = ax.gridlines(draw_labels=True, linewidth=1, color='white', alpha=0.75, linestyle='--')
+                gl.top_labels = False
+                gl.left_labels = True
+                gl.bottom_labels = True
+                gl.right_labels = False
+                ## set size and rotation of ticklabels
+                gl.xlabel_style = {'size': setu['map_fontsize'], 'rotation': setu['xtick_rotation']}
+                gl.ylabel_style = {'size': setu['map_fontsize'], 'rotation': setu['ytick_rotation']}
+
+                ## format ticks
+                from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+                gl.xformatter = LONGITUDE_FORMATTER
+                gl.yformatter = LATITUDE_FORMATTER
 
             if setu['map_title']: plt.title(title, **font)
 
@@ -199,11 +207,11 @@ def acolite_map(ncf, output = None,
                         markersize = None
                     ## plot marker
                     pplot = plt.plot(p['px'], p['py'], color=p['color'],
-                                             marker=p['sym'],
+                                             marker=p['sym'], zorder=10,
                                              markersize = markersize, mec=mec, mfc=mfc, mew=mew)
                     ## plot marker label
                     if p['label_plot']:
-                        plt.text(p['pxl'], p['pyl'], p['label'], color='white', fontsize=fontsize,
+                        plt.text(p['pxl'], p['pyl'], p['label'], color='white', fontsize=fontsize, zorder=10,
                                  path_effects = [pe.withStroke(linewidth=2, foreground=p['color'])],
                                  verticalalignment=points[pname]['va'], horizontalalignment=points[pname]['ha'])
             ## end add point markers
@@ -294,10 +302,11 @@ def acolite_map(ncf, output = None,
         if setu['map_cartopy']:
             try:
                 import cartopy.crs as ccrs
-                proj4_string = gatts['proj4_string']
-                p = pyproj.Proj(proj4_string)
+                d, att = ac.shared.nc_data(ncf, gatts['projection_key'], attributes=True)
+                #proj4_string = gatts['proj4_string']
+                crs_proj = pyproj.Proj(att['crs_wkt'])
                 img_extent = gatts['xrange'][0],gatts['xrange'][1],gatts['yrange'][0],gatts['yrange'][1]
-                pcrs = pyproj.CRS(gatts['proj4_string'])
+                pcrs = pyproj.CRS(att['crs_wkt'])
                 uzone = pcrs.coordinate_operation.name.split()[-1]
                 zone = int(uzone[0:2])
                 south = uzone[-1].upper() == 'S'
@@ -380,6 +389,8 @@ def acolite_map(ncf, output = None,
                 if plat < np.nanmin(lat): continue
                 if setu['map_pcolormesh']:
                     px, py = plon, plat
+                elif setu['map_cartopy']:
+                    px, py = crs_proj(plon, plat)
                 else:
                     tmp = ((lon - plon)**2 + (lat - plat)**2)**0.5
                     i, j = np.where(tmp == np.nanmin(tmp))
