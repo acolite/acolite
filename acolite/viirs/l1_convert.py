@@ -106,6 +106,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
         new = True
         outside = False
+
+        ## track gain index for RSB (0-2 are I bands 1-3, and 3-13 are M bands)
+        gi = 0
+
         ## run through viirs options
         for vi, viirs_res in enumerate(opts):
             if outside: continue
@@ -348,6 +352,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
                         ## rotate dataset
                         if rotate: data = np.rot90(data, k=2)
+
+                        ## apply gains
+                        if ('rhot_' in ds) & (setu['gains']):
+                            ds_att['gain_toa'] = setu['gains_toa'][gi]
+                            ds_att['gain_applied'] = 1
+                            if verbosity > 0: print('Applying gain {} to {}'.format(setu['gains_toa'][gi], ds))
+                            data *= setu['gains_toa'][gi]
+                            gi+=1
 
                         ## output dataset
                         ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts, dataset_attributes = ds_att)

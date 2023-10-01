@@ -21,3 +21,10 @@ output_projection_filldistance=1
 rgb_red_wl=670
 rgb_green_wl=560
 rgb_blue_wl=480
+
+## Gains
+gains=False
+gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1
+gains_toa=1,1,1,0.96571,0.95267,0.98339,0.98540,0.99177,0.97731,1,1,1,1,1
+offsets=False
+offsets_toa=0,0,0,0,0,0,0,0,0,0,0,0,0,0
