@@ -52,7 +52,10 @@ def download(urls, output = None, auth = None, auth_url = None, netrc_machine = 
         ## find out scene name
         response = requests.get(url.strip('/$value'))
         scene_atts = response.json()
-        scene = scene_atts['value'][0]['Name']
+        if 'Name' in scene_atts:
+            scene = scene_atts['Name']
+        if 'value' in scene_atts:
+            scene = scene_atts['value'][0]['Name']
 
         ## local files
         lfile = '{}/{}'.format(output, scene)
