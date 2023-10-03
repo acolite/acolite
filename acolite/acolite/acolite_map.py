@@ -17,6 +17,7 @@
 def acolite_map(ncf, output = None,
                 settings = None,
                 plot_all = True,
+                plot_datasets = [],
                 plot_skip = ['lon', 'lat', 'l2_flags'],
                 map_save = True,
                 map_show = False ):
@@ -337,7 +338,10 @@ def acolite_map(ncf, output = None,
 
     ## parameters to plot
     plot_parameters = []
-    if plot_all: plot_parameters = [k for k in datasets if k not in plot_skip]
+    if plot_all:
+        plot_parameters = [k for k in datasets if k not in plot_skip]
+    else:
+        plot_parameters = [k for k in datasets if k in plot_datasets]
     if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
     if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
     if setu['rgb_rhorc']: plot_parameters+=['rgb_rhorc']
