@@ -35,7 +35,7 @@ def query(scene = None, collection = 2, level = 1, landsat_type = None,
         if landsat_type is None:
             print('Could not determine landsat_type based on scene name "{}"'.format(scene))
             return
-        print('Assuming landsat_type "{}" based on scene name'.format(scene))
+        print('Assuming landsat_type "{}" based on scene name {}'.format(landsat_type, scene))
 
     ## set up dataset
     landsat_type_default = 'ot'
