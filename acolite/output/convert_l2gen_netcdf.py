@@ -63,3 +63,5 @@ def convert_l2gen_netcdf(ifile, output=None, file_type = 'L2S', \
     ## reproject data if requested
     if reproject:
         ac.output.project_acolite_netcdf(ofile, output = None, settings = settings)
+
+    return(ofile)
