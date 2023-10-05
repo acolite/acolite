@@ -396,9 +396,9 @@ def acolite_map(ncf, output = None,
                 if plon < np.nanmin(lon): continue
                 if plat > np.nanmax(lat): continue
                 if plat < np.nanmin(lat): continue
-                if setu['map_pcolormesh']:
+                if setu['map_pcolormesh'] & setu['map_projected']:
                     px, py = plon, plat
-                elif setu['map_cartopy']:
+                elif setu['map_cartopy'] & setu['map_projected']:
                     px, py = crs_proj(plon, plat)
                 else:
                     tmp = ((lon - plon)**2 + (lat - plat)**2)**0.5
