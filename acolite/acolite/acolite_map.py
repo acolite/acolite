@@ -331,10 +331,15 @@ def acolite_map(ncf, output = None,
     if not os.path.exists(odir):
         os.makedirs(odir)
 
+    isodate = ''
+    if 'isodate' in gatts: isodate = gatts['isodate']
+    elif 'time_coverage_end' in gatts: isodate = gatts['time_coverage_end']
+    elif 'time_coverage_start' in gatts: isodate = gatts['time_coverage_start']
+
     if 'satellite_sensor' in gatts:
-        title_base = '{} {}'.format(gatts['satellite_sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' ')[0:19])
+        title_base = '{} {}'.format(gatts['satellite_sensor'].replace('_', '/'), isodate.replace('T', ' ')[0:19])
     else:
-        title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), gatts['isodate'].replace('T', ' ')[0:19])
+        title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), isodate.replace('T', ' ')[0:19])
 
     ## parameters to plot
     plot_parameters = []
