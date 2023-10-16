@@ -221,6 +221,10 @@ cirrus_g_swir=0.5
 ## generic options
 resolved_geometry=False
 ancillary_data=True
+#ancillary_type=TOAST,MET_NCEP,MET_NCEP_NEXT
+#ancillary_type=O3_AURAOMI_24h,MET_NCEP_6h,MET_NCEP_6h_NEXT
+#ancillary_type=GMAO_FP_MET
+ancillary_type=GMAO_MERRA2_MET
 uoz_default=0.3
 uwv_default=1.5
 pressure=None

@@ -5,33 +5,44 @@
 ## 2017-10-17
 ## modifications: 2021-01-31 (QV) added 2020-05-28 limit for TOAST
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_list
+##                2023-10-16 (QV) changed date parsing, added GMAO FP and MERRA2 files
 
-def list_files(date):
+def list_files(date, file_types = None):
     import os
-    from datetime import datetime, timedelta
-
-    year, month, day = [int(i) for i in date.split('-')]
-    dtime = datetime(year, month, day)
+    import acolite as ac
+    import datetime, dateutil.parser
+    dtime = dateutil.parser.parse(date)
 
     isodate = dtime.strftime("%Y-%m-%d")
     year = dtime.strftime("%Y")
+    month = dtime.strftime("%m")
+    day = dtime.strftime("%d")
+
     jday = dtime.strftime("%j").zfill(3)
     yjd = "{}{}".format(dtime.strftime("%Y"),jday)
 
-    dtime_next = dtime+timedelta(days=1)
+    dtime_next = dtime+datetime.timedelta(days=1)
     year_next = dtime_next.strftime("%Y")
     jday_next = dtime_next.strftime("%j").zfill(3)
     yjd_next = "{}{}".format(year_next,jday_next)
 
-    if isodate > '2020-05-27':
-        file_types = ['MET_NCEPR2_6h','MET_NCEPR2_6h_NEXT']
-    else:
-        file_types = ['TOAST','MET_NCEPR2_6h','MET_NCEPR2_6h_NEXT']
+    ## get ancillary file types
+    if file_types is None:
+        file_types = ac.settings['run']['ancillary_type']
+    if type(file_types) is not list: file_types = [file_types]
 
-    if ((int(year) == 2004) & (int(jday) > 336)) | (int(year) > 2004):
-        file_types+=['O3_AURAOMI_24h']
-    else:
-        file_types+=['O3_EPTOMS_24h', 'O3_N7TOMS_24h']
+    # if isodate > '2020-05-27':
+    #     file_types = ['MET_NCEPR2_6h','MET_NCEPR2_6h_NEXT']
+    # else:
+    #     file_types = ['TOAST','MET_NCEPR2_6h','MET_NCEPR2_6h_NEXT']
+    #
+    # file_types += ['MET_NCEP_6h','MET_NCEP_6h_NEXT']
+    # file_types += ['GMAO_MERRA2_MET']
+    #
+    # if ((int(year) == 2004) & (int(jday) > 336)) | (int(year) > 2004):
+    #     file_types+=['O3_AURAOMI_24h']
+    # else:
+    #     file_types+=['O3_EPTOMS_24h', 'O3_N7TOMS_24h']
 
     basefiles = []
     for file_type in file_types:
@@ -64,6 +75,27 @@ def list_files(date):
             for f in cfile: basefiles.append(f)
         elif file_type == "MET_NCEPR2_6h_NEXT":
             cfile = "N{}00_MET_NCEPR2_6h.hdf.bz2".format(yjd_next)
+            basefiles.append(cfile)
+        elif file_type == "GMAO_MERRA2_MET":
+            ## hourly file before
+            cfile = "GMAO_MERRA2.{}T{}0000.MET.nc".format(dtime.strftime("%Y%m%d"),str(dtime.hour).zfill(2))
+            basefiles.append(cfile)
+            ## hourly file after
+            if dtime.hour < 23:
+                cfile = "GMAO_MERRA2.{}T{}0000.MET.nc".format(dtime.strftime("%Y%m%d"),str(dtime.hour+1).zfill(2))
+            else:
+                cfile = "GMAO_MERRA2.{}T{}0000.MET.nc".format((dtime+datetime.timedelta(days=1)).strftime("%Y%m%d"),'00')
+            basefiles.append(cfile)
+        elif file_type == "GMAO_FP_MET":
+            ## 3 hourly file before
+            h0 = dtime.hour - (dtime.hour % 3)
+            cfile = "GMAO_FP.{}T{}0000.MET.NRT.nc".format(dtime.strftime("%Y%m%d"),str(h0).zfill(2))
+            basefiles.append(cfile)
+            ## 3 hourly file after
+            if h0 != 21:
+                cfile = "GMAO_FP.{}T{}0000.MET.NRT.nc".format(dtime.strftime("%Y%m%d"),str(h0+3).zfill(2))
+            else:
+                cfile = "GMAO_FP.{}T{}0000.MET.NRT.nc".format((dtime+datetime.timedelta(days=1)).strftime("%Y%m%d"),'00')
             basefiles.append(cfile)
         else:
             continue

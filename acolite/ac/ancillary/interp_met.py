@@ -37,7 +37,8 @@ def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_h
                 with open(file,'wb') as f: f.write(data)
             except:
                 print("Error extracting file {}, probably incomplete download".format(file_zipped))
-
+                continue
+                
         f = SD(file, SDC.READ)
         datasets_dic = f.datasets()
         meta = f.attributes()

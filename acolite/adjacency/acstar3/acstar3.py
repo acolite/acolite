@@ -390,15 +390,15 @@ def acstar3(ncf, output=None, settings=None,
 
     if 'uoz' not in gatts:
         uoz = setu['uoz_default'] * 1.0
-        if setu['ancillary_data']: uoz = anc['ozone']['interp']/1000. ## convert from MET data
+        if setu['ancillary_data']: uoz = anc['uoz']
     else: uoz = gatts['uoz']
     if 'uwv' not in gatts:
         uwv = setu['uwv_default'] * 1.0
-        if setu['ancillary_data']: uwv = anc['p_water']['interp']/10. ## convert from MET data
+        if setu['ancillary_data']: uwv = anc['uwv']
     else: uwv = gatts['uwv']
     if 'pressure' not in gatts:
         pressure = setu['pressure'] * 1.0
-        if setu['ancillary_data']: pressure = anc['press']['interp']
+        if setu['ancillary_data']: pressure = anc['pressure']
     else: pressure = gatts['pressure']
 
     ## find target pixel

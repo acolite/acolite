@@ -106,15 +106,12 @@ def acolite_l2r(gem,
             clon = gem.gatts['lon']
             clat = gem.gatts['lat']
         print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(gem.gatts['isodate'], clon, clat))
-        anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat)
-
-        ## overwrite the defaults
-        if ('ozone' in anc): gem.gatts['uoz'] = anc['ozone']['interp']/1000. ## convert from MET data
-        if ('p_water' in anc): gem.gatts['uwv'] = anc['p_water']['interp']/10. ## convert from MET data
-        if ('z_wind' in anc) & ('m_wind' in anc) & (setu['wind'] is None):
-            gem.gatts['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-        if ('press' in anc) & (setu['pressure'] == setu['pressure_default']):
-            gem.gatts['pressure'] = anc['press']['interp']
+        anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat, verbosity=verbosity)
+        for k in ['uoz', 'uwv', 'wind', 'pressure']:
+            if (k == 'pressure'):
+                if (setu['pressure'] != setu['pressure_default']): continue
+            if (k == 'wind') & (setu['wind'] is not None): continue
+            if k in anc: gem.gatts[k] = 1.0 * anc[k]
 
     ## elevation provided
     if setu['elevation'] is not None:

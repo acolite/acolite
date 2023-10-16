@@ -9,13 +9,14 @@
 ##                2020-03-10 (QV) added autoremove for files that are too small
 ##                2020-06-23 (QV) changed get url
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_download
+##                2023-10-16 (QV) added GMAO data, moved file size test
 
 def download(date, local_dir = None,
                        download=True, override = False, verbosity=0,
                        get_url = "https://oceandata.sci.gsfc.nasa.gov/ob/getfile"):
 
     import os
-    from datetime import datetime, timedelta
+    import dateutil.parser
     import urllib.request
 
     import acolite as ac
@@ -25,27 +26,21 @@ def download(date, local_dir = None,
 
     local_files = []
     for basefile in ancillary_files:
-            yjd = basefile[1:8]
-            year = yjd[0:4]
-            jday = yjd[4:7]
+            if ('GMAO_MERRA2' in basefile) | ('GMAO_FP' in basefile):
+                sp = basefile.split('.')
+                dtime = dateutil.parser.parse(sp[1])
+                year = dtime.strftime("%Y")
+                jday = dtime.strftime("%j").zfill(3)
+            else:
+                yjd = basefile[1:8]
+                year = yjd[0:4]
+                jday = yjd[4:7]
             url_file = '{}/{}'.format(get_url, basefile)
             local_file = '{}/{}/{}/{}'.format(local_dir,year,jday,basefile)
             local_file_unzipped = local_file.replace('.bz2', '')
 
             if download:
                 ## download file
-                ## test if file is large enough
-                if os.path.exists(local_file):
-                    st = os.stat(local_file)
-                    size = st.st_size / (1024 * 1024)
-                    if size < 0.05: ## 50Kb
-                        if verbosity > 0: print('Removing {} with too small size {:.2f}Mb'.format(os.path.basename(local_file), size))
-                        try:
-                            os.remove(local_file)
-                            if verbosity > 0: print('Deleted {}'.format(local_file))
-                        except:
-                            if verbosity > 0: print('Could not remove {}'.format(local_file))
-
                 if (os.path.exists(local_file) | os.path.exists(local_file_unzipped)) & (not override):
                     if verbosity > 1: print('File {} exists'.format(basefile))
                     if os.path.exists(local_file_unzipped): local_files.append(local_file_unzipped)
@@ -60,4 +55,18 @@ def download(date, local_dir = None,
                         local_files.append(local_file)
                     except:
                         print('Downloading file {} failed'.format(basefile))
+
+                ## test if file is large enough
+                for lf in [local_file_unzipped, local_file]:
+                    if os.path.exists(lf):
+                        st = os.stat(lf)
+                        size = st.st_size / (1024 * 1024)
+                        if size < 0.05: ## 50Kb
+                            if verbosity > 0: print('Removing {} with too small size {:.2f}Mb'.format(os.path.basename(lf), size))
+                            try:
+                                os.remove(lf)
+                                if verbosity > 0: print('Deleted {}'.format(lf))
+                            except:
+                                if verbosity > 0: print('Could not remove {}'.format(lf))
+
     return(local_files)

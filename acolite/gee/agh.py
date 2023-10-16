@@ -263,14 +263,21 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         ## get ancillary
         if settings['ancillary_data']:
             print('Getting ancillary for scene centre location.')
-            anc = ac.ac.ancillary.get(dt, ll['longitude'], ll['latitude'])
+            # anc = ac.ac.ancillary.get(dt, ll['longitude'], ll['latitude'])
+            #
+            # ## overwrite the defaults
+            # if ('ozone' in anc): uoz = anc['ozone']['interp']/1000. ## convert from MET data
+            # if ('p_water' in anc): uwv = anc['p_water']['interp']/10. ## convert from MET data
+            # if ('z_wind' in anc) & ('m_wind' in anc) & (wind is None):
+            #     wind = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
+            # if ('press' in anc): pressure = anc['press']['interp']
+            # print(uoz, uwv, wind, pressure)
 
-            ## overwrite the defaults
-            if ('ozone' in anc): uoz = anc['ozone']['interp']/1000. ## convert from MET data
-            if ('p_water' in anc): uwv = anc['p_water']['interp']/10. ## convert from MET data
-            if ('z_wind' in anc) & ('m_wind' in anc) & (wind is None):
-                wind = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-            if ('press' in anc): pressure = anc['press']['interp']
+            anc = ac.ac.ancillary.get(dt, ll['longitude'], ll['latitude'])
+            if ('uoz' in anc): uoz = anc['uoz']
+            if ('uwv' in anc): uwv = anc['uwv']
+            if ('wind' in anc): wind = anc['wind']
+            if ('pressure' in anc): pressure = anc['pressure']
             print(uoz, uwv, wind, pressure)
 
         if settings['run_hybrid_tact']:

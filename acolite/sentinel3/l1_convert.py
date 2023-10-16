@@ -242,14 +242,12 @@ def l1_convert(inputfile, output = None, settings = {},
         else:
             if setu['ancillary_data']:
                 print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(isodate, clon, clat))
-                anc = ac.ac.ancillary.get(dtime, clon, clat)
+                anc = ac.ac.ancillary.get(dtime, clon, clat, verbosity=verbosity)
                 ## overwrite the defaults
-                if ('ozone' in anc): setu['uoz_default'] = anc['ozone']['interp']/1000. ## convert from MET data
-                if ('p_water' in anc): setu['uwv_default'] = anc['p_water']['interp']/10. ## convert from MET data
-                if ('z_wind' in anc) & ('m_wind' in anc) & (setu['wind'] is None):
-                    setu['wind'] = ((anc['z_wind']['interp']**2) + (anc['m_wind']['interp']**2))**0.5
-                if ('press' in anc) & (setu['pressure'] == setu['pressure_default']):
-                    setu['pressure'] = anc['press']['interp']
+                if ('uoz' in anc): setu['uoz_default'] = anc['uoz']
+                if ('uwv' in anc): setu['uwv_default'] = anc['uwv']
+                if ('wind' in anc) & (setu['wind'] is None): setu['wind'] = anc['wind']
+                if ('pressure' in anc) & (setu['pressure'] == setu['pressure_default']): setu['pressure'] = anc['pressure']
 
         if uoz is None: uoz = setu['uoz_default']
         if uwv is None: uwv = setu['uwv_default']
