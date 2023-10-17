@@ -98,6 +98,7 @@ ACOLITE/TACT can use reptran data if it is present and if tact_reptran=medium or
             cd external/libRadtran-2.0.5
             wget "http://www.meteo.physik.uni-muenchen.de/~libradtran/lib/exe/fetch.php?media=download:reptran_2017_all.tar.gz" -O reptran_2017_all.tar.gz
             tar -xvf reptran_2017_all.tar.gz
+            rm reptran_2017_all.tar.gz
 
 
 ## TACT configuration
