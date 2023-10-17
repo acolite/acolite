@@ -277,7 +277,7 @@ def acolite_map(ncf, output = None,
     mpl.rc('text', usetex=setu['map_usetex'])
 
     scene_mask = None
-    if 'l2_flags' in datasets:
+    if ('l2_flags' in datasets) & (setu['map_mask']):
         scene_mask = ac.shared.nc_data(ncf, 'l2_flags')
         ## convert scene mask to int if it is not (e.g. after reprojection)
         if scene_mask.dtype not in [np.int16, np.int32]: scene_mask = scene_mask.astype(int)

@@ -415,6 +415,7 @@ map_projected=False
 map_raster=False
 map_pcolormesh=False
 map_cartopy=False
+map_mask=True
 map_xtick_rotation=0
 map_ytick_rotation=0
 map_gridline_color=white
