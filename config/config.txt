@@ -39,7 +39,7 @@ tact_dir=$ACDIR/data/TACT
 grid_dir=$ACDIR/data/TACT/grid
 
 ## libRadtran directory
-libradtran_dir=$ACDIR/external/libRadtran-2.0.2
+libradtran_dir=$ACDIR/external/libRadtran-2.0.5
 
 ##
 ## other configuration

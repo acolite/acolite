@@ -81,23 +81,23 @@ ACOLITE tries to retrieve the credentials for accessing EARTHDATA either from yo
 ## TACT installation
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
 
-By default ACOLITE expects the libRadtran (v2.0.2) to be in external/libRadtran-2.0.2 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= setting. To install libRadtran in the external directory (when in the main acolite directory):
+By default ACOLITE expects the libRadtran (v2.0.5) to be in external/libRadtran-2.0.5 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= setting. To install libRadtran in the external directory (when in the main acolite directory):
 
             mkdir external
             cd external
-            wget http://www.libradtran.org/download/history/libRadtran-2.0.2.tar.gz
-            gzip -d libRadtran-2.0.2.tar.gz
-            tar -xvf libRadtran-2.0.2.tar
-            cd libRadtran-2.0.2
+            wget http://www.libradtran.org/download/libRadtran-2.0.5.tar.gz
+            gzip -d libRadtran-2.0.5.tar.gz
+            tar -xvf libRadtran-2.0.5.tar
+            cd libRadtran-2.0.5
             ./configure
             make
             make check
 
-ACOLITE/TACT can use reptran data if it is present and if tact_reptran=medium or tact_reptran=fine. To get reptran, dowload and extract it in the libRadtran-2.0.2 directory:
+ACOLITE/TACT can use reptran data if it is present and if tact_reptran=medium or tact_reptran=fine. To get reptran, dowload and extract it in the libRadtran-2.0.5 directory:
 
-            cd external/libRadtran-2.0.2
+            cd external/libRadtran-2.0.5
             wget "http://www.meteo.physik.uni-muenchen.de/~libradtran/lib/exe/fetch.php?media=download:reptran_2017_all.tar.gz" -O reptran_2017_all.tar.gz
-            tar -xvf reptran_2017_all.tar
+            tar -xvf reptran_2017_all.tar.gz
 
 
 ## TACT configuration
