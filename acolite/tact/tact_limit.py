@@ -64,6 +64,7 @@ def tact_limit(isotime, limit=None,
     ## space/time cells
     lat_cells, lon_cells, time_cells = cells
 
+    if verbosity > 1: print('Running simulations for TACT using libRadtran at {}'.format(ac.config['libradtran_dir']))
     ## run stuff in multiprocessing
     with multiprocessing.Pool(processes=processes) as pool:
         results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran, wave_range=wave_range,
