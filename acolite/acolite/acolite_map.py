@@ -306,7 +306,7 @@ def acolite_map(ncf, output = None,
                 d, att = ac.shared.nc_data(ncf, gatts['projection_key'], attributes=True)
                 #proj4_string = gatts['proj4_string']
                 crs_proj = pyproj.Proj(att['crs_wkt'])
-                img_extent = gatts['xrange'][0],gatts['xrange'][1],gatts['yrange'][0],gatts['yrange'][1]
+                img_extent = gatts['xrange'][0],gatts['xrange'][1],gatts['yrange'][1],gatts['yrange'][0]
                 pcrs = pyproj.CRS(att['crs_wkt'])
                 uzone = pcrs.coordinate_operation.name.split()[-1]
                 zone = int(uzone[0:2])
