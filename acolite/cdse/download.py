@@ -3,8 +3,9 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
 ## modifications: 2023-09-19 (QV) retrieve access token per url to avoid time outs
+##                2023-10-22 (QV) added optional scenes list
 
-def download(urls, output = None, auth = None, auth_url = None, netrc_machine = 'cdse',
+def download(urls, scenes = [], output = None, auth = None, auth_url = None, netrc_machine = 'cdse',
                   extract_zip = True, remove_zip = True, override = False, verbosity = 1):
     import os, requests, netrc, time
     import acolite as ac
@@ -35,27 +36,31 @@ def download(urls, output = None, auth = None, auth_url = None, netrc_machine = 
     if verbosity > 0: print('Downloading {} scenes'.format(len(urls)))
     lfiles, zfiles = [], []
     for ui, url in enumerate(urls):
+        ## if scene list is provided use those scene names
+        if len(scenes) == len(urls):
+            scene = scenes[ui]
+            session = None
+        else:
+            ## get access token - do it per url
+            if verbosity > 1: print('Getting CDSE access token')
+            data = {"client_id": "cdse-public", "grant_type":
+                    "password","username": auth[0], "password": auth[1]}
+            response = requests.post(auth_url, data=data, verify=True, allow_redirects=False)
+            access_token = response.json()['access_token']
+            if verbosity > 1: print(access_token)
+            time.sleep(3)
 
-        ## get access token - do it per url
-        if verbosity > 1: print('Getting CDSE access token')
-        data = {"client_id": "cdse-public", "grant_type":
-                "password","username": auth[0], "password": auth[1]}
-        response = requests.post(auth_url, data=data, verify=True, allow_redirects=False)
-        access_token = response.json()['access_token']
-        if verbosity > 1: print(access_token)
-        time.sleep(3)
+            ## set up download session
+            session = requests.Session()
+            session.headers["Authorization"] = f"Bearer {access_token}"
 
-        ## set up download session
-        session = requests.Session()
-        session.headers["Authorization"] = f"Bearer {access_token}"
-
-        ## find out scene name
-        response = requests.get(url.strip('/$value'))
-        scene_atts = response.json()
-        if 'Name' in scene_atts:
-            scene = scene_atts['Name']
-        if 'value' in scene_atts:
-            scene = scene_atts['value'][0]['Name']
+            ## find out scene name
+            response = requests.get(url.strip('/$value'))
+            scene_atts = response.json()
+            if 'Name' in scene_atts:
+                scene = scene_atts['Name']
+            if 'value' in scene_atts:
+                scene = scene_atts['value'][0]['Name']
 
         ## local files
         lfile = '{}/{}'.format(output, scene)
@@ -63,6 +68,18 @@ def download(urls, output = None, auth = None, auth_url = None, netrc_machine = 
 
         ## download if we don't have the scene
         if (override | (not os.path.exists(lfile)) & (not os.path.exists(zfile))):
+            ## if scene list provided we need to set up the session here
+            if session is None:
+                if verbosity > 1: print('Getting CDSE access token')
+                data = {"client_id": "cdse-public", "grant_type": "password","username": auth[0], "password": auth[1]}
+                response = requests.post(auth_url, data=data, verify=True, allow_redirects=False)
+                access_token = response.json()['access_token']
+                if verbosity > 1: print(access_token)
+                time.sleep(3)
+                ## set up download session
+                session = requests.Session()
+                session.headers["Authorization"] = f"Bearer {access_token}"
+
             ## try url
             print('Downloading {}'.format(scene))
             response = session.get(url, allow_redirects=False)
