@@ -57,12 +57,15 @@ path = os.path.dirname(code_path)
 
 ## find config file
 if not os.path.exists('{}{}config'.format(path, os.path.sep)):
+    range_level = 0
     ## check if binary distribution
-    if '{}dist{}acolite'.format(os.path.sep,os.path.sep) in path:
-        ## two levels for this file
-        for i in range(2): path = os.path.split(path)[0]
+    if os.path.join('dist','acolite','_internal') in path:
+        range_level = 3 ## three levels for this file
+    elif os.path.join('dist','acolite') in path:
+        range_level = 2 ## two levels for this file
+    for i in range(range_level): path = os.path.split(path)[0]
 
-cfile='{}{}config{}config.txt'.format(path,os.path.sep,os.path.sep)
+cfile = os.path.join(path, 'config','config.txt')
 config = shared.import_config(cfile)
 config['code_path'] = code_path
 config['path'] = path
