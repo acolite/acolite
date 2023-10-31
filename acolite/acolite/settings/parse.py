@@ -4,7 +4,7 @@
 ## 2021-03-09
 ## modifications: 2022-03-28 (QV) moved int and float lists to external files
 ##                2023-01-02 (QV) test which is the lowest level of output path that needs to be created
-
+##                2023-10-31 (QV) check if luts_pressures is a list
 
 def parse(sensor, settings=None, merge=True):
     import os, time
@@ -35,6 +35,8 @@ def parse(sensor, settings=None, merge=True):
     ## make sure luts setting is a list
     if 'luts' in setu:
         if type(setu['luts']) is not list: setu['luts'] = [setu['luts']]
+    if 'luts_pressures' in setu:
+        if type(setu['luts_pressures']) is not list: setu['luts_pressures'] = [setu['luts_pressures']]
 
     ## import settings that need to be converted to ints and floats
     int_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_int.txt')
