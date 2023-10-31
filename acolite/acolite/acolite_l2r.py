@@ -10,6 +10,7 @@
 ##                2022-09-24 (QV) removed special case for DESIS
 ##                2023-03-30 (QV) added option to include band name in rhot/rhos datasets
 ##                2023-07-12 (QV) removed netcdf_compression settings from gem call
+##                2023-10-31 (QV) improved memory management, moved ttot_all interpolation to glint correction
 
 def acolite_l2r(gem,
                 output = None,
@@ -62,7 +63,7 @@ def acolite_l2r(gem,
         npx = band_data.shape[0] * band_data.shape[1]
         #nbf = npx - len(np.where(np.isfinite(band_data))[0])
         nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
-        band_data = None
+        del band_data
         if (nbf/npx) >= float(setu['blackfill_max']):
             if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
             return()
@@ -182,6 +183,7 @@ def acolite_l2r(gem,
                     if (setu['sza_limit_replace']):
                         sza[high_sza] = setu['sza_limit']
                         print('Mean SZA after replacing SZA > {}: {:.3f}'.format(setu['sza_limit'],np.nanmean(sza)))
+                del sza, high_sza
     geom_mean = {k: np.nanmean(gem.data(k)) if k in gem.datasets else gem.gatts[k] for k in geom_ds}
     if (geom_mean['sza'] > setu['sza_limit']):
         print('Warning: SZA out of LUT range')
@@ -407,7 +409,7 @@ def acolite_l2r(gem,
                 if verbosity > 1: print('Writing {}'.format(ds))
                 cdata, catts = gem.data(ds, attributes=True)
                 gemo.write(ds, cdata, ds_att=catts)
-                cdata = None
+                del cdata, catts
 
         ## write dem
         if setu['dem_pressure_write']:
@@ -492,6 +494,7 @@ def acolite_l2r(gem,
                     band_data = scipy.ndimage.percentile_filter(band_data, setu['dsf_filter_percentile'], size=setu['dsf_filter_box'])
                     band_data[mask] = np.nan
                 band_sub = np.where(valid)
+                del valid, mask
 
                 ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
                 gk = ''
@@ -532,10 +535,13 @@ def acolite_l2r(gem,
                             tile_data[ti,tj] = np.array((np.nanpercentile(tsub, setu['dsf_percentile'])))
                         if setu['dsf_spectrum_option'] == 'intercept':
                             tile_data[ti,tj] = ac.shared.intercept(tsub, int(setu['dsf_intercept_pixels']))
+                        del tsub
 
                     ## fill nan tiles with closest values
                     ind = scipy.ndimage.distance_transform_edt(np.isnan(tile_data), return_distances=False, return_indices=True)
                     band_data = tile_data[tuple(ind)]
+                    del tile_data, ind
+
                 ## image is segmented based on input vector mask
                 elif setu['dsf_aot_estimate'] == 'segmented':
                     gk = '_segmented'
@@ -553,6 +559,7 @@ def acolite_l2r(gem,
                 else:
                     print('DSF option {} not configured'.format(setu['dsf_aot_estimate']))
                     continue
+                del band_sub
 
                 ## do gas correction
                 band_sub = np.where(np.isfinite(band_data))
@@ -667,6 +674,7 @@ def acolite_l2r(gem,
                 ## store current band results
                 aot_dict[b] = aot_band
                 aot_bands.append(b)
+                del band_data, band_sub, aot_band
 
             ## get min aot per pixel
             aot_stack = {}
@@ -1266,6 +1274,7 @@ def acolite_l2r(gem,
                     ## total transmittance
                     if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                         ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
+                del ls, ai, xi
 
             ## interpolate tiled processing to full scene
             if setu['dsf_aot_estimate'] == 'tiled':
@@ -1310,11 +1319,10 @@ def acolite_l2r(gem,
 
             ## do atmospheric correction
             rhot_noatm = (cur_data / gem.bands[b]['tt_gas']) - romix
-            romix = None
+            del romix
             cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
-            astot=None
-            dutott=None
-            rhot_noatm = None
+            del astot, dutott, rhot_noatm
+
         ## exponential
         elif (ac_opt == 'exp'):
             ## get Rayleigh correction
@@ -1393,14 +1401,11 @@ def acolite_l2r(gem,
 
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
-            cur_rhorc = None
-            rorayl_cur = None
-            dtotr_cur = None
-            utotr_cur = None
+            del cur_rhorc, rorayl_cur, dtotr_cur, utotr_cur
 
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
-        cur_data = None
+        del cur_data
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
 
     ## update outputfile dataset info
@@ -1470,13 +1475,11 @@ def acolite_l2r(gem,
             muv = np.cos(vza)
             mus = np.cos(sza)
             cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
-            sza = None
-            vza = None
-            raa = None
+            del sza, vza, raa
 
             omega = np.arccos(np.sqrt(cos2omega))
             omega = np.arccos(cos2omega)/2
-            cos2omega = None
+            del cos2omega
 
             ## read and resample refractive index
             refri = ac.ac.refri()
@@ -1497,7 +1500,7 @@ def acolite_l2r(gem,
             else:
                 sub_gc = np.where(np.isfinite(gc_mask_data) & \
                                   (gc_mask_data<=setu['glint_mask_rhos_threshold']))
-                gc_mask_data = None
+                del gc_mask_data
 
                 ## get reference bands transmittance
                 for ib, b in enumerate(gemo.bands):
@@ -1506,7 +1509,12 @@ def acolite_l2r(gem,
                     if rhos_ds not in gemo.datasets: continue
 
                     ## two way direct transmittance
-                    if setu['dsf_aot_estimate'] == 'tiled': ## last valid_mask is reused currently
+                    if setu['dsf_aot_estimate'] == 'tiled':
+                        if setu['slicing']:
+                            ## load rhos dataset
+                            cur_data = gemo.data(rhos_ds)
+                            valid_mask = np.isfinite(cur_data)
+                            del cur_data
                         ttot_all_b = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                         target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                     elif setu['dsf_aot_estimate'] == 'segmented':
@@ -1514,12 +1522,12 @@ def acolite_l2r(gem,
                         ttot_all_b = np.zeros(gem.gatts['data_dimensions']) + np.nan
                         for sidx, segment in enumerate(segment_data):
                             ttot_all_b[segment_data[segment]['sub']] = ttot_all_[sidx]
-                        ttot_all_ = None
+                        del ttot_all_
                     else:
                         ttot_all_b = ttot_all[b] * 1.0
 
                     T_cur  = np.exp(-1.*(ttot_all_b/muv)) * np.exp(-1.*(ttot_all_b/mus))
-                    ttot_all_b = None
+                    del ttot_all_b
 
                     ## subset if 2d
                     T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
@@ -1529,8 +1537,7 @@ def acolite_l2r(gem,
                     else:
                         if rhos_ds == gc_swir1: T_SWIR1 = T_cur_sub * 1.0
                         if rhos_ds == gc_swir2: T_SWIR2 = T_cur_sub * 1.0
-                    T_cur = None
-                    T_cur_sub = None
+                    del T_cur, T_cur_sub
 
                 ## swir band choice is made for first band
                 gc_choice = False
@@ -1540,9 +1547,12 @@ def acolite_l2r(gem,
                     if rhos_ds not in gemo.datasets: continue
                     if b not in ttot_all: continue
                     print('Performing glint correction for band {} ({} nm)'.format(b, gemo.bands[b]['wave_name']))
+                    ## load rhos dataset
+                    cur_data = gemo.data(rhos_ds)
 
                     ## two way direct transmittance
                     if setu['dsf_aot_estimate'] == 'tiled':
+                        if setu['slicing']: valid_mask = np.isfinite(cur_data)
                         ttot_all_b = ac.shared.tiles_interp(ttot_all[b], xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                         target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                     elif setu['dsf_aot_estimate'] == 'segmented':
@@ -1550,7 +1560,7 @@ def acolite_l2r(gem,
                         ttot_all_b = np.zeros(gem.gatts['data_dimensions']) + np.nan
                         for sidx, segment in enumerate(segment_data):
                             ttot_all_b[segment_data[segment]['sub']] = ttot_all_[sidx]
-                        ttot_all_ = None
+                        del ttot_all_
                     else:
                         ttot_all_b = ttot_all[b] * 1.0
                     if setu['dsf_write_tiled_parameters']:
@@ -1562,11 +1572,11 @@ def acolite_l2r(gem,
                     ## end compute ttot_all_band
 
                     T_cur  = np.exp(-1.*(ttot_all_b/muv)) * np.exp(-1.*(ttot_all_b/mus))
-                    ttot_all_b = None
+                    del ttot_all_b
 
                     ## subset if 2d
                     T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur[0] * 1.0
-                    T_cur = None
+                    del T_cur
 
                     ## get current band Fresnel reflectance
                     Rf_sen_cur = ac.ac.sky_refl(omega, n_w=refri_sen[b])
@@ -1584,8 +1594,7 @@ def acolite_l2r(gem,
                             gc_USER = (T_cur_sub/T_USER) * (Rf_sen_cur[sub_gc]/Rf_sen[gc_user_b][sub_gc])
                         else:
                             gc_USER = (T_cur_sub/T_USER) * (Rf_sen_cur/Rf_sen[gc_user_b])
-                    Rf_sen_cur = None
-                    T_cur_sub = None
+                    del Rf_sen_cur, T_cur_sub
 
                     ## choose glint correction band (based on first band results)
                     if gc_choice is False:
@@ -1601,11 +1610,10 @@ def acolite_l2r(gem,
                             g2_blue = gc_SWIR2 * swir2_rhos
                             ## use SWIR1 or SWIR2 based glint correction
                             use_swir1 = np.where(g1_blue<g2_blue)
-                            g1_blue, g2_blue = None, None
+                            del g1_blue, g2_blue
                             rhog_ref = swir2_rhos
                             rhog_ref[use_swir1] = swir1_rhos[use_swir1]
-                            swir1_rhos, swir2_rhos = None, None
-                            use_swir1 = None
+                            del swir1_rhos, swir2_rhos
                         else:
                             rhog_ref = gemo.data(gc_user)[sub_gc]
                             ## set negatives to 0
@@ -1615,7 +1623,7 @@ def acolite_l2r(gem,
                             tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
                             tmp[sub_gc] = rhog_ref
                             gemo.write('rhog_ref', tmp)
-                            tmp = None
+                            del tmp
                     ## end select glint correction band
 
                     ## calculate glint in this band
@@ -1625,23 +1633,27 @@ def acolite_l2r(gem,
                             cur_rhog[use_swir1] = gc_SWIR1[use_swir1] * rhog_ref[use_swir1]
                         except:
                             cur_rhog[use_swir1] = gc_SWIR1 * rhog_ref[use_swir1]
+                        del gc_SWIR1, gc_SWIR2
                     else:
                         cur_rhog = gc_USER * rhog_ref
+                        del gc_USER
 
                     ## remove glint from rhos
-                    cur_data = gemo.data(rhos_ds)
                     cur_data[sub_gc]-=cur_rhog
                     gemo.write(rhos_ds, cur_data, ds_att = gem.bands[b])
+                    del cur_data
 
                     ## write band glint
                     if setu['glint_write_rhog_all']:
                         tmp = np.zeros(gemo.gatts['data_dimensions'], dtype=np.float32) + np.nan
                         tmp[sub_gc] = cur_rhog
                         gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
-                        tmp = None
-                    cur_rhog = None
-                Rf_sen = None
-                rhog_ref = None
+                        del tmp
+                    del cur_rhog
+                del sub_gc, rhog_ref, T_SWIR1, T_SWIR2, use_swir1
+            del Rf_sen, omega, muv, mus
+        if (setu['dsf_aot_estimate'] == 'tiled') & (setu['slicing']):
+            del valid_mask
     ## end glint correction
 
     ## alternative glint correction
