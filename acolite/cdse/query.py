@@ -55,7 +55,11 @@ def query(scene = None, collection = None, product = None,
     ## create query items
     query_list = []
     if scene is not None:
-        query_list.append(f"contains(Name,'{scene}')")
+        ## remove extension for querying
+        scene_ = '{}'.format(scene)
+        scene_ = scene_.replace('.SAFE', '')
+        scene_ = scene_.replace('.SEN3', '')
+        query_list.append(f"contains(Name,'{scene_}')")
 
     if collection is not None:
         query_list.append(f"Collection/Name eq '{collection}'")
