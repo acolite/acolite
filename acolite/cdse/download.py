@@ -46,6 +46,10 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
             data = {"client_id": "cdse-public", "grant_type":
                     "password","username": auth[0], "password": auth[1]}
             response = requests.post(auth_url, data=data, verify=True, allow_redirects=False)
+            if 'access_token' not in response.json():
+                print('Could not get access token for {}'.format(url))
+                continue
+
             access_token = response.json()['access_token']
             if verbosity > 1: print(access_token)
             time.sleep(3)
