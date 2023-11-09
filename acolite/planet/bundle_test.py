@@ -57,6 +57,8 @@ def bundle_test(bundle_in):
             scene_id = sid
         if scene_id not in fn: continue
         if ext not in ['.json', '.tif', '.xml', '.ntf']: continue
+        if fname[-8:] == '.aux.xml': continue ## skip QGIS files
+
         band,clp=None,''
         if 'clip' in fn:
             clp='_clip'
