@@ -484,6 +484,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 bd = None
                 if b in ['Pan', 'PAN']:
                     pan = True
+                    if setu['pleiades_skip_pan']: continue
                     tfiles = [f for f in pifiles]
                     bd = {k:pmeta['BAND_INFO'][btags[b]][k] for k in pmeta['BAND_INFO'][btags[b]]}
                     idx = 1
