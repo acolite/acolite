@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
 ## modifications: 2023-09-20 (QV) moved roi_wkt to function
+##                2023-11-13 (QV) add one day only to queries where start == end
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None,
@@ -70,7 +71,9 @@ def query(scene = None, collection = None, product = None,
 
     if end_date is not None:
         edate = dateutil.parser.parse(end_date)
-        edate += datetime.timedelta(days=1) ## add one day to include end date data
+        if start_date is not None:
+            if sdate == edate:
+                edate += datetime.timedelta(days=1) ## add one day to include end date data
         query_list.append(f"ContentDate/Start lt '{edate.isoformat()}'")
 
     ## OData intersection query
