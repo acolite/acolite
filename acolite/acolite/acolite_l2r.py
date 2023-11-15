@@ -713,7 +713,7 @@ def acolite_l2r(gem,
                     ## compute mean over stack
                     if setu['dsf_aot_compute'] == 'mean': aot_stack[lut]['aot'] = np.nanmean(tmp_aot, axis=2)
                     if setu['dsf_aot_compute'] == 'median': aot_stack[lut]['aot'] = np.nanmedian(tmp_aot, axis=2)
-                    if setu['dsf_aot_estimate'] == 'fixed': print('Using dsf_aot_compute = {} {} aot = {:.3f}'.format(setu['dsf_aot_compute'], lut, aot_stack[lut]['aot'].flatten()))
+                    if setu['dsf_aot_estimate'] == 'fixed': print('Using dsf_aot_compute = {} {} aot = {:.3f}'.format(setu['dsf_aot_compute'], lut, float(aot_stack[lut]['aot'].flatten())))
                     tmp_aot = None
                 else:
                     aot_stack[lut]['aot'] = aot_stack[lut]['all'][ax,ay,tmp[ax,ay,0]] #np.nanmin(aot_stack[lut]['all'], axis=2)
