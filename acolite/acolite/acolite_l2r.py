@@ -1650,7 +1650,11 @@ def acolite_l2r(gem,
                         gemo.write('rhog_{}'.format(gemo.bands[b]['wave_name']), tmp, ds_att={'wavelength':gemo.bands[b]['wavelength']})
                         del tmp
                     del cur_rhog
-                del sub_gc, rhog_ref, T_SWIR1, T_SWIR2, use_swir1
+                del sub_gc, rhog_ref
+                if rhos_ds == gc_user:
+                    del T_USER
+                else:
+                    del T_SWIR1, T_SWIR2, use_swir1
             del Rf_sen, omega, muv, mus
         if (setu['dsf_aot_estimate'] == 'tiled') & (setu['slicing']):
             del valid_mask
