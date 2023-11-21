@@ -6,6 +6,7 @@
 ##                2022-11-14 (QV) changed appending files from txt file to inputfile list
 ##                2023-09-12 (QV) added attempt to download from CDSE
 ##                2023-09-21 (QV) added attempt to download from EarthExplorer
+##                2023-10-21 (QV) added ECOSTRESS download from EarthExplorer
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -36,6 +37,8 @@ def inputfile_test(inputfile):
                 if bn[0:3] in ['S2A', 'S2B', 'S3A', 'S3B']:
                     download_source = 'CDSE'
                 elif bn[0:4] in ['LC08', 'LO08', 'LT08', 'LC09', 'LO09', 'LT09', 'LT04', 'LT05', 'LE07']:
+                    download_source = 'EarthExplorer'
+                elif 'ECOSTRESS' in bn:
                     download_source = 'EarthExplorer'
                 else:
                     print('Could not identify download source for scene {}'.format(file))
