@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-19
 ## modifications: 2023-09-20 (QV) removed lxml and use HTMLparser
+##                2023-11-21 (QV) added ECOSTRESS download
 
 def download(entity_list, dataset_list, identifier_list, output = None,
                   extract_tar = True, remove_tar = True, override = False, verbosity = 1):
@@ -10,15 +11,27 @@ def download(entity_list, dataset_list, identifier_list, output = None,
     import acolite as ac
     #from lxml.html import fromstring
     from html.parser import HTMLParser
+
+    ## parser to get download url
     class MyHTMLParser(HTMLParser):
         entityid = None
         dataproductid = None
         def handle_starttag(self, tag, attrs):
             dattrs = dict(attrs)
+            ## Landsat data have both entity and product in secondaryDownloadButton
             if (dattrs.get('title') == 'Download Product') &\
                (dattrs.get('class') == 'btn btn-secondary secondaryDownloadButton'):
                     self.entityid = dattrs['data-entityid']
                     self.dataproductid = dattrs['data-productid']
+
+            ## let's assume for ECOSTRESS the HDF file is the first downloadButton
+            if (dattrs.get('title') == 'Download Product') &\
+               (dattrs.get('class') == 'btn btn-secondary downloadButton') &\
+               (self.dataproductid is None):
+                    self.dataproductid = dattrs['data-productid']
+            if (dattrs.get('class') == 'downloadButtons') & (self.entityid is None):
+                    self.entityid = dattrs['data-entityid']
+    ## end parser
 
     ## get output directory
     if output is None:
@@ -44,11 +57,14 @@ def download(entity_list, dataset_list, identifier_list, output = None,
 
         ## set up local and local tarfile paths
         lfile = '{}/{}'.format(output, scene_id)
-        tfile = '{}/{}.tar'.format(output, scene_id)
+        if 'ECOSTRESS' in scene_id: ## ECOSTRESS data are not tarred
+            tfile = '{}/{}'.format(output, scene_id)
+        else:
+            tfile = '{}/{}.tar'.format(output, scene_id)
 
         session = None
         ## download if we don't have the scene
-        if (override | (not os.path.exists(lfile)) & (not os.path.exists(tfile))):
+        if (override) | ((not os.path.exists(lfile)) & (not os.path.exists(tfile))):
             if verbosity > 1: print('Trying download of {} (entity {} dataset {})'.format(scene_id, entity_id, dataset_id))
 
             ## try authentication
@@ -130,7 +146,7 @@ def download(entity_list, dataset_list, identifier_list, output = None,
             print('Local copy of {} exists'.format(scene_id))
 
         ## extract tar file
-        if extract_tar:
+        if (extract_tar) & ('.tar' in tfile): ## if tfile == lfile then it is not tarred
             if os.path.exists(tfile):
                 print('Extracting {}'.format(tfile))
                 ac.shared.extract_bundle(tfile, targ_bundle=lfile)
