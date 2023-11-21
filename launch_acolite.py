@@ -18,12 +18,17 @@ def launch_acolite():
     import argparse
 
     ## import acolite source
-    import acolite as ac
-
     try:
         import acolite as ac
     except:
         print('Could not import ACOLITE source')
+        print("Error:", sys.exc_info())
+        return()
+
+    try:
+        from osgeo import ogr,osr,gdal
+    except:
+        print('Could not import osgeo')
         print("Error:", sys.exc_info())
         return()
 
