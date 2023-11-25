@@ -31,6 +31,7 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
 
     ## still convert to list if only one url or scene given
     if type(urls) is str: urls = [urls]
+    if type(scenes) is str: scenes = [scenes]
 
     ## run through urls and download the file
     if verbosity > 0: print('Downloading {} scenes'.format(len(urls)))
