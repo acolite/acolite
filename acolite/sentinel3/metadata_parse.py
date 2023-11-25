@@ -11,7 +11,8 @@ def metadata_parse(metafile):
         xmldoc = minidom.parse(metafile)
     except:
         print('Error opening metadata file.')
-
+        return
+        
     metadata = {}
     tags = ['sentinel-safe:familyName', 'sentinel-safe:number',
             'envisat:productName', 'envisat:productType',

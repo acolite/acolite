@@ -12,9 +12,11 @@
 ##                2023-02-14 (QV) added Lt outputs, user defined subset,
 ##                                fixed tpg interpolation, update from scipy.interpolate.interp2d to scipy.interpolate.RegularGridInterpolator
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2023-11-25 (QV) added optional l2 conversion
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
+                convert_l2 = False, write_l2_err = False,
                 percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                 verbosity = 5):
 
@@ -171,6 +173,17 @@ def l1_convert(inputfile, output = None, settings = {},
                             data[ds] = data_
         ## end read data
 
+        ## determine product level
+        product_level = 'level1'
+        acolite_file_type = 'L1R'
+        if 'OLCI Level 2 WATER Product' in gatts['title']:
+            product_level = 'level2'
+            acolite_file_type = 'L2S'
+        if (convert_l2 is False) & (product_level != 'level1'):
+            print('File type = {}'.format(gatts['title']))
+            print('Not converting to ACOLITE type, set convert_l2 = True.')
+            continue
+
         ## global attributes
         dtime = dateutil.parser.parse(start_time)
         doy = dtime.strftime('%j')
@@ -264,7 +277,7 @@ def l1_convert(inputfile, output = None, settings = {},
             di = meta['instrument_data']['detector_index'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
         ## smile correction - from l2gen smile.c
-        if smile_correction:
+        if (smile_correction) & (product_level == 'level1'):
             if verbosity > 1: print('Running smile correction')
             ## gas_correction
             if setu['smile_correction_tgas']:
@@ -348,10 +361,11 @@ def l1_convert(inputfile, output = None, settings = {},
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if vname != '': oname+='_{}'.format(vname)
 
-        ofile = '{}/{}_L1R.nc'.format(output, oname)
+        ofile = '{}/{}_{}.nc'.format(output, oname, acolite_file_type)
         if not os.path.exists(os.path.dirname(ofile)): os.makedirs(os.path.dirname(ofile))
         gatts['oname'] = oname
         gatts['ofile'] = ofile
+        gatts['acolite_file_type'] = acolite_file_type
 
         ## add band info to gatts
         for bi, b in enumerate(rsr_bands):
@@ -392,42 +406,113 @@ def l1_convert(inputfile, output = None, settings = {},
         se2 = se**2
 
         ## read TOA
-        if verbosity > 1: print('Writing TOA reflectance')
-        for iw, band in enumerate(rsr_bands):
-            wave = waves_names[band]
-            ds = 'rhot_{}'.format(wave)
-            if verbosity > 2: print('{} - Reading TOA data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
+        if (product_level == 'level1'):
+            if verbosity > 1: print('Writing TOA reflectance')
+            for iw, band in enumerate(rsr_bands):
+                wave = waves_names[band]
+                ds = 'rhot_{}'.format(wave)
+                if verbosity > 2: print('{} - Reading TOA data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
 
-            # per pixel wavelength
-            l = meta['instrument_data']['lambda0'][iw][di]
-            # per pixel f0
-            f0 = meta['instrument_data']['solar_flux'][iw][di]
-            # if smile corrected use nominal E0
-            if setu['smile_correction']: f0 = bands_data[band]['E0']
+                # per pixel wavelength
+                l = meta['instrument_data']['lambda0'][iw][di]
+                # per pixel f0
+                f0 = meta['instrument_data']['solar_flux'][iw][di]
+                # if smile corrected use nominal E0
+                if setu['smile_correction']: f0 = bands_data[band]['E0']
 
-            # per pixel fwhm
-            fwhm = meta['instrument_data']['FWHM'][iw][di]
+                # per pixel fwhm
+                fwhm = meta['instrument_data']['FWHM'][iw][di]
 
-            dname = dnames[iw]
+                dname = dnames[iw]
 
-            ds_att  = {'wavelength':float(wave)}
-            for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
+                ds_att  = {'wavelength':float(wave)}
+                for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
 
-            ## write toa radiance
-            if setu['output_lt']:
-                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],dataset_attributes = ds_att)
-                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
+                ## write toa radiance
+                if setu['output_lt']:
+                    ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],dataset_attributes = ds_att)
+                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
 
-            ## convert to reflectance
-            d = (np.pi * data[dname] * se2) / (f0*mu)
-            mask = d.mask
-            d = d.data
-            d[mask] = np.nan
+                ## convert to reflectance
+                d = (np.pi * data[dname] * se2) / (f0*mu)
+                mask = d.mask
+                d = d.data
+                d[mask] = np.nan
 
-            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
-            if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-            new = False
-            d = None
+                ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                new = False
+                d = None
+        if (product_level == 'level2'):
+            if verbosity > 1: print('Writing TOA reflectance')
+            for iw, band in enumerate(rsr_bands):
+                wave = waves_names[band]
+                ds = 'rhow_{}'.format(wave)
+                dname = dnames[iw].replace('radiance', 'reflectance')
+                print(dname)
+                if dname not in data: continue
+                if verbosity > 2: print('{} - Reading data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
+                ds_att  = {'wavelength':float(wave)}
+
+                ## mask data
+                mask = data[dname].mask
+                d = data[dname].data
+                d[mask] = np.nan
+
+                ## write data
+                ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                new = False
+                d = None
+
+                ## write error dataset
+                if write_l2_err:
+                    ds = '{}_err'.format(ds)
+                    dname = '{}_err'.format(dname)
+                    mask = data[dname].mask
+                    d = data[dname].data
+                    d[mask] = np.nan
+                    ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                    new = False
+                    d = None
+
+            ## write other datasets
+            for dname in data:
+                if '_err' in dname: continue
+                if '_reflectance' in dname: continue
+                ds = '{}'.format(dname)
+                ds_att = None
+                if verbosity > 2: print('{} - Reading dataset {}'.format(datetime.datetime.now().isoformat()[0:19], ds), end='\n')
+
+                ## mask data
+                mask = data[dname].mask
+                d = data[dname].data
+                if d.dtype in (np.float32, np.float64):
+                    d[mask] = np.nan
+                else:
+                    continue
+
+                ## write data
+                ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                new = False
+                d = None
+
+                ## write error dataset
+                if write_l2_err:
+                    ds = '{}_err'.format(ds)
+                    dname = '{}_err'.format(dname)
+                    mask = data[dname].mask
+                    d = data[dname].data
+                    if d.dtype in (np.float32, np.float64):
+                        d[mask] = np.nan
+                    else:
+                        continue
+                    ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                    new = False
+                    d = None
 
         ## clear data
         data = None
