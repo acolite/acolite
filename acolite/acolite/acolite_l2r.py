@@ -133,13 +133,18 @@ def acolite_l2r(gem,
 
             if setu['dem_pressure_resolved']:
                 gem.data_mem['pressure'] = dem_pressure
+                gem.gatts['pressure'] = np.nanmean(gem.data_mem['pressure'])
             else:
                 gem.data_mem['pressure'] = np.nanpercentile(dem_pressure, setu['dem_pressure_percentile'])
+                gem.gatts['pressure'] = gem.data_mem['pressure']
             gem.datasets.append('pressure')
 
             if setu['dem_pressure_write']:
                 gem.data_mem['dem'] = dem.astype(np.float32)
                 gem.data_mem['dem_pressure'] = dem_pressure
+        else:
+            if verbosity > 1: print('Could not determine elevation from {} DEM data'.format(setu['dem_source']))
+
         dem = None
         dem_pressure = None
 
