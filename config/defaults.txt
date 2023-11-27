@@ -199,6 +199,8 @@ flag_exponent_mixed=5
 atmospheric_correction=True
 aerosol_correction=dark_spectrum
 
+## gas transmittance settings
+gas_transmittance=True
 ## minimum gas transmittance to allow aot retrieval in that band
 min_tgas_aot=0.85
 ## minimum gas transmittance to allow surface reflectance retrieval in that band

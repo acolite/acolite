@@ -215,7 +215,9 @@ def acolite_l2r(gem,
                 gem.bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(b, gem.bands[b]['wave_name'])
                 gem.bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(b, gem.bands[b]['wave_name'])
             for k in tg_dict:
-                if k not in ['wave']: gem.bands[b][k] = tg_dict[k][b]
+                if k not in ['wave']:
+                    gem.bands[b][k] = tg_dict[k][b]
+                    if setu['gas_transmittance'] is False: gem.bands[b][k] = 1.0
             gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
     ## end bands dataset
 
