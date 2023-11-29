@@ -1658,7 +1658,7 @@ def acolite_l2r(gem,
                         del tmp
                     del cur_rhog
                 del sub_gc, rhog_ref
-                if rhos_ds == gc_user:
+                if gc_user is not None:
                     del T_USER
                 else:
                     del T_SWIR1, T_SWIR2, use_swir1
