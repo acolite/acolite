@@ -275,6 +275,7 @@ radcor_psf_rescale=False
 radcor_psf_complete_method=neighborhood
 radcor_force_model=None
 radcor_force_aot=None
+radcor_select_aot=minimum
 radcor_expand_edge=True
 radcor_expand_method=mirror
 radcor_mask_edges=True
