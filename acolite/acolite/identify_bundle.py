@@ -410,6 +410,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## Haiyang
+        try:
+            ret = ac.haiyang.bundle_test(bundle)
+            meta = ac.haiyang.metadata(ret['metadata'])
+            if (meta['SatelliteID'] in ['HY-1C', 'HY-1D']):
+                input_type = 'HAIYANG'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Haiyang
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified

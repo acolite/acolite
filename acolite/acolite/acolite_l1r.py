@@ -221,6 +221,12 @@ def acolite_l1r(bundle, setu, input_type=None):
     ## end S2Resampling
     ################
 
+    ################
+    ## Haiyang
+    if input_type == 'HAIYANG':
+        l1r_files, setu = ac.haiyang.l1_convert(bundle, settings = setu)
+    ## end Haiyang
+    ################
 
     ################
     ## HYPSO
