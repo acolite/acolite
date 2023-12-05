@@ -34,10 +34,15 @@ dsf_interface_reflectance=True
 dsf_spectrum_option=percentile
 dsf_percentile=5
 
+## masking settings
 l2w_mask_wave=1020
 l2w_mask_threshold=0.05
 l2w_mask_smooth=False
 l2w_mask_negative_wave_range=440,710
+
+## cirrus from 940 nm band
+l2w_mask_cirrus_threshold=0.015
+l2w_mask_cirrus_wave=940
 
 ## rhot can be >0.3 at 400 at high view and sun angles
 ## exclude 400 and 412 nm bands here
