@@ -98,8 +98,8 @@ def l1_convert(inputfile, output = None, settings = {},
             geometry_per_band=setu['geometry_per_band']
             geometry_fixed_footprint=setu['geometry_fixed_footprint']
 
-            s2_include_auxillary = setu['s2_include_auxillary']
-            s2_project_auxillary = setu['s2_project_auxillary']
+            s2_include_auxiliary = setu['s2_include_auxiliary']
+            s2_project_auxiliary = setu['s2_project_auxiliary']
             netcdf_projection = setu['netcdf_projection']
 
             dilate = setu['s2_dilate_blackfill']
@@ -641,13 +641,13 @@ def l1_convert(inputfile, output = None, settings = {},
                 if verbosity > 1: print('Wrote yy')
                 new=False
 
-        ## auxillary data
-        if s2_include_auxillary:
+        ## auxiliary data
+        if s2_include_auxiliary:
             ofile_aux = '{}/{}'.format(os.path.dirname(ofile), os.path.basename(ofile).replace('_L1R.nc', '_AUX.nc'))
             ofile_aux_new = True
             for source in ['AUX_CAMSFO', 'AUX_ECMWFT']:
                 ## read aux data
-                aux_data = ac.sentinel2.auxillary(bundle, granule, sources=[source])
+                aux_data = ac.sentinel2.auxiliary(bundle, granule, sources=[source])
                 if len(aux_data) > 0:
                     ## add to gatts
                     for ai, an in enumerate(aux_data):
@@ -656,7 +656,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         gatts['{}_{}_{}'.format(source, an, 'longitudes')] = aux_data[an]['longitudes'].flatten()
                         gatts['{}_{}_{}'.format(source, an, 'latitudes')] = aux_data[an]['latitudes'].flatten()
                     ## project to extent
-                    if s2_project_auxillary:
+                    if s2_project_auxiliary:
                         aux_file = '{}/GRANULE/{}/AUX_DATA/{}'.format(bundle, granule, source)
                         # gdal warp
                         #adata = ac.shared.read_band(aux_file, sub=None, warp_to=warp_to)
