@@ -11,6 +11,7 @@
 ##                2023-03-30 (QV) added option to include band name in rhot/rhos datasets
 ##                2023-07-12 (QV) removed netcdf_compression settings from gem call
 ##                2023-10-31 (QV) improved memory management, moved ttot_all interpolation to glint correction
+##                2023-12-07 (QV) option to use S2 AUX
 
 def acolite_l2r(gem,
                 output = None,
@@ -26,7 +27,7 @@ def acolite_l2r(gem,
 
     import os, time, datetime
     import numpy as np
-    import scipy.ndimage
+    import scipy.ndimage, scipy.interpolate
     import acolite as ac
     import skimage.measure
 
@@ -113,6 +114,45 @@ def acolite_l2r(gem,
                 if (setu['pressure'] != setu['pressure_default']): continue
             if (k == 'wind') & (setu['wind'] is not None): continue
             if k in anc: gem.gatts[k] = 1.0 * anc[k]
+    else:
+        if (setu['s2_default_auxillary']) & (gem.gatts['sensor'][0:2] == 'S2') & (gem.gatts['sensor'][4:] == 'MSI'):
+            ## get mid point values from AUX ECMWFT
+            if 'AUX_ECMWFT_msl_values' in gem.gatts:
+                gem.gatts['pressure'] = gem.gatts['AUX_ECMWFT_msl_values'][int(len(gem.gatts['AUX_ECMWFT_msl_values'])/2)]/100 # convert from Pa to hPa
+            if 'AUX_ECMWFT_tco3_values' in gem.gatts:
+                gem.gatts['uoz'] = gem.gatts['AUX_ECMWFT_tco3_values'][int(len(gem.gatts['AUX_ECMWFT_tco3_values'])/2)] ** -1 * 0.0021415 # convert from kg/m2 to cm-atm
+            if 'AUX_ECMWFT_tcwv_values' in gem.gatts:
+                gem.gatts['uwv'] = gem.gatts['AUX_ECMWFT_tcwv_values'][int(len(gem.gatts['AUX_ECMWFT_tcwv_values'])/2)]/10 # convert from kg/m2 to g/cm2
+
+            ## interpolate to scene centre
+            if setu['s2_interpolate_auxillary']:
+                if ('lat' in gem.datasets) & ('lon' in gem.datasets):
+                    clon = np.nanmedian(gem.data('lon'))
+                    clat = np.nanmedian(gem.data('lat'))
+                else:
+                    clon = gem.gatts['lon']
+                    clat = gem.gatts['lat']
+                ## pressure
+                aux_par = 'ECMWFT_msl'
+                if 'AUX_{}_values'.format(aux_par) in gem.gatts:
+                    lndi = scipy.interpolate.LinearNDInterpolator((gem.gatts['AUX_{}_longitudes'.format(aux_par)],
+                                                                   gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
+                                                                   gem.gatts['AUX_{}_values'.format(aux_par)])
+                    gem.gatts['pressure'] = lndi(clon, clat)/100 # convert from Pa to hPa
+                ## ozone
+                aux_par = 'ECMWFT_tco3'
+                if 'AUX_{}_values'.format(aux_par) in gem.gatts:
+                    lndi = scipy.interpolate.LinearNDInterpolator((gem.gatts['AUX_{}_longitudes'.format(aux_par)],
+                                                                   gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
+                                                                   gem.gatts['AUX_{}_values'.format(aux_par)])
+                    gem.gatts['uoz'] = lndi(clon, clat)**-1 * 0.0021415 # convert from kg/m2 to cm-atm
+                ## water vapour
+                aux_par = 'ECMWFT_tcwv'
+                if 'AUX_{}_values'.format(aux_par) in gem.gatts:
+                    lndi = scipy.interpolate.LinearNDInterpolator((gem.gatts['AUX_{}_longitudes'.format(aux_par)],
+                                                                   gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
+                                                                   gem.gatts['AUX_{}_values'.format(aux_par)])
+                    gem.gatts['uwv'] = lndi(clon, clat)/10 # convert from kg/m2 to g/cm2
 
     ## elevation provided
     if setu['elevation'] is not None:
