@@ -50,10 +50,10 @@ landsat_qa_output=False
 
 ## Sentinel-2 options
 s2_target_res=10
-s2_include_auxiliary=False
-s2_project_auxiliary=True
-s2_default_auxiliary=False
-s2_interpolate_auxiliary=True
+s2_auxiliary_include=False
+s2_auxiliary_project=True
+s2_auxiliary_default=False
+s2_auxiliary_interpolate=True
 s2_write_dfoo=False
 s2_write_vaa=False
 s2_write_saa=False

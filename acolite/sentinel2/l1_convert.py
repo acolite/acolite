@@ -98,8 +98,8 @@ def l1_convert(inputfile, output = None, settings = {},
             geometry_per_band=setu['geometry_per_band']
             geometry_fixed_footprint=setu['geometry_fixed_footprint']
 
-            s2_include_auxiliary = setu['s2_include_auxiliary']
-            s2_project_auxiliary = setu['s2_project_auxiliary']
+            s2_auxiliary_include = setu['s2_auxiliary_include']
+            s2_auxiliary_project = setu['s2_auxiliary_project']
             netcdf_projection = setu['netcdf_projection']
 
             dilate = setu['s2_dilate_blackfill']
@@ -642,7 +642,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 new=False
 
         ## auxiliary data
-        if s2_include_auxiliary:
+        if s2_auxiliary_include:
             ofile_aux = '{}/{}'.format(os.path.dirname(ofile), os.path.basename(ofile).replace('_L1R.nc', '_AUX.nc'))
             ofile_aux_new = True
             for source in ['AUX_CAMSFO', 'AUX_ECMWFT']:
@@ -656,7 +656,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         gatts['{}_{}_{}'.format(source, an, 'longitudes')] = aux_data[an]['longitudes'].flatten()
                         gatts['{}_{}_{}'.format(source, an, 'latitudes')] = aux_data[an]['latitudes'].flatten()
                     ## project to extent
-                    if s2_project_auxiliary:
+                    if s2_auxiliary_project:
                         aux_file = '{}/GRANULE/{}/AUX_DATA/{}'.format(bundle, granule, source)
                         # gdal warp
                         #adata = ac.shared.read_band(aux_file, sub=None, warp_to=warp_to)
