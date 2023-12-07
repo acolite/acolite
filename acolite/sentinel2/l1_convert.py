@@ -724,6 +724,9 @@ def l1_convert(inputfile, output = None, settings = {},
             else:
                 continue
 
+        ## update attributes
+        ac.shared.nc_gatts_update(ofile, gatts)
+
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
