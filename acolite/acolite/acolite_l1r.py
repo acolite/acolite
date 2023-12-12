@@ -88,6 +88,13 @@ def acolite_l1r(bundle, setu, input_type=None):
     ################
 
     ################
+    ## WISE
+    if input_type == 'WISE':
+        l1r_files, setu = ac.wise.l1_convert(bundle, settings = setu)
+    ## end VIIRS
+    ################
+
+    ################
     ## Pléiades/SPOT
     if input_type == 'Pléiades':
         l1r_files, setu = ac.pleiades.l1_convert(bundle, settings = setu)

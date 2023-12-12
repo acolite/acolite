@@ -116,6 +116,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## wise
+        try:
+            ret = ac.wise.bundle_test(bundle)
+            if os.path.exists(ret[1]):
+                input_type = 'WISE'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end wise
+        ################
+
+        ################
         ## S2Resampling
         try:
             ret = ac.s2resampling.bundle_test(bundle)
