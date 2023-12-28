@@ -10,6 +10,7 @@
 ##                2021-03-01 (QV) simplified for acg, renamed from ancillary_get
 ##                2022-11-17 (QV) delete series by default
 ##                2023-10-16 (QV) added GMAO data, rescale and rename parameters in this function
+##                2023-12-28 (QV) added GMAO_IT
 
 def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, keep_series=False):
     import acolite as ac
@@ -40,6 +41,8 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, 
     ## find if we have merra2 files
     gmao_files = [file for file in anc_local if ('GMAO_MERRA2' in os.path.basename(file)) & (os.path.exists(file))]
     if len(gmao_files) == 0: gmao_files = [file for file in anc_local if ('GMAO_FP' in os.path.basename(file)) & (os.path.exists(file))]
+    if len(gmao_files) == 0: gmao_files = [file for file in anc_local if ('GMAO_IT' in os.path.basename(file)) & (os.path.exists(file))]
+
     if len(gmao_files) == 2:
         if verbosity > 1:
             print('Using GMAO GEOS ancillary data:')

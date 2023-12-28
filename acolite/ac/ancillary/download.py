@@ -10,6 +10,7 @@
 ##                2020-06-23 (QV) changed get url
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_download
 ##                2023-10-16 (QV) added GMAO data, moved file size test
+##                2023-12-28 (QV) added GMAO_IT
 
 def download(date, local_dir = None,
                        download=True, override = False, verbosity=0,
@@ -26,7 +27,7 @@ def download(date, local_dir = None,
 
     local_files = []
     for basefile in ancillary_files:
-            if ('GMAO_MERRA2' in basefile) | ('GMAO_FP' in basefile):
+            if ('GMAO_MERRA2' in basefile) | ('GMAO_FP' in basefile) | ('GMAO_IT' in basefile):
                 sp = basefile.split('.')
                 dtime = dateutil.parser.parse(sp[1])
                 year = dtime.strftime("%Y")
