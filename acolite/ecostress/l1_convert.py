@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-11
 ## modifications: 2022-08-19 (QV) added ECO1BRAD support
+##                2024-01-17 (QV) added geofile keyword
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import os, h5py, json
@@ -92,11 +93,15 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             file_type = 'ECO1BRAD'
             data_key = 'Radiance'
             geo_key = 'Geolocation'
-            geo_file = dn + os.path.sep + bn.replace('ECOSTRESS_L1B_RAD_', 'ECOSTRESS_L1B_GEO_') + ext
+            if ac.settings['run']['geofile'] is not None: ## use provided geo file
+                geo_file = '{}'.format(ac.settings['run']['geofile'])
+            else: ## find geo file in local directory
+                geo_file = dn + os.path.sep + bn.replace('ECOSTRESS_L1B_RAD_', 'ECOSTRESS_L1B_GEO_') + ext
             if not os.path.exists(geo_file):
                 print('ECO1BGEO file required for processing ECO1BRAD.')
                 print('{} not found'.format(geo_file))
                 continue
+            if ac.settings['run']['verbosity'] > 2: print('Using geo file {}'.format(geo_file))
             geo_meta = ac.ecostress.attributes(geo_file)
             fg = h5py.File(geo_file, mode='r')
 

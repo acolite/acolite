@@ -9,6 +9,9 @@
 ## by user provided settings.
 ##
 
+## additional inputfiles
+geofile=None
+
 ## settings for cropping
 region_name=
 limit=None
