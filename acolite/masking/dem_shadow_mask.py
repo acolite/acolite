@@ -36,6 +36,8 @@ def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
     shdem = 1.0 * dem
 
     ## run through shadow volume algorithm
+    if ac.settings['run']['verbosity'] > 4: print('Running shadow volume algorithm')
+    if ac.settings['run']['verbosity'] > 5: print('index', 'dx', 'dy', 'dz')
     while (dz < max_dem) & (np.abs(dx) < sizex) & (np.abs(dy) < sizey):
         if ((np.pi / 4 <= azi) & (azi < 3 * np.pi / 4)) | ((5 * np.pi / 4 <= azi) & (azi < 7 * np.pi / 4)):
             dy = sign_sin_azi * index
@@ -71,7 +73,7 @@ def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
             shdem[yp1:yp2, xp1:xp2] = np.nanmax((shdem[yp1:yp2, xp1:xp2],
                                                  shdem[yp1+yc_offset:yp2+yc_offset, xp1+xc_offset:xp2+xc_offset]-dz), axis=0)
 
-        #if verbosity > 2: print(index, dx, dy, dz)
+        if ac.settings['run']['verbosity'] > 5: print(index, dx, dy, dz)
         index+=1
 
     ## compute shadow mask
