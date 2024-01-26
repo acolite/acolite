@@ -4,13 +4,12 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-01-25
 ## modifications: 2024-01-26 (QV) added option to extend grid in the direction of the sun
-##                                updated determination of pixel_size
+##                                updated determination of pixel_size, added acolite settings
 
 def dem_shadow_mask_nc(ncf):
     import acolite as ac
     import numpy as np
     import dateutil.parser, pytz, scipy.ndimage
-    from pyproj import Proj
 
     print('Running DEM cast shadow mask for {}'.format(ncf))
 
@@ -68,12 +67,13 @@ def dem_shadow_mask_nc(ncf):
         zone = int(gatts['mgrs_tile'][1:3])
     elif 'MGRS_TILE' in gatts: ## Sentinel-2 tiling grid GEE
         zone = int(gatts['MGRS_TILE'][0:2])
+    elif 'scene_zone' in gatts: ## Landsat zone
+        zone = int(gatts['scene_zone'])
     elif 'proj4_string' in gatts:
         if 'stere' in gatts['proj4_string']:
             zone = None
-        else:
-            stop
-    #     p = Proj(gatts['proj4_string'])
+        elif 'utm' in gatts['proj4_string']:
+            zone = int([k.split('=')[1] for k in gatts['proj4_string'].split() if 'zone' in k][0])
     else:
         ## guess zone?
         zone = int(ac.shared.utm_epsg(centre_lon, centre_lat)[0])
