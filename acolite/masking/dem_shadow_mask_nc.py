@@ -4,7 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-01-25
 ## modifications: 2024-01-26 (QV) added option to extend grid in the direction of the sun
-##
+##                                updated determination of pixel_size
 
 def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
     import acolite as ac
@@ -23,37 +23,33 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
     ## compute scene centre lon/lat
     centre_lon = np.nanmedian(lon)
     centre_lat = np.nanmedian(lat)
-    onedeglon, onedeglat = ac.shared.distance_in_ll(np.nanmean(lat))
-
-    ## estimate grid size
-    pixlat = np.nanmax(lat[0:-2, 0:-2] - lat[1:-1, 1:-1]) * (onedeglat * 1000)
-    pixlon = np.nanmax(lon[0:-2, 0:-2] - lon[1:-1, 1:-1]) * (onedeglon * 1000)
-    dem_scale_x, dem_scale_y = np.abs(int(np.round(pixlon))), np.abs(int(np.round(pixlat)))
-    pixel_size = dem_scale_x
-
-    ## get pixel size
-    if 'pixel_size' in gatts:
-        pixel_size = gatts['pixel_size'][0]
-        print('Using pixel_size={} for sensor {}'.format(pixel_size, gatts['sensor']))
-    else:
-        if 'OLI' in gatts['sensor']:
-            pixel_size = 30
-        elif 'MSI' in gatts['sensor']:
-            pixel_size = 10
-        elif 'PlanetScope' in gatts['sensor']:
-            pixel_size = 3
-    #     else:
-    #         print('Could not determine pixel size for {}'.format(ncf))
-    #         print('Probably unprojected data. Not computing terrain shadow mask.')
-    #         #return()
-        else:
-            print('Keyword pixel_size not in NetCDF attributes, assuming pixel_size={} for sensor {}'.format(pixel_size, gatts['sensor']))
 
     ## get nc projection
     nc_projection = ac.shared.nc_read_projection(ncf)
     if (nc_projection is None) & (extend):
         print('Could not read nc_projection, not extending grid.')
         extend = False
+
+    ## get pixel size
+    if nc_projection is not None:
+        xres = nc_projection['x']['data'][1]-nc_projection['x']['data'][0]
+        yres = nc_projection['y']['data'][1]-nc_projection['y']['data'][0]
+        pixel_size = 1.0 * xres
+        print('Using pixel_size={} for sensor {} from nc_projection'.format(pixel_size, gatts['sensor']))
+    elif 'pixel_size' in gatts:
+        pixel_size = gatts['pixel_size'][0]
+        print('Using pixel_size={} for sensor {} from attributes'.format(pixel_size, gatts['sensor']))
+    else:
+        ## assume default pixel sizes
+        if ('OLI' in gatts['sensor']) | ('TM' in gatts['sensor']) | ('ETM' in gatts['sensor']):
+            pixel_size = 30
+        elif 'MSI' in gatts['sensor']:
+            pixel_size = 10
+        elif 'PlanetScope' in gatts['sensor']:
+            pixel_size = 3
+        else:
+            print('Could not determine pixel_size for sensor {}'.format(gatts['sensor']))
+            return
 
     ## get scene date
     isodate = gatts['isodate']
@@ -87,7 +83,6 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
         lon0 = (6 * zone - 183)
     else:
         lon0 = 0 ## at least for southern hemisphere stere?
-
 
     # ## estimate projection azimuth
     # lat1, lon1 = lat[-1, int(lat.shape[1]/2)], lon[-1, int(lat.shape[1]/2)]
