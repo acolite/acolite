@@ -31,16 +31,14 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
         extend = False
 
     ## get pixel size
-    if nc_projection is not None:
-        xres = nc_projection['x']['data'][1]-nc_projection['x']['data'][0]
-        yres = nc_projection['y']['data'][1]-nc_projection['y']['data'][0]
-        pixel_size = 1.0 * xres
+    if nc_projection is not None: ## from nc projection
+        dct = ac.shared.nc_projection_dct(nc_projection)
+        pixel_size = 1.0 * dct['pixel_size'][0]
         print('Using pixel_size={} for sensor {} from nc_projection'.format(pixel_size, gatts['sensor']))
-    elif 'pixel_size' in gatts:
+    elif 'pixel_size' in gatts: ## from gatts
         pixel_size = gatts['pixel_size'][0]
         print('Using pixel_size={} for sensor {} from attributes'.format(pixel_size, gatts['sensor']))
-    else:
-        ## assume default pixel sizes
+    else: ## assume default pixel sizes
         if ('OLI' in gatts['sensor']) | ('TM' in gatts['sensor']) | ('ETM' in gatts['sensor']):
             pixel_size = 30
         elif 'MSI' in gatts['sensor']:
@@ -108,25 +106,15 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
     else:
         print('Getting DEM data from {}'.format(ac.settings['run']['dem_source']))
         if extend:
-            ## set up projection based on nc_projection
-            xrange = nc_projection['x']['data'][0], nc_projection['x']['data'][-1]
-            yrange = nc_projection['y']['data'][0], nc_projection['y']['data'][-1]
-
-            xres = (nc_projection['x']['data'][-1]-nc_projection['x']['data'][0])/(len(nc_projection['x']['data'])-1)
-            yres = (nc_projection['y']['data'][-1]-nc_projection['y']['data'][0])/(len(nc_projection['y']['data'])-1)
-
-            pk = [k for k in list(nc_projection.keys()) if k not in ['x', 'y']][0]
-            wkt = nc_projection[pk]['attributes']['crs_wkt']
-
             ## amount of pixels to extend the image
-            xext = int(np.round(extend_metres/xres))
-            yext = int(np.round(extend_metres/yres))
+            xext = int(np.round(extend_metres/dct['pixel_size'][0]))
+            yext = int(np.round(extend_metres/dct['pixel_size'][1]))
 
             ## find directions to extend
             extend_top = False
-            extend_right = False
             extend_bottom = False
             extend_left = False
+            extend_right = False
             if (saa_ >= 0) & (saa_ < 90):
                 extend_top = True
                 extend_right = True
@@ -140,44 +128,45 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
                 extend_top = True
                 extend_left = True
 
+            print('Extending extend_top={} extend_bottom={} extend_left={} extend_right={}'\
+                    .format(extend_top, extend_bottom, extend_left, extend_right))
+
             ## subsetting for the end
             x0 = 0
             x1 = lat.shape[1]
             y0 = 0
             y1 = lat.shape[0]
             if extend_right:
-                xrange_ = xrange[0], xrange[1] + xres * xext
+                xrange_ = dct['xrange'][0], dct['xrange'][1] + dct['pixel_size'][0] * xext
                 x0 = 0
                 x1 = -xext
             if extend_left:
-                xrange_ = xrange[0] - xres * xext, xrange[1]
+                xrange_ = dct['xrange'][0] - dct['pixel_size'][0] * xext, dct['xrange'][1]
                 x0 = xext
                 x1 = lat.shape[1]+xext
             if extend_top:
-                yrange_ = yrange[0] + yres * yext, yrange[1]
+                yrange_ = dct['yrange'][0] + dct['pixel_size'][1] * yext, dct['yrange'][1]
                 y0 = -yext
                 y1 = lat.shape[0]-yext
             if extend_bottom:
-                yrange_ = yrange[0], yrange[1] - yres * yext
+                yrange_ = dct['yrange'][0], dct['yrange'][1] - dct['pixel_size'][1] * yext
                 y0 = 0
                 y1 = yext
-            ## new dimensions
-            xdim_ = int((xrange_[1]-xrange_[0]+xres)/xres)
-            ydim_ = int((yrange_[1]-yrange_[0]+yres)/yres)
-            ## set up projection
-            p = Proj(wkt)
 
-            ## make acolite generic dict
-            dct = {'p': p, 'epsg': p.crs.to_epsg(),
-                   'Wkt': wkt,  'proj4_string': p.crs.to_proj4(),
-                   'xrange': xrange_, 'yrange': yrange_,
-                   'xdim':xdim_, 'ydim': ydim_,
-                   'dimensions':(xdim_, ydim_),
-                   'pixel_size': (xres, yres)}
-            dct['projection'] = 'EPSG:{}'.format(dct['epsg'])
+            ## new dimensions
+            xdim_ = int((xrange_[1]-xrange_[0]+dct['pixel_size'][0])/dct['pixel_size'][0])
+            ydim_ = int((yrange_[1]-yrange_[0]+dct['pixel_size'][1])/dct['pixel_size'][1])
+
+            ## update dct
+            dct_ = {k:dct[k] for k in dct}
+            dct_['xrange'] = xrange_
+            dct_['yrange'] = yrange_
+            dct_['xdim'] = xdim_
+            dct_['ydim'] = ydim_
+            dct_['dimensions'] = (xdim_, ydim_)
 
             ## get extended geolocation
-            lon_, lat_ = ac.shared.projection_geo(dct)
+            lon_, lat_ = ac.shared.projection_geo(dct_)
             dem = ac.dem.dem_lonlat(lon_, lat_, source=ac.settings['run']['dem_source'])
         else:
             dem = ac.dem.dem_lonlat(lon, lat, source=ac.settings['run']['dem_source'])
