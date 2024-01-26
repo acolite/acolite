@@ -64,9 +64,9 @@ def dem_shadow_mask_nc(ncf):
     ## estimate grid convergence to adjust sun azimuth
     zone = None
     gca = 0
-    if 'mgrs_tile' in gatts: ## Sentinel-2 tiling grid
-        zone = int(gatts['mgrs_tile'][0:2])
-    elif 'MGRS_TILE' in gatts: ## Sentinel-2 tiling grid
+    if 'mgrs_tile' in gatts: ## Sentinel-2 tiling grid SAFE
+        zone = int(gatts['mgrs_tile'][1:3])
+    elif 'MGRS_TILE' in gatts: ## Sentinel-2 tiling grid GEE
         zone = int(gatts['MGRS_TILE'][0:2])
     elif 'proj4_string' in gatts:
         if 'stere' in gatts['proj4_string']:
