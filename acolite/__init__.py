@@ -32,6 +32,7 @@ from acolite import output
 from acolite import shared
 from acolite import dem
 from acolite import ged
+from acolite import masking
 
 from acolite import tact
 from acolite import acolite
