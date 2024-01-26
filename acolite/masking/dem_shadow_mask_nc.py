@@ -11,7 +11,7 @@ def dem_shadow_mask_nc(ncf):
     import numpy as np
     import dateutil.parser, pytz, scipy.ndimage
 
-    print('Running DEM cast shadow mask for {}'.format(ncf))
+    if ac.settings['run']['verbosity'] > 2: print('Running DEM cast shadow mask for {}'.format(ncf))
 
     ## read datasets and gatts
     datasets = ac.shared.nc_datasets(ncf)
@@ -28,17 +28,17 @@ def dem_shadow_mask_nc(ncf):
     ## get nc projection
     nc_projection = ac.shared.nc_read_projection(ncf)
     if (nc_projection is None) & (ac.settings['run']['dem_shadow_mask_extend']):
-        print('Could not read nc_projection, not extending grid.')
+        if ac.settings['run']['verbosity'] > 2: print('Could not read nc_projection, not extending grid.')
         ac.settings['run']['dem_shadow_mask_extend'] = False
 
     ## get pixel size
     if nc_projection is not None: ## from nc projection
         dct = ac.shared.nc_projection_dct(nc_projection)
         pixel_size = 1.0 * dct['pixel_size'][0]
-        print('Using pixel_size={} for sensor {} from nc_projection'.format(pixel_size, gatts['sensor']))
+        if ac.settings['run']['verbosity'] > 2: print('Using pixel_size={} for sensor {} from nc_projection'.format(pixel_size, gatts['sensor']))
     elif 'pixel_size' in gatts: ## from gatts
         pixel_size = gatts['pixel_size'][0]
-        print('Using pixel_size={} for sensor {} from attributes'.format(pixel_size, gatts['sensor']))
+        if ac.settings['run']['verbosity'] > 2: print('Using pixel_size={} for sensor {} from attributes'.format(pixel_size, gatts['sensor']))
     else: ## assume default pixel sizes
         if ('OLI' in gatts['sensor']) | ('TM' in gatts['sensor']) | ('ETM' in gatts['sensor']):
             pixel_size = 30
@@ -47,7 +47,7 @@ def dem_shadow_mask_nc(ncf):
         elif 'PlanetScope' in gatts['sensor']:
             pixel_size = 3
         else:
-            print('Could not determine pixel_size for sensor {}'.format(gatts['sensor']))
+            if ac.settings['run']['verbosity'] > 0: print('Could not determine pixel_size for sensor {}'.format(gatts['sensor']))
             return
 
     ## get scene date
@@ -77,7 +77,7 @@ def dem_shadow_mask_nc(ncf):
     else:
         ## guess zone?
         zone = int(ac.shared.utm_epsg(centre_lon, centre_lat)[0])
-        print('Estimated zone {} from scene centre {:.3f}°N {:.3f}°E'.format(zone, centre_lat, centre_lon))
+        if ac.settings['run']['verbosity'] > 2: print('Estimated zone {} from scene centre {:.3f}°N {:.3f}°E'.format(zone, centre_lat, centre_lon))
 
     ## get grid convergence
     if zone is not None:
@@ -100,16 +100,17 @@ def dem_shadow_mask_nc(ncf):
     saa_ = saa-gca
     if saa_ < 0: saa_ += 360
 
-    print('Grid convergence = {:.2f} degrees'.format(gca))
-    print('Sun azimuth = {:.2f} degrees'.format(saa))
-    print('Sun azimuth adjusted for grid convergence = {:.2f} degrees'.format(saa_))
+    if ac.settings['run']['verbosity'] > 2:
+        print('Grid convergence = {:.2f} degrees'.format(gca))
+        print('Sun azimuth = {:.2f} degrees'.format(saa))
+        print('Sun azimuth adjusted for grid convergence = {:.2f} degrees'.format(saa_))
 
     ## get DEM
     if ('dem' in datasets) & (ac.settings['run']['dem_shadow_mask_extend'] is False):
-        print('Reading DEM data from {}'.format(ncf))
+        if ac.settings['run']['verbosity'] > 2: print('Reading DEM data from {}'.format(ncf))
         dem = ac.shared.nc_data(ncf, 'dem')
     else:
-        print('Getting DEM data from {}'.format(ac.settings['run']['dem_source']))
+        if ac.settings['run']['verbosity'] > 2: print('Getting DEM data from {}'.format(ac.settings['run']['dem_source']))
         if ac.settings['run']['dem_shadow_mask_extend']:
             ## amount of pixels to extend the image
             xext = int(np.round(ac.settings['run']['dem_shadow_mask_extend_metres']/dct['pixel_size'][0]))
@@ -133,8 +134,9 @@ def dem_shadow_mask_nc(ncf):
                 extend_top = True
                 extend_left = True
 
-            print('Extending top={} bottom={} left={} right={}'\
-                    .format(extend_top, extend_bottom, extend_left, extend_right))
+            if ac.settings['run']['verbosity'] > 3:
+                print('Extending top={} bottom={} left={} right={}'\
+                        .format(extend_top, extend_bottom, extend_left, extend_right))
 
             ## subsetting for the end
             x0 = 0
@@ -177,7 +179,7 @@ def dem_shadow_mask_nc(ncf):
             dem = ac.dem.dem_lonlat(lon, lat, source=ac.settings['run']['dem_source'])
 
     ## compute shadow mask
-    print('Computing terrain cast shadows')
+    if ac.settings['run']['verbosity'] > 2: print('Computing terrain cast shadows')
     mask_shadow = ac.masking.dem_shadow_mask(dem, saa_, sza, pixel_size)
     shade = np.ma.masked_where(mask_shadow == 0, mask_shadow)
 
