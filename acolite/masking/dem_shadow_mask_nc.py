@@ -6,11 +6,13 @@
 ## modifications: 2024-01-26 (QV) added option to extend grid in the direction of the sun
 ##                                updated determination of pixel_size
 
-def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
+def dem_shadow_mask_nc(ncf):
     import acolite as ac
     import numpy as np
     import dateutil.parser, pytz, scipy.ndimage
     from pyproj import Proj
+
+    print('Running DEM cast shadow mask for {}'.format(ncf))
 
     ## read datasets and gatts
     datasets = ac.shared.nc_datasets(ncf)
@@ -26,9 +28,9 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
 
     ## get nc projection
     nc_projection = ac.shared.nc_read_projection(ncf)
-    if (nc_projection is None) & (extend):
+    if (nc_projection is None) & (ac.settings['run']['dem_shadow_mask_extend']):
         print('Could not read nc_projection, not extending grid.')
-        extend = False
+        ac.settings['run']['dem_shadow_mask_extend'] = False
 
     ## get pixel size
     if nc_projection is not None: ## from nc projection
@@ -94,21 +96,22 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
 
     ## correct saa for grid convergence
     saa_ = saa-gca
+    if saa_ < 0: saa_ += 360
 
     print('Grid convergence = {:.2f} degrees'.format(gca))
     print('Sun azimuth = {:.2f} degrees'.format(saa))
     print('Sun azimuth adjusted for grid convergence = {:.2f} degrees'.format(saa_))
 
     ## get DEM
-    if ('dem' in datasets) & (extend is False):
+    if ('dem' in datasets) & (ac.settings['run']['dem_shadow_mask_extend'] is False):
         print('Reading DEM data from {}'.format(ncf))
         dem = ac.shared.nc_data(ncf, 'dem')
     else:
         print('Getting DEM data from {}'.format(ac.settings['run']['dem_source']))
-        if extend:
+        if ac.settings['run']['dem_shadow_mask_extend']:
             ## amount of pixels to extend the image
-            xext = int(np.round(extend_metres/dct['pixel_size'][0]))
-            yext = int(np.round(extend_metres/dct['pixel_size'][1]))
+            xext = int(np.round(ac.settings['run']['dem_shadow_mask_extend_metres']/dct['pixel_size'][0]))
+            yext = int(np.round(ac.settings['run']['dem_shadow_mask_extend_metres']/dct['pixel_size'][1]))
 
             ## find directions to extend
             extend_top = False
@@ -124,11 +127,11 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
             if (saa_ >= 180) & (saa_ < 270):
                 extend_bottom = True
                 extend_left = True
-            if (saa_ >= 270) & (saa_ < 3600):
+            if (saa_ >= 270) & (saa_ < 360):
                 extend_top = True
                 extend_left = True
 
-            print('Extending extend_top={} extend_bottom={} extend_left={} extend_right={}'\
+            print('Extending top={} bottom={} left={} right={}'\
                     .format(extend_top, extend_bottom, extend_left, extend_right))
 
             ## subsetting for the end
@@ -177,16 +180,19 @@ def dem_shadow_mask_nc(ncf, extend = False, extend_metres = 3000):
     shade = np.ma.masked_where(mask_shadow == 0, mask_shadow)
 
     ## dilate erode mask?
-    mask_shadow_ = scipy.ndimage.binary_erosion(mask_shadow, np.ones((3,3)), iterations = 1)
-    mask_shadow_ = scipy.ndimage.binary_dilation(mask_shadow_, np.ones((3,3)), iterations = 5)
+    if ac.settings['run']['dem_shadow_mask_filter']:
+        mask_shadow_ = scipy.ndimage.binary_erosion(mask_shadow, np.ones(ac.settings['run']['dem_shadow_mask_filter_kernel']),
+                                                                 iterations = ac.settings['run']['dem_shadow_mask_erode_its'])
+        mask_shadow_ = scipy.ndimage.binary_dilation(mask_shadow_, np.ones(ac.settings['run']['dem_shadow_mask_filter_kernel']),
+                                                                 iterations = ac.settings['run']['dem_shadow_mask_dilate_its'])
 
-    ## smooth mask?
-    #mask_shadow_ = scipy.ndimage.gaussian_filter(mask_shadow_, 1, mode='reflect')
+        ## smooth mask?
+        #mask_shadow_ = scipy.ndimage.gaussian_filter(mask_shadow_, 1, mode='reflect')
 
-    ## mask mask
-    shade = np.ma.masked_where(mask_shadow_ == 0, mask_shadow_)
+        ## mask mask
+        shade = np.ma.masked_where(mask_shadow_ == 0, mask_shadow_)
 
     ## crop if image was extended
-    if extend: shade = shade[y0:y1,x0:x1]
+    if ac.settings['run']['dem_shadow_mask_extend']: shade = shade[y0:y1,x0:x1]
 
     return(shade)

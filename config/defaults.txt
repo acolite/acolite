@@ -199,6 +199,7 @@ flag_exponent_toa=2
 flag_exponent_negative=3
 flag_exponent_outofscene=4
 flag_exponent_mixed=5
+flag_exponent_dem_shadow=6
 
 ## atmospheric correction settings
 atmospheric_correction=True
@@ -244,6 +245,15 @@ dem_pressure_resolved=True
 dem_pressure_percentile=25
 dem_pressure_write=False
 dem_source=copernicus30
+
+## DEM shadow masking
+dem_shadow_mask=False
+dem_shadow_mask_extend=True
+dem_shadow_mask_extend_metres=3000
+dem_shadow_mask_filter=True
+dem_shadow_mask_filter_kernel=3,3
+dem_shadow_mask_erode_its=1
+dem_shadow_mask_dilate_its=1
 
 ## correction for reflectance on air-water interface
 dsf_interface_reflectance=False

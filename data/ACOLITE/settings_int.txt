@@ -25,6 +25,7 @@ flag_exponent_toa
 flag_exponent_negative
 flag_exponent_outofscene
 flag_exponent_mixed
+flag_exponent_dem_shadow
 rgb_red_wl
 rgb_green_wl
 rgb_blue_wl
@@ -49,6 +50,9 @@ viirs_quality_flags
 viirs_scanline_width
 output_projection_neighbours
 output_projection_filldistance
+dem_shadow_mask_filter_kernel
+dem_shadow_mask_erode_its
+dem_shadow_mask_dilate_its
 
 ## GEE
 percentiles

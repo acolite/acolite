@@ -15,6 +15,7 @@ exp_swir_threshold
 exp_fixed_epsilon_percentile
 exp_fixed_aerosol_reflectance_percentile
 dem_pressure_percentile
+dem_shadow_mask_extend_metres
 elevation
 uoz_default
 uwv_default
