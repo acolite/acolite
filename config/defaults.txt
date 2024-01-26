@@ -253,7 +253,7 @@ dem_shadow_mask_extend_metres=3000
 dem_shadow_mask_filter=True
 dem_shadow_mask_filter_kernel=3,3
 dem_shadow_mask_erode_its=1
-dem_shadow_mask_dilate_its=1
+dem_shadow_mask_dilate_its=5
 
 ## correction for reflectance on air-water interface
 dsf_interface_reflectance=False
