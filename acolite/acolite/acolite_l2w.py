@@ -4,6 +4,7 @@
 ## 2021-03-09
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2022-09-28 (QV) changed gem from dict to object
+##                2024-01-26 (QV) moved flagging to a separate function
 
 def acolite_l2w(gem,
                 settings = {},
@@ -124,104 +125,10 @@ def acolite_l2w(gem,
         if setu['l2w_mask_high_toa']: flag_value += 2**setu['flag_exponent_toa']
         if setu['l2w_mask_negative_rhow']: flag_value += 2**setu['flag_exponent_negative']
         if setu['l2w_mask_mixed']: flag_value += 2**setu['flag_exponent_mixed']
+        if setu['dem_shadow_mask']: flag_value += 2**setu['flag_exponent_dem_shadow']
 
-    ## compute mask
-    ## non water/swir threshold
-    if verbosity > 3: print('Computing non water threshold mask.')
-    cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_wave'])
-    ## use M bands for masking
-    if ('VIIRS' in gem.gatts['sensor']) & (setu['viirs_mask_mband']):
-        rhot_waves_m = [int(ds.split('_')[-1]) for ds in rhot_ds if 'M' in ds]
-        cidx,cwave = ac.shared.closest_idx(rhot_waves_m, setu['l2w_mask_wave'])
-    cur_par = 'rhot_{}'.format(cwave)
-    cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
-
-    if verbosity > 3: print('Computing non water threshold mask from {} > {}.'.format(cur_par, setu['l2w_mask_threshold']))
-    cur_data = gem.data(cur_par)
-    if setu['l2w_mask_smooth']:
-        cur_data = ac.shared.fillnan(cur_data)
-        cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
-    cur_mask = cur_data > setu['l2w_mask_threshold']
-    cur_data = None
-    l2_flags = cur_mask.astype(np.int32)*(2**setu['flag_exponent_swir'])
-    cur_mask = None
-
-    ## cirrus masking
-    if verbosity > 3: print('Computing cirrus mask.')
-    cidx,cwave = ac.shared.closest_idx(rhot_waves, setu['l2w_mask_cirrus_wave'])
-    if np.abs(cwave - setu['l2w_mask_cirrus_wave']) < 5:
-        cur_par = 'rhot_{}'.format(cwave)
-        cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
-
-        if verbosity > 3: print('Computing cirrus mask from {} > {}.'.format(cur_par, setu['l2w_mask_cirrus_threshold']))
-        cur_data = gem.data(cur_par)
-        if setu['l2w_mask_smooth']:
-            cur_data = ac.shared.fillnan(cur_data)
-            cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
-        cirrus_mask = cur_data > setu['l2w_mask_cirrus_threshold']
-        cirrus = None
-        l2_flags += cirrus_mask.astype(np.int32)*(2**setu['flag_exponent_cirrus'])
-        cirrus_mask = None
-    else:
-        if verbosity > 2: print('No suitable band found for cirrus masking.')
-
-    ## TOA out of limit
-    if verbosity > 3: print('Computing TOA limit mask.')
-    toa_mask = None
-    outmask = None
-    for ci, cur_par in enumerate(rhot_ds):
-        if rhot_waves[ci]<setu['l2w_mask_high_toa_wave_range'][0]: continue
-        if rhot_waves[ci]>setu['l2w_mask_high_toa_wave_range'][1]: continue
-        if verbosity > 3: print('Computing TOA limit mask from {} > {}.'.format(cur_par, setu['l2w_mask_high_toa_threshold']))
-        cwave = rhot_waves[ci]
-        cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]
-        cur_data = gem.data(cur_par)
-        if outmask is None: outmask = np.zeros(cur_data.shape).astype(bool)
-        outmask = (outmask) | (np.isnan(cur_data))
-        if setu['l2w_mask_smooth']:
-            cur_data = ac.shared.fillnan(cur_data)
-            cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'], mode='reflect')
-        if toa_mask is None: toa_mask = np.zeros(cur_data.shape).astype(bool)
-        toa_mask = (toa_mask) | (cur_data > setu['l2w_mask_high_toa_threshold'])
-    l2_flags = (l2_flags) | (toa_mask.astype(np.int32)*(2**setu['flag_exponent_toa']))
-    toa_mask = None
-    l2_flags = (l2_flags) | (outmask.astype(np.int32)*(2**setu['flag_exponent_outofscene']))
-    outmask = None
-
-    ## negative rhos
-    if verbosity > 3: print('Computing negative reflectance mask.')
-    neg_mask = None
-    for ci, cur_par in enumerate(rhos_ds):
-        if rhos_waves[ci]<setu['l2w_mask_negative_wave_range'][0]: continue
-        if rhos_waves[ci]>setu['l2w_mask_negative_wave_range'][1]: continue
-        if verbosity > 3: print('Computing negative reflectance mask from {}.'.format(cur_par))
-        cwave = rhos_waves[ci]
-        cur_par = [ds for ds in rhos_ds if ('{:.0f}'.format(cwave) in ds)][0]
-        cur_data = gem.data(cur_par)
-        #if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
-        if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
-        neg_mask = (neg_mask) | (cur_data < 0)
-    l2_flags = (l2_flags) | (neg_mask.astype(np.int32)*(2**setu['flag_exponent_negative']))
-    neg_mask = None
-
-    if ('VIIRS' in gem.gatts['sensor']) & (setu['viirs_mask_immixed']):
-        if verbosity > 3: print('Finding mixed pixels using VIIRS I and M bands.')
-        mix_mask = None
-        if type(setu['viirs_mask_immixed_bands']) is not list:
-            setu['viirs_mask_immixed_bands'] = [setu['viirs_mask_immixed_bands']]
-        for imc in setu['viirs_mask_immixed_bands']:
-            ib, mb = imc.split('/')
-            ds0 = [ds for ds in rhot_ds if ib in ds][0]
-            ds1 = [ds for ds in rhot_ds if mb in ds][0]
-            cur_data0 = gem.data(ds0)
-            cur_data1 = gem.data(ds1)
-            if mix_mask is None: mix_mask = np.zeros(cur_data0.shape).astype(bool)
-            if setu['viirs_mask_immixed_rat']:
-                mix_mask = (mix_mask) | (np.abs(1-(cur_data0/cur_data1)) > setu['viirs_mask_immixed_maxrat'])
-            if setu['viirs_mask_immixed_dif']:
-                mix_mask = (mix_mask) | (np.abs(cur_data0-cur_data1) > setu['viirs_mask_immixed_maxdif'])
-        l2_flags = (l2_flags) | (mix_mask.astype(np.int32)*(2**setu['flag_exponent_mixed']))
-        mix_mask = None
+    ## compute flags
+    l2_flags = ac.acolite.acolite_flags(gem)
 
     ## list datasets to copy over from L2R
     copy_datasets = ['lon', 'lat']

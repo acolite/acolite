@@ -1,6 +1,7 @@
 from .acolite_l1r import *
 from .acolite_l2r import *
 from .acolite_l2w import *
+from .acolite_flags import *
 
 from .acolite_pans import *
 
