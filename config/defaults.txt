@@ -11,6 +11,7 @@
 
 ## additional inputfiles
 geofile=None
+l2cfile=None
 
 ## settings for cropping
 region_name=

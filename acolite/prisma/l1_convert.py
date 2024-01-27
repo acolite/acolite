@@ -138,7 +138,11 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         read_cube = True
 
         ## get geometry from l2 file if present
-        l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
+        if ac.settings['run']['l2cfile'] is not None:
+            l2file = ac.settings['run']['l2cfile']
+            print('Using user specified L2C file {}'.format(l2file))
+        else:
+            l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
         if not os.path.exists(l2file):
             print('PRISMA processing only supported when L2 geometry is present.')
             print('Please put {} in the same directory as {}'.format(os.path.basename(l2file), os.path.basename(file)))
