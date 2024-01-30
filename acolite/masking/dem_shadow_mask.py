@@ -3,13 +3,21 @@
 ## based on the Richens 1997 shadow volume algorithm "Image processing for urban scale environmental modelling, Paul Richens, 1997b"
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-01-25
-## modifications:
-##
+## modifications: 2024-01-27 (QV) assume shadow for sza>90
+##                2024-01-30 (QV) bug fix
 
 def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
     import acolite as ac
     import numpy as np
     import dateutil.parser
+
+    ## array copy
+    shdem = 1.0 * dem
+
+    ## assume all in shadow for sza>90
+    if sza > 90:
+        shdem[:] = 1
+        return(shdem)
 
     ## set up sun angles
     ## note saa should be adjusted for grid convergence
@@ -31,9 +39,6 @@ def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
     dy = 0
     dz = 0.0
     dz = 0
-
-    ## array copy
-    shdem = 1.0 * dem
 
     ## run through shadow volume algorithm
     if ac.settings['run']['verbosity'] > 4: print('Running shadow volume algorithm')
@@ -71,7 +76,7 @@ def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
                     shdem[i, j] = np.max((shdem[i,j], dem[i+yc_offset, j+xc_offset]-dz))
         else: ## fast
             shdem[yp1:yp2, xp1:xp2] = np.nanmax((shdem[yp1:yp2, xp1:xp2],
-                                                 shdem[yp1+yc_offset:yp2+yc_offset, xp1+xc_offset:xp2+xc_offset]-dz), axis=0)
+                                                   dem[yp1+yc_offset:yp2+yc_offset, xp1+xc_offset:xp2+xc_offset]-dz), axis=0)
 
         if ac.settings['run']['verbosity'] > 5: print(index, dx, dy, dz)
         index+=1
