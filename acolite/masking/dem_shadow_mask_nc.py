@@ -6,7 +6,7 @@
 ## modifications: 2024-01-26 (QV) added option to extend grid in the direction of the sun
 ##                                updated determination of pixel_size, added acolite settings
 
-def dem_shadow_mask_nc(ncf):
+def dem_shadow_mask_nc(ncf, return_dem=False):
     import acolite as ac
     import numpy as np
     import dateutil.parser, pytz, scipy.ndimage
@@ -90,7 +90,8 @@ def dem_shadow_mask_nc(ncf):
     # lat1, lon1 = lat[-1, int(lat.shape[1]/2)], lon[-1, int(lat.shape[1]/2)]
     # lat2, lon2 = lat[0, int(lat.shape[1]/2)], lon[0, int(lat.shape[1]/2)]
     # paa = ac.shared.azimuth_two_points(lon1, lat1, lon2, lat2)
-    # paa
+    # if paa > 180: paa = paa-360
+    # print(paa)
 
     ## grid convergence
     gc = np.arctan(np.tan(np.radians(centre_lon) - np.radians(lon0)) * np.sin(np.radians(centre_lat)))
@@ -195,6 +196,13 @@ def dem_shadow_mask_nc(ncf):
 
         ## mask mask
         shade = np.ma.masked_where(mask_shadow_ == 0, mask_shadow_)
+
+    ## return dem
+    if (return_dem):
+        if ac.settings['run']['dem_shadow_mask_extend']:
+            return(shade, dem, lon_, lat_, y0, y1, x0, x1)
+        else:
+            return(shade, dem, lon, lat)
 
     ## crop if image was extended
     if ac.settings['run']['dem_shadow_mask_extend']: shade = shade[y0:y1,x0:x1]
