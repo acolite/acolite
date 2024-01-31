@@ -5,8 +5,9 @@
 ## 2024-01-25
 ## modifications: 2024-01-26 (QV) added option to extend grid in the direction of the sun
 ##                                updated determination of pixel_size, added acolite settings
+##                2024-01-31 (QV) updated grid extension, allow for 4 element extension to be provided [top, bottom, left, right]
 
-def dem_shadow_mask_nc(ncf, return_dem=False):
+def dem_shadow_mask_nc(ncf, return_dem = False, extend = []):
     import acolite as ac
     import numpy as np
     import dateutil.parser, pytz, scipy.ndimage
@@ -135,35 +136,38 @@ def dem_shadow_mask_nc(ncf, return_dem=False):
                 extend_top = True
                 extend_left = True
 
+            ## if requested extension
+            if len(extend) == 4:
+                extend_top, extend_bottom, extend_left, extend_right = extend
+
+            ## get extended ranges
+            xrange_ = [dct['xrange'][0], dct['xrange'][1]]
+            yrange_ = [dct['yrange'][0], dct['yrange'][1]]
+
+            if extend_right:
+                xrange_[1] = dct['xrange'][1] + dct['pixel_size'][0] * xext
+            if extend_left:
+                xrange_[0] = dct['xrange'][0] - dct['pixel_size'][0] * xext
+            if extend_top:
+                yrange_[0] = dct['yrange'][0] + dct['pixel_size'][1] * yext
+            if extend_bottom:
+                yrange_[1] = dct['yrange'][1] - dct['pixel_size'][1] * yext
+
+            ## extended dimensions
+            xdim_ = int((xrange_[1]-xrange_[0]+dct['pixel_size'][0])/dct['pixel_size'][0])
+            ydim_ = int((yrange_[1]-yrange_[0]+dct['pixel_size'][1])/dct['pixel_size'][1])
+
+            ## subsetting for extended array
+            y0 = int(np.abs((dct['yrange'][0]-yrange_[0])/dct['pixel_size'][1]))
+            y1 = int(ydim_ - np.abs((dct['yrange'][1]-yrange_[1])/dct['pixel_size'][1]))
+            x0 = int(np.abs((dct['xrange'][0]-xrange_[0])/dct['pixel_size'][0]))
+            x1 = int(xdim_ - np.abs((dct['xrange'][1]-xrange_[1])/dct['pixel_size'][0]))
+
             if ac.settings['run']['verbosity'] > 3:
                 print('Extending top={} bottom={} left={} right={}'\
                         .format(extend_top, extend_bottom, extend_left, extend_right))
-
-            ## subsetting for the end
-            x0 = 0
-            x1 = lat.shape[1]
-            y0 = 0
-            y1 = lat.shape[0]
-            if extend_right:
-                xrange_ = dct['xrange'][0], dct['xrange'][1] + dct['pixel_size'][0] * xext
-                x0 = 0
-                x1 = -xext
-            if extend_left:
-                xrange_ = dct['xrange'][0] - dct['pixel_size'][0] * xext, dct['xrange'][1]
-                x0 = xext
-                x1 = lat.shape[1]+xext
-            if extend_top:
-                yrange_ = dct['yrange'][0] + dct['pixel_size'][1] * yext, dct['yrange'][1]
-                y0 = -yext
-                y1 = lat.shape[0]-yext
-            if extend_bottom:
-                yrange_ = dct['yrange'][0], dct['yrange'][1] - dct['pixel_size'][1] * yext
-                y0 = 0
-                y1 = yext
-
-            ## new dimensions
-            xdim_ = int((xrange_[1]-xrange_[0]+dct['pixel_size'][0])/dct['pixel_size'][0])
-            ydim_ = int((yrange_[1]-yrange_[0]+dct['pixel_size'][1])/dct['pixel_size'][1])
+                print('yext={} xext={}'.format(yext, xext))
+                print('ydim_={} xdim_={}'.format(ydim_, xdim_))
 
             ## update dct
             dct_ = {k:dct[k] for k in dct}
