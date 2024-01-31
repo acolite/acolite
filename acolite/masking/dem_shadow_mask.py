@@ -5,8 +5,9 @@
 ## 2024-01-25
 ## modifications: 2024-01-27 (QV) assume shadow for sza>90
 ##                2024-01-30 (QV) bug fix
+##                2024-01-31 (QV) speed increase using fmax, removed loop
 
-def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
+def dem_shadow_mask(dem, saa, sza, dem_scale):
     import acolite as ac
     import numpy as np
     import dateutil.parser
@@ -70,13 +71,16 @@ def dem_shadow_mask(dem, saa, sza, dem_scale, loop = False):
         xc_offset = xc1 - xp1
         yc_offset = yc1 - yp1
 
-        if loop: ## very slow
-            for i in range(yp1, yp2):
-                for j in range(xp1, xp2):
-                    shdem[i, j] = np.max((shdem[i,j], dem[i+yc_offset, j+xc_offset]-dz))
-        else: ## fast
-            shdem[yp1:yp2, xp1:xp2] = np.nanmax((shdem[yp1:yp2, xp1:xp2],
-                                                   dem[yp1+yc_offset:yp2+yc_offset, xp1+xc_offset:xp2+xc_offset]-dz), axis=0)
+        #if loop: ## very slow
+        #    for i in range(yp1, yp2):
+        #        for j in range(xp1, xp2):
+        #            shdem[i, j] = np.max((shdem[i,j], dem[i+yc_offset, j+xc_offset]-dz))
+        #else: ## fast
+        #    shdem[yp1:yp2, xp1:xp2] = np.nanmax((shdem[yp1:yp2, xp1:xp2],
+        #                                           dem[yp1+yc_offset:yp2+yc_offset, xp1+xc_offset:xp2+xc_offset]-dz), axis=0)
+        ## faster with fmax
+        shdem[yp1:yp2, xp1:xp2] = np.fmax(shdem[yp1:yp2, xp1:xp2],
+                                            dem[yp1+yc_offset:yp2+yc_offset, xp1+xc_offset:xp2+xc_offset]-dz)
 
         if ac.settings['run']['verbosity'] > 5: print(index, dx, dy, dz)
         index+=1
