@@ -5,6 +5,7 @@
 ##                2021-12-08 (QV) added nc_projection
 ##                2022-02-15 (QV) added L9/TIRS
 ##                2023-07-12 (QV) removed netcdf_compression settings
+##                2024-01-31 (QV) added skip_attributes
 
 import acolite as ac
 import os, sys
@@ -89,6 +90,7 @@ class gem(object):
         def update_attributes(self):
             with Dataset(self.file, 'a', format='NETCDF4') as nc:
                 for key in self.gatts.keys():
+                    if key in ac.config['skip_attributes']: continue
                     if self.gatts[key] is not None:
                         try:
                             setattr(nc, key, self.gatts[key])

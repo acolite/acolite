@@ -23,6 +23,7 @@
 ##                QV 2021-12-08 added nc_projection
 ##                QV 2022-11-09 added option to update nc_projection
 ##                QV 2023-07-12 added discretisation
+##                QV 2024-01-31 added skip_attributes
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -121,6 +122,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
 
         if attributes is not None:
             for key in attributes.keys():
+                if key in ac.config['skip_attributes']: continue
                 if attributes[key] is not None:
                     try:
                         nc.setncattr(key, attributes[key])
@@ -154,6 +156,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         if update_attributes:
             if attributes is not None:
                 for key in attributes.keys():
+                    if key in ac.config['skip_attributes']: continue
                     if attributes[key] is not None:
                         try:
                             nc.setncattr(key, attributes[key])

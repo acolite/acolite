@@ -81,6 +81,9 @@ CDSE_auth=https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/ope
 CDSE_u=
 CDSE_p=
 
+## attributes not to write in output files
+skip_attributes=EARTHDATA_u,EARTHDATA_p,EARTHEXPLORER_u,EARTHEXPLORER_p,CDSE_u,CDSE_p
+
 ## list of hyperspectral sensors (do not edit)
 hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI,ENMAP_HSI,ISS_EMIT,HYPSO1
 
