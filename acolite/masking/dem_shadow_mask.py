@@ -22,7 +22,7 @@ def dem_shadow_mask(dem, saa, sza, dem_scale):
 
     ## set up sun angles
     ## note saa should be adjusted for grid convergence
-    azi = np.radians(np.abs(270-saa)) ## rotate axis to have north up - numpy defaults to row major?
+    azi = (np.radians(270-saa) + 2 * np.pi) % (2 * np.pi) ## rotate axis to have north up
     ele = np.radians(90-sza)
     pixel_scale = 1/dem_scale
     sizey, sizex = dem.shape
