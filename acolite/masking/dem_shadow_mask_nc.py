@@ -6,6 +6,7 @@
 ## modifications: 2024-01-26 (QV) added option to extend grid in the direction of the sun
 ##                                updated determination of pixel_size, added acolite settings
 ##                2024-01-31 (QV) updated grid extension, allow for 4 element extension to be provided [top, bottom, left, right]
+##                2024-02-01 (QV) check DEM size, check binary operations iteration
 
 def dem_shadow_mask_nc(ncf, return_dem = False, extend = []):
     import acolite as ac
@@ -180,6 +181,11 @@ def dem_shadow_mask_nc(ncf, return_dem = False, extend = []):
             ## get extended geolocation
             lon_, lat_ = ac.shared.projection_geo(dct_)
             dem = ac.dem.dem_lonlat(lon_, lat_, source=ac.settings['run']['dem_source'])
+
+            ## test dem shape (e.g. SRTM is limited in latitude)
+            if dem.shape == ():
+                print('Could not retrieve DEM from source {}'.format(ac.settings['run']['dem_source']))
+                return
         else:
             dem = ac.dem.dem_lonlat(lon, lat, source=ac.settings['run']['dem_source'])
 
@@ -190,16 +196,19 @@ def dem_shadow_mask_nc(ncf, return_dem = False, extend = []):
 
     ## dilate erode mask?
     if ac.settings['run']['dem_shadow_mask_filter']:
-        mask_shadow_ = scipy.ndimage.binary_erosion(mask_shadow, np.ones(ac.settings['run']['dem_shadow_mask_filter_kernel']),
-                                                                 iterations = ac.settings['run']['dem_shadow_mask_erode_its'])
-        mask_shadow_ = scipy.ndimage.binary_dilation(mask_shadow_, np.ones(ac.settings['run']['dem_shadow_mask_filter_kernel']),
+        if ac.settings['run']['dem_shadow_mask_erode_its'] > 0:
+            mask_shadow = scipy.ndimage.binary_erosion(mask_shadow, np.ones(ac.settings['run']['dem_shadow_mask_filter_kernel']),
+                                                                     iterations = ac.settings['run']['dem_shadow_mask_erode_its'])
+
+        if ac.settings['run']['dem_shadow_mask_dilate_its'] > 0:
+            mask_shadow = scipy.ndimage.binary_dilation(mask_shadow, np.ones(ac.settings['run']['dem_shadow_mask_filter_kernel']),
                                                                  iterations = ac.settings['run']['dem_shadow_mask_dilate_its'])
 
         ## smooth mask?
-        #mask_shadow_ = scipy.ndimage.gaussian_filter(mask_shadow_, 1, mode='reflect')
+        #mask_shadow = scipy.ndimage.gaussian_filter(mask_shadow, 1, mode='reflect')
 
         ## mask mask
-        shade = np.ma.masked_where(mask_shadow_ == 0, mask_shadow_)
+        shade = np.ma.masked_where(mask_shadow == 0, mask_shadow)
 
     ## return dem
     if (return_dem):
