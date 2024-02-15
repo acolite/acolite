@@ -1448,7 +1448,7 @@ def acolite_l2r(gem,
 
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
-            del cur_rhorc, rorayl_cur, dtotr_cur, utotr_cur
+            del cur_rhorc, rorayl_cur, dutotr_cur
 
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
