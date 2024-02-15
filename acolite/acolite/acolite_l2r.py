@@ -1524,7 +1524,6 @@ def acolite_l2r(gem,
             cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
             del sza, vza, raa
 
-            omega = np.arccos(np.sqrt(cos2omega))
             omega = np.arccos(cos2omega)/2
             del cos2omega
 
