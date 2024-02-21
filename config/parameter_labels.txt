@@ -1,4 +1,5 @@
 ## ACOLITE Python output parameter label configuration
+## note parameter names should be all lower case
 ## next line is the header - should be before any parameter lines
 header=parameter,min,max,log,cmap,name,unit
 #
@@ -86,8 +87,12 @@ chl_re_gons_nocheck,1,100,True,Calgae255,CHL Gons,mg m$^{-3}$
 chl_re_gons740_nocheck,1,100,True,Calgae255,CHL Gons740,mg m$^{-3}$
 chl_re_moses3b,1,100,True,Calgae255,CHL Moses,mg m$^{-3}$
 chl_re_moses3b740,1,100,True,Calgae255,CHL Moses740,mg m$^{-3}$
+chl_re_moses3b_nocheck,1,100,True,Calgae255,CHL Moses,mg m$^{-3}$
+chl_re_moses3b740_nocheck,1,100,True,Calgae255,CHL Moses740,mg m$^{-3}$
 chl_re_mishra,1,100,True,Calgae255,CHL Mishra,mg m$^{-3}$
+chl_re_mishra_nocheck,1,100,True,Calgae255,CHL Mishra,mg m$^{-3}$
 chl_re_bramich,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
+chl_re_bramich_nocheck,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
 #
 ## indices
 #

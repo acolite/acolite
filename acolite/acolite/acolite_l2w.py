@@ -878,7 +878,8 @@ def acolite_l2w(gem,
                     par_data[par_name] = par_attributes['a'][0]* \
                                         ((np.power(tmp_data[0],-1)-np.power(tmp_data[1],-1)) * \
                                         tmp_data[2]) + par_attributes['a'][1]
-                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    if '_nocheck' not in par_name:
+                        par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute MOSES
@@ -890,7 +891,8 @@ def acolite_l2w(gem,
                     ndci = (tmp_data[1]-tmp_data[0]) / (tmp_data[1]+tmp_data[0])
                     par_data[par_name] = par_attributes['a'][0] + par_attributes['a'][1]*ndci + par_attributes['a'][2]*ndci*ndci
                     ndci = None
-                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    if '_nocheck' not in par_name:
+                        par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute MISHRA
@@ -907,7 +909,8 @@ def acolite_l2w(gem,
                     #par_data[par_name] = np.power(par_data[par_name]/0.022,1.201)
                     ## from Bramich via RG
                     par_data[par_name] = np.power(par_data[par_name],1.1675)/0.0109
-                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    if '_nocheck' not in par_name:
+                        par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute BRAMICH
