@@ -349,7 +349,7 @@ def l1_convert(inputfile, output = None, settings = {},
                             dct_geom['proj4_string']]
 
                 ## warp settings for read_band
-                warp_to_geom = (dct_geom['proj4_string'], xyr_geom, dct_geom['pixel_size'][0], dct_geom['pixel_size'][1], 'average')
+                warp_to_geom = (dct_geom['proj4_string'], xyr_geom, dct_geom['pixel_size'][0], dct_geom['pixel_size'][1], 'near')
 
                 ## open target file to get dimensions
                 g = gdal.Open(target_file)
@@ -487,9 +487,11 @@ def l1_convert(inputfile, output = None, settings = {},
                             elif len(jp2) > 0:
                                 dfoo = ac.shared.read_band(jp2[0], warp_to=warp_to_geom)
                                 dval = np.unique(dfoo)
+                            #print('Computing band specific geometry - detectors for band {}: {}'.format(Bn, ', '.join([str(v) for v in dval])))
 
                         for nf, bv in enumerate(dval):
                             if bv == 0: continue ## fill value in new format
+                            if '{}'.format(bv) not in grmeta['VIEW_DET'][b]: continue ## skip missing detector
                             print('Computing band specific geometry - {} Detector {}'.format(Bn, bv))
                             det_mask = dfoo==bv
 
