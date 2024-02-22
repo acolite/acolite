@@ -5,9 +5,11 @@
 ## modifications: 2022-09-21 (QV) added band outputs
 ##                2022-11-16 (QV) added F0 reference
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-02-22 (QV) added computation of view angles
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
+    import scipy
     import datetime, dateutil.parser, os, copy
     import acolite as ac
 
@@ -116,19 +118,20 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
         gatts['obase'] = obase
 
-        ## compute viewing azimuth
-        ## uncertain, check with EnMAP team
-        #orientation_angle = metadata['sceneAzimuthAngle']['center']
-        #ang_across = metadata['acrossOffNadirAngle']['center']
-        #ang_along = metadata['alongOffNadirAngle']['center']
-        #vaa = np.mod(orientation_angle - np.degrees(np.arctan2(np.tan(np.radians(ang_across)),
-        #                                                       np.tan(np.radians(ang_along)))),360)
-        #gatts['vaa'] = vaa
-        #gatts['vza'] = 0
-
-        ## edited 2022-09-22
-        gatts['vaa'] = metadata['sceneAzimuthAngle']['center']
-        gatts['vza'] = np.abs(metadata['acrossOffNadirAngle']['center'])
+        ## compute viewing angles
+        ## 2024-02-22 QV
+        roll  = -metadata['acrossOffNadirAngle']['center']
+        pitch = -metadata['alongOffNadirAngle']['center']
+        yaw   = -metadata['sceneAzimuthAngle']['center']
+        roll  = roll / np.cos(np.radians(pitch))
+        rot = scipy.spatial.transform.Rotation.from_euler('yxz', [pitch, roll, yaw], degrees=True)
+        v_ = rot.apply(np.array([0, 0, 1]))
+        cos = np.min((v_.dot(np.array([0, 0, 1])), 1.0))
+        vza = np.degrees(np.arccos(cos))
+        vaa = np.degrees(np.arctan2(-v_[0], -v_[1])) - 90
+        if vaa < 0: vaa += 360
+        gatts['vaa'] = vaa
+        gatts['vza'] = vza
 
         gatts['saa'] = metadata['sunAzimuthAngle']['center']
         gatts['sza'] = 90-metadata['sunElevationAngle']['center']
