@@ -8,4 +8,6 @@ from .rayleigh import *
 from .refri import *
 from .pressure_elevation import *
 
+from .irradiance import *
+
 from . import ancillary
