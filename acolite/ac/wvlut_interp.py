@@ -11,8 +11,12 @@
 ##                2021-02-24 (QV) new interpolation, lut is determined here and read generically
 ##                2022-11-17 (QV) added 2D interpolation for a given sensor
 ##                2023-08-03 (QV) get lut url from ac.config
+##                2024-02-26 (QV) added new lut support (with pressure)
 
-def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2, remote_base = None):
+def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C',
+                 par_id = 2, ## old LUT ttwava index
+                 pressure = 1013, par = 'ttwava', ## new LUT, index computed
+                 remote_base = None):
     import os, sys
     import scipy.interpolate
     import acolite as ac
@@ -60,10 +64,20 @@ def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2, r
 
     if onedim:
         ## interpolate hyperspectral dataset
-        rgi = scipy.interpolate.RegularGridInterpolator([meta['ths'], meta['thv'], meta['wv'], range(3),
-                                                         meta['wave']],lut,
-                                                         bounds_error=False, fill_value=None)
-        iw = rgi((ths, thv, uwv, par_id, meta['wave']))
+        ## old LUT
+        if config=='201710C':
+            rgi = scipy.interpolate.RegularGridInterpolator([meta['ths'], meta['thv'], meta['wv'], range(3),
+                                                             meta['wave']],lut,
+                                                             bounds_error=False, fill_value=None)
+            iw = rgi((ths, thv, uwv, par_id, meta['wave']))
+        ## new LUT
+        else:
+            ipd = {p:pi for pi, p in enumerate(meta['par'])}
+            rgi = scipy.interpolate.RegularGridInterpolator([meta['pressure'], range(len(meta['par'])),
+                                                             meta['wave'], meta['vza'], meta['sza'], meta['wv']],lut,
+                                                                 bounds_error=False, fill_value=None)
+            iw = rgi((pressure, ipd[par], meta['wave'], thv, ths, uwv))
+
         if sensor is None:
             ## return hyperspectral dataset for this geometry
             return(meta["wave"], iw)
@@ -80,9 +94,20 @@ def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C', par_id = 2, r
         ## convolution lut and make rgi
         band_averaged = {}
         for band in rsr_bands:
-            blut = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=4)
-            rgi = scipy.interpolate.RegularGridInterpolator([meta['ths'], meta['thv'], meta['wv'], range(3)],blut,\
-                                                            bounds_error=False, fill_value=None)
-            iw = rgi((ths, thv, uwv, par_id))
+            ## old LUT
+            if config=='201710C':
+                blut = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=4)
+                rgi = scipy.interpolate.RegularGridInterpolator([meta['ths'], meta['thv'], meta['wv'], range(3)],blut,\
+                                                                bounds_error=False, fill_value=None)
+                iw = rgi((ths, thv, uwv, par_id))
+            ## new LUT
+            else:
+                blut = ac.shared.rsr_convolute_nd(lut, meta['wave'],rsr[band]['response'], rsr[band]['wave'], axis=2)
+                ipd = {p:pi for pi, p in enumerate(meta['par'])}
+                rgi = scipy.interpolate.RegularGridInterpolator([meta['pressure'], range(len(meta['par'])),
+                                                                 meta['vza'], meta['sza'], meta['wv']],blut,
+                                                                 bounds_error=False, fill_value=None)
+                iw = rgi((pressure, ipd[par], thv, ths, uwv))
+
             band_averaged[band] = iw
         return(band_averaged)
