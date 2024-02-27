@@ -10,8 +10,9 @@
 ##                2021-11-20 (QV) added match_file to extract projection from (esp if data is using RPC for geolocation?)
 ##                2021-12-08 (QV) added support for the netcdf projection
 ##                2022-03-22 (QV) added support for match_file with GCP
+##                2024-02-27 (QV) changed writing of nodata, changed COG options
 
-def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimized_geotiff=False):
+def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimized_geotiff=False, use_projection_key=True):
     import acolite as ac
     import numpy as np
     import os
@@ -20,9 +21,13 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
     creationOptions = None
     format = 'GTiff'
     if cloud_optimized_geotiff:
-        creationOptions = ['COMPRESS=DEFLATE', 'PREDICTOR=2', 'OVERVIEWS=NONE', 'BLOCKSIZE=1024']
         format = 'COG'
+        creationOptions = ac.settings['run']['export_cloud_optimized_geotiff_options']
 
+    ## track outputfiles
+    outfiles = []
+
+    ## get metadata and datasets
     gatts = ac.shared.nc_gatts(f)
     datasets_file = ac.shared.nc_datasets(f)
     if 'ofile' in gatts:
@@ -30,7 +35,8 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
     else:
         out = f.replace('.nc', '')
 
-    if 'projection_key' in gatts:
+    ## use projection key in NetCDF metadata
+    if ('projection_key' in gatts) & (use_projection_key):
         for ds in datasets_file:
             if datasets is not None:
                 if ds not in datasets: continue
@@ -39,15 +45,12 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
             outfile = '{}_{}{}'.format(out, ds, '.tif')
             ## write geotiff
             dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
+                                noData = np.nan,
                                 format=format, creationOptions=creationOptions)
-            ## set no data value
-            if True:
-                 data = ac.shared.nc_data(f, ds)
-                 dt.GetRasterBand(1).WriteArray(data)
-                 dt.GetRasterBand(1).SetNoDataValue(np.nan)
 
             dt = None
             print('Wrote {}'.format(outfile))
+            outfiles.append(outfile)
     else:
         tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
         if all([t in gatts for t in tags]) or (match_file is not None):
@@ -86,6 +89,8 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                 if datasets is not None:
                     if ds not in datasets: continue
                 if (skip_geo) & (ds in ['lat', 'lon', 'x', 'y']): continue
+                if ('projection_key' in gatts):
+                    if (ds == gatts['projection_key']): continue
 
                 data = ac.shared.nc_data(f, ds)
                 y,x = data.shape
@@ -123,5 +128,6 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
                 dataset.GetRasterBand(1).SetNoDataValue(np.nan)
                 dataset.FlushCache()
                 print('Wrote {}'.format(outfile))
+                outfiles.append(outfile)
         else:
             print('Unprojected data {}. Not outputting GeoTIFF files.'.format(f))

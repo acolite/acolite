@@ -152,7 +152,7 @@ def acolite_run(settings, inputfile=None, output=None):
             if l1r_setu['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r, match_file = l1r_setu['export_geotiff_match_file'],
                                                             cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
                                                             skip_geo = l1r_setu['export_geotiff_coordinates'] is False)
-            if l1r_setu['l1r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(l1r, settings = l1r_setu)
+            if l1r_setu['l1r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(l1r, settings = l1r_setu, cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'])
 
             ## rhot RGB
             if l1r_setu['rgb_rhot']:
@@ -191,11 +191,11 @@ def acolite_run(settings, inputfile=None, output=None):
                     for ncf in l2r:
                         if l2r_setu['l2r_export_geotiff']:
                             ac.output.nc_to_geotiff(ncf, match_file = l2r_setu['export_geotiff_match_file'],
-                                                    cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                    cloud_optimized_geotiff = l2r_setu['export_cloud_optimized_geotiff'],
                                                     skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
 
                         if l2r_setu['l2r_export_geotiff_rgb']:
-                            ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu)
+                            ac.output.nc_to_geotiff_rgb(ncf, settings = l2r_setu, cloud_optimized_geotiff = l2r_setu['export_cloud_optimized_geotiff'])
 
                         if l2r_setu['pans']:
                             pr = ac.acolite.acolite_pans(ncf, settings = l2r_setu)
@@ -217,7 +217,7 @@ def acolite_run(settings, inputfile=None, output=None):
                             ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
                             if ret is not None:
                                 if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
-                                                                                cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'],
+                                                                                cloud_optimized_geotiff = l2r_setu['export_cloud_optimized_geotiff'],
                                                                                 skip_geo = l2r_setu['export_geotiff_coordinates'] is False)
                                 l2w_files.append(ret)
 
@@ -290,7 +290,7 @@ def acolite_run(settings, inputfile=None, output=None):
                     ## output rgb geotiff
                     if '{}_export_geotiff_rgb'.format(otype) in l1r_setu:
                         if l1r_setu['{}_export_geotiff_rgb'.format(otype)]:
-                            ac.output.nc_to_geotiff_rgb(ncfo, settings = l1r_setu)
+                            ac.output.nc_to_geotiff_rgb(ncfo, settings = l1r_setu, cloud_optimized_geotiff = l1r_setu['export_cloud_optimized_geotiff'])
                 processed[i]['{}_reprojected'.format(otype)] = reprojected
     ## end reproject data
 
