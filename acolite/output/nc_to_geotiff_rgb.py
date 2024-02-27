@@ -120,12 +120,13 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
                 dt = None
 
                 ## move to another temporary file to resave as COG
-                if oformat == 'COG':
-                    outfile_temp = '{}_{}{}'.format(out, ds, '_temp2.tif')
-                    os.rename(outfile, outfile_temp)
-                    dt = gdal.Translate(outfile, outfile_temp, options=options_creation)
-                    dt = None
-                    if remove_temp_files: os.remove(outfile_temp)
+                # temp file does not need to be COG, just convert the RGB to COG
+                #if oformat == 'COG':
+                #    outfile_temp = '{}_{}{}'.format(out, ds, '_temp2.tif')
+                #    os.rename(outfile, outfile_temp)
+                #    dt = gdal.Translate(outfile, outfile_temp, options=options_creation)
+                #    dt = None
+                #    if remove_temp_files: os.remove(outfile_temp)
 
             tempfiles.append("{}".format(outfile))
 
