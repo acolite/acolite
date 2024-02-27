@@ -86,8 +86,8 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
 
             ## Translate options
             ## output format
-            options_list = [' -a_nodata 0']
-            options_list += ['-of {}'.format(oformat)]
+            options_list = ['-of {}'.format(oformat)]
+            options_list += [' -a_nodata 0']
             if creationOptions is not None:
                 for co in creationOptions: options_list += ['-co {}'.format(co)]
             options_string = ' '.join(options_list)
@@ -95,12 +95,12 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
             ## Byte scaling
             byte_scaling_string = ' -ot Byte -scale {:.2f} {:.2f} {} {}'.format(scale_cur[0], scale_cur[1], scale_out[0], scale_out[1])
             if oformat == 'COG':
-                options_scaling_string = ' -a_nodata 0' + byte_scaling_string
+                options_scaling_string = options_string[1] + byte_scaling_string
             else:
                 options_scaling_string = options_string + byte_scaling_string
 
             ## TranslateOptions
-            options_creation = gdal.TranslateOptions(options=options_string)
+            options_creation = gdal.TranslateOptions(options=options_list[0])
             options_scaling = gdal.TranslateOptions(options=options_scaling_string)
 
             ## warp
