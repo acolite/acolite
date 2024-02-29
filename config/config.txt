@@ -14,6 +14,9 @@ data_dir=$ACDIR/data
 ## Scratch directory
 scratch_dir=$ACDIR/scratch
 
+## External directory
+external_dir=$ACDIR/external
+
 ## atmospheric correction LUT data directory
 lut_dir=$ACDIR/data/LUT
 

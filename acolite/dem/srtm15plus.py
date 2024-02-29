@@ -6,7 +6,7 @@
 ##
 ## function written by Quinten Vanhellemont, RBINS
 ## 2022-01-09
-## modifications:
+## modifications: 2024-02-29 (QV) added external dir config
 
 def srtm15plus(path=None):
     import acolite as ac
@@ -16,7 +16,7 @@ def srtm15plus(path=None):
     if path is not None:
         local_file = path
     else:
-        local_file = ac.config['path']+'/external/{}'.format('SRTM15_V2.3.nc')
+        local_file = '{}/{}'.format(ac.config['external_dir'], 'SRTM15_V2.3.nc')
     local_dir = os.path.dirname(local_file)
 
     ## download/extract
