@@ -13,13 +13,14 @@
 ## 2022-01-01
 ## modifications: 2022-01-01 (QV) renamed from worldlakes, added hydrolakes
 ##                2024-02-29 (QV) added external dir config
+##                                added gshhg (L1 for land/water mask)
 
 def polylakes(database = 'worldlakes', remove_zip = False):
     import acolite as ac
     import os, zipfile
 
-    if database.lower() not in ['worldlakes', 'hydrolakes']:
-        print('Polylake database {} not recognised, using worldlakes.')
+    if database.lower() not in ['worldlakes', 'hydrolakes', 'gshhg']:
+        print('Polylake database {} not recognised, using worldlakes.'.format(database))
         database = 'worldlakes'
 
     ## local worldlakes files
@@ -33,6 +34,11 @@ def polylakes(database = 'worldlakes', remove_zip = False):
         local_zip = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp.zip')
         local_file = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10.shp')
         local_dir = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp')
+    elif database.lower() == 'gshhg':
+        url = 'https://www.ngdc.noaa.gov/mgg/shorelines/data/gshhg/latest/gshhg-shp-2.3.7.zip'
+        local_zip = '{}/{}'.format(ac.config['external_dir'], 'gshhg-shp-2.3.7.zip')
+        local_file = '{}/{}'.format(ac.config['external_dir'], 'gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp')
+        local_dir = '{}/{}'.format(ac.config['external_dir'], 'gshhg-shp-2.3.7')
 
     ## download/extract
     if not os.path.exists(local_file):
