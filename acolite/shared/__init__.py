@@ -69,6 +69,7 @@ from .sun_position import *
 from .rsr_hyper import *
 
 from .polylakes import *
+from .land_water_mask import *
 
 from .rgb_stretch import *
 from .scale_dist import *
