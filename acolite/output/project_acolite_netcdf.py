@@ -12,6 +12,7 @@
 ##                2023-04-18 (QV) fixed reprojection for viirs overlapping  scanlines
 ##                2023-07-25 (QV) added counts output
 ##                2024-03-14 (QV) update settings handling
+##                                added check for projection resolution
 
 def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None, output_counts = False):
 
@@ -78,6 +79,9 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
             target_pixel_size = [float(v) for v in setu['default_projection_resolution']]
             target_pixel_size[1] *= -1
             print('Using default grid size: {}x{}metres'.format(target_pixel_size[0], target_pixel_size[1]))
+        else:
+            print('No projection grid resolution set in output_projection_resolution or default_projection_resolution')
+            return
 
     if setu['output_projection_limit'] is not None:
         if len(setu['output_projection_limit']) != 4:
