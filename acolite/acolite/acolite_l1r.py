@@ -4,10 +4,17 @@
 ## 2021-03-10
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2021-12-31 (QV) new handling of settings
+##                2024-03-14 (QV) update settings handling
 
-def acolite_l1r(bundle, setu, input_type=None):
+def acolite_l1r(bundle, settings = None, input_type=None):
     import acolite as ac
     import os, sys, shutil
+
+    ## parse run settings
+    if settings is not None:
+        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
 
     ## set up l1r_files list
     l1r_files = []

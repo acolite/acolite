@@ -6,9 +6,10 @@
 ##                2022-12-29 (QV) use output directory if given
 ##                2022-12-30 (QV) use gdal_merge import to avoid gdal_merge.py not being recognised
 ##                2024-02-27 (QV) added COG options
+##                2024-03-14 (QV) update settings handling
+##                                removed some keywords
 
-def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
-                      remove_temp_files = True, cloud_optimized_geotiff=False, oformat = 'GTiff'):
+def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_temp_files = True):
 
     import os, sys, subprocess
     import acolite as ac
@@ -20,13 +21,15 @@ def nc_to_geotiff_rgb(f, settings = {}, use_gdal_merge_import = True, \
     else:
         from osgeo_utils import gdal_merge
 
-    setu =  ac.acolite.settings.parse(None, settings=settings)
+    ## combine default and user defined settings
+    setu = ac.acolite.settings.parse(None, settings = settings)
+    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
 
     creationOptions = None
-    if cloud_optimized_geotiff: oformat = 'COG'
-    if oformat == 'COG':
+    oformat = 'GTiff'
+    if setu['export_cloud_optimized_geotiff']:
+        oformat = 'COG'
         creationOptions = setu['export_cloud_optimized_geotiff_options']
-    print(cloud_optimized_geotiff, oformat)
 
     ## get attributes and datasets
     gatts = ac.shared.nc_gatts(f)

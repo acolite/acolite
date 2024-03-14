@@ -135,7 +135,6 @@ tact_emissivity=water
 tact_emissivity_file=None
 tact_output_atmosphere=False
 tact_output_intermediate=False
-tact_map=True
 ged_fill=True
 ## TACT wavelength range (micron)
 tact_range=3.5,14
@@ -375,11 +374,14 @@ gains_toa=None
 offsets=False
 offsets_toa=None
 
-# output RGB / L2W maps
+# output RGB / maps
 rgb_rhot=True
 rgb_rhos=True
 rgb_rhorc=False
 rgb_rhow=False
+map_l1r=False
+map_l2r=False
+map_l2t=False
 map_l2w=False
 
 # mapping options

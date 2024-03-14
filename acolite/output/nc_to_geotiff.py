@@ -11,18 +11,29 @@
 ##                2021-12-08 (QV) added support for the netcdf projection
 ##                2022-03-22 (QV) added support for match_file with GCP
 ##                2024-02-27 (QV) changed writing of nodata, changed COG options
+##                2024-03-14 (QV) update settings handling
+##                                removed some keywords
 
-def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimized_geotiff=False, use_projection_key=True):
+def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True):
     import acolite as ac
     import numpy as np
     import os
     from osgeo import osr, gdal
 
+    ## combine default and user defined settings
+    setu = ac.acolite.settings.parse(None, settings = settings)
+    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
+
+    ## get settings from ac.settings
+    match_file = setu['export_geotiff_match_file']
+    skip_geo = setu['export_geotiff_coordinates'] is False
+
+    ## set creation options for COG
     creationOptions = None
     format = 'GTiff'
-    if cloud_optimized_geotiff:
+    if setu['export_cloud_optimized_geotiff']:
         format = 'COG'
-        creationOptions = ac.settings['run']['export_cloud_optimized_geotiff_options']
+        creationOptions = setu['export_cloud_optimized_geotiff_options']
 
     ## track outputfiles
     outfiles = []
@@ -46,8 +57,7 @@ def nc_to_geotiff(f, skip_geo=True, match_file=None, datasets=None, cloud_optimi
             ## write geotiff
             dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
                                 noData = np.nan,
-                                format=format, creationOptions=creationOptions)
-
+                                format = format, creationOptions = creationOptions)
             dt = None
             print('Wrote {}'.format(outfile))
             outfiles.append(outfile)

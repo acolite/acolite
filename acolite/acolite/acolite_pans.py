@@ -3,8 +3,10 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-02-20
 ## modifications: 2022-02-21 (QV) acolite integration
+##                2024-03-14 (QV) update settings handling
+##                                removed RGB/geotiff outputs
 
-def acolite_pans(ncf, output = None, settings = {}):
+def acolite_pans(ncf, output = None, settings = None):
 
     import os
     import acolite as ac
@@ -12,13 +14,20 @@ def acolite_pans(ncf, output = None, settings = {}):
     import scipy.ndimage
 
     ## Find L1R pan file
-    ncfp = ncf.replace('_L2R.nc', '_L1R_pan.nc')
+    bn = os.path.basename(ncf)
+    if '_L1R.nc' in bn:
+        ncfp = ncf.replace('_L1R.nc', '_L1R_pan.nc')
+    if '_L2R.nc' in bn:
+        ncfp = ncf.replace('_L2R.nc', '_L1R_pan.nc')
+
     if not os.path.exists(ncfp):
         print('No L1R_pan.nc file available for {}'.format(ncf))
         return
 
     ## parse settings
     setu = ac.acolite.settings.parse(None, settings=settings)
+    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
+
     if setu['pans_method'] not in ['panr', 'visr']:
         print('pans_method={} not configured, using panr')
         setu['pans_method'] = 'panr'
@@ -111,14 +120,5 @@ def acolite_pans(ncf, output = None, settings = {}):
         data_pan = None
         new = False
     print('Wrote {}'.format(ncfo))
-
-    ## mapping - could be moved to acolite_run
-    setu_map = {s:setu[s] for s in setu}
-    setu_map['rgb_rhot'] = setu_map['pans_rgb_rhot']
-    setu_map['rgb_rhos'] = setu_map['pans_rgb_rhos']
-    if setu_map['pans_rgb_rhot'] or setu_map['pans_rgb_rhos']:
-        ac.acolite.acolite_map(ncfo, plot_all=False, settings=setu_map)
-    if setu['pans_export_geotiff_rgb']:
-        ac.output.nc_to_geotiff_rgb(ncfo, settings=setu_map)
 
     return(ncfo)

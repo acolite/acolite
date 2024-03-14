@@ -12,7 +12,8 @@
 ##                2022-12-29 (QV) fix for RGB raster (data scaled again to 255)
 ##                2022-12-30 (QV) moved rgb stretch to different function, added rgb gamma
 ##                                added scale bar option
-##                2023-09-2 (QV) improved rgb mapping with mpl>3.7
+##                2023-09-28 (QV) improved rgb mapping with mpl>3.7
+##                2024-03-14 (QV) update settings handling
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -270,7 +271,10 @@ def acolite_map(ncf, output = None,
     imratio = None
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+    setu = ac.acolite.settings.parse(gatts['sensor'], settings=ac.settings['user'])
+    if settings is not None: ## don't overwrite user settings here
+        setu_ = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in setu_: setu[k] = setu_[k]
 
     ## set font settings
     font = {'fontname':setu['map_fontname'], 'fontsize':setu['map_fontsize']}

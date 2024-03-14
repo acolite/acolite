@@ -7,6 +7,7 @@
 ##                2022-07-31 (QV) skip loading of datasets that are not required
 ##                2022-08-02 (QV) added source keyword
 ##                2022-08-03 (QV) added external emissivity files
+##                2024-03-14 (QV) update settings handling
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -21,14 +22,11 @@ def tact_gem(gem, output_file = True,
              #output_intermediate = False,
              copy_datasets = ['lon', 'lat'],
              #source = 'era5',
-             settings = {}, verbosity=0):
+             settings = None, verbosity=0):
 
     import os, datetime, json
     import numpy as np
     import acolite as ac
-
-    ## get verbosity from run settings
-    verbosity = ac.settings['run']['verbosity']
 
     ## determine datasets to skip
     if type(gem) is str:
@@ -49,8 +47,16 @@ def tact_gem(gem, output_file = True,
         gem = ac.gem.read(gem, sub=sub, skip_datasets=skip_datasets)
     gemf = gem['gatts']['gemfile']
 
-    ## settings from settings dict
-    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=settings)
+    ## combine default and user defined settings
+    if settings is not None:
+        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
+    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=ac.settings['user'])
+    for k in setu: ac.settings['run'][k] = setu[k] ## update run settings with user settings and sensor defaults
+
+    ## get verbosity from run settings
+    verbosity = ac.settings['run']['verbosity']
+
     output = setu['output']
     emissivity = setu['tact_emissivity']
     emissivity_file = setu['tact_emissivity_file']

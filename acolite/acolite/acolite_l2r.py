@@ -12,7 +12,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from gem call
 ##                2023-10-31 (QV) improved memory management, moved ttot_all interpolation to glint correction
 ##                2023-12-07 (QV) option to use S2 AUX
-##                2024-03-14 (QV) update run settings
+##                2024-03-14 (QV) update settings handling
 
 def acolite_l2r(gem,
                 output = None,
@@ -41,10 +41,11 @@ def acolite_l2r(gem,
     gemf = gem.file
 
     ## combine default and user defined settings
+    if settings is not None:
+        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
     setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
-    if type(settings) is dict:
-        for k in settings: setu[k] = settings[k]
-    ac.settings['run'] = {k:setu[k] for k in setu} ## update run settings
+    for k in setu: ac.settings['run'][k] = setu[k]  ## update run settings with user settings and sensor defaults
 
     if 'verbosity' in setu: verbosity = setu['verbosity']
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')

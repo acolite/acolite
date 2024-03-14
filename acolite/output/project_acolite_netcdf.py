@@ -11,8 +11,9 @@
 ##                2023-04-01 (QV) added viirs scanlines reprojection
 ##                2023-04-18 (QV) fixed reprojection for viirs overlapping  scanlines
 ##                2023-07-25 (QV) added counts output
+##                2024-03-14 (QV) update settings handling
 
-def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, output_counts = False):
+def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None, output_counts = False):
 
     import os, time
     from pyproj import Proj
@@ -44,6 +45,7 @@ def project_acolite_netcdf(ncf, output = None, settings = {}, target_file=None, 
 
     ## parse settings
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
+    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
 
     if (setu['output_projection_limit'] is None) & (setu['output_projection_polygon'] is not None):
         setu['output_projection_limit'] = ac.shared.polygon_limit(setu['output_projection_polygon'])

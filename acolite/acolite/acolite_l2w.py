@@ -5,10 +5,10 @@
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2022-09-28 (QV) changed gem from dict to object
 ##                2024-01-26 (QV) moved flagging to a separate function
-##                2024-03-14 (QV) update run settings
+##                2024-03-14 (QV) update settings handling
 
 def acolite_l2w(gem,
-                settings = {},
+                settings = None,
                 sub = None,
                 target_file = None,
                 output = None,
@@ -28,23 +28,26 @@ def acolite_l2w(gem,
         gem = ac.gem.gem(gem)
     gemf = gem.file
 
+    ## combine default and user defined settings
+    if settings is not None:
+        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
+    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
+    for k in setu: ac.settings['run'][k] = setu[k] ## update run settings with user settings and sensor defaults
+
+    ## nothing to do if no l2w_parameters requested
+    if ac.settings['run']['l2w_parameters'] == None: return(None)
+
     ## set up output file
     if target_file is None:
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L2R', '_L2W')
-        if 'output' in settings: output = settings['output']
+        if 'output' in ac.settings['run']: output = ac.settings['run']['output']
         odir = output if output is not None else os.path.dirname(gemf)
         ofile = '{}/{}.nc'.format(odir, output_name)
     else:
         ofile = '{}'.format(target_file)
     gem.gatts['ofile'] = ofile
-
-    ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
-    if type(settings) is dict:
-        for k in settings: setu[k] = settings[k]
-    ac.settings['run'] = {k:setu[k] for k in setu} ## update run settings
-    if setu['l2w_parameters'] == None: return(None)
 
     ## keep data in memory
     gem.store = setu['l2w_data_in_memory']
