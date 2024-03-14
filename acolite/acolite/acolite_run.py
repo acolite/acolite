@@ -164,9 +164,9 @@ def acolite_run(settings, inputfile=None, output=None):
             if l1r_setu['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
                     ## run ACOLITE
-                    ret = ac.acolite.acolite_l2r(l1r, settings = l1r_setu, verbosity = ac.config['verbosity'])
+                    ret = ac.acolite.acolite_l2r(l1r)
                     if len(ret) != 2:
-                        l2r, l2r_setu = [], {k:l1r_setu[k] for k in l1r_setu}
+                        l2r, l2r_setu = [], {}
                     else:
                         l2r, l2r_setu = ret
                 else:
@@ -214,7 +214,7 @@ def acolite_run(settings, inputfile=None, output=None):
                     if l2r_setu['l2w_parameters'] is not None:
                         if type(l2r_setu['l2w_parameters']) is not list: l2r_setu['l2w_parameters'] = [l2r_setu['l2w_parameters']]
                         for ncf in l2r:
-                            ret = ac.acolite.acolite_l2w(ncf, settings=l2r_setu)
+                            ret = ac.acolite.acolite_l2w(ncf)
                             if ret is not None:
                                 if l2r_setu['l2w_export_geotiff']: ac.output.nc_to_geotiff(ret, match_file = l2r_setu['export_geotiff_match_file'],
                                                                                 cloud_optimized_geotiff = l2r_setu['export_cloud_optimized_geotiff'],

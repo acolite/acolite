@@ -5,6 +5,7 @@
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2022-09-28 (QV) changed gem from dict to object
 ##                2024-01-26 (QV) moved flagging to a separate function
+##                2024-03-14 (QV) update run settings
 
 def acolite_l2w(gem,
                 settings = {},
@@ -39,7 +40,10 @@ def acolite_l2w(gem,
     gem.gatts['ofile'] = ofile
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=settings)
+    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
+    if type(settings) is dict:
+        for k in settings: setu[k] = settings[k]
+    ac.settings['run'] = {k:setu[k] for k in setu} ## update run settings
     if setu['l2w_parameters'] == None: return(None)
 
     ## keep data in memory
