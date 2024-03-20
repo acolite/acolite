@@ -171,19 +171,21 @@ def acolite_run(settings, inputfile=None, output=None):
             ## do VIS-SWIR atmospheric correction
             if ac.settings['run']['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
-                    ## run ACOLITE
-                    ret = ac.acolite.acolite_l2r(l1r)
-                    if len(ret) != 2:
-                        l2r = []
+                    if (ac.settings['run']['adjacency_correction']) & (ac.settings['run']['adjacency_correction_method'] == 'radcor'):
+                        l2r = ac.adjacency.radcor.radcor(l1r, settings=ac.settings['run']) ## pass ac.settings['run'] at the moment
                     else:
-                        l2r, _ = ret
+                        ret = ac.acolite.acolite_l2r(l1r)
+                        if len(ret) != 2:
+                            l2r = []
+                        else:
+                            l2r, _ = ret
                 else:
                     l2r = '{}'.format(l1r)
 
                 if (ac.settings['run']['adjacency_correction']) & (len(l2r) > 0):
                     ret = None
                     ## GLAD
-                    if (ac.settings['run']['adjacency_method']=='glad'):
+                    if (ac.settings['run']['adjacency_correction_method']=='glad'):
                         ret = ac.adjacency.glad.glad_l2r(l2r, settings = ac.settings['run'], verbosity = ac.config['verbosity'])
                     l2r = [] if ret is None else ret
 
