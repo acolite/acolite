@@ -1,11 +1,5 @@
-## def mirror
 ## extend image by mirroring edges
-##
-## written by Alexandre Castagna, UGent (R version)
-##            Quinten Vanhellemont, RBINS (Python version)
-##
-## for the RAdCor project 2023-2024
-##
+## QV 2021-07-07 from AC R code .extend_scene_v0.9
 ## modifications: 2023-08-04 (QV) renamed from mirror, added to extend dir
 
 def mirror(d, idp, fill_nan=True):
