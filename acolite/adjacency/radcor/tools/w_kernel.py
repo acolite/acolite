@@ -1,7 +1,9 @@
 ## make the atmospheric weigths
 ## adapted from AC R code v4
 ## QV 2020-01-29
-## 2021-07-06 (QV) updated with new cumulative distribution prediction and ex/resolution now in km
+## modifications: 2021-07-06 (QV) updated with new cumulative distribution prediction
+##                                ex/resolution now in km
+##                2024-03-20 (QV) moved to radcor.tools
 
 def w_kernel(coef_aer, coef_ray, tray, taer, ex = 0, res = 0.03, pressure=1013.25):
     import acolite as ac
@@ -10,8 +12,8 @@ def w_kernel(coef_aer, coef_ray, tray, taer, ex = 0, res = 0.03, pressure=1013.2
 
     # Construct the the weighted cumulative function
     def fun_grad(r, pressure=1013.25):
-        fa = ac.adjacency.acstar3.pred_annular_cdf(r, coef_aer, pressure=1) # aerosol cdf only at normal pressure
-        fr = ac.adjacency.acstar3.pred_annular_cdf(r, coef_ray, pressure=pressure/1013.25) # normalize pressure to pred_annular_cdf
+        fa = ac.adjacency.radcor.tools.pred_annular_cdf(r, coef_aer, pressure=1) # aerosol cdf only at normal pressure
+        fr = ac.adjacency.radcor.tools.pred_annular_cdf(r, coef_ray, pressure=pressure/1013.25) # normalize pressure to pred_annular_cdf
         ft = (tray * fr + taer * fa) / (tray + taer)
         if type(ft) is np.ndarray:
             ft[np.isnan(ft)] = 0
