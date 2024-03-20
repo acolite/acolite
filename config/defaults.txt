@@ -295,6 +295,7 @@ radcor_write_rhot=True
 radcor_write_rhoe=True
 radcor_write_rhosu=True
 radcor_development=True
+radcor_diagnostic_plots=True
 
 ## ts-dsf options
 tsdsf_psf_radius=None
