@@ -182,9 +182,6 @@ def acolite_run(settings, inputfile=None, output=None):
 
                 if (ac.settings['run']['adjacency_correction']) & (len(l2r) > 0):
                     ret = None
-                    ## acstar3 adjacency correction
-                    if (ac.settings['run']['adjacency_method']=='acstar3'):
-                        ret = ac.adjacency.acstar3.acstar3(l2r, setu = ac.settings['run'], verbosity = ac.config['verbosity'])
                     ## GLAD
                     if (ac.settings['run']['adjacency_method']=='glad'):
                         ret = ac.adjacency.glad.glad_l2r(l2r, settings = ac.settings['run'], verbosity = ac.config['verbosity'])
