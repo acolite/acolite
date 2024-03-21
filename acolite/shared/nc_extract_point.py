@@ -2,15 +2,13 @@
 ## extracts data from an ACOLITE NetCDF file for a given lon, lat position
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-03-02
-## modifications:
+## modifications: 2024-03-21 (QV) added circular extraction, and (p)ixel and (m)etre options for box and radius units
 
-def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None, box_size = 1, shift_edge = False):
+def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
+                     box_size = 1, box_size_units = 'p', shift_edge = False,
+                     extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p'):
     import acolite as ac
     import numpy as np
-
-    if (box_size & 1) == 0:
-        print('Box size has to be odd.')
-        return()
 
     ## read netcdf attributes and datasets
     gatts = ac.shared.nc_gatts(ncf)
@@ -18,6 +16,29 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None, box_size = 1,
     for ds in ['transverse_mercator', 'x', 'y']:
         if ds in datasets:
             datasets.remove(ds)
+
+    ## get image resolution
+    resolution = gatts['scene_pixel_size'][0]
+    ## if extracting circle determine radius in pixels
+    if extract_circle:
+        if extract_cicle_units[0] == 'm':
+            radius_pix = extract_circle_radius/resolution
+        else:
+            radius_pix = 1 * extract_circle_radius
+
+        if (radius_pix <= 1):
+            print('Radius size in pixels has to > 1')
+            return
+    ## else determine box size in pixels
+    else:
+        if box_size_units[0] == 'm':
+            box_size_pix = box_size/resolution
+        else:
+            box_size_pix = 1 * box_size
+        box_size_pix = np.round(box_size_pix).astype(int)
+        if (box_size_pix & 1) == 0:
+            print('Box size in pixels has to be odd.')
+            return
 
     ## find datasets to extract
     dataset_list = []
@@ -49,7 +70,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None, box_size = 1,
     lonrange = np.nanpercentile(lon, (0,100))
     if (st_lat < latrange[0]) | (st_lat > latrange[1]) | (st_lon < lonrange[0]) | (st_lon > lonrange[1]):
         print('Point {}N {}E not in scene {}'.format(st_lat, st_lon, ncf))
-        return()
+        return
 
     ## find pixel
     tmp = ((lon - st_lon)**2 + (lat - st_lat)**2)**0.5
@@ -58,46 +79,70 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None, box_size = 1,
     j = j[0]
 
     ## extract data
-    if box_size == 1:
-        sub = {ds: ac.shared.nc_data(ncf, ds, sub=[j, i, 1, 1])[0,0] for ds in dataset_list}
+    if extract_circle:
+        ## currently does not test whether circle overlaps with the scene edge
+        ## pixel coordinates
+        y = np.arange(0, lon.shape[0])
+        x = np.arange(0, lon.shape[1])
+        ## circular mask
+        mask = (x[None, :] - j) ** 2 + (y[:, None] - i) ** 2 < radius_pix**2
+        mask_idx = np.where(mask)
+        ## subset in pixel grid
+        gsub = [np.min(mask_idx[1]), np.min(mask_idx[0]),
+                np.max(mask_idx[1]) - np.min(mask_idx[1]) + 1,
+                np.max(mask_idx[0]) - np.min(mask_idx[0]) + 1]
+        ## mask  in subset
+        mask_sub = mask[np.min(mask_idx[0]):np.max(mask_idx[0]) + 1,\
+                        np.min(mask_idx[1]):np.max(mask_idx[1]) + 1]
     else:
-        hbox = int(box_size/2)
-        i0 = i - hbox
-        if i0 < 0:
-            if shift_edge:
-                i0 = 0
-                print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
-            else:
-                print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size, box_size))
-                return()
+        if box_size_pix == 1:
+            gsub = [j, i, 1, 1]
+        else:
+            hbox = int(box_size_pix/2)
+            i0 = i - hbox
+            if i0 < 0:
+                if shift_edge:
+                    i0 = 0
+                    print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
+                else:
+                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    return
 
-        if (i0 + box_size) > lat.shape[0]-1:
-            if shift_edge:
-                i0 = lat.shape[0]-1 - box_size
-                print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
-            else:
-                print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size, box_size))
-                return()
+            if (i0 + box_size_pix) > lat.shape[0]-1:
+                if shift_edge:
+                    i0 = lat.shape[0]-1 - box_size_pix
+                    print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
+                else:
+                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    return
 
-        j0 = j - hbox
-        if j0 < 0:
-            if shift_edge:
-                j0 = 0
-                print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
-            else:
-                print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size, box_size))
-                return()
+            j0 = j - hbox
+            if j0 < 0:
+                if shift_edge:
+                    j0 = 0
+                    print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
+                else:
+                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    return
 
-        if (j0 + box_size) > lat.shape[1]-1:
-            if shift_edge:
-                j0 = lat.shape[1]-1 - box_size
-                print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
-            else:
-                print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size, box_size))
-                return()
+            if (j0 + box_size_pix) > lat.shape[1]-1:
+                if shift_edge:
+                    j0 = lat.shape[1]-1 - box_size_pix
+                    print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
+                else:
+                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    return
 
-        ## extract data
-        sub = {ds: ac.shared.nc_data(ncf, ds, sub=[j0, i0, box_size, box_size]) for ds in dataset_list}
+            ##  set up subset
+            gsub = [j0, i0, box_size_pix, box_size_pix]
+
+    ## extract data
+    sub = {ds: ac.shared.nc_data(ncf, ds, sub=gsub) for ds in dataset_list}
+
+    ## get single element for box size 1
+    if gsub[2:] == [1,1]: sub = {ds:sub[ds][0,0] for ds in sub}
+    ## mask circle edges
+    if extract_circle: sub = {ds:sub[ds] * mask_sub for ds in sub}
 
     ## create return dict
     dct = {}
@@ -115,7 +160,8 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None, box_size = 1,
     dct['Rrs_datasets'] = [ds for ds in dct['datasets'] if 'Rrs_' in ds]
     dct['Rrs_wave'] = [int(ds.split('_')[-1]) for ds in dct['Rrs_datasets']]
 
-    if box_size > 1:
+    ## compute means when more than 1x1 pixel is extracted
+    if gsub[2:] != [1,1]:
         dct['mean'] = {ds: np.nanmean(dct['data'][ds]) for ds in dct['data']}
         dct['std'] = {ds: np.nanstd(dct['data'][ds]) for ds in dct['data']}
         dct['median'] = {ds: np.nanmedian(dct['data'][ds]) for ds in dct['data']}
