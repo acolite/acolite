@@ -15,9 +15,9 @@ def hdr(headerfile):
             if len(sp) == 1:
                 if tag is None: continue
                 if len(sp[0]) == 0: continue
-                header[tag].append(sp[0])
+                header[tag].append(sp[0].lower())  # Force tag to be lowercase
             else:
-                tag = sp[0]
+                tag = sp[0].lower()
                 if tag not in header: header[tag] = []
                 if len(sp[1]) == 0: continue
                 if len(sp)>2:
@@ -26,6 +26,7 @@ def hdr(headerfile):
                     header[tag].append(sp[1])
 
     for k in header:
+        if len(header[k]) == 0: continue # Avoid error when no data is available for keyword
         if len(header[k]) == 1: header[k] = header[k][0]
         if k in ['samples', 'lines', 'bands', 'header offset',
                  'data type', 'byte order', 'data ignore value']:

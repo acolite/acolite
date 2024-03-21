@@ -1,0 +1,29 @@
+## ACOLITE default settings for WISE HSI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_tile_dimensions=100,100
+
+dsf_aot_estimate=fixed
+dsf_wave_range=361,991 # int()
+
+l2w_mask_wave=865
+l2w_mask_threshold=0.1
+
+dsf_interface_reflectance=False
+resolved_geometry=False
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+#dsf_residual_glint_correction_method=alternative
+#dsf_residual_glint_wave_range=865,991
+
+# Data output
+output_lt=False
+
+## DESIS
+#desis_mask_ql=True

@@ -53,3 +53,8 @@ __pycache__/
 # Specific to Mac
 
 .DS_Store
+
+#--------------------------------------------------------------------
+# Specific to PyCharm IDE
+
+.idea
