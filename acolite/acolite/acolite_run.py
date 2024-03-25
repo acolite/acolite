@@ -182,11 +182,8 @@ def acolite_run(settings, inputfile=None, output=None):
                 else:
                     l2r = '{}'.format(l1r)
 
-                if (ac.settings['run']['adjacency_correction']) & (len(l2r) > 0):
-                    ret = None
-                    ## GLAD
-                    if (ac.settings['run']['adjacency_correction_method']=='glad'):
-                        ret = ac.adjacency.glad.glad_l2r(l2r, settings = ac.settings['run'], verbosity = ac.config['verbosity'])
+                if (ac.settings['run']['adjacency_correction']) & (ac.settings['run']['adjacency_correction_method'] == 'glad') & (len(l2r) > 0):
+                    ret = ac.adjacency.glad.glad_l2r(l2r, settings = ac.settings['run'], verbosity = ac.config['verbosity'])
                     l2r = [] if ret is None else ret
 
                 ## if we have multiple l2r files
