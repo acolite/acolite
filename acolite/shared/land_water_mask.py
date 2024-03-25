@@ -9,9 +9,12 @@ def land_water_mask(ncf, add_lakes = True, extend = False, extend_km = 20, poly_
     from osgeo import ogr,osr,gdal
     import acolite as ac
 
-    if poly_lakes is None:
+    ## get lake dataset
+    if (add_lakes) & (poly_lakes is None):
         poly_lakes = ac.shared.polylakes('worldlakes')
         print('Using lake dataset {}'.format(poly_lakes))
+
+    ## get land mask dataset
     if poly_land is None:
         poly_land = ac.shared.polylakes('gshhg')
         print('Using land dataset {}'.format(poly_land))
