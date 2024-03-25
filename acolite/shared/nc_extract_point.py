@@ -3,10 +3,12 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-03-02
 ## modifications: 2024-03-21 (QV) added circular extraction, and (p)ixel and (m)etre options for box and radius units
+##                2024-03-25 (QV) optional external mask, added output of image subset position
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
-                     extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p'):
+                     extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p',
+                     external_mask = None):
     import acolite as ac
     import numpy as np
 
@@ -141,13 +143,32 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
 
     ## get single element for box size 1
     if gsub[2:] == [1,1]: sub = {ds:sub[ds][0,0] for ds in sub}
+
     ## mask circle edges
     if extract_circle: sub = {ds:sub[ds] * mask_sub for ds in sub}
+
+    ## apply additional external mask
+    external_mask_sub = None
+    if external_mask is not None:
+        if external_mask.shape != lon.shape:
+            print('Provided external_mask is the wrong shape.')
+            print('Image: {},  external_mask: {}'.format(lon.shape, external_mask.shape))
+            return
+        else:
+            ## subset to crop position
+            external_mask_sub = external_mask[gsub[1]:gsub[1]+gsub[3],
+                                              gsub[0]:gsub[0]+gsub[2]]
+            ## apply mask to extracted data
+            sub = {ds:sub[ds] * external_mask_sub for ds in sub}
+    ## end external mask
 
     ## create return dict
     dct = {}
     dct['gatts'] = gatts
     dct['data'] = sub
+    dct['sub'] = gsub ## store image subset location
+    if extract_circle: dct['mask_sub'] = mask_sub ## store circular mask
+    if external_mask_sub is not None: dct['external_mask_sub'] = external_mask_sub ## store external mask
 
     ## store common spectral datasets and centre wavelengths
     dct['datasets'] = list(dct['data'].keys())
