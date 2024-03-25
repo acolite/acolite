@@ -172,7 +172,7 @@ def acolite_run(settings, inputfile=None, output=None):
             if ac.settings['run']['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
                     if (ac.settings['run']['adjacency_correction']) & (ac.settings['run']['adjacency_correction_method'] == 'radcor'):
-                        l2r = ac.adjacency.radcor.radcor(l1r, settings=ac.settings['run']) ## pass ac.settings['run'] at the moment
+                        l2r = ac.adjacency.radcor.radcor(l1r)
                     else:
                         ret = ac.acolite.acolite_l2r(l1r)
                         if len(ret) != 2:
