@@ -52,7 +52,7 @@ output_projection_radius
 output_projection_epsilon
 radcor_psf_radius
 radcor_initial_aot
-radcor_bratio_percentile
+tsdsf_bratio_percentile
 map_xtick_rotation
 map_ytick_rotation
 

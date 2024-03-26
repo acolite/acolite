@@ -40,7 +40,7 @@ def validate_settings(settings):
 
     ## check how to complete the psf
     if not settings['radcor_psf_rescale']:
-        completelist = ['average', 'neighborhood']
+        completelist = ['average', 'neighbourhood']
         if settings['radcor_psf_complete_method'] not in completelist:
             print('Error: radcor_psf_complete_method must be one of: {}'.format(', '.join(completelist)))
             valid = False

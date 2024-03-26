@@ -280,16 +280,14 @@ adjacency_correction_method=radcor
 radcor_initial_aot=1.0
 radcor_psf_radius=15
 radcor_psf_rescale=False
-radcor_psf_complete_method=neighborhood
+radcor_psf_complete_method=neighbourhood
 radcor_force_model=None
 radcor_force_aot=None
-radcor_select_aot=minimum
 radcor_edge_extend=False
 radcor_edge_extend_method=average
-radcor_bratio_option=percentile
-radcor_bratio_percentile=1
 radcor_aot_estimate=tsdsf
 radcor_aot_estimate_centre_extent=None
+radcor_aot_selection=minimum
 
 ## radcor output options
 radcor_write_rhot=True
@@ -301,7 +299,9 @@ radcor_diagnostic_plots=False
 ## ts-dsf options
 tsdsf_psf_radius=None
 tsdsf_psf_rescale=True
-tsdsf_psf_complete_method=neighborhood
+tsdsf_psf_complete_method=neighbourhood
+tsdsf_bratio_option=percentile
+tsdsf_bratio_percentile=1
 
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
