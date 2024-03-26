@@ -12,12 +12,12 @@ def land_water_mask(ncf, add_lakes = True, extend = False, extend_km = 20, poly_
     ## get lake dataset
     if (add_lakes) & (poly_lakes is None):
         poly_lakes = ac.shared.polylakes('worldlakes')
-        print('Using lake dataset {}'.format(poly_lakes))
+        if ac.settings['run']['verbosity'] > 3: print('Using lake dataset {}'.format(poly_lakes))
 
     ## get land mask dataset
     if poly_land is None:
         poly_land = ac.shared.polylakes('gshhg')
-        print('Using land dataset {}'.format(poly_land))
+        if ac.settings['run']['verbosity'] > 3: print('Using land dataset {}'.format(poly_land))
 
     ## read datasets and gatts
     datasets = ac.shared.nc_datasets(ncf)
@@ -103,14 +103,14 @@ def land_water_mask(ncf, add_lakes = True, extend = False, extend_km = 20, poly_
     opt_land = gdal.RasterizeOptions(allTouched=True, burnValues=[1])
     err = gdal.Rasterize(target_ds, poly_land, options=opt_land)
     t1 = time.time()
-    print('Rasterizing land mask took {:.1f} seconds'.format(t1-t0))
+    if ac.settings['run']['verbosity'] > 4: print('Rasterizing land mask took {:.1f} seconds'.format(t1-t0))
 
     ## rasterize lakes
     if add_lakes:
         opt_lakes = gdal.RasterizeOptions(allTouched=True, burnValues=[0]) #
         err = gdal.Rasterize(target_ds, poly_lakes, options=opt_lakes)
         t2 = time.time()
-        print('Rasterizing lakes took {:.1f} seconds'.format(t2-t1))
+        if ac.settings['run']['verbosity'] > 4: print('Rasterizing lakes took {:.1f} seconds'.format(t2-t1))
 
     ## set back to original
     gdal.SetConfigOption('OGR_ENABLE_PARTIAL_REPROJECTION', pr)
