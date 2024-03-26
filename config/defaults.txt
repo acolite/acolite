@@ -288,7 +288,8 @@ radcor_edge_extend=False
 radcor_edge_extend_method=average
 radcor_bratio_option=percentile
 radcor_bratio_percentile=1
-radcor_aot_est=tsdsf
+radcor_aot_estimate=tsdsf
+radcor_aot_estimate_centre_extent=None
 
 ## radcor output options
 radcor_write_rhot=True
