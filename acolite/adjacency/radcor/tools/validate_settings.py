@@ -7,8 +7,11 @@
 ## for the RAdCor project 2023-2024
 ##
 ## modifications: 2024-03-18 (QV) added as function
+##                2024-03-25 (QV) added numpy import
 
 def validate_settings(settings):
+    import numpy as np
+
     ## initially assume settings are valid
     valid = True
 
