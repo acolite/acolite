@@ -74,7 +74,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             if output is None: output = setu['output']
 
             merge_tiles = setu['merge_tiles']
-            merge_zones = setu['merge_zones']
             extend_region = setu['extend_region']
 
             ## check if ROI polygon is given
@@ -101,7 +100,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if verbosity > 0: print("Merging tiles not supported without ROI limit")
                 merge_tiles = False
             if merge_tiles:
-                merge_zones = True
                 extend_region = True
 
         sub = None
