@@ -29,7 +29,6 @@ def multi_tile_extent(inputfile, dct = None):
                 dct['yrange'][1] = np.min((dct['yrange'][1], dct_['yrange'][1]))
                 dct['yrange'][0] = np.max((dct['yrange'][0], dct_['yrange'][0]))
             else:
-                print('Reprojection of full tile merging not yet implemented')
                 ## if the prj does not match, project current scene bounds to lat/lon
                 lonr, latr = dct_['p'](dct_['xrange'], dct_['yrange'], inverse=True)
                 ## then to target projection
