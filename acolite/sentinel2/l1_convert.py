@@ -132,7 +132,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
             ## check if merging settings make sense
             merge_tiles = setu['merge_tiles']
-            merge_zones = setu['merge_zones']
+            #merge_zones = setu['merge_zones']
             extend_region = setu['extend_region']
             if merge_tiles:
                 if (limit is None):
@@ -141,8 +141,10 @@ def l1_convert(inputfile, output = None, settings = {},
                     else:
                         if verbosity > 0: print("Merging tiles without ROI limit, merging to all tiles extent")
                         dct_tiles = ac.sentinel2.multi_tile_extent(inputfile, dct = None)
-                merge_zones = True
-                extend_region = True
+                else:
+                    extend_region = True
+                #merge_zones = True
+        ## sub is set to None
         sub = None
 
         dtime = dateutil.parser.parse(grmeta['SENSING_TIME'])
@@ -259,29 +261,37 @@ def l1_convert(inputfile, output = None, settings = {},
                 extend_region = False
 
         ##
-        if ((merge_tiles is False) & (merge_zones is False)): warp_to = None
-        if sub is None:
+        #if ((merge_tiles is False) & (merge_zones is False)): warp_to = None
+        if (merge_tiles is False): warp_to = None
+        if sub is None: ## full tile processing
             sub_pan = None
-            if ((merge_zones) & (warp_to is not None)):
-                if (dct_prj != dct) & (not setu['s2_merge_full_tiles']): ## target projection differs from this tile, need to set bounds
-                    if dct['proj4_string'] != dct_prj['proj4_string']: ## if merging to full tile extents, the projection has already been determined
-                        ## if the prj does not match, project current scene bounds to lat/lon
-                        lonr, latr = dct['p'](dct['xrange'], dct['yrange'], inverse=True)
-                        ## then to target projection
-                        xrange_raw, yrange_raw = dct_prj['p'](lonr, (latr[1], latr[0]))
-                        ## fix to nearest full pixel
-                        pixel_size = dct_prj['pixel_size']
-                        dct_prj['xrange'] = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
-                        dct_prj['yrange'] = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
-                        ## need to add new dimensions
-                        dct_prj['xdim'] = int((dct_prj['xrange'][1]-dct_prj['xrange'][0])/pixel_size[0])+1
-                        dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
-                        dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
-            elif (warp_to is None):
-                if not setu['s2_merge_full_tiles']:
-                    dct_prj = {k:dct[k] for k in dct}
-                else:
+            ## QV 2024-03-27 not sure this section actually makes sense
+            ## if merging to single tile extent use dct from first tile
+            ## if merging to all tiles extent, use dct from multi_tile_extent
+            ##
+            # if ((merge_zones) & (warp_to is not None)):
+            #     if (dct_prj != dct) & (not setu['s2_merge_full_tiles']): ## target projection differs from this tile, need to set bounds
+            #         print()
+            #         if dct['proj4_string'] != dct_prj['proj4_string']: ## if merging to full tile extents, the projection has already been determined
+            #             ## if the prj does not match, project current scene bounds to lat/lon
+            #             lonr, latr = dct['p'](dct['xrange'], dct['yrange'], inverse=True)
+            #             ## then to target projection
+            #             xrange_raw, yrange_raw = dct_prj['p'](lonr, (latr[1], latr[0]))
+            #             ## fix to nearest full pixel
+            #             pixel_size = dct_prj['pixel_size']
+            #             dct_prj['xrange'] = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
+            #             dct_prj['yrange'] = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
+            #             ## need to add new dimensions
+            #             dct_prj['xdim'] = int((dct_prj['xrange'][1]-dct_prj['xrange'][0])/pixel_size[0])+1
+            #             dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
+            #             dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
+
+            ## determine warping target
+            if (warp_to is None):
+                if (setu['merge_tiles'] & setu['s2_merge_full_tiles']): ## warp to all tile extent
                     dct_prj = {k:dct_tiles[k] for k in dct_tiles}
+                else: ## warp to current/first tile
+                    dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
             gatts['limit'] = limit
