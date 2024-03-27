@@ -29,13 +29,22 @@ def multi_tile_extent(inputfile, dct = None):
                 dct['yrange'][1] = np.min((dct['yrange'][1], dct_['yrange'][1]))
                 dct['yrange'][0] = np.max((dct['yrange'][0], dct_['yrange'][0]))
             else:
-                ## if the prj does not match, project current scene bounds to lat/lon
-                lonr, latr = dct_['p'](dct_['xrange'], dct_['yrange'], inverse=True)
-                ## then to target projection
-                xrange_raw, yrange_raw = dct['p'](lonr, (latr[1], latr[0]))
+                ### if the prj does not match, project current scene bounds to lat/lon
+                #lonr, latr = dct_['p'](dct_['xrange'], dct_['yrange'], inverse=True)
+                lonr, latr = dct_['p']([dct_['xrange'][0], dct_['xrange'][0],
+                                        dct_['xrange'][1], dct_['xrange'][1]],
+                                       [dct_['yrange'][1], dct_['yrange'][0],
+                                        dct_['yrange'][1], dct_['yrange'][0]], inverse=True)
+
+                ### then to target projection
+                xrange_raw, yrange_raw = dct['p'](lonr, latr)
+                xrange_raw = [np.min(xrange_raw), np.max(xrange_raw)]
+                yrange_raw = [np.min(yrange_raw), np.max(yrange_raw)]
+
                 ## fix to nearest full pixel
                 xrange = [xrange_raw[0] - (xrange_raw[0] % dct['pixel_size'][0]), xrange_raw[1]+dct['pixel_size'][0]-(xrange_raw[1] % dct['pixel_size'][0])]
                 yrange = [yrange_raw[1]+dct['pixel_size'][1]-(yrange_raw[1] % dct['pixel_size'][1]), yrange_raw[0] - (yrange_raw[0] % dct['pixel_size'][1])]
+
                 ## update dct
                 dct['xrange'][0] = np.min((dct['xrange'][0], xrange[0]))
                 dct['xrange'][1] = np.max((dct['xrange'][1], xrange[1]))
