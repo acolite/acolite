@@ -301,7 +301,7 @@ radcor_diagnostic_plots=False
 
 ## ts-dsf options
 tsdsf_psf_radius=None
-tsdsf_psf_rescale=True
+tsdsf_psf_rescale=False
 tsdsf_psf_complete_method=neighbourhood
 tsdsf_bratio_option=percentile
 tsdsf_bratio_percentile=1
