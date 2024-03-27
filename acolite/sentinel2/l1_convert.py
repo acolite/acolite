@@ -136,7 +136,11 @@ def l1_convert(inputfile, output = None, settings = {},
             extend_region = setu['extend_region']
             if merge_tiles:
                 if (limit is None):
-                    if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
+                    if not setu['s2_merge_full_tiles']:
+                        if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
+                    else:
+                        if verbosity > 0: print("Merging tiles without ROI limit, merging to all tiles extent")
+                        dct_tiles = ac.sentinel2.multi_tile_extent(inputfile, dct = None)
                 merge_zones = True
                 extend_region = True
         sub = None
@@ -259,8 +263,8 @@ def l1_convert(inputfile, output = None, settings = {},
         if sub is None:
             sub_pan = None
             if ((merge_zones) & (warp_to is not None)):
-                if dct_prj != dct: ## target projection differs from this tile, need to set bounds
-                    if dct['proj4_string'] != dct_prj['proj4_string']:
+                if (dct_prj != dct) & (not setu['s2_merge_full_tiles']): ## target projection differs from this tile, need to set bounds
+                    if dct['proj4_string'] != dct_prj['proj4_string']: ## if merging to full tile extents, the projection has already been determined
                         ## if the prj does not match, project current scene bounds to lat/lon
                         lonr, latr = dct['p'](dct['xrange'], dct['yrange'], inverse=True)
                         ## then to target projection
@@ -274,7 +278,10 @@ def l1_convert(inputfile, output = None, settings = {},
                         dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
                         dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
             elif (warp_to is None):
-                dct_prj = {k:dct[k] for k in dct}
+                if not setu['s2_merge_full_tiles']:
+                    dct_prj = {k:dct[k] for k in dct}
+                else:
+                    dct_prj = {k:dct_tiles[k] for k in dct_tiles}
         else:
             gatts['sub'] = sub
             gatts['limit'] = limit

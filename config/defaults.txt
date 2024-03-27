@@ -66,6 +66,9 @@ s2_write_saa=False
 s2_dilate_blackfill=False
 s2_dilate_blackfill_iterations=2
 
+## s2 merging of full tiles when no limit is given
+s2_merge_full_tiles=False
+
 ## Sentinel-2 per pixel geometry
 geometry_type=grids_footprint
 geometry_res=60
