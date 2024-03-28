@@ -4,6 +4,7 @@
 ## 2021-02-24
 ## modifications: 2022-08-06 (QV) added Wkt, set up Proj from Wkt
 ##                2022-12-13 (QV) use transform from world file if available
+##                2024-03-28 (QV) x/y range and pixel_size as lists
 
 def projection_read(file):
     from pyproj import Proj
@@ -61,9 +62,9 @@ def projection_read(file):
         y0 = transform[3]
         dy = transform[5]
 
-    pixel_size = (dx, dy)
-    xrange = (x0,x0+dimx*dx)
-    yrange = (y0,y0+dimy*dy)
+    pixel_size = [dx, dy]
+    xrange = [x0,x0+dimx*dx]
+    yrange = [y0,y0+dimy*dy]
 
     ## make acolite generic dict
     dct = {'p': p, 'epsg': p.crs.to_epsg(),
