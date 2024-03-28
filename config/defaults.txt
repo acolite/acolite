@@ -18,18 +18,20 @@ region_name=
 limit=None
 limit_buffer=None
 sub=None
+extend_region=False
+l1r_crop=False
+## polygon can be a file or WKT string
 polygon=None
 polygon_limit=True
 polylakes=False
 polylakes_database=worldlakes
-merge_tiles=False
-merge_full_tiles=False
-merge_zones=True
-extend_region=False
-l1r_crop=False
+## station coordinates and box size (km)
 station_lon=None
 station_lat=None
 station_box=None
+## L1 tile merging
+merge_tiles=False
+merge_full_tiles=False
 
 ## new output settings
 output=None
@@ -41,6 +43,7 @@ output_rhorc=False
 ## add band names to datasets
 ## not supported for all sensors
 add_band_name=False
+add_detector_name=False
 
 ## compute contrabands
 compute_contrabands=False
@@ -438,7 +441,8 @@ pans_bgr=480,560,655
 pans_rgb_rhot=True
 pans_rgb_rhos=True
 pans_export_geotiff_rgb=False
-pans_sensors=L7_ETM,L8_OLI,L9_OLI
+pans_sensors=L7_ETM,L8_OLI,L9_OLI,PRISMA
+pans_scale_factor=None
 
 # more mapping options - under development
 map_projected=False
