@@ -23,6 +23,7 @@ polygon_limit=True
 polylakes=False
 polylakes_database=worldlakes
 merge_tiles=False
+merge_full_tiles=False
 merge_zones=True
 extend_region=False
 l1r_crop=False
@@ -68,9 +69,6 @@ s2_write_saa=False
 ## get rid of lines when merging
 s2_dilate_blackfill=False
 s2_dilate_blackfill_iterations=2
-
-## s2 merging of full tiles when no limit is given
-s2_merge_full_tiles=False
 
 ## Sentinel-2 per pixel geometry
 geometry_type=grids_footprint

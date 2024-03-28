@@ -136,7 +136,7 @@ def l1_convert(inputfile, output = None, settings = {},
             extend_region = setu['extend_region']
             if merge_tiles:
                 if (limit is None):
-                    if not setu['s2_merge_full_tiles']:
+                    if not setu['merge_full_tiles']:
                         if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
                     else:
                         if verbosity > 0: print("Merging tiles without ROI limit, merging to all tiles extent")
@@ -265,7 +265,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if sub is None: ## full tile processing
             ## determine warping target
             if (warp_to is None):
-                if (setu['merge_tiles'] & setu['s2_merge_full_tiles']): ## warp to all tile extent
+                if (setu['merge_tiles'] & setu['merge_full_tiles']): ## warp to all tile extent
                     dct_prj = {k:dct_tiles[k] for k in dct_tiles}
                 else: ## warp to current/first tile
                     dct_prj = {k:dct[k] for k in dct}
