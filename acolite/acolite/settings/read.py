@@ -34,6 +34,6 @@ def read(file):
                     if val in ['True','true']: val=True
                     if val in ['False','false']: val=False
                     if val in ['None','none']: val=None
-                if (var in ['limit']) & (val is not None): val = [float(i) for i in val]
+                if (var in ['limit', 'output_projection_limit']) & (val is not None): val = [float(i) for i in val]
                 settings[var]=val
     return(settings)
