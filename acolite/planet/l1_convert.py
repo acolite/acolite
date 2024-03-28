@@ -12,6 +12,7 @@
 ##                2023-04-18 (QV) added support for NTF files
 ##                2023-05-08 (QV) added support for composite files
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-03-28 (QV) added multi-tile merging
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -160,7 +161,6 @@ def l1_convert(inputfile, output = None, settings = {},
             if output is None: output = setu['output']
 
             merge_tiles = setu['merge_tiles']
-            merge_zones = setu['merge_zones']
             extend_region = setu['extend_region']
 
             ## check if ROI polygon is given
@@ -182,10 +182,16 @@ def l1_convert(inputfile, output = None, settings = {},
                     except:
                         print('Failed to import polygon {}'.format(poly))
 
-            if merge_tiles:
-                if (limit is None):
+            ## check if merging settings make sense
+            merge_tiles = setu['merge_tiles']
+            extend_region = setu['extend_region']
+            if (limit is None) & (merge_tiles):
+                if not setu['merge_full_tiles']:
                     if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
-                merge_zones = True
+                else:
+                    if verbosity > 0: print("Merging tiles without ROI limit, merging to all tiles extent")
+                    dct_tiles = ac.planet.multi_tile_extent(ifiles, dct = None)
+            if merge_tiles:
                 extend_region = True
         sub = None
 
@@ -292,29 +298,15 @@ def l1_convert(inputfile, output = None, settings = {},
                 print("Can't extend region if no ROI limits given")
                 extend_region = False
 
-        ##
-        if ((merge_tiles is False) & (merge_zones is False)): warp_to = None
+        ## remove warp_to from previous run if merge_tiles is not set
+        if (merge_tiles is False): warp_to = None
         if sub is None:
-            if ((merge_zones) & (warp_to is not None)):
-                if dct_prj != dct: ## target projection differs from this tile, need to set bounds
-                    if dct['proj4_string'] != dct_prj['proj4_string']:
-                        ## if the prj does not match, project current scene bounds to lat/lon
-                        lonr, latr = dct['p'](dct['xrange'], dct['yrange'], inverse=True)
-                        ## then to target projection
-                        xrange_raw, yrange_raw = dct_prj['p'](lonr, (latr[1], latr[0]))
-                        ## fix to nearest full pixel
-                        pixel_size = dct_prj['pixel_size']
-                        dct_prj['xrange'] = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), xrange_raw[1]+pixel_size[0]-(xrange_raw[1] % pixel_size[0])]
-                        dct_prj['yrange'] = [yrange_raw[1]+pixel_size[1]-(yrange_raw[1] % pixel_size[1]), yrange_raw[0] - (yrange_raw[0] % pixel_size[1])]
-                        ## need to add new dimensions
-                        dct_prj['xdim'] = int((dct_prj['xrange'][1]-dct_prj['xrange'][0])/pixel_size[0])+1
-                        dct_prj['ydim'] = int((dct_prj['yrange'][1]-dct_prj['yrange'][0])/pixel_size[1])+1
-                        dct_prj['dimensions'] = [dct_prj['xdim'], dct_prj['ydim']]
-                    else:
-                        ## if the projection matches just use the current scene projection
-                        dct_prj = {k:dct[k] for k in dct}
-            elif (warp_to is None):
-                dct_prj = {k:dct[k] for k in dct}
+            ## determine warping target
+            if (warp_to is None):
+                if (setu['merge_tiles'] & setu['merge_full_tiles']): ## warp to all tile extent
+                    dct_prj = {k:dct_tiles[k] for k in dct_tiles}
+                else: ## warp to current/first tile
+                    dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
             gatts['limit'] = limit
