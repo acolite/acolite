@@ -9,7 +9,7 @@
 ##                 2022-09-22 (QV) added rpc_dem option
 
 def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
-                 target_res=None, sub=None, gdal_meta = False, rpc_dem = None):
+                 target_res=None, sub=None, gdal_meta = False, rpc_dem = None, targetAlignedPixels = False):
 
     import os, sys, fnmatch
     from osgeo import gdal
@@ -65,7 +65,6 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
                 outputBoundsSRS = dstSRS
 
             #targetAlignedPixels = True
-            targetAlignedPixels = False
 
             ## if we don't know target resolution, figure out from the outputBounds
             if target_res is None:
@@ -95,7 +94,7 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
             if len(RPCs) > 0: rpc = True
             transformerOptions = []
             if rpc_dem is not None: transformerOptions+=['RPC_DEM={}'.format(rpc_dem)]
-            
+
             ## warp in memory and read dataset to array
             ## https://gdal.org/python/osgeo.gdal-module.html
             ds = gdal.Warp('', file,
