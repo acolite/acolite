@@ -26,6 +26,9 @@ merge_tiles=False
 merge_zones=True
 extend_region=False
 l1r_crop=False
+station_lon=None
+station_lat=None
+station_box=None
 
 ## new output settings
 output=None

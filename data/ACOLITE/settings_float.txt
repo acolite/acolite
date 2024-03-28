@@ -55,6 +55,9 @@ radcor_initial_aot
 tsdsf_bratio_percentile
 map_xtick_rotation
 map_ytick_rotation
+station_lon
+station_lat
+station_box
 
 ## GEE
 st_lon

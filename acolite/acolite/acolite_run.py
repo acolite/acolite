@@ -9,6 +9,7 @@
 ##                2022-09-19 (QV) printout platform info
 ##                2023-02-06 (QV) added WKT polygon output
 ##                2024-03-14 (QV) update settings handling
+##                2024-03-28 (QV) added station limit creation
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -59,6 +60,15 @@ def acolite_run(settings, inputfile=None, output=None):
     ## update run settings
     for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
     if 'verbosity' in ac.settings['run']: ac.config['verbosity'] = int(ac.settings['run']['verbosity'])
+
+    ## create limit based on station_lon, station_lat, station_box
+    if (ac.settings['run']['station_lon'] is not None) &\
+       (ac.settings['run']['station_lat'] is not None) &\
+       (ac.settings['run']['station_box'] is not None) &\
+       (ac.settings['run']['limit'] is None) & (ac.settings['run']['polygon'] is None):
+       ac.settings['run']['limit'] = ac.shared.region_box(None, ac.settings['run']['station_lon'], ac.settings['run']['station_lat'],
+                                                                box_size = ac.settings['run']['station_box'], return_limit = True)
+    ## end create limit based on station information
 
     ## new path is only set if ACOLITE needs to make new directories
     ## and is only used if ACOLITE is asked to delete the output directory (don't use this feature!)
