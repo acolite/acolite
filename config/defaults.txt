@@ -290,6 +290,7 @@ radcor_edge_extend=False
 radcor_edge_extend_method=average
 radcor_aot_estimate=tsdsf
 radcor_aot_estimate_centre_extent=None
+radcor_aot_estimate_centre_mask=False
 radcor_aot_selection=minimum
 
 ## radcor output options
