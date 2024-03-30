@@ -5,6 +5,7 @@
 ## modifications: 2022-03-28 (QV) moved int and float lists to external files
 ##                2023-01-02 (QV) test which is the lowest level of output path that needs to be created
 ##                2023-10-31 (QV) check if luts_pressures is a list
+##                2024-03-30 (QV) convert tuples to lists
 
 def parse(sensor, settings=None, merge=True):
     import os, time
@@ -46,6 +47,9 @@ def parse(sensor, settings=None, merge=True):
     for k in setu:
         if k not in setu: continue
         if setu[k] is None: continue
+
+        ## convert tuples to lists
+        if type(setu[k]) is tuple: setu[k] = [i for i in setu[k]]
 
         if type(setu[k]) is list:
             if k in int_list: setu[k] = [int(i) for i in setu[k]]
