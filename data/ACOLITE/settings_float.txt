@@ -57,7 +57,7 @@ map_xtick_rotation
 map_ytick_rotation
 station_lon
 station_lat
-station_box
+station_box_size
 
 ## GEE
 st_lon

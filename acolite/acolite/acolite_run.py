@@ -52,7 +52,7 @@ def acolite_run(settings, inputfile=None, output=None):
                     ac.settings['user']['polygon_old'] = '{}'.format(ac.settings['user']['polygon'])
                     ac.settings['user']['polygon'] = '{}'.format(polygon_new)
                 except:
-                    print('Provided is not a valid WKT polygon')
+                    print('Provided polygon is not a valid WKT polygon')
                     print(ac.settings['user']['polygon'])
                     ac.settings['user']['polygon'] = None
                     pass
@@ -64,10 +64,31 @@ def acolite_run(settings, inputfile=None, output=None):
     ## create limit based on station_lon, station_lat, station_box
     if (ac.settings['run']['station_lon'] is not None) &\
        (ac.settings['run']['station_lat'] is not None) &\
-       (ac.settings['run']['station_box'] is not None) &\
+       (ac.settings['run']['station_box_size'] is not None) &\
        (ac.settings['run']['limit'] is None) & (ac.settings['run']['polygon'] is None):
-       ac.settings['run']['limit'] = ac.shared.region_box(None, ac.settings['run']['station_lon'], ac.settings['run']['station_lat'],
-                                                                box_size = ac.settings['run']['station_box'], return_limit = True)
+       site_lat = ac.settings['run']['station_lat']
+       site_lon = ac.settings['run']['station_lon']
+       box_size = ac.settings['run']['station_box_size']
+       print('Creating new limit for position {}N, {}E, box size {} {}'.format(site_lat, site_lon, box_size, ac.settings['run']['station_box_units']))
+       if ac.settings['run']['station_box_units'][0] in ['k', 'm']:
+           if ac.settings['run']['station_box_units'][0] == 'm': box_size /= 1000.
+           ## get approximate distance per degree lon/lat
+           dlon, dlat = ac.shared.distance_in_ll(site_lat)
+           if type(box_size) is list:
+               lat_off, lon_off = (box_size[0]/dlat)/2, (box_size[1]/dlon)/2
+           else:
+               lat_off, lon_off = (box_size/dlat)/2, (box_size/dlon)/2
+       elif ac.settings['run']['station_box_units'][0] in ['d']:
+            if type(box_size) is list:
+                lat_off, lon_off = box_size[0]/2, box_size[1]/2
+            else:
+                lat_off, lon_off = box_size/2, box_size/2
+       else:
+            print('station_box_units={} not configured'.format(ac.settings['run']['station_box_units']))
+            return
+       ## set new limit
+       ac.settings['run']['limit'] = [site_lat-lat_off, site_lon-lon_off, site_lat+lat_off, site_lon+lon_off]
+       print('New limit: {}'.format(ac.settings['run']['limit']))
     ## end create limit based on station information
 
     ## new path is only set if ACOLITE needs to make new directories

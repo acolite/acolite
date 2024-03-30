@@ -25,10 +25,11 @@ polygon=None
 polygon_limit=True
 polylakes=False
 polylakes_database=worldlakes
-## station coordinates and box size (km)
+## station coordinates and box size
 station_lon=None
 station_lat=None
-station_box=None
+station_box_size=None
+station_box_units=km
 ## L1 tile merging
 merge_tiles=False
 merge_full_tiles=False
