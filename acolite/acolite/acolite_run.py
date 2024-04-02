@@ -204,6 +204,7 @@ def acolite_run(settings, inputfile=None, output=None):
                 if gatts['acolite_file_type'] == 'L1R':
                     if (ac.settings['run']['adjacency_correction']) & (ac.settings['run']['adjacency_correction_method'] == 'radcor'):
                         l2r = ac.adjacency.radcor.radcor(l1r)
+                        if l2r is None: l2r = []
                     else:
                         ret = ac.acolite.acolite_l2r(l1r)
                         if len(ret) != 2:
