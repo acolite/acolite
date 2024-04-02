@@ -297,6 +297,8 @@ radcor_aot_estimate=tsdsf
 radcor_aot_estimate_centre_extent=None
 radcor_aot_estimate_centre_mask=False
 radcor_aot_selection=minimum
+radcor_skip_pan=False
+
 
 ## radcor output options
 radcor_write_rhot=True
