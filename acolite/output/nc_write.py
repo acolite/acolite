@@ -90,6 +90,10 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                 if t not in dataset_attributes:
                     dataset_attributes[t] = atts[t]
         dataset_attributes['parameter'] = dataset
+    ## convert bool attributes to string
+    for att in dataset_attributes:
+        if type(dataset_attributes[att]) == bool:
+            dataset_attributes[att] = str(dataset_attributes[att])
 
     if os.path.exists(os.path.dirname(ncfile)) is False:
          os.makedirs(os.path.dirname(ncfile))
