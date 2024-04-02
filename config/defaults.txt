@@ -299,6 +299,11 @@ radcor_aot_estimate_centre_mask=False
 radcor_aot_selection=minimum
 radcor_skip_pan=False
 
+## radcor optimisation options
+radcor_optimise_target_lon=None
+radcor_optimise_target_lat=None
+radcor_optimise_target_rhos=None
+radcor_optimise_tolerance=0.001
 
 ## radcor output options
 radcor_write_rhot=True

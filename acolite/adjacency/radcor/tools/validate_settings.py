@@ -16,6 +16,17 @@ def validate_settings(settings):
     ## initially assume settings are valid
     valid = True
 
+    ## check aot estimate
+    estimatelist = ['tsdsf', 'dsf', 'optimise']
+    if settings['radcor_aot_estimate'] not in estimatelist:
+        print('Error: radcor_aot_estimate must be one of: {}'.format(', '.join(estimatelist)))
+        valid = False
+    if settings['radcor_aot_estimate'] == 'optimise':
+        for k in ['radcor_optimise_target_lon', 'radcor_optimise_target_lat', 'radcor_optimise_target_rhos']:
+            if (settings[k] is None):
+                print('Provide {} for radcor_aot_estimate=optimise'.format(k))
+                valid = False
+
     ## check forced aerosol model
     if settings['radcor_force_model'] is not None:
         modlist = ['M', 'C']
