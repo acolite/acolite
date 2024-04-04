@@ -52,5 +52,6 @@ def emodnet_bathymetry(lon1, lat1, output = None, filename = 'bathymetry', overr
 
     ## reproject
     result = ac.shared.reproject2(bath, lon00, lat00, lon1, lat1, nearest=nearest)
+    result[result.mask] = np.nan ## hard mask
 
     return(result)
