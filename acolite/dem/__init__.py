@@ -17,3 +17,4 @@ from .copernicus_dem_rpc import copernicus_dem_rpc
 from .copernicus_dem_filelist import copernicus_dem_filelist
 
 from .hillshade_nc import hillshade_nc
+from .emodnet_bathymetry import emodnet_bathymetry
