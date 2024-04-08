@@ -3,10 +3,11 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
 ## modifications: 2023-09-20 (QV) moved roi_wkt to function
+##                2024-04-08 (QV) added processor_version
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None,
-               cloud_cover = None, tile = None, ## S2
+               cloud_cover = None, tile = None, processor_version = None, ## S2
                bright_cover = None, timeliness = None, ## S3
                verbosity = 1,
                max_results = 1000, odata_url = None, attributes = False):
@@ -89,6 +90,8 @@ def query(scene = None, collection = None, product = None,
     if timeliness is not None:
         if timeliness in ['NR', 'NT', 'ST']:
             query_list.append(f"Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'timeliness' and att/OData.CSC.StringAttribute/Value eq '{timeliness}')")
+    if processor_version is not None:
+        query_list.append(f"Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'processorVersion' and att/OData.CSC.StringAttribute/Value eq '{processor_version}')")
 
     ## create query url
     query = f"{odata_url}/Products?$filter={' and '.join(query_list)}"
