@@ -3,9 +3,10 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-06
 ## modifications: 2023-02-14 (QV) return None if failed
+##                2024-04-08 (QV) added geojson
 
 def polygon_from_wkt(wkt, file=None):
-    import os
+    import os, json
     from osgeo import ogr
     import acolite as ac
 
@@ -13,7 +14,16 @@ def polygon_from_wkt(wkt, file=None):
     odir = os.path.dirname(file)
     if not os.path.exists(odir): os.makedirs(odir)
 
-    geom = ogr.CreateGeometryFromWkt(wkt)
+    geom = None
+    try:
+        geom = ogr.CreateGeometryFromWkt(wkt)
+    except:
+        pass
+    try:
+        geom = ogr.CreateGeometryFromJson(wkt)
+    except:
+        pass
+
     if geom is not None:
         with open(file, 'w') as f: f.write(geom.ExportToJson())
     geom = None

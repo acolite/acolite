@@ -2,7 +2,7 @@
 ## converts a given roi (polygon file, 4 element limit, wkt) into (bounding) wkt
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-20
-## modifications:
+## modifications: 2024-04-08 (QV) added geojson
 
 def roi_wkt(roi):
     import os
@@ -24,6 +24,14 @@ def roi_wkt(roi):
             try:
                 geom = ogr.CreateGeometryFromWkt(roi)
                 if geom is not None: wkt  = '{}'.format(roi)
+            except:
+                pass
+
+        ## try if roi is valid geojson
+        if wkt is None:
+            try:
+                geom = ogr.CreateGeometryFromJson(roi)
+                if geom is not None: wkt  =  geom.ExportToWkt()
             except:
                 pass
 
