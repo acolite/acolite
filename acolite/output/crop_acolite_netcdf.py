@@ -42,8 +42,12 @@ def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
         for ds in datasets:
             if nc_projection is not None:
                 if ds in nc_projection: continue
-            d, da = ac.shared.nc_data(ncf, ds, attributes=True, sub=sub)
 
+            try:
+                d, da = ac.shared.nc_data(ncf, ds, attributes=True, sub=sub)
+            except:
+                print('Could not crop dataset {}'.format(ds))
+                continue
             ## output dataset
             ac.output.nc_write(ofile, ds, d, dataset_attributes = da,
                                new=new, attributes=gatts, nc_projection=nc_projection)
