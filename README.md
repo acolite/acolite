@@ -93,13 +93,19 @@ By default ACOLITE expects the libRadtran (v2.0.5) to be in external/libRadtran-
             make
             make check
 
-ACOLITE/TACT can use reptran data if it is present and if tact_reptran=medium or tact_reptran=fine. To get reptran, dowload and extract it in the libRadtran-2.0.5 directory:
+ACOLITE/TACT can use reptran data if it is present and if tact_reptran=medium or tact_reptran=fine. To get reptran, download and extract it in the libRadtran-2.0.5 directory:
 
             cd external/libRadtran-2.0.5
             wget "http://www.meteo.physik.uni-muenchen.de/~libradtran/lib/exe/fetch.php?media=download:reptran_2017_all.tar.gz" -O reptran_2017_all.tar.gz
             tar -xvf reptran_2017_all.tar.gz
             rm reptran_2017_all.tar.gz
 
+To add optical properties of clouds and aerosols (not currently used), similarly download and extract the optprop_v2.1 file in the libRadtran-2.0.5 directory:
+
+            cd external/libRadtran-2.0.5
+            wget "http://www.meteo.physik.uni-muenchen.de/~libradtran/lib/exe/fetch.php?media=download:optprop_v2.1.tar.gz" -O optprop_v2.1.tar.gz
+            tar -xvf optprop_v2.1.tar.gz
+            rm optprop_v2.1.tar.gz
 
 ## TACT configuration
 **2021-11-22 QV I believe this next section is no longer required**
