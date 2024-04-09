@@ -15,14 +15,17 @@ def polygon_from_wkt(wkt, file=None):
     if not os.path.exists(odir): os.makedirs(odir)
 
     geom = None
-    try:
-        geom = ogr.CreateGeometryFromWkt(wkt)
-    except:
-        pass
-    try:
-        geom = ogr.CreateGeometryFromJson(wkt)
-    except:
-        pass
+    if geom is None:
+        try:
+            geom = ogr.CreateGeometryFromWkt(wkt)
+        except:
+            pass
+
+    if geom is None:
+        try:
+            geom = ogr.CreateGeometryFromJson(wkt)
+        except:
+            pass
 
     if geom is not None:
         with open(file, 'w') as f: f.write(geom.ExportToJson())
