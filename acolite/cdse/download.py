@@ -87,6 +87,7 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
 
             ## try url
             print('Downloading {}'.format(scene))
+            print('Download URL: {}'.format(url))
             response = session.get(url, allow_redirects=False)
             ## follow redirects
             while response.status_code in (301, 302, 303, 307):
@@ -97,7 +98,6 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
             if os.path.exists(zfile): os.remove(zfile)
             dl = session.get(url, verify=False, allow_redirects=True)
             print('Writing file to {}'.format(zfile))
-            print('Download URL: {}'.format(url))
             if (dl.ok):
                 with open(zfile, 'wb') as p:
                     for chunk in dl.iter_content(chunk_size=1024*1024):
