@@ -271,7 +271,7 @@ def acolite_map(ncf, output = None,
     imratio = None
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gatts['sensor'], settings=ac.settings['user'])
+    setu = ac.acolite.settings.parse(gatts['sensor'], settings=None if 'user' not in ac.settings else ac.settings['user'])
     if settings is not None: ## don't overwrite user settings here
         setu_ = ac.acolite.settings.parse(None, settings=settings, merge=False)
         for k in setu_: setu[k] = setu_[k]
