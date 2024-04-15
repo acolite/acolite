@@ -20,7 +20,11 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             datasets.remove(ds)
 
     ## get image resolution
-    resolution = gatts['scene_pixel_size'][0]
+    if 'scene_pixel_size' in gatts:
+        resolution = gatts['scene_pixel_size'][0]
+    else:
+        print('Could not determine resolution from file attributes')
+
     ## if extracting circle determine radius in pixels
     if extract_circle:
         if extract_cicle_units[0] == 'm':
