@@ -114,6 +114,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         nc.setncattr('generated_by', 'ACOLITE' )
         nc.setncattr('generated_on',time.strftime('%Y-%m-%d %H:%M:%S %Z'))
         nc.setncattr('contact', 'Quinten Vanhellemont' )
+        nc.setncattr('acolite_version', ac.version )
 
         ## set beam dataformat global attributes
         nc.setncattr('product_type', 'NetCDF' )
