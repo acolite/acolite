@@ -1,0 +1,1 @@
+{"L5_TM": {"thermal_sensor": "L5_TM", "thermal_bands": ["6"]}, "L7_ETM": {"thermal_sensor": "L7_ETM", "thermal_bands": ["6_vcid_1", "6_vcid_2", "6_VCID_1", "6_VCID_2"]}, "L8_OLI": {"thermal_sensor": "L8_TIRS", "thermal_bands": ["10", "11"]}, "L9_OLI": {"thermal_sensor": "L9_TIRS", "thermal_bands": ["10", "11"]}}

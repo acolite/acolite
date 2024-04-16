@@ -6,9 +6,10 @@
 ##                2022-02-15 (QV) added L9/TIRS
 ##                2023-07-12 (QV) removed netcdf_compression settings
 ##                2024-01-31 (QV) added skip_attributes
+##                2024-04-16 (QV) moved Landsat thermals to file
 
 import acolite as ac
-import os, sys
+import os, sys, json
 import numpy as np
 from netCDF4 import Dataset
 
@@ -35,19 +36,13 @@ class gem(object):
 
         def gatts_read(self):
             self.gatts = ac.shared.nc_gatts(self.file)
-            ## detect thermal sensor
-            if self.gatts['sensor'] == 'L8_OLI':
-                self.gatts['thermal_sensor'] = 'L8_TIRS'
-                self.gatts['thermal_bands'] = ['10', '11']
-            elif self.gatts['sensor'] == 'L9_OLI':
-                self.gatts['thermal_sensor'] = 'L9_TIRS'
-                self.gatts['thermal_bands'] = ['10', '11']
-            elif self.gatts['sensor'] == 'L5_TM':
-                self.gatts['thermal_sensor'] = 'L5_TM'
-                self.gatts['thermal_bands'] = ['6']
-            elif self.gatts['sensor'] == 'L7_ETM':
-                self.gatts['thermal_sensor'] = 'L7_ETM'
-                self.gatts['thermal_bands'] = ['6_vcid_1', '6_vcid_2', '6_VCID_1', '6_VCID_2']
+
+            ## find out if we have Landsat thermal bands
+            with open(ac.config['data_dir'] + '/Landsat/thermal_sensor.json', 'r', encoding = 'utf-8') as f:
+                thermal_dict = json.loads(f.read())
+            if self.gatts['sensor'] in thermal_dict:
+                for k in thermal_dict[self.gatts['sensor']]:
+                    self.gatts[k] = thermal_dict[self.gatts['sensor']][k]
 
         def datasets_read(self):
             self.datasets = ac.shared.nc_datasets(self.file)
