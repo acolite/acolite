@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-11 (QV) import defaults before loading F0
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -105,6 +106,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
         gatts['obase'] = obase
+        gatts['ofile'] = ofile
 
         ## add band info
         gatts['band_waves'] = hypd[:, 1]
@@ -127,7 +129,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                        'rsr': band_rsr[b],'f0': f0d[b]}
 
         ## generate new file
-        new = True
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
 
         ## get scene projection info
         dct = ac.hyperion.projection(metadata)
@@ -149,14 +152,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
         ## compute longitude and latitude
         lon, lat = ac.shared.projection_geo(dct_prj)
-        ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
+        gemo.write('lon', lon)
         if verbosity > 1: print('Wrote lon')
         lon = None
-
-        ac.output.nc_write(ofile, 'lat', lat)
+        gemo.write('lat', lat)
         if verbosity > 1: print('Wrote lat')
         lat = None
-        new = False
 
         for b,band in enumerate(bands_vnir+bands_swir):
             if band in bands_vnir: det = 'VNIR'
@@ -178,17 +179,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             ## write toa radiance
             if output_lt:
-                ac.output.nc_write(ofile, 'Lt_{}'.format(ds_att['wave_name']), cdata_radiance,
-                                   attributes = gatts, dataset_attributes = ds_att, new=new)
-                new = False
+                gemo.write('Lt_{}'.format(ds_att['wave_name']), cdata_radiance, ds_att = ds_att)
 
             ## compute toa reflectance
             cdata = (np.pi*cdata_radiance*d*d) / (ds_att['f0'] * mu0)
 
             ## write toa reflectance
-            ac.output.nc_write(ofile, 'rhot_{}'.format(ds_att['wave_name']), cdata,
-                               attributes = gatts, dataset_attributes = ds_att, new=new)
-            new = False
+            gemo.write('rhot_{}'.format(ds_att['wave_name']), cdata, ds_att = ds_att)
 
+        gemo.close()
         ofiles.append(ofile)
     return(ofiles, setu)
