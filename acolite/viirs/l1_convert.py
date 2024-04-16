@@ -5,7 +5,7 @@
 ## modifications: 2023-04-18 (QV) check if outside limits
 ##                2023-04-19 (QV) added quality_flags check
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
-##                2024-04-16 (QV) use new gem NetCDF handling
+##                2024-04-16 (QV) use new gem NetCDF handling, fixed raa writing
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -240,8 +240,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
                 ## track current shape
                 data_shape = mus.shape
-
-                for ds in datasets:
+                datasets_ = list(data.keys())
+                for ds in datasets_:
                     if ds not in data: continue
                     if (setu['output_geolocation']) & (ds in ['lat', 'lon']):
                         if verbosity > 1: print('Writing geolocation {}'.format(ds))
