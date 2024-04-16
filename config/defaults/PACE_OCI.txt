@@ -1,0 +1,25 @@
+## ACOLITE default settings for PACE_OCI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+add_detector_name=True
+default_projection_resolution=1200,1200
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=1200,2300
+
+l2w_mask_wave=2300
+l2w_mask_threshold=0.05
+l2w_mask_smooth=False
+l2w_mask_negative_wave_range=440,900
+l2w_mask_high_toa_wave_range=440,1050
+l2w_mask_high_toa_threshold=0.3
+
+dsf_interface_reflectance=False
+resolved_geometry=False
+dsf_spectrum_option=percentile
+dsf_percentile=1

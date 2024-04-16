@@ -237,6 +237,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## PACE
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            if 'PACE' in gatts['title']: platform = 'PACE'
+            if '{}_{}'.format(platform, gatts['instrument']) == 'PACE_OCI':
+                input_type = 'PACE'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end PACE
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:

@@ -265,6 +265,10 @@ def acolite_l2r(gem,
             if setu['add_band_name']:
                 gem.bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(b, gem.bands[b]['wave_name'])
                 gem.bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(b, gem.bands[b]['wave_name'])
+            if setu['add_detector_name']:
+                dsname = rhot_ds[bi][5:]
+                gem.bands[b]['rhot_ds'] = 'rhot_{}'.format(dsname)
+                gem.bands[b]['rhos_ds'] = 'rhos_{}'.format(dsname)
             for k in tg_dict:
                 if k not in ['wave']:
                     gem.bands[b][k] = tg_dict[k][b]
@@ -1214,6 +1218,11 @@ def acolite_l2r(gem,
         if gem.bands[b]['rhot_ds'] not in gem.datasets:
             if verbosity > 2: print('Band {} at {} nm not in available rhot datasets'.format(b, gem.bands[b]['wave_name']))
             continue ## skip if we don't have rhot for a band that is in the RSR file
+
+        ## temporary fix
+        if gem.bands[b]['wave_mu'] < 0.345:
+            if verbosity > 2: print('Band {} at {} nm wavelength < 345 nm'.format(b, gem.bands[b]['wave_name']))
+            continue ## skip if below LUT range
 
         dsi = gem.bands[b]['rhot_ds']
         dso = gem.bands[b]['rhos_ds']

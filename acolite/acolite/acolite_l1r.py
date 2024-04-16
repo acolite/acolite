@@ -152,6 +152,13 @@ def acolite_l1r(bundle, settings = None, input_type=None):
     ################
 
     ################
+    ## PACE
+    if input_type == 'PACE':
+        l1r_files, setu = ac.pace.l1_convert(bundle, settings = setu)
+    ## end PACE
+    ################
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files, setu = ac.planet.l1_convert(bundle, settings = setu)
