@@ -7,6 +7,7 @@
 ##                2022-02-23 (QV) added option to output L2C reflectances
 ##                2023-05-09 (QV) added option to crop
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
@@ -21,8 +22,6 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     output_lt = setu['output_lt']
     vname = setu['region_name']
     limit = setu['limit']
-    store_l2c = setu['prisma_store_l2c']
-    store_l2c_separate_file = setu['prisma_store_l2c_separate_file']
 
     ## check if ROI polygon is given
     if setu['polylakes']:
@@ -110,12 +109,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                            'f0': f0d[band_names[i]],
                            'instrument':instrument[i],}
 
-        # print(rsrd[sensor]['wave_name'])
-        # print(bands)
-        # stop
-
         gatts = {}
-
         isotime = h5_gatts['Product_StartTime']
         time = dateutil.parser.parse(isotime)
 
@@ -277,59 +271,64 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
 
+        gatts['acolite_file_type'] = 'L1R'
+        gatts['ofile'] = ofile
         gatts['obase'] = obase
-
         gatts['band_waves'] = [bands[w]['wave'] for w in bands]
         gatts['band_widths'] = [bands[w]['width'] for w in bands]
 
-        new = True
-        if (setu['output_geolocation']) & (new):
-            if verbosity > 1: print('Writing geolocation lon/lat')
-            ac.output.nc_write(ofile, 'lon', np.flip(np.rot90(lon)), new=new, attributes=gatts)
-            if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
-            new = False
-            if not (store_l2c & store_l2c_separate_file): lon = None
+        ## set up output file
+        gemo = ac.gem.gem(ofile, new=True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
 
-            ac.output.nc_write(ofile, 'lat', np.flip(np.rot90(lat)), new=new, attributes=gatts)
+        if (setu['output_geolocation']):
+            if verbosity > 1: print('Writing geolocation lon/lat')
+            gemo.write('lon', np.flip(np.rot90(lon)))
+            if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
+            if not (setu['prisma_store_l2c'] & setu['prisma_store_l2c_separate_file']): lon = None
+            gemo.write('lat', np.flip(np.rot90(lat)))
             if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
-            if not (store_l2c & store_l2c_separate_file): lat = None
+            if not (setu['prisma_store_l2c'] & setu['prisma_store_l2c_separate_file']): lat = None
 
         ## write geometry
         if os.path.exists(l2file):
             if (setu['output_geometry']):
                 if verbosity > 1: print('Writing geometry')
-                ac.output.nc_write(ofile, 'vza', np.flip(np.rot90(vza)), attributes=gatts, new=new)
+                gemo.write('vza', np.flip(np.rot90(vza)))
                 if verbosity > 1: print('Wrote vza ({})'.format(vza.shape))
                 vza = None
                 new = False
                 if vaa is not None:
-                    ac.output.nc_write(ofile, 'vaa', np.flip(np.rot90(vaa)), attributes=gatts, new=new)
+                    gemo.write('vaa', np.flip(np.rot90(vaa)))
                     if verbosity > 1: print('Wrote vaa ({})'.format(vaa.shape))
                     vaa = None
-
-                ac.output.nc_write(ofile, 'sza', np.flip(np.rot90(sza)), attributes=gatts, new=new)
+                gemo.write('sza', np.flip(np.rot90(sza)))
                 if verbosity > 1: print('Wrote sza ({})'.format(sza.shape))
 
                 if saa is not None:
-                    ac.output.nc_write(ofile, 'saa', np.flip(np.rot90(saa)), attributes=gatts, new=new)
+                    gemo.write('saa', np.flip(np.rot90(saa)))
                     if verbosity > 1: print('Wrote saa ({})'.format(saa.shape))
                     saa = None
-
-                ac.output.nc_write(ofile, 'raa', np.flip(np.rot90(raa)), attributes=gatts, new=new)
+                gemo.write('raa', np.flip(np.rot90(raa)))
                 if verbosity > 1: print('Wrote raa ({})'.format(raa.shape))
                 raa = None
 
             if dem is not None:
-                ac.output.nc_write(ofile, 'dem', np.flip(np.rot90(dem)))
+                gemo.write('dem', np.flip(np.rot90(dem)))
 
         ## store l2c data
-        if store_l2c & read_cube:
-            if store_l2c_separate_file:
+        if setu['prisma_store_l2c'] & read_cube:
+            if setu['prisma_store_l2c_separate_file']:
                 obase_l2c  = '{}_{}_converted_L2C'.format('PRISMA',  time.strftime('%Y_%m_%d_%H_%M_%S'))
                 ofile_l2c = '{}/{}.nc'.format(odir, obase_l2c)
-                ac.output.nc_write(ofile_l2c, 'lat', np.flip(np.rot90(lat)), new=True, attributes=gatts)
+                gemo_l2c = ac.gem.gem(ofile_l2c, new=True)
+                gemo_l2c.gatts = {k: gatts[k] for k in gatts}
+                gemo_l2c.gatts['ofile'] = ofile_l2c
+                gemo_l2c.gatts['obase'] = obase_l2c
+                gemo_l2c.gatts['acolite_file_type'] = 'L2C'
+                gemo_l2c.write('lon', np.flip(np.rot90(lon)))
+                gemo_l2c.write('lat', np.flip(np.rot90(lat)))
                 lat = None
-                ac.output.nc_write(ofile_l2c, 'lon', np.flip(np.rot90(lon)))
                 lon = None
             else:
                 ofile_l2c = '{}'.format(ofile)
@@ -358,7 +357,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                 if read_cube:
                     cdata_radiance = vnir_data[:,wi,:]
                     cdata = cdata_radiance * (np.pi * d * d) / (bands[b]['f0'] * cossza)
-                    if store_l2c:
+                    if setu['prisma_store_l2c']:
                         cdata_l2c = scale_min + (vnir_l2c_data[:, wi, :] * (scale_max - scale_min)) / 65535
                 else:
                     if sub is None:
@@ -373,7 +372,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
                 if read_cube:
                     cdata_radiance = swir_data[:,wi,:]
                     cdata = cdata_radiance * (np.pi * d * d) / (bands[b]['f0'] * cossza)
-                    if store_l2c:
+                    if setu['prisma_store_l2c']:
                         cdata_l2c = scale_min + (swir_l2c_data[:, wi, :] * (scale_max - scale_min)) / 65535
                 else:
                     if sub is None:
@@ -388,23 +387,35 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
 
             if output_lt:
                 ## write toa radiance
-                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']),
-                                    np.flip(np.rot90(cdata_radiance)),dataset_attributes = ds_att)
+                gemo.write('Lt_{}'.format(bands[b]['wave_name']),
+                                    np.flip(np.rot90(cdata_radiance)),ds_att = ds_att)
                 cdata_radiance = None
 
             ## write toa reflectance
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']),
-                                    np.flip(np.rot90(cdata)), dataset_attributes = ds_att)
+            gemo.write('rhot_{}'.format(bands[b]['wave_name']),
+                                    np.flip(np.rot90(cdata)), ds_att = ds_att)
             cdata = None
             print('Wrote rhot_{}'.format(bands[b]['wave_name']))
 
             ## store L2C data
-            if store_l2c & read_cube:
-                ac.output.nc_write(ofile_l2c, 'rhos_l2c_{}'.format(bands[b]['wave_name']),
-                                    np.flip(np.rot90(cdata_l2c)),dataset_attributes = ds_att)
+            if setu['prisma_store_l2c'] & read_cube:
+                if ofile_l2c != ofile:
+                    gemo_l2c.write('rhos_l2c_{}'.format(bands[b]['wave_name']),
+                                        np.flip(np.rot90(cdata_l2c)), ds_att = ds_att)
+                else:
+                    gemo.write('rhos_l2c_{}'.format(bands[b]['wave_name']),
+                                        np.flip(np.rot90(cdata_l2c)), ds_att = ds_att)
+
                 ofile_l2c_new = False
                 cdata_l2c = None
                 print('Wrote rhos_l2c_{}'.format(bands[b]['wave_name']))
+
+        ## close files
+        gemo.close()
+        gemo = None
+        if setu['prisma_store_l2c'] & setu['prisma_store_l2c_separate_file']:
+            gemo_l2c.close()
+            gemo_l2c = None
 
         ## output PAN
         if setu['prisma_output_pan']:
@@ -425,12 +436,15 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
 
             ## output netcdf
             ofile_pan = '{}/{}_pan.nc'.format(odir, obase)
-            ac.output.nc_write(ofile_pan, 'lon', np.flip(np.rot90(plon)),new = True) #dataset_attributes = ds_att,
+            gemo_pan = ac.gem.gem(ofile_pan, new=True)
+            gemo_pan.write('lon', np.flip(np.rot90(plon)))
             plon = None
-            ac.output.nc_write(ofile_pan, 'lat', np.flip(np.rot90(plat))) #dataset_attributes = ds_att,
+            gemo_pan.write('lat', np.flip(np.rot90(plat)))
             plat = None
-            ac.output.nc_write(ofile_pan, 'pan', np.flip(np.rot90(pan))) #dataset_attributes = ds_att,
+            gemo_pan.write('pan', np.flip(np.rot90(pan)))
             pan = None
+            gemo_pan.close()
+            gemo_pan = None
          ## end PAN
 
         ofiles.append(ofile)
