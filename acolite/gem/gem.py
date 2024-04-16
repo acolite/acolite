@@ -141,7 +141,7 @@ class gem(object):
                     self.nc_projection[k] = {'data': d, 'attributes': a}
 
         ## write dataset
-        def write(self, ds, data, ds_att = {}):
+        def write(self, ds, data, ds_att = {}, replace_nan = False):
             if self.new:
                 self.close() # close if open
                 if os.path.exists(self.file): os.remove(self.file) # delete if exists
@@ -153,7 +153,7 @@ class gem(object):
                 self.setup() # read in attributes
             else:
                 if self.nc_mode != 'a': self.open('a')
-                ac.output.nc_write(self.nc, ds, data, dataset_attributes=ds_att)
+                ac.output.nc_write(self.nc, ds, data, dataset_attributes = ds_att, replace_nan = replace_nan)
 
             if self.verbosity > 0: print('Wrote {}'.format(ds))
 
