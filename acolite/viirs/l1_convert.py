@@ -5,7 +5,7 @@
 ## modifications: 2023-04-18 (QV) check if outside limits
 ##                2023-04-19 (QV) added quality_flags check
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
-##                2024-04-16 (QV) use new gem NetCDF handling, fixed raa writing
+##                2024-04-16 (QV) use new gem NetCDF handling, fixed raa writing, fix for new settings handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -46,10 +46,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                 break
         l1b_sensor = '{}_{}'.format(l1b_meta['platform'], l1b_meta['instrument']).upper()
         print(l1b_sensor, l1b_meta['title'], l1b_meta['processing_level'])
-
         ## parse settings
         sensor = '{}_{}'.format(l1b_meta['platform'], l1b_meta['instrument']).upper()
-        setu = ac.acolite.settings.parse(sensor, settings=settings)
+        setu = ac.acolite.settings.parse(sensor, settings = ac.settings['user'])
         opts = setu['viirs_option'].lower().split('+')
         ## configure scan lines
         if opts[0] == 'mod': slines = 16
