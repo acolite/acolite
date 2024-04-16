@@ -58,12 +58,16 @@ def acolite_l2w(gem,
     rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
     rhot_waves = [int(ds.split('_')[-1]) for ds in rhot_ds]
     if len(rhot_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhot datasets.'.format(gemf, len(rhot_ds)))
-    print(rhot_ds, rhot_waves)
+    if verbosity > 3:
+        print('rhot datasets: ', rhot_ds)
+        print('rhot wavelengths: ', rhot_waves)
 
     rhos_ds = [ds for ds in gem.datasets if 'rhos_' in ds]
     rhos_waves = [int(ds.split('_')[-1]) for ds in rhos_ds]
     if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhos datasets.'.format(gemf, len(rhos_ds)))
-    print(rhos_ds, rhos_waves)
+    if verbosity > 3:
+        print('rhos datasets: ', rhos_ds)
+        print('rhos wavelengths: ', rhos_waves)
 
     if gem.gatts['acolite_file_type'] != 'L2R':
         print('Only L2W processing of ACOLITE L2R files supported.')
