@@ -93,7 +93,7 @@ class gem(object):
                 self.datasets = list(self.nc.variables.keys())
 
         ## read dataset
-        def data(self, ds, attributes = False, store = False, return_data = True):
+        def data(self, ds, attributes = False, store = False, return_data = True, sub = None):
             ## data already in memory
             if ds in self.data_mem:
                 cdata = self.data_mem[ds]
@@ -104,7 +104,10 @@ class gem(object):
                 if self.nc_mode != 'r': self.open('r')
                 if ds in self.datasets:
                     ## get data
-                    cdata = self.nc.variables[ds][:]
+                    if (ds not in self.nc_projection_keys) & (sub is not None):
+                        cdata = self.nc.variables[ds][sub[1]:sub[1]+sub[3]:1,sub[0]:sub[0]+sub[2]:1]
+                    else:
+                        cdata = self.nc.variables[ds][:]
                     ## get attributes
                     catt = {attr : getattr(self.nc.variables[ds],attr) for attr in self.nc.variables[ds].ncattrs()}
                     ## mask data
