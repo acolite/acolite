@@ -5,6 +5,7 @@
 ## modifications: 2023-04-18 (QV) check if outside limits
 ##                2023-04-19 (QV) added quality_flags check
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -145,7 +146,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                 td = etime - stime
                 dtime = stime + td/2
 
-
                 gatts = {}
                 gatts['sensor'] = sensor
                 gatts['isodate'] = dtime.isoformat()
@@ -155,6 +155,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
                 if not os.path.exists(odir): os.makedirs(odir)
                 ofile = '{}/{}.nc'.format(odir, gatts['obase'])
+                gatts['ofile'] = ofile
+
+                ## new output gem
+                gemo = ac.gem.gem(ofile, new = True)
+                gemo.gatts = {k: gatts[k] for k in gatts}
+                new = False
 
                 ## get image subset
                 sub = None
@@ -242,12 +248,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                     elif (setu['output_geometry']) & (ds in ['sza', 'saa', 'vza', 'vaa', 'raa']):
                         if verbosity > 1: print('Writing geometry {}'.format(ds))
                     else: continue
-
                     if rotate: data[ds] = np.rot90(data[ds], k=2)
-
-                    ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts)
+                    gemo.write(ds, data[ds])
                     if verbosity > 1: print('Wrote {} ({})'.format(ds, data[ds].shape))
-                    new = False
                     del data[ds]
                 data = None
             ## end store geometry
@@ -362,9 +365,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                             gi+=1
 
                         ## output dataset
-                        ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts, dataset_attributes = ds_att)
+                        gemo.write(ds, data, ds_att = ds_att)
                         if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
-                        new = False
 
                         ## output Lt
                         if (b in bands_tir) & (setu['viirs_output_tir_lt']):
@@ -377,7 +379,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                             ds_att['K2_CONSTANT_BAND_{}'.format(b)] = k2
                             ## convert from BTto Lt
                             data = ds_att['K1_CONSTANT_BAND_{}'.format(b)]/(np.exp(ds_att['K2_CONSTANT_BAND_{}'.format(b)]/data)-1)
-                            ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts, dataset_attributes = ds_att)
+                            gemo.write(ds, data, ds_att = ds_att)
                             if verbosity > 1: print('Wrote {} ({})'.format(ds, data.shape))
 
                         ## delete datasets
@@ -386,6 +388,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
         if limit is not None: sub = None
         if not outside:
+            gemo.close()
             if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)
