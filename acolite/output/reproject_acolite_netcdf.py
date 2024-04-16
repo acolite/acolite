@@ -107,15 +107,7 @@ def reproject_acolite_netcdf(ncf, dct, ncfo=None, output=None, settings = {},
         ds = None
 
         print(dsname, data.shape)
-
-        lsd = None
-        if dsname not in ['lat', 'lon', 'vza', 'sza', 'vaa', 'saa', 'raa']:
-            lsd = setu['netcdf_compression_least_significant_digit']
-
         ac.output.nc_write(ncfo, dsname, data, attributes = gatts,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'],
-                           netcdf_compression_least_significant_digit=lsd,
                            nc_projection = nc_projection,
                            dataset_attributes = att, new = new)
         new = False
