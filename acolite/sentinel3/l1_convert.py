@@ -438,7 +438,6 @@ def l1_convert(inputfile, output = None, settings = {},
                 ## write dataset
                 gemo.write(ds, d, ds_att = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-                new = False
                 d = None
 
         if (product_level == 'level2'):
@@ -454,14 +453,14 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ## write data
                 gemo.write(ds, data[dname], ds_att = ds_att)
-                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
                 ## write error dataset
                 if write_l2_err:
                     ds = '{}_err'.format(ds)
                     dname = '{}_err'.format(dname)
                     gemo.write(ds, data[dname], ds_att = ds_att)
-                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
             ## write other datasets
             for dname in data:
