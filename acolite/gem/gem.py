@@ -55,12 +55,12 @@ class gem(object):
 
             ## close file if open in wrong mode
             if (self.nc is not None) & (self.nc_mode != mode):
-                if self.verbosity > 3: print('File {} already open in mode {}'.format(self.file, self.nc_mode))
+                if self.verbosity > 5: print('File {} already open in mode {}'.format(self.file, self.nc_mode))
                 self.close()
 
             ## open in requested mode
             if (self.nc is None):
-                if self.verbosity > 3: print('Opening {} in mode {}'.format(self.file, mode))
+                if self.verbosity > 5: print('Opening {} in mode {}'.format(self.file, mode))
                 self.nc = Dataset(self.file, mode)
                 self.nc_mode = mode
 
@@ -70,7 +70,7 @@ class gem(object):
                 self.nc.close()
                 self.nc = None
                 self.nc_mode = None
-                if self.verbosity > 3: print('Closed {}'.format(self.file))
+                if self.verbosity > 5: print('Closed {}'.format(self.file))
 
         ## read attributes
         def gatts_read(self):
