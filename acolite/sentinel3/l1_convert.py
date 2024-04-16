@@ -474,7 +474,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ## write data
                 gemo.write(ds, data[dname], ds_att = ds_att)
-                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
                 ## write error dataset
                 if write_l2_err:
@@ -482,7 +482,7 @@ def l1_convert(inputfile, output = None, settings = {},
                     dname = '{}_err'.format(dname)
                     if data[dname].dtype not in (np.float32, np.float64): continue
                     gemo.write(ds, data[dname], ds_att = ds_att)
-                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
         ## clear data
         data = None
