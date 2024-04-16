@@ -450,10 +450,10 @@ def glad_l2r(ncf, output = None, ofile = None,
             if verbosity > 2: print('Recomputing orange band')
             ## load orange band configuration
             if sensor == 'L8_OLI':
-                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L8/oli_orange.cfg')
+                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/Landsat/L8_OLI_orange.cfg')
                 sensor_o = 'L8_OLI_ORANGE'
             if sensor == 'L9_OLI':
-                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/L9/oli_orange.cfg')
+                ob_cfg = ac.shared.import_config(ac.config['data_dir']+'/Landsat/L9_OLI_orange.cfg')
                 sensor_o = 'L9_OLI_ORANGE'
 
         ## load orange band data
