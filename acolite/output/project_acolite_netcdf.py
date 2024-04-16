@@ -213,6 +213,10 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
         datasets_att[ds] = att
         data_in = None
 
+    ## close input dataset
+    gem.close()
+    gem = None
+
     ## for NN/bilinear projection
     radius = setu['output_projection_radius']
     epsilon = setu['output_projection_epsilon']
@@ -291,27 +295,32 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     t1 = time.time()
     print('Reprojection of {} datasets took {:.1f} seconds'.format(len(datasets_out),t1-t0))
 
+    ## setup output dataset
+    gemo = ac.gem.gem(ncfo, new = True)
+    gemo.gatts = {k: gatts_out[k] for k in gatts_out} ## set output attributes
+    gemo.nc_projection = nc_projection ## set new projection details
+    gemo.verbosity = 6
+
     ## write results
-    new = True
     for di, ds in enumerate(datasets_out):
-        if new: nco = '{}'.format(ncfo)
         if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
-        nco = ac.output.nc_write(nco, ds, data_out_stack[:,:,di], dataset_attributes = datasets_att[ds],
-                            attributes = gatts_out, nc_projection = nc_projection,  new = new, return_nc = True)
-        new = False
+        gemo.write(ds, data_out_stack[:,:,di], ds_att = datasets_att[ds])
         if output_counts:
             if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds+'_n', data_out_counts[:,:,di].shape[0], data_out_counts[:,:,di].shape[1]))
-            ac.output.nc_write(nco, ds+'_n', data_out_counts[:,:,di])
-
+            gemo.write(ds+'_n', data_out_counts[:,:,di])
     data_out_stack = None
     data_out_counts = None
 
     ## compute target lon/lat
     tlon, tlat = ac.shared.projection_geo(dct)
-    ac.output.nc_write(nco, 'lon', tlon)
-    ac.output.nc_write(nco, 'lat', tlat)
+    gemo.write('lon', tlon)
     tlon = None
+    gemo.write('lat', tlat)
     tlat = None
+
+    ## close output dataset
+    gemo.close()
+    gemo = None
 
     print('Wrote {}'.format(ncfo))
     return(ncfo)
