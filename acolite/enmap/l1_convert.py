@@ -6,6 +6,7 @@
 ##                2022-11-16 (QV) added F0 reference
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-02-22 (QV) added computation of view angles
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -178,7 +179,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
 
-        new = True
+        ## set up output file
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
         if dct_prj is not None:
             print('Computing and writing lat/lon')
             ## offset half pixels to compute center pixel lat/lon
@@ -187,11 +190,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             ## compute lat/lon
             lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel = False)
             print(lat.shape)
-            ac.output.nc_write(ofile, 'lat', lat, new = new, attributes = gatts)
-            lat = None
-            ac.output.nc_write(ofile, 'lon', lon)
+            gemo.write('lon', lon)
             lon = None
-            new = False
+            gemo.write('lat', lat)
+            lon = None
 
         ## read data cube (faster)
         read_cube = True
@@ -234,18 +236,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
             if output_lt:
                 ## write toa radiance
-                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                            attributes = gatts, dataset_attributes = ds_att, new = new)
-                new = False
+                gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
 
             ## compute reflectance
             cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0'] * mu0)
             cdata_radiance = None
-
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                            attributes = gatts, dataset_attributes = ds_att, new = new)
+            gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
             cdata = None
-            new = False
         cube, cube_swir = None, None
+        gemo.close()
         ofiles.append(ofile)
     return(ofiles, setu)
