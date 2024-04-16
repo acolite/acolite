@@ -6,6 +6,7 @@
 ##                2022-09-28 (QV) changed gem from dict to object
 ##                2024-01-26 (QV) moved flagging to a separate function
 ##                2024-03-14 (QV) update settings handling
+##                2024-04-16 (QV) changed output NetCDF handling to using gem
 
 def acolite_l2w(gem,
                 settings = None,
@@ -23,9 +24,11 @@ def acolite_l2w(gem,
     import skimage.color
 
     ## read gem file if NetCDF
+    close = False
     if type(gem) is str:
         gemf = '{}'.format(gem)
         gem = ac.gem.gem(gem)
+        close = True
     gemf = gem.file
 
     ## combine default and user defined settings
@@ -47,7 +50,6 @@ def acolite_l2w(gem,
         ofile = '{}/{}.nc'.format(odir, output_name)
     else:
         ofile = '{}'.format(target_file)
-    gem.gatts['ofile'] = ofile
 
     ## keep data in memory
     gem.store = setu['l2w_data_in_memory']
@@ -141,6 +143,14 @@ def acolite_l2w(gem,
     ## compute flags
     l2_flags = ac.acolite.acolite_flags(gem)
 
+    ## set up output file gem
+    gemo = ac.gem.gem(ofile, new = new)
+    gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
+    gemo.nc_projection = gem.nc_projection
+    gemo.gatts['acolite_file_type'] = 'L2W'
+    gemo.gatts['ofile'] = ofile
+    gemo.verbosity = 6
+
     ## list datasets to copy over from L2R
     copy_datasets = ['lon', 'lat']
     if verbosity > 3: print('Copying datasets from L2R.')
@@ -207,20 +217,10 @@ def acolite_l2w(gem,
         if verbosity > 1: print('Writing {}'.format(cur_par))
         ## add attributes
         for k in att_add: cur_att[k] = att_add[k]
-        ac.output.nc_write(ofile, cur_par, cur_data, dataset_attributes=cur_att,
-                           attributes=gem.gatts, new=new, nc_projection=gem.nc_projection,
-                           netcdf_compression=setu['netcdf_compression'],
-                           netcdf_compression_level=setu['netcdf_compression_level'],
-                           netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
-        cur_data = None
-        new = False
+        gemo.write(cur_par, cur_data, ds_att = cur_att)
 
     ## write l2 flags
-    ac.output.nc_write(ofile, 'l2_flags', l2_flags, attributes=gem.gatts, new=new,
-                        nc_projection=gem.nc_projection,
-                        netcdf_compression=setu['netcdf_compression'],
-                        netcdf_compression_level=setu['netcdf_compression_level'])
-    new = False
+    gemo.write('l2_flags', l2_flags)
 
     qaa_computed, p3qaa_computed = False, False
     ## parameter loop
@@ -1165,8 +1165,9 @@ def acolite_l2w(gem,
                 ## compute fai
                 fai_sc = (float(par_attributes['waves'][1])-float(par_attributes['waves'][0]))/\
                          (float(par_attributes['waves'][2])-float(par_attributes['waves'][0]))
-                nir_prime = tmp_data[0] + (tmp_data[2]-tmp_data[0]) * fai_sc
-                par_data[par_name] = tmp_data[1] - nir_prime
+                #nir_prime = tmp_data[0] + (tmp_data[2]-tmp_data[0]) * fai_sc
+                #par_data[par_name] = tmp_data[1] - nir_prime
+                par_data[par_name] = tmp_data[1] - (1 - fai_sc) * tmp_data[0] - fai_sc * tmp_data[2]
                 par_atts[par_name] = par_attributes
                 tmp_data = None
         ## end FAI
@@ -1600,15 +1601,21 @@ def acolite_l2w(gem,
             if (mask) & (setu['l2w_mask_water_parameters']): par_data[cur_ds][(l2_flags & flag_value)!=0] = np.nan
             ## write to NetCDF
             if verbosity > 1: print('Writing {}'.format(cur_ds))
-            ac.output.nc_write(ofile, cur_ds, par_data[cur_ds], dataset_attributes=par_atts[cur_ds],
-                               attributes=gem.gatts, new=new, nc_projection=gem.nc_projection,
-                               netcdf_compression=setu['netcdf_compression'],
-                               netcdf_compression_level=setu['netcdf_compression_level'],
-                               netcdf_compression_least_significant_digit=setu['netcdf_compression_least_significant_digit'])
-            new = False
+            gemo.write(cur_ds, par_data[cur_ds], ds_att = par_atts[cur_ds])
+
+        ## clear data
         par_data = None
         par_atts = None
     ## end parameter loop
+
+    ## close input NetCDF
+    if close:
+        gem.close()
+        gem = None
+
+    ## close output NetCDF
+    gemo.close()
+    gemo = None
 
     if verbosity>0: print('Wrote {}'.format(ofile))
 
