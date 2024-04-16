@@ -14,6 +14,7 @@
 ##                                added scale bar option
 ##                2023-09-28 (QV) improved rgb mapping with mpl>3.7
 ##                2024-03-14 (QV) update settings handling
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -223,7 +224,7 @@ def acolite_map(ncf, output = None,
                 plt.plot(xsb, ysb, '-', linewidth = 2, color=setu['map_scalebar_color'], zorder=10)
                 ## add the label
                 plt.text(xsbl, ysbl, sclabel, color=setu['map_scalebar_color'], zorder=11,
-                                 horizontalalignment='center', fontsize=fontsize)
+                                 horizontalalignment='center', fontsize=setu['map_fontsize'])
             ## end scalebar
 
             ## color bars
@@ -264,14 +265,15 @@ def acolite_map(ncf, output = None,
                 plt.show()
             plt.close()
 
+    ## open NetCDF
+    gem = ac.gem.gem(ncf)
+
     ## get info from netcdf file
-    datasets = ac.shared.nc_datasets(ncf)
-    datasets_lower = [ds.lower() for ds in datasets]
-    gatts = ac.shared.nc_gatts(ncf)
+    datasets_lower = [ds.lower() for ds in gem.datasets]
     imratio = None
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gatts['sensor'], settings=None if 'user' not in ac.settings else ac.settings['user'])
+    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=None if 'user' not in ac.settings else ac.settings['user'])
     if settings is not None: ## don't overwrite user settings here
         setu_ = ac.acolite.settings.parse(None, settings=settings, merge=False)
         for k in setu_: setu[k] = setu_[k]
@@ -281,8 +283,8 @@ def acolite_map(ncf, output = None,
     mpl.rc('text', usetex=setu['map_usetex'])
 
     scene_mask = None
-    if ('l2_flags' in datasets) & (setu['map_mask']):
-        scene_mask = ac.shared.nc_data(ncf, 'l2_flags')
+    if ('l2_flags' in gem.datasets) & (setu['map_mask']):
+        scene_mask = gem.data('l2_flags')
         ## convert scene mask to int if it is not (e.g. after reprojection)
         if scene_mask.dtype not in [np.int16, np.int32]: scene_mask = scene_mask.astype(int)
         scene_mask = (scene_mask & (2**setu['flag_exponent_outofscene']))
@@ -307,10 +309,9 @@ def acolite_map(ncf, output = None,
         if setu['map_cartopy']:
             try:
                 import cartopy.crs as ccrs
-                d, att = ac.shared.nc_data(ncf, gatts['projection_key'], attributes=True)
-                #proj4_string = gatts['proj4_string']
+                d, att = gem.data(gem.gatts['projection_key'], attributes = True)
                 crs_proj = pyproj.Proj(att['crs_wkt'])
-                img_extent = gatts['xrange'][0],gatts['xrange'][1],gatts['yrange'][1],gatts['yrange'][0]
+                img_extent = gem.gatts['xrange'][0],gem.gatts['xrange'][1],gem.gatts['yrange'][1],gem.gatts['yrange'][0]
                 pcrs = pyproj.CRS(att['crs_wkt'])
                 uzone = pcrs.coordinate_operation.name.split()[-1]
                 zone = int(uzone[0:2])
@@ -320,12 +321,12 @@ def acolite_map(ncf, output = None,
             except:
                 print('Could not determine projection for cartopy')
                 crs = None
-                if ('lon' in datasets) & ('lat' in datasets): setu['map_pcolormesh'] = True
+                if ('lon' in gem.datasets) & ('lat' in gem.datasets): setu['map_pcolormesh'] = True
         else:
             crs = None
-            if ('lon' in datasets) & ('lat' in datasets): setu['map_pcolormesh'] = True
+            if ('lon' in gem.datasets) & ('lat' in gem.datasets): setu['map_pcolormesh'] = True
 
-    rhos_ds = [ds for ds in datasets if 'rhos_' in ds]
+    rhos_ds = [ds for ds in gem.datasets if 'rhos_' in ds]
     rhos_wv = [int(ds.split('_')[-1]) for ds in rhos_ds]
 
     bn = os.path.basename(ncf)
@@ -336,21 +337,21 @@ def acolite_map(ncf, output = None,
         os.makedirs(odir)
 
     isodate = ''
-    if 'isodate' in gatts: isodate = gatts['isodate']
-    elif 'time_coverage_end' in gatts: isodate = gatts['time_coverage_end']
-    elif 'time_coverage_start' in gatts: isodate = gatts['time_coverage_start']
+    if 'isodate' in gem.gatts: isodate = gem.gatts['isodate']
+    elif 'time_coverage_end' in gem.gatts: isodate = gem.gatts['time_coverage_end']
+    elif 'time_coverage_start' in gem.gatts: isodate = gem.gatts['time_coverage_start']
 
-    if 'satellite_sensor' in gatts:
-        title_base = '{} {}'.format(gatts['satellite_sensor'].replace('_', '/'), isodate.replace('T', ' ')[0:19])
+    if 'satellite_sensor' in gem.gatts:
+        title_base = '{} {}'.format(gem.gatts['satellite_sensor'].replace('_', '/'), isodate.replace('T', ' ')[0:19])
     else:
-        title_base = '{} {}'.format(gatts['sensor'].replace('_', '/'), isodate.replace('T', ' ')[0:19])
+        title_base = '{} {}'.format(gem.gatts['sensor'].replace('_', '/'), isodate.replace('T', ' ')[0:19])
 
     ## parameters to plot
     plot_parameters = []
     if plot_all:
-        plot_parameters = [k for k in datasets if k not in plot_skip]
+        plot_parameters = [k for k in gem.datasets if k not in plot_skip]
     else:
-        plot_parameters = [k for k in datasets if k in plot_datasets]
+        plot_parameters = [k for k in gem.datasets if k in plot_datasets]
     if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
     if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
     if setu['rgb_rhorc']: plot_parameters+=['rgb_rhorc']
@@ -360,13 +361,13 @@ def acolite_map(ncf, output = None,
     for par in plot_parameters:
         if '*' in par:
             plot_parameters.remove(par)
-            plot_parameters += [ds for ds in datasets if ds[0:par.find('*')] == par[0:par.find('*')]]
+            plot_parameters += [ds for ds in gem.datasets if ds[0:par.find('*')] == par[0:par.find('*')]]
     if len(plot_parameters) == 0: return
 
     ## load lat and lon
     if setu['map_pcolormesh'] | (setu['map_points'] is not None) | (setu['map_scalebar']):
-        lon = ac.shared.nc_data(ncf, 'lon').data
-        lat = ac.shared.nc_data(ncf, 'lat').data
+        lon = gem.data('lon')
+        lat = gem.data('lat')
         ## find region mid point
         mid = int(lat.shape[0]/2), int(lat.shape[1]/2)
         ## find lon and lat ranges (at mid point)
@@ -501,8 +502,8 @@ def acolite_map(ncf, output = None,
 
     ## make plots
     for cpar in plot_parameters:
-        if 'projection_key' in gatts:
-            if cpar in ['x', 'y', gatts['projection_key']]: continue
+        if 'projection_key' in gem.gatts:
+            if cpar in ['x', 'y', gem.gatts['projection_key']]: continue
 
         cparl = cpar.lower()
         ## RGB
@@ -510,7 +511,7 @@ def acolite_map(ncf, output = None,
             ## find datasets for RGB compositing
             rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
             if cpar == 'rgb_rhot':
-                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhot_' in ds]
+                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhot_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhot_'
                 else:
@@ -518,7 +519,7 @@ def acolite_map(ncf, output = None,
                     if setu['add_band_name']: ds_base = 'rhot_'
 
             if cpar == 'rgb_rhos':
-                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhos_' in ds]
+                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhos_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhos_'
                 else:
@@ -526,7 +527,7 @@ def acolite_map(ncf, output = None,
                     if setu['add_band_name']: ds_base = 'rhos_'
 
             if cpar == 'rgb_rhorc':
-                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhorc_' in ds]
+                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhorc_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhorc_'
                 else:
@@ -534,22 +535,22 @@ def acolite_map(ncf, output = None,
                     if setu['add_band_name']: ds_base = 'rhorc_'
 
             if cpar == 'rgb_rhow':
-                ds_base = [ds.split('_')[0:-1] for ds in datasets if 'rhow_' in ds]
+                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhow_' in ds]
                 if len(ds_base) == 0:
                     ds_base = 'rhow_'
                 else:
                     ds_base = '_'.join(ds_base[0]) + '_'
                     if setu['add_band_name']: ds_base = 'rhow_'
 
-            rho_ds = [ds for ds in datasets if ds_base in ds[0:len(ds_base)]]
+            rho_ds = [ds for ds in gem.datasets if ds_base in ds[0:len(ds_base)]]
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
             if len(rho_wv) < 3: continue
             ## read and stack rgb
             for iw, w in enumerate(rgb_wave):
                 wi, ww = ac.shared.closest_idx(rho_wv, w)
                 #ds_name = '{}{}'.format(ds_base,ww)
-                ds_name = [ds for ds in datasets if (ds_base in ds) & ('{:.0f}'.format(ww) in ds)][0]
-                data = ac.shared.nc_data(ncf, ds_name)
+                ds_name = [ds for ds in gem.datasets if (ds_base in ds) & ('{:.0f}'.format(ww) in ds)][0]
+                data = gem.data(ds_name)
 
                 ## autoscale rgb to percentiles
                 if setu['rgb_autoscale']:
@@ -562,7 +563,7 @@ def acolite_map(ncf, output = None,
                 tmp = ac.shared.rgb_stretch(data, gamma = gamma, bsc = bsc, stretch=setu['rgb_stretch'])
 
                 ## mask
-                tmp[data.mask] = 1
+                tmp[np.isnan(data)] = 1
                 ## stack RGB
                 if iw == 0:
                     im = tmp
@@ -573,15 +574,9 @@ def acolite_map(ncf, output = None,
             if cparl not in datasets_lower:
                 print('{} not in {}'.format(cpar, ncf))
                 continue
-            ds = [ds for di, ds in enumerate(datasets) if cparl==datasets_lower[di]][0]
+            ds = [ds for di, ds in enumerate(gem.datasets) if cparl==datasets_lower[di]][0]
             ## read data
-            tmp = ac.shared.nc_data(ncf, ds)
-            im = tmp.data
-            if type(im) in [np.float32, np.float64]:
-                im[tmp.mask] = np.nan
-            else:
-                im[tmp.mask] = 0
-            tmp = None
+            im = gem.data(ds)
 
         ## plot figure
         output_map(im, cpar)
