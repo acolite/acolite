@@ -4,6 +4,7 @@
 ## 2022-08-11
 ## modifications: 2022-08-19 (QV) added ECO1BRAD support
 ##                2024-01-17 (QV) added geofile keyword
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import os, h5py, json
@@ -122,8 +123,11 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
                 print('Image {} does not cover {}'.format(bundle, limit))
                 continue
 
+        ## output file
         ncfo = '{}/{}_L1R.nc'.format(odir, oname)
-        new = True
+        gemo = ac.gem.gem(ncfo, new = True)
+        gemo.gatts = gatts
+
         for ds in datasets:
             if sub is None:
                 data = fg[geo_key][ds][()]
@@ -136,8 +140,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
 
             ds_att = {'name': ds}
             print('Writing {}'.format(datasets[ds]))
-            ac.output.nc_write(ncfo, datasets[ds], data, dataset_attributes=ds_att, attributes=gatts, new=new, )
-            new = False
+            gemo.write(datasets[ds], data, ds_att = ds_att)
 
         ## run through bands
         for b in range(1, 6):
@@ -181,16 +184,15 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             bt[bt<0] = np.nan
 
             print('Writing {}'.format('lt{}'.format(b)))
-            ac.output.nc_write(ncfo, 'lt{}'.format(b), Lt, dataset_attributes=ds_att, attributes=gatts, new=new)
+            gemo.write('lt{}'.format(b), Lt, ds_att = ds_att)
             Lt = None
-            new = False
 
             print('Writing {}'.format('bt{}'.format(b)))
-            ac.output.nc_write(ncfo, 'bt{}'.format(b), bt, dataset_attributes=ds_att, attributes=gatts, new=new)
+            gemo.write('bt{}'.format(b), bt, ds_att = ds_att)
             bt = None
-            new = False
         f, fg = None, None
         if limit is not None: sub = None
         if ncfo not in ofiles: ofiles.append(ncfo)
+        gemo.close()
 
     return(ofiles, setu)
