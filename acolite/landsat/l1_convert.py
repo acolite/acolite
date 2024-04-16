@@ -415,8 +415,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                     attributes=gatts, new=new, nc_projection=nc_projection)
                 if verbosity > 1: print('Wrote raa')
                 new = False
-                ac.output.nc_write(ofile, 'vza', vza, replace_nan=True,
-                                    netcdf_compression=setu['netcdf_compression'])
+                ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
                 if verbosity > 1: print('Wrote vza')
                 ac.output.nc_write(ofile, 'sza', sza, replace_nan=True)
                 if verbosity > 1: print('Wrote sza')
