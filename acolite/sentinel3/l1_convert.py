@@ -13,6 +13,7 @@
 ##                                fixed tpg interpolation, update from scipy.interpolate.interp2d to scipy.interpolate.RegularGridInterpolator
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2023-11-25 (QV) added optional l2 conversion
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -57,7 +58,6 @@ def l1_convert(inputfile, output = None, settings = {},
         if len(mfile)==1: mfile = mfile[0]
 
         t0 = time.time()
-        new = True
 
         ## sensor settings
         metafile = '{}/{}'.format(bundle, mfile)
@@ -136,8 +136,8 @@ def l1_convert(inputfile, output = None, settings = {},
         for f in dfiles:
             fname = os.path.splitext(f)[0]
             file = '{}/{}'.format(bundle, f)
-            datasets = ac.shared.nc_datasets(file)
-            gatts = ac.shared.nc_gatts(file)
+            gem = ac.gem.gem(file)
+            gatts = gem.gatts
             start_time = gatts['start_time']
             stop_time = gatts['stop_time']
 
@@ -145,15 +145,15 @@ def l1_convert(inputfile, output = None, settings = {},
             if ('tie' in fname) or (fname in ['removed_pixels',
                          'instrument_data', 'time_coordinates']):
                 meta[fname]={}
-                for ds in datasets:
-                    meta[fname][ds]= ac.shared.nc_data(file, ds)
+                for ds in gem.datasets:
+                    meta[fname][ds] = gem.data(ds)
                     if ds == 'detector_index':
-                        data[ds] = ac.shared.nc_data(file, ds, sub=sub)
+                        meta[ds] = gem.data(ds, sub = sub)
             ## or full size data
             else:
-                for ds in datasets:
+                for ds in gem.datasets:
                     if ds[-9:] == '_radiance':
-                        data[ds] = ac.shared.nc_data(file, ds, sub=sub)
+                        data[ds] = gem.data(ds, sub=sub)
                         if verbosity > 2: print(ds, data[ds].shape)
                         if use_gains:
                             cg = 1.0
@@ -163,7 +163,7 @@ def l1_convert(inputfile, output = None, settings = {},
                             if verbosity > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
                             data[ds]*=cg
                     elif output_geolocation:
-                        data_ = ac.shared.nc_data(file, ds, sub=sub)
+                        data_ = gem.data(ds, sub=sub)
                         if dshape is None: dshape = data_.shape
                         if data_shape is None: data_shape = data_.shape
                         ## save latitude and longitude already
@@ -373,12 +373,14 @@ def l1_convert(inputfile, output = None, settings = {},
             gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
 
+        ## set up output file
+        gemo = ac.gem.gem(ofile, new=True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+
         ## output lat/lon
         if output_geolocation:
             if verbosity > 1: print('Writing geolocation')
-            for ds in ['lon', 'lat']:
-                ac.output.nc_write(ofile, ds, data[ds], new=new, attributes=gatts)
-                new = False
+            for ds in ['lon', 'lat']: gemo.write( ds, data[ds])
 
         ## output geometry
         if output_geometry:
@@ -391,11 +393,9 @@ def l1_convert(inputfile, output = None, settings = {},
                         ko = 'vaa'
                     else:
                         ko = k.lower()
-                    ac.output.nc_write(ofile, ko, tpg[k], new=new, attributes=gatts)
-                    new = False
+                    gemo.write(ko, tpg[k])
                 elif k in ['sea_level_pressure']:
-                    ac.output.nc_write(ofile, 'pressure', tpg[k], new=new, attributes=gatts)
-                    new = False
+                    gemo.write('pressure', tpg[k])
                 else:
                     continue
 
@@ -430,21 +430,19 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ## write toa radiance
                 if setu['output_lt']:
-                    ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data[dname],dataset_attributes = ds_att)
+                    gemo.write('Lt_{}'.format(wave), data[dname], ds_att = ds_att)
                     if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
 
                 ## convert to reflectance
                 d = (np.pi * data[dname] * se2) / (f0*mu)
-                mask = d.mask
-                d = d.data
-                d[mask] = np.nan
-
-                ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                ## write dataset
+                gemo.write(ds, d, ds_att = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
                 new = False
                 d = None
+
         if (product_level == 'level2'):
-            if verbosity > 1: print('Writing TOA reflectance')
+            if verbosity > 1: print('Writing water reflectance')
             for iw, band in enumerate(rsr_bands):
                 wave = waves_names[band]
                 ds = 'rhow_{}'.format(wave)
@@ -454,28 +452,16 @@ def l1_convert(inputfile, output = None, settings = {},
                 if verbosity > 2: print('{} - Reading data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
                 ds_att  = {'wavelength':float(wave)}
 
-                ## mask data
-                mask = data[dname].mask
-                d = data[dname].data
-                d[mask] = np.nan
-
                 ## write data
-                ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                gemo.write(ds, data[dname], ds_att = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-                new = False
-                d = None
 
                 ## write error dataset
                 if write_l2_err:
                     ds = '{}_err'.format(ds)
                     dname = '{}_err'.format(dname)
-                    mask = data[dname].mask
-                    d = data[dname].data
-                    d[mask] = np.nan
-                    ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                    gemo.write(ds, data[dname], ds_att = ds_att)
                     if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-                    new = False
-                    d = None
 
             ## write other datasets
             for dname in data:
@@ -484,38 +470,24 @@ def l1_convert(inputfile, output = None, settings = {},
                 ds = '{}'.format(dname)
                 ds_att = None
                 if verbosity > 2: print('{} - Reading dataset {}'.format(datetime.datetime.now().isoformat()[0:19], ds), end='\n')
-
-                ## mask data
-                mask = data[dname].mask
-                d = data[dname].data
-                if d.dtype in (np.float32, np.float64):
-                    d[mask] = np.nan
-                else:
-                    continue
+                if data[dname].dtype not in (np.float32, np.float64): continue
 
                 ## write data
-                ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                gemo.write(ds, data[dname], ds_att = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-                new = False
-                d = None
 
                 ## write error dataset
                 if write_l2_err:
                     ds = '{}_err'.format(ds)
                     dname = '{}_err'.format(dname)
-                    mask = data[dname].mask
-                    d = data[dname].data
-                    if d.dtype in (np.float32, np.float64):
-                        d[mask] = np.nan
-                    else:
-                        continue
-                    ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+                    if data[dname].dtype not in (np.float32, np.float64): continue
+                    gemo.write(ds, data[dname], ds_att = ds_att)
                     if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-                    new = False
-                    d = None
 
         ## clear data
         data = None
+        gemo.close()
+        gemo = None
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
