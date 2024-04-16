@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-01-31 (QV) moved F0 import
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -57,19 +58,20 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
         gatts['obase'] = obase
+        gatts['ofile'] = ofile
 
         ## get F0 for radiance -> reflectance computation
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
+        gemo = ac.gem.gem(ofile, new = True)
+
         ## read geometry data
-        new = True
         ave = {}
         for ds in ['lat', 'lon', 'vza', 'vaa', 'sza', 'saa']:
             print('Reading HICO {}'.format(ds))
             data, att = ac.hico.read(file, ds)
             ave[ds] = np.nanmean(data)
-            ac.output.nc_write(ofile, ds, data, new=new, attributes=gatts)
-            new = False
+            gemo.write(ds, data)
 
         if 'sza' not in gatts: gatts['sza'] = ave['sza']
         if 'vza' not in gatts: gatts['vza'] = ave['vza']
@@ -94,7 +96,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                         for b in range(len(gatts['band_waves']))}
         band_rsr = {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]}  for b in rsr}
 
-
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
 
         ## make bands dataset
@@ -118,19 +119,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             if output_lt:
                 ## write toa radiance
-                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, dataset_attributes = ds_att)
-
+                gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
             ## write toa reflectance
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata, dataset_attributes = ds_att)
+            gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
 
         ## update gatts
-        with Dataset(ofile, 'a') as nc:
-            for key in gatts.keys():
-                if gatts[key] is not None:
-                    try:
-                        nc.setncattr(key, gatts[key])
-                    except:
-                        print('Failed to write attribute: {}'.format(key))
-
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.gatts_update()
+        gemo.close()
         ofiles.append(ofile)
     return(ofiles, setu)
