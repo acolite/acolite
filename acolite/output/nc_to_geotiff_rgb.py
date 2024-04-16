@@ -8,6 +8,7 @@
 ##                2024-02-27 (QV) added COG options
 ##                2024-03-14 (QV) update settings handling
 ##                                removed some keywords
+##                2024-04-16 (QV) use gem NetCDF handling
 
 def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_temp_files = True):
 
@@ -31,16 +32,15 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
         oformat = 'COG'
         creationOptions = setu['export_cloud_optimized_geotiff_options']
 
-    ## get attributes and datasets
-    gatts = ac.shared.nc_gatts(f)
+    ## open file
+    gem = ac.gem.gem(f)
     tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
-    if ('projection_key' not in gatts) and (~all([t in gatts for t in tags])):
+    if ('projection_key' not in gem.gatts) and (~all([t in gem.gatts for t in tags])):
         print('Unprojected data {}. Not outputting GeoTIFF files'.format(f))
         return()
 
-    datasets_file = ac.shared.nc_datasets(f)
-    if 'ofile' in gatts:
-        out = gatts['ofile'].replace('.nc', '')
+    if 'ofile' in gem.gatts:
+        out = gem.gatts['ofile'].replace('.nc', '')
     else:
         out = f.replace('.nc', '')
 
@@ -50,9 +50,9 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
             out = '{}/{}'.format(setu['output'], os.path.basename(out))
 
     ## find datasets and wavelengths
-    rhot_ds = [ds for ds in datasets_file if ds[0:5] == 'rhot_']
+    rhot_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhot_']
     rhot_wave = [int(ds.split('_')[-1]) for ds in rhot_ds]
-    rhos_ds = [ds for ds in datasets_file if ds[0:5] == 'rhos_']
+    rhos_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhos_']
     rhos_wave = [int(ds.split('_')[-1]) for ds in rhos_ds]
 
     for base in ['rhot', 'rhos']:
@@ -83,7 +83,7 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
             if not setu['rgb_autoscale']:
                 scale_cur = [scale_in[0],scale_in[1]]
             else:
-                data = ac.shared.nc_data(f, ds)
+                data = gem.data(ds)
                 scale_cur = np.nanpercentile(data, setu['rgb_autoscale_percentiles'])
                 data = None
 
@@ -114,7 +114,7 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
 
             ## do custom RGB stretch
             if True:
-                if data is None: data = ac.shared.nc_data(f, ds)
+                if data is None: data = gem.data(ds)
                 bsc = np.asarray(scale_cur)
                 gamma = setu['rgb_gamma'][ii]
                 tmp = ac.shared.rgb_stretch(data, gamma = gamma, bsc = bsc, stretch=setu['rgb_stretch'])
@@ -177,3 +177,5 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
         if remove_temp_files:
             for file in tempfiles:
                 os.remove(file.strip("'"))
+    ## close file
+    gem.close()
