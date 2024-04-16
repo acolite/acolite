@@ -5,6 +5,7 @@
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) get extend_region from setu
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -52,6 +53,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## get other settings
         limit = setu['limit']
+        extend_region = setu['extend_region']
         output_geolocation = setu['output_geolocation']
         output_xy = setu['output_xy']
         netcdf_projection = setu['netcdf_projection']
