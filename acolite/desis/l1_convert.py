@@ -9,6 +9,7 @@
 ##                2022-09-24 (QV) fixed DESIS band naming
 ##                                aligned DESIS RSR handling with other hyperspectral sensors
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -115,6 +116,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         # obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
         obase = '{}_{}_{}_L1R'.format(gatts['sensor'], meta['tileID'],time.strftime('%Y_%m_%d_%H_%M_%S'))
         gatts['obase'] = obase
+        gatts['acolite_file_type'] =  'L1R'
 
         ## add band info
         gatts['band_waves'] = header['wavelength']
@@ -172,8 +174,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             odir = output
         if not os.path.exists(odir): os.makedirs(odir)
         ofile = '{}/{}.nc'.format(odir, obase)
+        gatts['ofile'] = ofile
 
-        new = True
+        # set up output gem
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+
         if dct_prj is not None:
             print('Computing and writing lat/lon')
             ## offset half pixels to compute center pixel lat/lon
@@ -182,9 +188,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             ## compute lat/lon
             lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel = False)
             print(lat.shape)
-            ac.output.nc_write(ofile, 'lat', lat, new = new, attributes = gatts)
+            gemo.write('lat', lat)
             lat = None
-            ac.output.nc_write(ofile, 'lon', lon)
+            gemo.write('lon', lon)
             lon = None
             new = False
 
@@ -224,21 +230,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
             if (clip) & (clip_mask is not None): cdata_radiance[clip_mask] = np.nan
 
-            if output_lt:
-                ## write toa radiance
-                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                            attributes = gatts, dataset_attributes = ds_att, new = new)
-                new = False
+            ## write toa radiance
+            if output_lt: gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
 
             ## compute reflectance
             cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0']/10 * mu0)
             cdata_radiance = None
-
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                            attributes = gatts, dataset_attributes = ds_att, new = new)
+            gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
             cdata = None
-            new = False
         cube = None
-
+        gemo.close()
         ofiles.append(ofile)
     return(ofiles, setu)
