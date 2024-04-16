@@ -13,6 +13,7 @@
 ##                2024-02-27 (QV) changed writing of nodata, changed COG options
 ##                2024-03-14 (QV) update settings handling
 ##                                removed some keywords
+##                2024-04-16 (QV) use gem NetCDF handling
 
 def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True):
     import acolite as ac
@@ -38,20 +39,21 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
     ## track outputfiles
     outfiles = []
 
+    ## open file
+    gem = ac.gem.gem(f)
+
     ## get metadata and datasets
-    gatts = ac.shared.nc_gatts(f)
-    datasets_file = ac.shared.nc_datasets(f)
-    if 'ofile' in gatts:
-        out = gatts['ofile'].replace('.nc', '')
+    if 'ofile' in gem.gatts:
+        out = gem.gatts['ofile'].replace('.nc', '')
     else:
         out = f.replace('.nc', '')
 
     ## use projection key in NetCDF metadata
-    if ('projection_key' in gatts) & (use_projection_key):
-        for ds in datasets_file:
+    if ('projection_key' in gem.gatts) & (use_projection_key):
+        for ds in gem.datasets:
             if datasets is not None:
                 if ds not in datasets: continue
-            if ds in ['x', 'y', gatts['projection_key']]: continue
+            if ds in ['x', 'y', gem.gatts['projection_key']]: continue
             if (skip_geo) & (ds in ['lat', 'lon']): continue
             outfile = '{}_{}{}'.format(out, ds, '.tif')
             ## write geotiff
@@ -63,15 +65,15 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
             outfiles.append(outfile)
     else:
         tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
-        if all([t in gatts for t in tags]) or (match_file is not None):
+        if all([t in gem.gatts for t in tags]) or (match_file is not None):
             if match_file is None:
-                xrange = gatts['xrange']
-                yrange = gatts['yrange']
-                pixel_size = gatts['pixel_size']
+                xrange = gem.gatts['xrange']
+                yrange = gem.gatts['yrange']
+                pixel_size = gem.gatts['pixel_size']
 
                 ## make WKT
                 srs = osr.SpatialReference()
-                srs.ImportFromProj4(gatts['proj4_string'])
+                srs.ImportFromProj4(gem.gatts['proj4_string'])
                 wkt = srs.ExportToWkt()
 
                 ## make geotransform
@@ -95,14 +97,14 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
                     print('File {} not found. Not outputting GeoTIFF files.'.format(match_file))
                     return
 
-            for ds in datasets_file:
+            for ds in gem.datasets:
                 if datasets is not None:
                     if ds not in datasets: continue
                 if (skip_geo) & (ds in ['lat', 'lon', 'x', 'y']): continue
-                if ('projection_key' in gatts):
-                    if (ds == gatts['projection_key']): continue
+                if ('projection_key' in gem.gatts):
+                    if (ds == gem.gatts['projection_key']): continue
 
-                data = ac.shared.nc_data(f, ds)
+                data = gem.data(ds)
                 y,x = data.shape
                 if data.dtype == np.float32:
                     dt = gdal.GDT_Float32
@@ -141,3 +143,5 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
                 outfiles.append(outfile)
         else:
             print('Unprojected data {}. Not outputting GeoTIFF files.'.format(f))
+
+    gem.close()
