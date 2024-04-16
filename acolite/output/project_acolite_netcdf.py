@@ -13,6 +13,7 @@
 ##                2023-07-25 (QV) added counts output
 ##                2024-03-14 (QV) update settings handling
 ##                                added check for projection resolution
+##                2024-04-16 (QV) update NetCDF writing, speed up read using gem
 
 def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None, output_counts = False):
 
@@ -24,19 +25,21 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     from pyresample.bilinear import NumpyBilinearResampler
     from pyresample import kd_tree, geometry
 
-    ## read gatts
+    ## read gem
     try:
-        gatts = ac.shared.nc_gatts(ncf)
+        gem = ac.gem.gem(ncf)
+        gem.store = False
     except:
         print('Error accessing {}, is this a NetCDF file?'.format(ncf))
         return
 
+    gatts = gem.gatts
     if ('sensor' not in gatts):
         print('No sensor attribute in file {}'.format(ncf))
         return
 
     ## read datasets
-    datasets = ac.shared.nc_datasets(ncf)
+    datasets = gem.datasets
     if ('lat' not in datasets) or ('lon' not in datasets):
         print('No lat/lon found in file {}'.format(ncf))
         return
@@ -62,8 +65,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
 
     if (setu['output_projection_limit'] is None):
         ## read lat/lon
-        lat = ac.shared.nc_data(ncf, 'lat')
-        lon = ac.shared.nc_data(ncf, 'lon')
+        lat = gem.data('lat') #ac.shared.nc_data(ncf, 'lat')
+        lon = gem.data('lat') #ac.shared.nc_data(ncf, 'lon')
         setu['output_projection_limit'] = [np.nanmin(lat), np.nanmin(lon), np.nanmax(lat), np.nanmax(lon)]
         print('Output limit from lat/lon', setu['output_projection_limit'])
 
@@ -180,8 +183,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
                                           projection, nx, ny, [xrange[0],yrange[1],xrange[1],yrange[0]])
 
     ## read lat/lon
-    if lat is None: lat = ac.shared.nc_data(ncf, 'lat')
-    if lon is None: lon = ac.shared.nc_data(ncf, 'lon')
+    if lat is None: lat = gem.data('lat') # ac.shared.nc_data(ncf, 'lat')
+    if lon is None: lon = gem.data('lon') # ac.shared.nc_data(ncf, 'lon')
 
     ## make new output attributes
     gatts_out = {k:gatts[k] for k in gatts}
@@ -198,7 +201,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     datasets_out = []
     datasets_att = {}
     for ds in datasets:
-        data_in, att = ac.shared.nc_data(ncf, ds, attributes=True)
+        #data_in, att = ac.shared.nc_data(ncf, ds, attributes=True)
+        data_in, att = gem.data(ds, attributes = True)
         if len(data_in.shape) != 2: continue
         if setu['verbosity'] > 2: print('Reading {} {}x{}'.format(ds, data_in.shape[0], data_in.shape[1]))
         if data_in_stack is None:
@@ -290,21 +294,22 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     ## write results
     new = True
     for di, ds in enumerate(datasets_out):
+        if new: nco = '{}'.format(ncfo)
         if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
-        ac.output.nc_write(ncfo, ds, data_out_stack[:,:,di], dataset_attributes = datasets_att[ds],
-                            attributes = gatts_out, nc_projection = nc_projection,  new = new)
+        nco = ac.output.nc_write(nco, ds, data_out_stack[:,:,di], dataset_attributes = datasets_att[ds],
+                            attributes = gatts_out, nc_projection = nc_projection,  new = new, return_nc = True)
         new = False
         if output_counts:
             if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds+'_n', data_out_counts[:,:,di].shape[0], data_out_counts[:,:,di].shape[1]))
-            ac.output.nc_write(ncfo, ds+'_n', data_out_counts[:,:,di])
+            ac.output.nc_write(nco, ds+'_n', data_out_counts[:,:,di])
 
     data_out_stack = None
     data_out_counts = None
 
     ## compute target lon/lat
     tlon, tlat = ac.shared.projection_geo(dct)
-    ac.output.nc_write(ncfo, 'lon', tlon)
-    ac.output.nc_write(ncfo, 'lat', tlat)
+    ac.output.nc_write(nco, 'lon', tlon)
+    ac.output.nc_write(nco, 'lat', tlat)
     tlon = None
     tlat = None
 
