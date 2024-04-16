@@ -24,6 +24,8 @@
 ##                QV 2022-11-09 added option to update nc_projection
 ##                QV 2023-07-12 added discretisation
 ##                QV 2024-01-31 added skip_attributes
+##                2024-04-15 (QV) allow passing of netCDF4 Dataset
+##                2024-04-16 (QV) removed NetCDF compression parameters from keywords
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -31,10 +33,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  metadata=None, dataset_attributes=None, double=False,
                  chunking=True, chunk_tiles=[10,10], chunksizes=None, fillvalue=None,
                  nc_projection = None, update_projection=False,
-                 format='NETCDF4',
-                 netcdf_compression=False,
-                 netcdf_compression_level=4,
-                 netcdf_compression_least_significant_digit=None):
+                 format='NETCDF4', return_nc = False):
 
 
     from netCDF4 import Dataset
@@ -44,6 +43,10 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
 
     import re
     import acolite as ac
+
+    open_file = True
+    if type(ncfile) is Dataset:
+        open_file, new = False, False
 
     ## import atts for dataset
     atts = None
@@ -96,9 +99,6 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
             if type(dataset_attributes[att]) == bool:
                 dataset_attributes[att] = str(dataset_attributes[att])
 
-    if os.path.exists(os.path.dirname(ncfile)) is False:
-         os.makedirs(os.path.dirname(ncfile))
-
     dims = data.shape
     if global_dims is None: global_dims = dims
 
@@ -106,8 +106,13 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         if chunksizes is not None:
             chunksizes=(ceil(dim[0]/chunk_tiles[0]), ceil(dim[1]/chunk_tiles[1]))
 
+    ## create new file
     if new:
+        ## remove existing file
         if os.path.exists(ncfile): os.remove(ncfile)
+        ## make output directory
+        if not os.path.exists(os.path.dirname(ncfile)): os.makedirs(os.path.dirname(ncfile))
+
         nc = Dataset(ncfile, 'w', format=format)
 
         ## set global attributes
@@ -158,7 +163,11 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                     if att in ['_FillValue']: continue
                     var.setncattr(att, nc_projection[v]['attributes'][att])
     else:
-        nc = Dataset(ncfile, 'a', format=format)
+        if open_file:
+            nc = Dataset(ncfile, 'a', format=format)
+        else:
+            nc = ncfile
+
         if update_attributes:
             if attributes is not None:
                 for key in attributes.keys():
@@ -266,6 +275,10 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
             var[offset[1]:offset[1]+dims[0],offset[0]:offset[0]+dims[1]] = data
     if keep is not True: data = None
 
+    ## return NC dataset
+    if return_nc: return(nc)
+
     ## close netcdf file
-    nc.close()
-    nc=None
+    if open_file:
+        nc.close()
+        nc=None
