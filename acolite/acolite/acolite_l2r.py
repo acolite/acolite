@@ -37,7 +37,6 @@ def acolite_l2r(gem,
     ## read gem file if NetCDF
     if type(gem) is str:
         gem = ac.gem.gem(gem)
-        nc_projection = gem.nc_projection
     gemf = gem.file
 
     ## combine default and user defined settings
@@ -417,7 +416,6 @@ def acolite_l2r(gem,
     ## setup output file
     ofile = None
     if output_file:
-        new_nc = True
         if target_file is None:
             ofile = gemf.replace('_L1R', '_L2R')
             #if ('output' in setu) & (output is None): output = setu['output']
@@ -427,11 +425,13 @@ def acolite_l2r(gem,
             ofile = '{}'.format(target_file)
 
         gemo = ac.gem.gem(ofile, new=True)
+        gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
+        gemo.nc_projection = gem.nc_projection
+        gemo.gatts['acolite_file_type'] = 'L2R'
+        gemo.gatts['ofile'] = ofile
 
-        gemo.nc_projection = nc_projection
         gemo.bands = gem.bands
         gemo.verbosity = setu['verbosity']
-        gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
         gemo.gatts['acolite_version'] = ac.version
 
         ## add settings to gatts
@@ -441,10 +441,6 @@ def acolite_l2r(gem,
                 gemo.gatts[k] = str(setu[k])
             else:
                 gemo.gatts[k] = setu[k]
-
-        ## output is L2R
-        gemo.gatts['acolite_file_type'] = 'L2R'
-        gemo.gatts['ofile'] = ofile
 
         ## copy datasets from inputfile
         copy_rhot = False
@@ -1855,6 +1851,10 @@ def acolite_l2r(gem,
     ## clear aot results
     aot_lut, aot_sel = None, None
 
+    ## close inputfile
+    gem.close()
+    gem = None
+
     ## update attributes with latest version
     if output_file:
         gemo.update_attributes()
@@ -1863,6 +1863,7 @@ def acolite_l2r(gem,
     if verbosity>0: print('Wrote {}'.format(ofile))
 
     if return_gem:
-        return(gem, setu)
+        return(gemo, setu)
     else:
+
         return(ofile, setu)
