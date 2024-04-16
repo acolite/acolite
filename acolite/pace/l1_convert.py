@@ -95,10 +95,6 @@ def l1_convert(inputfile, output = None, settings = None):
         nco = ac.output.nc_write(ofile, 'lat', lat, new = True, return_nc = True)
         lat = None
 
-        ## test for speed
-        #nco.close()
-        #nco = '{}'.format(ofile)
-
         if sub is not None: ## read cropped version
             lon = ac.shared.nc_data(file, 'longitude', group='geolocation_data', sub=sub)
         ac.output.nc_write(nco, 'lon', lon)
@@ -127,6 +123,7 @@ def l1_convert(inputfile, output = None, settings = None):
         band_waves = []
         band_widths = []
         for det in ['blue', 'red', 'SWIR']:
+            print('Reading data from detector {}'.format(det))
             f0_det = ac.shared.nc_data(file, '{}_solar_irradiance'.format(det), group='sensor_band_parameters')
             wv_det = ac.shared.nc_data(file, '{}_wavelength'.format(det), group='sensor_band_parameters')
 
