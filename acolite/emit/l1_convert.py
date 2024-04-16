@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-09
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import netCDF4, os
@@ -114,24 +115,23 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
         ofile = '{}/{}.nc'.format(output, obase)
         gatts['obase'] = obase
 
-        new = True
-        nc_projection = None
-        ## write lat/lon
-        if (setu['output_geolocation']) & (new):
-            if verbosity > 1: print('Writing geolocation lon/lat')
-            ac.output.nc_write(ofile, 'lon', loc['lon'], attributes=gatts, new=new, nc_projection=nc_projection)
-            if verbosity > 1: print('Wrote lon ({})'.format(loc['lon'].shape))
+        ## outputfile
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
 
-            ac.output.nc_write(ofile, 'lat', loc['lat'], double=True)
+        ## write lat/lon
+        if (setu['output_geolocation']):
+            if verbosity > 1: print('Writing geolocation lon/lat')
+            gemo.write('lon', loc['lon'])
+            if verbosity > 1: print('Wrote lon ({})'.format(loc['lon'].shape))
+            gemo.write('lat', loc['lat'])
             if verbosity > 1: print('Wrote lat ({})'.format(loc['lat'].shape))
-            new=False
 
         if setu['output_geometry']:
             if verbosity > 1: print('Writing geometry')
             for k in geom:
-                ac.output.nc_write(ofile, k, geom[k], attributes=gatts, new=new)
+                gemo.write(k, geom[k])
                 if verbosity > 1: print('Wrote {} ({})'.format(k, geom[k].shape))
-                new=False
 
         ## read radiance data
         if verbosity > 1: print('Reading radiance cube')
@@ -147,9 +147,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
 
             if setu['output_lt']:
                 ## write toa radiance
-                ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                      dataset_attributes = ds_att, new = new, attributes = gatts)
-                new = False
+                gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
                 print('Wrote Lt_{}'.format(bands[b]['wave_name']))
 
             ## compute reflectance
@@ -157,11 +155,10 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
             cdata_radiance = None
 
             ## write toa reflectance
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,
-                                dataset_attributes = ds_att, new = new, attributes = gatts)
+            gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
             cdata = None
-            new = False
             print('Wrote rhot_{}'.format(bands[b]['wave_name']))
+        gemo.close()
         print('Wrote {}'.format(ofile))
         ofiles.append(ofile)
     return(ofiles, setu)
