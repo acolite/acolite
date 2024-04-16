@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-04-12
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -24,9 +25,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## get F0 for radiance -> reflectance computation
-    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-
     ofiles = []
     for bundle in inputfile:
         tiles, metafile = ac.formosat.bundle_test(bundle)
@@ -45,6 +43,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         gains = setu['gains']
         gains_toa = setu['gains_toa']
         if output is None: output = setu['output']
+
+        ## get F0 for radiance -> reflectance computation
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
         print('Processing {}'.format(bundle))
 
@@ -105,9 +106,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
         ## run through tiles
         for ti, image_file in enumerate(tiles):
-            new = True
             gatts['obase'] = obase
             ofile = '{}/{}.nc'.format(odir, gatts['obase'])
+            gatts['ofile'] = ofile
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
 
             ## identify projection
             try:
@@ -125,13 +128,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if setu['output_geolocation']:
                     if verbosity > 1: print('Computing latitude/longitude')
                     lon, lat = ac.shared.projection_geo(prj, add_half_pixel=True)
-                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
+                    gemo.write('lon', lon)
                     lon = None
                     if verbosity > 1: print('Wrote lon')
-                    ac.output.nc_write(ofile, 'lat', lat)
+                    gemo.write('lat', lat)
                     lat = None
                     if verbosity > 1: print('Wrote lat')
-                    new=False
 
             ## run through bands
             for bi, b in enumerate(band_names):
@@ -151,19 +153,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
                 if output_lt:
                     ## write toa radiance
-                    ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                        attributes = gatts, dataset_attributes = bands[b], new = new)
-                    new = False
+                    gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = bands[b])
 
                 ## compute reflectance
                 cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0'] * mu0)
                 cdata_radiance = None
-
-                ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                        attributes = gatts, dataset_attributes = bands[b], new = new)
+                gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = bands[b])
                 cdata = None
-                new = False
-
+            gemo.close()
             ## add current tile to outputs
             ofiles.append(ofile)
 
