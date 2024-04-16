@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-02-21
 ## modifications: 2024-04-15 (QV) updated for first light data, integrated as function
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -92,20 +93,23 @@ def l1_convert(inputfile, output = None, settings = None):
         ## read write lat/lon
         if sub is not None: ## read cropped version
             lat = ac.shared.nc_data(file, 'latitude', group='geolocation_data', sub=sub)
-        nco = ac.output.nc_write(ofile, 'lat', lat, new = True, return_nc = True)
+
+        ## output gem
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.write('lat', lat)
         lat = None
 
         if sub is not None: ## read cropped version
             lon = ac.shared.nc_data(file, 'longitude', group='geolocation_data', sub=sub)
-        ac.output.nc_write(nco, 'lon', lon)
+        gemo.write('lon', lon)
         lon = None
 
         ## read write geometry
         sza = ac.shared.nc_data(file, 'solar_zenith', group='geolocation_data', sub=sub)
-        ac.output.nc_write(nco, 'sza', sza)
+        gemo.write('sza', sza)
         sza = None
         vza = ac.shared.nc_data(file, 'sensor_zenith', group='geolocation_data', sub=sub)
-        ac.output.nc_write(nco, 'vza', vza)
+        gemo.write('vza', vza)
         vza = None
 
         saa = ac.shared.nc_data(file, 'solar_azimuth', group='geolocation_data', sub=sub)
@@ -114,9 +118,11 @@ def l1_convert(inputfile, output = None, settings = None):
         raa = np.abs(saa - vaa)
         tmp = np.where(raa>180)
         raa[tmp]=np.abs(360 - raa[tmp])
+        gemo.write('saa', saa)
+        gemo.write('vaa', vaa)
         saa, vaa = None, None
 
-        ac.output.nc_write(nco, 'raa', raa)
+        gemo.write('raa', raa)
         raa = None
 
         ## read band data
@@ -145,15 +151,17 @@ def l1_convert(inputfile, output = None, settings = None):
                 band_widths.append(att['width'])
 
                 ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
-                ac.output.nc_write(nco, ds_name, tmp[bi, :,:], dataset_attributes=att)
+                gemo.write(ds_name, tmp[bi, :,:], ds_att = att)
                 print('Wrote {}'.format(ds_name))
             tmp = None
 
         ## update attributes
         gatts['band_waves'] = band_waves
         gatts['band_widths'] = band_widths
-        ac.shared.nc_gatts_update(ofile, gatts)
 
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.gatts_update()
+        gemo.close()
         ofiles.append(ofile)
 
     return(ofiles, setu)

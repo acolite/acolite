@@ -158,7 +158,7 @@ class gem(object):
             if self.verbosity > 0: print('Wrote {}'.format(ds))
 
         ## update global attributes
-        def update_attributes(self, close = True):
+        def gatts_update(self, close = True):
             if self.nc_mode != 'a': self.open('a')
             for key in self.gatts.keys():
                 if key in ac.config['skip_attributes']: continue

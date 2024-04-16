@@ -1857,7 +1857,7 @@ def acolite_l2r(gem,
 
     ## update attributes with latest version
     if output_file:
-        gemo.update_attributes()
+        gemo.gatts_update()
         gemo.close()
 
     if verbosity>0: print('Wrote {}'.format(ofile))
