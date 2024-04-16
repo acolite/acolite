@@ -5,6 +5,7 @@
 ## modifications: 2022-02-21 (QV) acolite integration
 ##                2024-03-14 (QV) update settings handling
 ##                                removed RGB/geotiff outputs
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def acolite_pans(ncf, output = None, settings = None):
 
@@ -32,26 +33,25 @@ def acolite_pans(ncf, output = None, settings = None):
         print('pans_method={} not configured, using panr')
         setu['pans_method'] = 'panr'
 
-    ## Open gatts
-    gatts = ac.shared.nc_gatts(ncf)
-    if gatts['sensor'] not in setu['pans_sensors']:
-        print('Pan sharpening not supported for {}'.format(gatts['sensor']))
+    ## Open gem
+    gem = ac.gem.gem(ncf)
+    if gem.gatts['sensor'] not in setu['pans_sensors']:
+        print('Pan sharpening not supported for {}'.format(gem.gatts['sensor']))
+        gem.close()
         return
 
     ## output file
     ncfo = ncf.replace('.nc', '_pans_{}.nc'.format(setu['pans_method']))
     if output is not None: ncfo = '{}/{}'.format(output, os.path.basename(ncfo))
     print('Pan sharpening {} to {}'.format(ncf, ncfo))
+    print('Pan file {}'.format(ncfp))
 
-    # read pan datasets
-    datasets_pan = ac.shared.nc_datasets(ncfp)
-    dsp = [ds for ds in datasets_pan if 'rhot_' in ds][0]
-
-    # read ms datasets
-    datasets = ac.shared.nc_datasets(ncf)
-    rhos_datasets = [ds for ds in datasets if 'rhos_' in ds]
+    # read pan gem
+    gemp = ac.gem.gem(ncfp)
+    dsp = [ds for ds in gemp.datasets if ('rhot_' in ds) | ('pan' == ds)][0]
+    rhos_datasets = [ds for ds in gem.datasets if 'rhos_' in ds]
     rhos_wave = np.asarray([float(ds.split('_')[1]) for ds in rhos_datasets])
-    rhot_datasets = [ds for ds in datasets if 'rhot_' in ds]
+    rhot_datasets = [ds for ds in gem.datasets if 'rhot_' in ds]
     rhot_wave = np.asarray([float(ds.split('_')[1]) for ds in rhot_datasets])
 
     ## find rgb datasets
@@ -63,29 +63,43 @@ def acolite_pans(ncf, output = None, settings = None):
         bgr_ds_rhos.append('rhos_{:.0f}'.format(rhot_wave[wi]))
 
     pans_ds = bgr_ds_rhot + bgr_ds_rhos
-    if setu['pans_output'] == 'all': pans_ds = [ds for ds in datasets if ds[0:3] == 'rho']
+    if setu['pans_output'] == 'all': pans_ds = [ds for ds in gem.datasets if ds[0:3] == 'rho']
 
     # get projection info
-    nc_projection_ms = ac.shared.nc_read_projection(ncf)
-    nc_projection_pan = ac.shared.nc_read_projection(ncfp)
-    fac_x = np.diff(nc_projection_ms['x']['data'])[0] / np.diff(nc_projection_pan['x']['data'])[0]
-    fac_y = np.diff(nc_projection_ms['y']['data'])[0] / np.diff(nc_projection_pan['y']['data'])[0]
-    factor = fac_x
-    print('Assuming pan scale factor {} (x={}, y={})'.format(factor, fac_x, fac_y))
+    nc_projection_ms = gem.nc_projection
+    nc_projection_pan = gemp.nc_projection
+    if (nc_projection_ms is not None) & (nc_projection_pan is not None):
+        fac_x = np.diff(nc_projection_ms['x']['data'])[0] / np.diff(nc_projection_pan['x']['data'])[0]
+        fac_y = np.diff(nc_projection_ms['y']['data'])[0] / np.diff(nc_projection_pan['y']['data'])[0]
+        factor = fac_x
+        print('Assuming pan scale factor {} (x={}, y={})'.format(factor, fac_x, fac_y))
+    else:
+        factor = setu['pans_scale_factor']
+        print('Assuming pan scale factor {}'.format(factor))
 
     ## read pan data
-    pan = ac.shared.nc_data(ncfp, dsp)
+    pan = gemp.data(dsp)
+    gemp.close()
+    print(pan.shape)
 
     print('Using pans_method={}'.format(setu['pans_method']))
     ## compute pan factor
     if setu['pans_method'] == 'panr':
-        pan_ms = ac.shared.nc_data(ncf, dsp)
+        if dsp in gem.datasets:
+            pan_ms = gem.data(dsp)
+        else:
+            pan_ms = scipy.ndimage.zoom(pan, zoom=1/factor, order=1)
+
+        print(pan_ms.shape)
+
         pan_ms_ = scipy.ndimage.zoom(pan_ms, factor, order=0)
+        print(pan_ms_.shape)
+
         pan_i = pan_ms_ / pan
     elif setu['pans_method'] == 'visr':
         for i, ds in enumerate(bgr_ds_rhot):
             print(ds)
-            bd = ac.shared.nc_data(ncf, ds)
+            bd = gem.data(dsp)
             if i == 0:
                 vis_i = bd
             else:
@@ -97,16 +111,16 @@ def acolite_pans(ncf, output = None, settings = None):
         pan = None
 
     ## make output file
-    gatts_out = {g:gatts[g] for g in gatts}
-    gatts_out['ofile'] = ncfo
+    gemo = ac.gem.gem(ncfo, new = True)
+    gemo.gatts = {g:gem.gatts[g] for g in gem.gatts}
+    gemo.nc_projection = nc_projection_pan
+    gemo.gatts['ofile'] = ncfo
 
     ## run through pansharpening
-    new = True
-    for ds in datasets:
+    for ds in gem.datasets:
         if ds in ['transverse_mercator', 'x', 'y']: continue
         if ds not in pans_ds: continue
-
-        data, ds_att = ac.shared.nc_data(ncf, ds, attributes=True)
+        data, ds_att = gem.data(ds, attributes = True)
         data_pan = scipy.ndimage.zoom(data, factor, order=0)
         data = None
 
@@ -114,11 +128,11 @@ def acolite_pans(ncf, output = None, settings = None):
             data_pan /= pan_i
             print('Pan sharpened {}'.format(ds))
 
-        ac.output.nc_write(ncfo, ds, data_pan, dataset_attributes=ds_att,
-                           attributes=gatts_out, nc_projection=nc_projection_pan, new=new)
+        gemo.write(ds, data_pan, ds_att = ds_att)
         print('Wrote {}'.format(ds))
         data_pan = None
-        new = False
     print('Wrote {}'.format(ncfo))
+    gem.close()
+    gemo.close()
 
     return(ncfo)

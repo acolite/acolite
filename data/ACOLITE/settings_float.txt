@@ -65,6 +65,7 @@ map_ytick_rotation
 station_lon
 station_lat
 station_box_size
+pans_scale_factor
 
 ## GEE
 st_lon
