@@ -5,8 +5,9 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2023-08-22 (QV) set max wavelength index to number of bands in rtoa array
+##                2024-04-16 (QV) use new gem NetCDF handling, removed rename keyword
 
-def noise_reduction(ncf, rename=True):
+def noise_reduction(ncf):
     import numpy as np
     from scipy.ndimage import gaussian_filter
     import acolite as ac
@@ -37,15 +38,14 @@ def noise_reduction(ncf, rename=True):
         return np.arccos(dots)
 
     ## get datasets and attributes
-    datasets = ac.shared.nc_datasets(ncf)
-    gatts = ac.shared.nc_gatts(ncf)
+    gem = ac.gem.gem(ncf)
 
     ## read data
     ds_att = {}
     RTOA = None
-    for di, ds in enumerate(datasets):
+    for di, ds in enumerate(gem.datasets):
         if 'rhot_' not in ds: continue
-        tmp, att = ac.shared.nc_data(ncf, ds, attributes=True)
+        tmp, att = gem.data(ds, attributes = True)
         ds_att[ds] = att
         if RTOA is None:
             RTOA = tmp
@@ -127,7 +127,6 @@ def noise_reduction(ncf, rename=True):
             R = spectral_angles(a, b)
             DISTmat[j,i] = R[0][0][0]
 
-
     DISTmat[:,ncol-1] = DISTmat[:,ncol-2]
 
     DISTvect = np.nanquantile(DISTmat, 0.8, axis=1)
@@ -167,19 +166,16 @@ def noise_reduction(ncf, rename=True):
             RTOAcal2[:,i,w] = RTOAcal1d[:,i,w]*E[w,i]
 
     ## output result
-    if rename:
-        ofile = ncf.replace('_L1R.nc', '_L1R_NR.nc')
-        new = True
-    else:
-        ofile = '{}'.format(ncf)
-        new = False
+    ofile = ncf.replace('_L1R.nc', '_L1R_NR.nc')
+    gemo = ac.gem.gem(ofile, new = True)
+    gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
+
     dix = 0
-    for di, ds in enumerate(datasets):
+    for di, ds in enumerate(gem.datasets):
         if 'rhot_' in ds:
-            ac.output.nc_write(ofile, ds, RTOAcal2[:,:,dix], dataset_attributes=ds_att[ds], attributes=gatts, new=new)
+            gemo.write(ds, RTOAcal2[:,:,dix], ds_att=ds_att[ds])
             dix += 1
         else:
-            tmp, att = ac.shared.nc_data(ncf, ds, attributes=True)
-            ac.output.nc_write(ofile, ds, tmp, dataset_attributes=att, attributes=gatts, new=new)
-        new = False
+            tmp, att = gem.data(ds, attributes = True)
+            gemo.write(ds, tmp, ds_att=ds_att[ds])
     return(ofile)

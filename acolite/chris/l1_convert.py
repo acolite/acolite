@@ -5,6 +5,7 @@
 ## modifications: 2021-12-31 (QV) new handling of settings
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
     from pyhdf.SD import SD,SDC
@@ -29,7 +30,6 @@ def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
-
 
     ## get CHRIS interband calibration
     if interband_calibration: ibcal = ac.chris.interband_calibration()
@@ -176,7 +176,11 @@ def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
 
         ## write TOA reflectance
         if verbosity > 1: print('Converting bands')
-        new = True
+
+        ## set up output file
+        gemo = ac.gem.gem(ofile, new=True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+
         for b in range(nbands):
             wave_f = mode_info[b]['WlMid']
             width = mode_info[b]['BWidth']
@@ -215,22 +219,21 @@ def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
             ## output TOA radiance
             if output_radiance:
                 ds = 'L_{}'.format(wave)
-                ac.output.nc_write(ofile, ds, cur_data,dataset_attributes=ds_att,attributes=gatts, new=new)
-                new = False
+                gemo.write(ds, cur_data, ds_att = ds_att)
                 if verbosity > 2: print('Wrote {} to {}'.format(ds, ofile))
 
             ## output TOA reflectance
             cur_data *= (np.pi*se_distance*se_distance) / (f0_bands[b]*1000 * mu0)
             ds = 'rhot_{}'.format(wave)
-            ac.output.nc_write(ofile, ds, cur_data, dataset_attributes=ds_att, attributes=gatts, new=new)
+            gemo.write(ds, cur_data, ds_att = ds_att)
             if verbosity > 2: print('Wrote {} to {}'.format(ds, ofile))
-            new = False
         hdf = None
+        gemo.close()
 
         ## apply noise reduction
         if noise_reduction:
             print('Applying CHRIS Noise Reduction')
-            ofile = ac.chris.noise_reduction(ofile, rename=True)
+            ofile = ac.chris.noise_reduction(ofile)
 
         if ofile not in ofiles: ofiles.append(ofile)
 
