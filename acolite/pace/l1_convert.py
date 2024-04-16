@@ -92,20 +92,24 @@ def l1_convert(inputfile, output = None, settings = None):
         ## read write lat/lon
         if sub is not None: ## read cropped version
             lat = ac.shared.nc_data(file, 'latitude', group='geolocation_data', sub=sub)
-        ac.output.nc_write(ofile, 'lat', lat, new=True)
+        nco = ac.output.nc_write(ofile, 'lat', lat, new = True, return_nc = True)
         lat = None
+
+        ## test for speed
+        #nco.close()
+        #nco = '{}'.format(ofile)
 
         if sub is not None: ## read cropped version
             lon = ac.shared.nc_data(file, 'longitude', group='geolocation_data', sub=sub)
-        ac.output.nc_write(ofile, 'lon', lon)
+        ac.output.nc_write(nco, 'lon', lon)
         lon = None
 
         ## read write geometry
         sza = ac.shared.nc_data(file, 'solar_zenith', group='geolocation_data', sub=sub)
-        ac.output.nc_write(ofile, 'sza', sza)
+        ac.output.nc_write(nco, 'sza', sza)
         sza = None
         vza = ac.shared.nc_data(file, 'sensor_zenith', group='geolocation_data', sub=sub)
-        ac.output.nc_write(ofile, 'vza', vza)
+        ac.output.nc_write(nco, 'vza', vza)
         vza = None
 
         saa = ac.shared.nc_data(file, 'solar_azimuth', group='geolocation_data', sub=sub)
@@ -116,7 +120,7 @@ def l1_convert(inputfile, output = None, settings = None):
         raa[tmp]=np.abs(360 - raa[tmp])
         saa, vaa = None, None
 
-        ac.output.nc_write(ofile, 'raa', raa)
+        ac.output.nc_write(nco, 'raa', raa)
         raa = None
 
         ## read band data
@@ -144,10 +148,10 @@ def l1_convert(inputfile, output = None, settings = None):
                 band_widths.append(att['width'])
 
                 ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
-                ac.output.nc_write(ofile, ds_name, tmp[bi, :,:], dataset_attributes=att)
+                ac.output.nc_write(nco, ds_name, tmp[bi, :,:], dataset_attributes=att)
                 print('Wrote {}'.format(ds_name))
             tmp = None
-            
+
         ## update attributes
         gatts['band_waves'] = band_waves
         gatts['band_widths'] = band_widths
