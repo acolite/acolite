@@ -5,6 +5,7 @@
 ## 2023-02-14
 ## modifications:
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-16 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
     import os, glob
@@ -187,24 +188,21 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         ## write L1R netcdf
-        new = True
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = gatts
 
         ## output lat/lon
         if setu['output_geolocation']:
             if verbosity > 1: print('Writing geolocation')
             dsets = {'lon':'longitude', 'lat':'latitude'}
-            for ds in dsets:
-                ac.output.nc_write(ofile, ds, data[dsets[ds]], new=new, attributes=gatts)
-                new = False
+            for ds in dsets: gemo.write(ds, data[dsets[ds]])
 
         ## output geometry
         if setu['output_geometry']:
             if verbosity > 1: print('Writing geometry')
             dsets = {'sza':'SZA', 'vza':'OZA', 'raa': 'RAA',
                      'saa': 'SAA', 'vaa':'OAA', 'pressure': 'sea_level_pressure'}
-            for ds in dsets:
-                ac.output.nc_write(ofile, ds, tpg_int[dsets[ds]], new=new, attributes=gatts)
-                new = False
+            for ds in dsets: gemo.write(ds, tpg_int[dsets[ds]])
 
         ## is the F0 already corrected for Sun - Earth distance?
         ## see OLCI_L2_ATBD_Instrumental_Correction.pdf
@@ -237,19 +235,18 @@ def l1_convert(inputfile, output=None, settings={}, verbosity = 5):
 
             ## write toa radiance
             if setu['output_lt']:
-                ac.output.nc_write(ofile, 'Lt_{}'.format(wave), data['{}_radiance'.format(band)],dataset_attributes = ds_att)
+                gemo.write('Lt_{}'.format(wave), data['{}_radiance'.format(band)], ds_att = ds_att)
                 if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data['{}_radiance'.format(band)].shape))
 
             ## compute toa reflectance
             d = (np.pi * data['{}_radiance'.format(band)] * se2) / (data['solar_flux_band_{}'.format(bidx)] * mus)
-
-            ac.output.nc_write(ofile, ds, d, dataset_attributes=ds_att, new=new, attributes=gatts)
+            gemo.write(ds, d, ds_att = ds_att)
             if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
-            new = False
             d = None
 
         ## clear data
         data = None
+        gemo.close()
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
