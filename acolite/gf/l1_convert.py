@@ -8,6 +8,7 @@
 ##                2022-11-22 (QV) added GF1 WFV1-4
 ##                2022-12-10 (QV) changed bias to 0.0
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -160,7 +161,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         ## run through tiles
         if verbosity > 1: print('Running through {} {} image tiles'.format(len(tiles), sensor))
         for ti, image_file in enumerate(tiles):
-            new = True
             bn = os.path.basename(image_file)
             try:
                 ctile = os.path.splitext(bn)[0].split('-')[1]
@@ -171,6 +171,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             if ctile.upper() == 'PAN': continue
             gatts['obase'] = obase + '_{}'.format(ctile)
             ofile = '{}/{}.nc'.format(odir, gatts['obase'])
+
+            ## output file - one per tile
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
+            #gemo.nc_projection = nc_projection
 
             if verbosity > 1: print('Running {} tile {}/{}'.format(sensor, ti+1, len(tiles)))
 
@@ -207,13 +212,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 if True:
                     if verbosity > 1: print('Computing latitude/longitude')
                     lon, lat = ac.shared.projection_geo(prj, add_half_pixel=True)
-                    ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
+                    gemo.write('lon', lon)
                     lon = None
                     if verbosity > 1: print('Wrote lon')
-                    ac.output.nc_write(ofile, 'lat', lat)
+                    gemo.write('lat', lat)
                     lat = None
                     if verbosity > 1: print('Wrote lat')
-                    new=False
 
             ## run through bands
             for bi, b in enumerate(bands_sorted):
@@ -234,18 +238,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
                 if output_lt:
                     ## write toa radiance
-                    ac.output.nc_write(ofile, 'Lt_{}'.format(bands[b]['wave_name']), cdata_radiance,
-                                        attributes = gatts, dataset_attributes = bands[b], new = new)
-                    new = False
+                    gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = bands[b])
 
                 ## compute reflectance
                 cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0'] * mu0)
                 cdata_radiance = None
-
-                ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
-                                        attributes = gatts, dataset_attributes = bands[b], new = new)
+                gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = bands[b])
                 cdata = None
-                new = False
 
             ## old geolocation
             if (rpr_file is None) and (prj is None):
@@ -281,21 +280,23 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 x = np.arange(x0, x0+ns, 1)
                 y = np.arange(y0, y0+nl, 1)
 
-                print('Computing lat')
-                lat = zlat(x, y)
-                ac.output.nc_write(ofile, 'lat', lat, attributes = gatts, new = new)
-                lat = None
-
                 print('Computing lon')
                 lon = zlon(x, y)
-                ac.output.nc_write(ofile, 'lon', lon)
+                gemo.write('lon', lon)
                 lon = None
-                new = False
+
+                print('Computing lat')
+                lat = zlat(x, y)
+                gemo.write('lat', lat)
+                lat = None
 
             ## remove reprojected file
             if (clear_scratch) & (rpr_file is not None):
                 if os.path.exists(rpr_file):
                     os.remove(rpr_file)
+
+            ## close output file
+            gemo.close()
 
             ## add current tile to outputs
             ofiles.append(ofile)
