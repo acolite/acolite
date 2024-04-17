@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) get extend_region from setu
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -179,39 +180,46 @@ def l1_convert(inputfile, output = None, settings = {},
             clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
 
+        if new:
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
+        else:
+            gemo = ac.gem.gem(ofile)
+        new=False
+
+        if (os.path.exists(ofile) & (not new)):
+            datasets = gemo.datasets
+        else:
+            datasets = []
+
         ## write lat/lon
         if (output_geolocation):
-            if (os.path.exists(ofile) & (not new)):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
+                #ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new)
+                gemo.write('lon', lon)
                 lon = None
                 if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat)
+                #ac.output.nc_write(ofile, 'lat', lat)
+                gemo.write('lat', lat)
                 lat = None
                 if verbosity > 1: print('Wrote lat')
-                new=False
 
         ## write x/y
         if (output_xy):
-            if os.path.exists(ofile) & (not new):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new)
+                #ac.output.nc_write(ofile, 'x', x, new=new)
+                gemo.write('xm', x)
                 x = None
-                if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y)
+                if verbosity > 1: print('Wrote xm')
+                #ac.output.nc_write(ofile, 'y', y)
+                gemo.write('ym', y)
                 y = None
-                if verbosity > 1: print('Wrote y')
-                new=False
+                if verbosity > 1: print('Wrote ym')
+                #new=False
 
         ## add cloud mask
         if True:
@@ -221,7 +229,8 @@ def l1_convert(inputfile, output = None, settings = {},
                 if k['name'] == 'Cloud_Altitude_Grid':
                     im = k['path']
             cla = ac.shared.read_band(im, idx=1, warp_to=warp_to)
-            ac.output.nc_write(ofile, 'cla', cla, new=new)
+            #ac.output.nc_write(ofile, 'cla', cla, new=new)
+            gemo.write('cla', cla)
             cla = None
             if verbosity > 1: print('Wrote cla')
 
@@ -268,7 +277,6 @@ def l1_convert(inputfile, output = None, settings = {},
             data = ac.shared.read_band(image_file, idx=1, warp_to=warp_to)
             nodata = data == np.uint16(0)
 
-
             data = data.astype(float) / meta['REFLECTANCE_QUANTIFICATION_VALUE']
             data[nodata] = np.nan
             print(data.shape)
@@ -282,14 +290,16 @@ def l1_convert(inputfile, output = None, settings = {},
                 ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
             ## write to netcdf file
-            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
-            new = False
+            #ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)
+            #new = False
+            gemo.write(ds, data, ds_att = ds_att)
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
 
+        gemo.close()
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
