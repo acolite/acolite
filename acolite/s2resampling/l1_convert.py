@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-05-02
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -65,10 +66,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                   'sun_zenith': 'sza', 'sun_azimuth': 'saa'}
 
         ## read data
+        gemi = ac.gem.gem(bundle)
         data = {}
         for ds in dsets:
             print('Reading {}'.format(ds))
-            d, att = ac.shared.nc_data(bundle, ds, attributes=True)
+            d, att = gemi.data(ds, attributes = True)
             data[dsets[ds]] = d
 
         ## compute raa
@@ -77,11 +79,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         data['raa'][raasub] =np.abs(360-data['raa'][raasub])
 
         ## write data
-        new = True
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
         for dso in data:
             print('Writing {}'.format(dso))
-            ac.output.nc_write(ofile, dso, data[dso], new=new, attributes=gatts)
-            new = False
+            gemo.write(dso, data[dso])
             data[dso] = None
 
         saa = None
@@ -90,33 +92,33 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             ds = 'B{}'.format(b)
             dso = 'rhot_{}'.format(rsrd['wave_name'][b])
             print(ds, dso)
-            d, att = ac.shared.nc_data(bundle, ds, attributes=True)
-
-            ac.output.nc_write(ofile, dso, d)
+            d, att = gemi.data(ds, attributes = True)
+            gemo.write(dso, d)
 
             ## add band specific geometry data
             if setu['geometry_per_band']:
                 ## read sun azimuth angle
-                if saa is None: saa = ac.shared.nc_data(ofile, 'saa')
+                if saa is None: saa = gemi.data('sun_azimuth')
 
                 ## read band view zenith angle
-                d, att = ac.shared.nc_data(bundle, 'view_zenith_B{}'.format(b), attributes=True)
                 dso = 'vza_{}'.format(rsrd['wave_name'][b])
                 print(dso)
-                ac.output.nc_write(ofile, dso, d)
+                d, att = gemi.data('view_zenith_B{}'.format(b), attributes = True)
+                gemo.write(dso, d)
 
                 ## read band view azimuth angle
-                d, att = ac.shared.nc_data(bundle, 'view_azimuth_B{}'.format(b), attributes=True)
                 dso = 'vaa_{}'.format(rsrd['wave_name'][b])
                 print(dso)
-                ac.output.nc_write(ofile, dso, d)
+                d, att = gemi.data('view_azimuth_B{}'.format(b), attributes = True)
+                gemo.write(dso, d)
 
                 dso = 'raa_{}'.format(rsrd['wave_name'][b])
                 d = np.abs(saa - d)
                 raasub = np.where(d > 180)
                 d[raasub] = np.abs(360 - d[raasub])
                 print(dso)
-                ac.output.nc_write(ofile, dso, d)
-
+                gemo.write(dso, d)
+        gemi.close()
+        gemo.close()
         ofiles.append(ofile)
     return(ofiles, setu)
