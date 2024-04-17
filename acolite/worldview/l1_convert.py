@@ -6,6 +6,7 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2022-11-14 (QV) added subsetting of projected data
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -264,7 +265,11 @@ def l1_convert(inputfile, output = None,
             gatts['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
 
         ## write results to output file
-        new=True
+        new = True
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.nc_projection = nc_projection
+        new = False
 
         ## write lat/lon
         if output_geolocation:
@@ -272,11 +277,15 @@ def l1_convert(inputfile, output = None,
             if dct is not None: ## compute from projection info
                 print('lat/lon computed from projection info')
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
-                ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
-                                                nc_projection = nc_projection)
-                lat = None
-                ac.output.nc_write(ofile, 'lon', lon, nc_projection = nc_projection)
+                #ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
+                #                                nc_projection = nc_projection)
+                #lat = None
+                #ac.output.nc_write(ofile, 'lon', lon, nc_projection = nc_projection)
+                #lon = None
+                gemo.write('lon', lon)
                 lon = None
+                gemo.write('lat', lat)
+                lat = None
             else: ## compute from corners given in metadata
                 print('lat/lon interpolated from metadata corners')
                 pcol = [0, global_dims[1], global_dims[1], 0]
@@ -295,14 +304,15 @@ def l1_convert(inputfile, output = None,
                 zlat = scipy.interpolate.interp2d(pcol, prow, plat, kind='linear')
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
-                ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts,
-                                        nc_projection = nc_projection)
-                ac.output.nc_write(ofile, 'lon', zlon(x, y), nc_projection = nc_projection)
+                #ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts,
+                #                        nc_projection = nc_projection)
+                #ac.output.nc_write(ofile, 'lon', zlon(x, y), nc_projection = nc_projection)
+                gemo.write('lon', zlon(x, y))
+                gemo.write('lat', zlat(x, y))
                 x = None
                 y = None
                 zlat = None
                 zlon = None
-            new = False
         ## end write lat/lon
 
         ## run through bands
@@ -392,12 +402,13 @@ def l1_convert(inputfile, output = None,
 
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
-            ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att,
-                                nc_projection = nc_projection)
+            #ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att,
+            #                    nc_projection = nc_projection)
+            gemo.write(ds, data_full, ds_att = ds_att)
             if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
-            new = False
             data_full = None
 
+        gemo.close()
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
