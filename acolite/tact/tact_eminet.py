@@ -8,8 +8,9 @@
 ## 2022-08-09
 ## modifications: 2022-08-11 (QV) don't attempt to run with missing bands
 ##                2022-10-23 (QV) added EMINET download
+##                2024-04-17 (QV) use new gem NetCDF handling
 
-def tact_eminet(gemf, model_path = None,
+def tact_eminet(gem, model_path = None,
                       water_fill = True, water_threshold = 0.0215,
                       fill = True, fill_dilate = False,
                       model_base = 'EMINET_{}_{}_64x4.h5', model_version = '20220809', netname = 'Net1', verbosity = 5):
@@ -18,6 +19,11 @@ def tact_eminet(gemf, model_path = None,
     import acolite as ac
     from keras.models import load_model
     import numpy as np
+
+    ## read gem file if NetCDF
+    if type(gem) is str:
+        gem = ac.gem.gem(gem)
+    gemf = gem.file
 
     ## find L2R with rhos
     dn = os.path.dirname(gemf)
@@ -28,10 +34,12 @@ def tact_eminet(gemf, model_path = None,
         print('ACOLITE L2R file required for EMINET {} not found.'.format(ncf))
         return(None)
 
-    gatts = ac.shared.nc_gatts(ncf)
+    print('Opening {}'.format(ncf))
+    gemi = ac.gem.gem(ncf)
+    datasets = gemi.datasets
     sensors = { 'L5_TM':'L5_TM_B6', 'L7_ETM':'L7_ETM_B6',
                 'L8_OLI':'L8_TIRS', 'L9_OLI':'L9_TIRS'}
-    satsen = sensors[gatts['sensor']]
+    satsen = sensors[gemi.gatts['sensor']]
 
     ## select model
     if model_path is None:
@@ -77,10 +85,9 @@ def tact_eminet(gemf, model_path = None,
         ibands = ['1','2','3','4','5','7']
         obands = ['6']
         emsen = '{}'.format(satsen[0:-3])
-    rsr = ac.shared.rsr_dict(sensor = gatts['sensor'])[gatts['sensor']]
+    rsr = ac.shared.rsr_dict(sensor = gemi.gatts['sensor'])[gemi.gatts['sensor']]
     datasets_needed = ['rhos_{}'.format(rsr['wave_name'][b]) for b in ibands]
 
-    datasets = ac.shared.nc_datasets(ncf)
     datasets_found = [ds for ds in datasets_needed if ds in datasets]
     if (datasets_found != datasets_needed):
         print('Could not load required datasets from {}'.format(ncf))
@@ -90,7 +97,7 @@ def tact_eminet(gemf, model_path = None,
 
     spect = None
     for ds in datasets_needed:
-        data = ac.shared.nc_data(ncf,ds)
+        data = gemi.data(ds)
         if len(np.where(np.isfinite(data))[0]) == 0: break
         if spect is None:
             data_dim = data.shape
@@ -98,6 +105,8 @@ def tact_eminet(gemf, model_path = None,
             spect = data.flatten()
         else:
             spect = np.vstack((spect, data.flatten()))
+    gemi.close()
+    gemi = None
 
     ## Maybe not needed if L1R is empty L2R will be missing
     if spect is None:

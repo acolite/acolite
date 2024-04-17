@@ -8,6 +8,7 @@
 ##                2022-08-02 (QV) added source keyword
 ##                2022-08-03 (QV) added external emissivity files
 ##                2024-03-14 (QV) update settings handling
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -28,30 +29,36 @@ def tact_gem(gem, output_file = True,
     import numpy as np
     import acolite as ac
 
-    ## determine datasets to skip
+    ## read gem file if NetCDF
     if type(gem) is str:
-        datasets = ac.shared.nc_datasets(gem)
-    else:
-        datasets = gem['datasets']
+        gem = ac.gem.gem(gem)
+    gemf = gem.file
 
+    ## find datasets we need
     skip_datasets = []
-    for ds in datasets:
+    for ds in gem.datasets:
         if ds in ['lat', 'lon']: continue
         if ds[0:2] == 'bt': continue
         if ds[0:2] == 'lt': continue
         skip_datasets.append(ds)
 
-    ## read gem file if NetCDF
-    if type(gem) is str:
-        gemf = '{}'.format(gem)
-        gem = ac.gem.read(gem, sub=sub, skip_datasets=skip_datasets)
-    gemf = gem['gatts']['gemfile']
+    ## read in datasets from NetCDF
+    dct = {'data': {}, 'atts': {}}
+    for ds in gem.datasets:
+        if ds in skip_datasets: continue
+        if 'projection_key' in gem.gatts:
+                if ds in ['x', 'y', gem.gatts['projection_key']]: continue
+        d_, a_ = gem.data(ds, sub = sub, attributes = True)
+        dct['data'][ds] = d_
+        dct['atts'][ds] = a_
+        print('Read {} {}'.format(ds, d_.shape))
+        d_, a_= None, None
 
     ## combine default and user defined settings
     if settings is not None:
         ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
         for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
-    setu = ac.acolite.settings.parse(gem['gatts']['sensor'], settings=ac.settings['user'])
+    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
     for k in setu: ac.settings['run'][k] = setu[k] ## update run settings with user settings and sensor defaults
 
     ## get verbosity from run settings
@@ -67,24 +74,24 @@ def tact_gem(gem, output_file = True,
     wave_range = setu['tact_range']
 
     ## detect sensor
-    if ('thermal_sensor' not in gem['gatts']) or ('thermal_bands' not in gem['gatts']):
-        if verbosity > 0: print('TACT Processing of {} not supported'.format(gem['gatts']['sensor']))
+    if ('thermal_sensor' not in gem.gatts) or ('thermal_bands' not in gem.gatts):
+        if verbosity > 0: print('TACT Processing of {} not supported'.format(gem.gatts['sensor']))
         return
 
     ## check if we need to run tact
     run_tact = False
-    for b in gem['gatts']['thermal_bands']:
+    for b in gem.gatts['thermal_bands']:
         dsi = 'bt{}'.format(b)
-        if dsi in gem['datasets']: run_tact = True
+        if dsi in gem.datasets: run_tact = True
     if not run_tact:
-        print('No thermal bands for {} (bands {}) in {}'.format(gem['gatts']['sensor'], ','.join(gem['gatts']['thermal_bands']), gemf))
+        print('No thermal bands for {} (bands {}) in {}'.format(gem.gatts['sensor'], ','.join(gem.gatts['thermal_bands']), gemf))
         return
 
     ## check blackfill
     if setu['blackfill_skip']:
-        for b in gem['gatts']['thermal_bands']:
-            if 'bt{}'.format(b) in gem['data']:
-                band_data = 1.0*gem['data']['bt{}'.format(b)]
+        for b in gem.gatts['thermal_bands']:
+            if 'bt{}'.format(b) in dct['data']:
+                band_data = 1.0*dct['data']['bt{}'.format(b)]
                 break
         npx = band_data.shape[0] * band_data.shape[1]
         #nbf = npx - len(np.where(np.isfinite(band_data))[0])
@@ -96,7 +103,7 @@ def tact_gem(gem, output_file = True,
 
     if source == 'era5':
         max_date = (datetime.datetime.now() - datetime.timedelta(days=92)).isoformat()
-        if gem['gatts']['isodate'] > max_date:
+        if gem.gatts['isodate'] > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format(source, max_date))
             print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
             return
@@ -118,23 +125,18 @@ def tact_gem(gem, output_file = True,
     else:
         em = None
 
-    if 'nc_projection' in gem:
-        nc_projection = gem['nc_projection']
-    else:
-        nc_projection = None
-
     if verbosity > 0: print('Running tact for {}'.format(gemf))
 
     if target_file is None:
-        #if 'output_name' in gem['gatts']:
-        #    output_name = gem['gatts']['output_name']
-        #elif 'oname' in gem['gatts']:
-        #    output_name = gem['gatts']['oname']
+        #if 'output_name' in gem.gatts:
+        #    output_name = gem.gatts['output_name']
+        #elif 'oname' in gem.gatts:
+        #    output_name = gem.gatts['oname']
         #else:
         #    output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L1R', '')
-        output_name = output_name.replace(gem['gatts']['sensor'], gem['gatts']['thermal_sensor'])
+        output_name = output_name.replace(gem.gatts['sensor'], gem.gatts['thermal_sensor'])
         odir = output if output is not None else os.path.dirname(gemf)
         ofile = '{}/{}_ST.nc'.format(odir, output_name)
     else:
@@ -142,19 +144,22 @@ def tact_gem(gem, output_file = True,
 
     print('Running ACOLITE/TACT for {}'.format(gemf))
 
+    ## read lon/lat
+    lon = gem.data('lon')
+    lat = gem.data('lat')
+
     ## datasets to write
     output_datasets = []
     for ds in copy_datasets: output_datasets.append(ds)
 
     ## radiative transfer
-    thd, simst, lonc, latc = ac.tact.tact_limit(gem['gatts']['isodate'],
-                                                lon=gem['data']['lon'],
-                                                lat=gem['data']['lat'],
-                                                satsen=gem['gatts']['thermal_sensor'],
+    thd, simst, lonc, latc = ac.tact.tact_limit(gem.gatts['isodate'],
+                                                lon = lon, lat = lat,
+                                                satsen=gem.gatts['thermal_sensor'],
                                                 wave_range = wave_range,
                                                 reptran = reptran, source = source)
     for ds in thd:
-        gem['data'][ds] = thd[ds]
+        dct['data'][ds] = thd[ds]
         ## output atmosphere parameters
         if output_atmosphere: output_datasets += [ds]
     thd = None
@@ -162,10 +167,10 @@ def tact_gem(gem, output_file = True,
 
     ## read bands and do thermal a/c
     em_ged, em_eminet, em_ndvi = None, None, None
-    for b in gem['gatts']['thermal_bands']:
+    for b in gem.gatts['thermal_bands']:
         dsi = 'bt{}'.format(b)
 
-        if dsi in gem['datasets']:
+        if dsi in gem.datasets:
             btk = 'bt{}'.format(b)
             ltk = 'lt{}'.format(b)
             lsk = 'ls{}'.format(b)
@@ -176,26 +181,26 @@ def tact_gem(gem, output_file = True,
             output_datasets += [dso]
 
             #gd['data'][btk] = ac.shared.nc_data(ncf, dsi, sub=sub)
-            #mask = gem['data'][btk].mask
-            #gem['data'][btk] = gem['data'][btk].data
-            #gem['data'][btk][mask] = np.nan
+            #mask = dct['data'][btk].mask
+            #dct['data'][btk] = dct['data'][btk].data
+            #dct['data'][btk][mask] = np.nan
 
             bk = b.split('_')[0]
             e = None
             if emissivity == 'ged':
                 if em_ged is None:
                     ## determine bands
-                    if gem['gatts']['thermal_sensor'] in ['L8_TIRS', 'L9_TIRS']:
+                    if gem.gatts['thermal_sensor'] in ['L8_TIRS', 'L9_TIRS']:
                         bands = [13, 14]
                         bkeys = {'10':0, '11':1}
-                    elif gem['gatts']['thermal_sensor'] in ['L5_TM', 'L7_ETM']:
+                    elif gem.gatts['thermal_sensor'] in ['L5_TM', 'L7_ETM']:
                         bands = [13]
                         bkeys = {'6':0}
-                    elif gem['gatts']['thermal_sensor'] in ['ISS_ECOSTRESS']:
+                    elif gem.gatts['thermal_sensor'] in ['ISS_ECOSTRESS']:
                         bands = [10, 11, 12, 13, 14]
                         bkeys = {'1':0, '2':1, '3':2, '4':3, '5':4}
                     ## load GED emissivity
-                    em_ged = ac.ged.ged_lonlat(gem['data']['lon'], gem['data']['lat'], bands=bands, fill = setu['ged_fill'])
+                    em_ged = ac.ged.ged_lonlat(lon, lat, bands=bands, fill = setu['ged_fill'])
                 if em_ged is None:
                     print('Could not extract GED emissivity.')
                 else:
@@ -218,84 +223,104 @@ def tact_gem(gem, output_file = True,
 
             if emissivity == 'ndvi':
                 if em_ndvi is None:
-                    em_ndvi = ac.tact.ndvi_emissivity(gemf, ndvi_toa=True)
+                    em_ndvi = ac.tact.ndvi_emissivity(gemf, ndvi_toa = setu['tact_emissivity_ndvi_toa'])
                 if em_ndvi is None:
                     print('Could not get NDVI derived emissivity.')
                 else:
                     e = em_ndvi[bk]
 
             if (e is None) & (em is not None):
-                e = em[gem['gatts']['thermal_sensor']][bk]
-                #print(e, gem['gatts']['thermal_sensor'], bk)
+                e = em[gem.gatts['thermal_sensor']][bk]
+                #print(e, gem.gatts['thermal_sensor'], bk)
 
             if e is None:
-                print('Emissivity for {} {} not configured.'.format(gem['gatts']['thermal_sensor'], bk))
-                print('Ls and ST will not be computed for {} {}.'.format(gem['gatts']['thermal_sensor'], bk))
+                print('Emissivity for {} {} not configured.'.format(gem.gatts['thermal_sensor'], bk))
+                print('Ls and ST will not be computed for {} {}.'.format(gem.gatts['thermal_sensor'], bk))
                 continue
 
             ## shape emissivity to tile dimensions
-            gem['data'][emk] = np.atleast_2d(e)
-            if gem['data'][emk].shape == (1,1):
-                gem['data'][emk] = np.tile(gem['data'][emk], gem['data']['lat'].shape)
+            dct['data'][emk] = np.atleast_2d(e)
+            if dct['data'][emk].shape == (1,1):
+                dct['data'][emk] = np.tile(dct['data'][emk], dct['data']['lat'].shape)
 
             ## K constants
             k1n = 'K1_CONSTANT_BAND_{}'.format(b.upper())
             k2n = 'K2_CONSTANT_BAND_{}'.format(b.upper())
-            if k1n in gem['gatts']:
-                k1 = float(gem['gatts'][k1n])
+            if k1n in gem.gatts:
+                k1 = float(gem.gatts[k1n])
             else:
-                k1 = gem['atts'][btk][k1n]
-            if k2n in gem['gatts']:
-                k2 = float(gem['gatts'][k2n])
+                k1 = dct['atts'][btk][k1n]
+            if k2n in gem.gatts:
+                k2 = float(gem.gatts[k2n])
             else:
-                k2 = gem['atts'][btk][k2n]
+                k2 = dct['atts'][btk][k2n]
 
-            if ltk not in gem['data']:
+            if ltk not in dct['data']:
                 ## compute lt from bt
                 #bt = k2/(np.log(k1/lt)+1)
                 #lt = k1/(np.exp(k2/bt)-1)
-                gem['data'][ltk] = k1/(np.exp(k2/gem['data'][btk])-1)
+                dct['data'][ltk] = k1/(np.exp(k2/dct['data'][btk])-1)
 
             ## get surface radiance
             #ls = (((lt-thd['Lu{}'.format(bk)])/thd['tau{}'.format(bk)])-((1-e)*thd['Ld{}'.format(bk)]))/e
-            gem['data'][lsk] = (((gem['data'][ltk]-gem['data']['Lu{}'.format(bk)])/gem['data']['tau{}'.format(bk)])-((1-gem['data'][emk])*gem['data']['Ld{}'.format(bk)]))/gem['data'][emk]
+            dct['data'][lsk] = (((dct['data'][ltk]-dct['data']['Lu{}'.format(bk)])/dct['data']['tau{}'.format(bk)])-((1-dct['data'][emk])*dct['data']['Ld{}'.format(bk)]))/dct['data'][emk]
 
             ## convert to surface temperature
             #st = (k2/np.log((k1/ls)+1))
-            gem['data'][dso] = (k2/np.log((k1/gem['data'][lsk])+1))
-            if to_celcius: gem['data'][dso] += -273.15
+            dct['data'][dso] = (k2/np.log((k1/dct['data'][lsk])+1))
+            if to_celcius: dct['data'][dso] += -273.15
 
-            gem['atts'][dso] = {}
-            gem['atts'][dso]['units'] = 'K'
-            if btk in gem['atts']:
-                if 'wavelength' in gem['atts'][btk]:
-                    gem['atts'][dso]['wavelength'] = gem['atts'][btk]['wavelength']
-            #if btk in gem['atts']:
-            #    gem['atts'][dso] = {k:gem['atts'][btk][k] for k in gem['atts'][btk]}
-            gem['atts'][dso][k1n] = k1
-            gem['atts'][dso][k2n] = k2
+            dct['atts'][dso] = {}
+            dct['atts'][dso]['units'] = 'K'
+            if btk in dct['atts']:
+                if 'wavelength' in dct['atts'][btk]:
+                    dct['atts'][dso]['wavelength'] = dct['atts'][btk]['wavelength']
+            #if btk in dct['atts']:
+            #    dct['atts'][dso] = {k:dct['atts'][btk][k] for k in dct['atts'][btk]}
+            dct['atts'][dso][k1n] = k1
+            dct['atts'][dso][k2n] = k2
+
 
     ## write output NetCDF
     if output_file:
-        gem['gatts']['acolite_file_type'] = 'L2T'
-        gem['gatts']['ofile'] = ofile
-        gem['gatts']['sensor'] = gem['gatts']['thermal_sensor']
+        gatts = {k: gem.gatts[k] for k in gem.gatts}
+        nc_projection = gem.nc_projection
+
+        ## update gatts
+        gatts['acolite_file_type'] = 'L2T'
+        gatts['ofile'] = ofile
+        gatts['sensor'] = gatts['thermal_sensor']
 
         new = True
         datasets_ofile = []
         if os.path.exists(ofile) & target_file_append:
             datasets_ofile = ac.shared.nc_datasets(ofile)
             new = False
+
+        ## create new file
+        if new:
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
+            gemo.nc_projection = nc_projection
+            new = False
+        else:
+            gemo = ac.gem.gem(ofile)
+
         for ds in output_datasets:
             if ds in datasets_ofile: continue
-            if ds not in gem['data']: continue
+            if ds not in dct['data']: continue
             ds_att = None
-            if ds in gem['atts']: ds_att = gem['atts'][ds]
-            ac.output.nc_write(ofile, ds, gem['data'][ds], new=new, nc_projection=nc_projection,
-                               attributes=gem['gatts'], dataset_attributes=ds_att)
+            if ds in dct['atts']: ds_att = dct['atts'][ds]
+            gemo.write(ds, dct['data'][ds], ds_att = ds_att)
             if verbosity > 1: print('Wrote {} to {}'.format(ds, ofile))
-            new=False
         if verbosity > 0: print('Wrote {}'.format(ofile))
+        gemo.close()
+        gemo = None
 
-    if return_data: return(gem)
+    ## close gem
+    gem.close()
+    gem = None
+
+    if return_data: return(dct)
+    dct = None
     return(ofile)

@@ -6,14 +6,18 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-10
-## modifications:
+## modifications: 2024-04-17 (QV) removed keras import, use new gem NetCDF handling
 
-def ndvi_emissivity(gemf, ndvi_toa=True):
+def ndvi_emissivity(gem, ndvi_toa=True):
 
     import os, json
     import acolite as ac
-    from keras.models import load_model
     import numpy as np
+
+    ## read gem file if NetCDF
+    if type(gem) is str:
+        gem = ac.gem.gem(gem)
+    gemf = gem.file
 
     ## find L2R with rhos
     if ndvi_toa is False:
@@ -24,15 +28,27 @@ def ndvi_emissivity(gemf, ndvi_toa=True):
         if not os.path.exists(ncf):
             print('ACOLITE L2R file required for surface level NDVI {} not found.')
             return(None)
+        open_l2r = True
     else:
         ds_base = 'rhot_{}'
         ncf = '{}'.format(gemf)
+        open_l2r = False
 
-    gatts = ac.shared.nc_gatts(ncf)
     sensors = { 'L5_TM':'L5_TM_B6','L7_ETM':'L7_ETM_B6',
                 'L8_OLI':'L8_TIRS', 'L9_OLI':'L9_TIRS'}
-    satsen = sensors[gatts['sensor']]
-    datasets = ac.shared.nc_datasets(ncf)
+
+    ## open reflectance file
+    if open_l2r:
+        print('Opening {}'.format(ncf))
+        gemi = ac.gem.gem(ncf)
+        satsen = sensors[gemi.gatts['sensor']]
+        datasets = gemi.datasets
+    else:
+        print('Using {}'.format(gemf))
+        satsen = sensors[gem.gatts['sensor']]
+        datasets = gem.datasets
+
+    ## available wavelengths
     ds_waves = [ds.split('_')[1] for ds in datasets if ds_base[0:4]==ds[0:4]]
 
     ## find datasets for NDVI
@@ -52,8 +68,15 @@ def ndvi_emissivity(gemf, ndvi_toa=True):
         return(None)
 
     ## compute ndvi
-    red = ac.shared.nc_data(ncf, datasets_found[0])
-    nir = ac.shared.nc_data(ncf, datasets_found[1])
+    if open_l2r:
+        red = gemi.data(datasets_found[0])
+        nir = gemi.data(datasets_found[1])
+        gemi.close()
+        gemi = None
+    else:
+        red = gem.data(datasets_found[0])
+        nir = gem.data(datasets_found[1])
+
     ndvi = (nir-red)/(nir+red)
 
     if len(np.where(np.isfinite(ndvi))[0]) == 0:
