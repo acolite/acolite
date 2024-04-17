@@ -5,6 +5,7 @@
 ## modifications: 2023-02-18 (QV) added merging of A and B scenes
 ##                2023-02-19 (QV) fixed merged scene nc_projection
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import os
@@ -124,7 +125,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             gatts['oname'] = oname
             gatts['ofile'] = ofile
 
-            new = True
             ## read image projection
             dct_prj = None
             for imi, im in enumerate(imgfiles[mi]):
@@ -211,30 +211,33 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
                 clip_mask = clip_mask.astype(bool) == False
 
+            ## output file
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
+            gemo.nc_projection = nc_projection
+            new = False
+
             ## write lat/lon
             if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
+                gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
-
-                ac.output.nc_write(ofile, 'lat', lat)
+                gemo.write('lat', lat)
                 if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
                 lat = None
-                new=False
 
             ## write x/y
             if (setu['output_xy']):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'xm', x, new=new)
+                gemo.write('xm', x)
                 if verbosity > 1: print('Wrote xm ({})'.format(x.shape))
                 x = None
-                ac.output.nc_write(ofile, 'ym', y)
+                gemo.write('ym', y)
                 if verbosity > 1: print('Wrote ym ({})'.format(y.shape))
                 y = None
-                new=False
 
             ## run through images to load data
             for imi, im in enumerate(imgfiles[mi]):
@@ -264,7 +267,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                     if setu['output_lt']:
                         ds = 'Lt_{}'.format(rsrd['wave_name'][band])
                         ## write toa radiance
-                        ac.output.nc_write(ofile, ds, data, dataset_attributes = ds_att)
+                        gemo.write(ds, data, ds_att = ds_att)
 
                     ## convert to rhot
                     ds = 'rhot_{}'.format(rsrd['wave_name'][band])
@@ -280,13 +283,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                     if clip: data[clip_mask] = np.nan
 
                     ## write to netcdf file
-                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
-                                            new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
-                    new = False
+                    gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
+
+            ## close file
+            gemo.close()
 
         ## check if file exists and if it was created now
         if os.path.exists(ofile) & (new is False):
+
             if verbosity > 1:
                 print('Conversion took {:.1f} seconds'.format(time.time()-t0))
                 print('Created {}'.format(ofile))
