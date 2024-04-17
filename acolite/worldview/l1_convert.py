@@ -277,11 +277,6 @@ def l1_convert(inputfile, output = None,
             if dct is not None: ## compute from projection info
                 print('lat/lon computed from projection info')
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
-                #ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
-                #                                nc_projection = nc_projection)
-                #lat = None
-                #ac.output.nc_write(ofile, 'lon', lon, nc_projection = nc_projection)
-                #lon = None
                 gemo.write('lon', lon)
                 lon = None
                 gemo.write('lat', lat)
@@ -304,9 +299,6 @@ def l1_convert(inputfile, output = None,
                 zlat = scipy.interpolate.interp2d(pcol, prow, plat, kind='linear')
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
-                #ac.output.nc_write(ofile, 'lat', zlat(x, y), global_dims=global_dims, new=new, attributes=gatts,
-                #                        nc_projection = nc_projection)
-                #ac.output.nc_write(ofile, 'lon', zlon(x, y), nc_projection = nc_projection)
                 gemo.write('lon', zlon(x, y))
                 gemo.write('lat', zlat(x, y))
                 x = None
@@ -402,8 +394,6 @@ def l1_convert(inputfile, output = None,
 
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
-            #ac.output.nc_write(ofile, ds, data_full, attributes = gatts, new = new, dataset_attributes = ds_att,
-            #                    nc_projection = nc_projection)
             gemo.write(ds, data_full, ds_att = ds_att)
             if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             data_full = None
