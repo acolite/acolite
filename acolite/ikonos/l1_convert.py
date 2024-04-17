@@ -4,6 +4,7 @@
 ## 2022-09-15
 ## modifications: 2022-11-21 (QV) added support for older/other metadata version from BELSPO
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None,
                settings = {},
@@ -197,17 +198,22 @@ def l1_convert(inputfile, output = None,
                 if (bk != 'pan') & (dct != dct_cur):
                     print('Warning, band {} has a different projection dct'.format(band))
 
+                if new:
+                    ## output file - one per component
+                    gemo = ac.gem.gem(ofile, new = True)
+                    gemo.gatts = {k: gatts[k] for k in gatts}
+                    gemo.nc_projection = nc_projection
+                    new = False
+
                 ## write lat/lon
                 if (output_geolocation) & (new):
                     if verbosity > 1: print('{} - Writing lat/lon'.format(datetime.datetime.now().isoformat()[0:19]))
                     if dct is not None: ## compute from projection info
                         lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
-                        ac.output.nc_write(ofile, 'lat', lat, global_dims=global_dims, new=new, attributes=gatts,
-                                                        nc_projection = nc_projection)
-                        lat = None
-                        ac.output.nc_write(ofile, 'lon', lon, nc_projection = nc_projection)
+                        gemo.write('lon', lon)
                         lon = None
-                        new = False
+                        gemo.write('lat', lat)
+                        lat = None
 
                 ## read band data
                 if verbosity > 1: print('{} - Reading band {} from {}'.format(datetime.datetime.now().isoformat()[0:19],
@@ -243,13 +249,14 @@ def l1_convert(inputfile, output = None,
                 if band == 'PAN':
                     dct_pan = {k: dct_cur[k] for k in dct_cur}
                     nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
-                    global_dims_pan = len(nc_projection_pan['y']['data']), len(nc_projection_pan['x']['data'])
+                    if new_pan:
+                        gemop = ac.gem.gem(pofile, new = True)
+                        gemop.gatts = {k: gatts[k] for k in gatts}
+                        gemop.nc_projection = nc_projection_pan
+                        new_pan = False
+                        global_dims_pan = len(nc_projection_pan['y']['data']), len(nc_projection_pan['x']['data'])
                     ## write to netcdf file
-                    ac.output.nc_write(pofile, ds, data, replace_nan=True, attributes=gatts,
-                                       global_dims=global_dims_pan,
-                                       new=new_pan, dataset_attributes = ds_att,
-                                       nc_projection=nc_projection_pan, update_projection=True)
-                    new_pan = False
+                    gemop.write(ds, data, ds_att = ds_att, replace_nan = True)
 
                     ## mask data before zooming
                     dmin = np.nanmin(data)
@@ -260,15 +267,20 @@ def l1_convert(inputfile, output = None,
 
                 ## write to netcdf file
                 if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data.shape))
-                ac.output.nc_write(ofile, ds, data, attributes = gatts, new = new, dataset_attributes = ds_att, nc_projection = nc_projection)
+                gemo.write(ds, data, ds_att = ds_att)
                 if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data.shape))
-                new = False
                 data = None
 
             if not os.path.exists(ofile): continue
             if verbosity > 1:
                 print('Conversion took {:.1f} seconds'.format(time.time()-t0))
                 print('Created {}'.format(ofile))
+            gemo.close()
+            try:
+                gemop.close()
+            except:
+                pass
+
             if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)
