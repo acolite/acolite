@@ -7,6 +7,7 @@
 ## 2022-01-14
 ## modifications: 2022-02-06 (QV) added vza
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import os, zipfile, shutil
@@ -174,8 +175,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             gatts['oname'] = oname
             gatts['ofile'] = ofile
 
-
-
         ## add band info to gatts
         for b in rsr_bands:
             gatts['{}_wave'.format(b)] = waves_mu[b]*1000
@@ -247,46 +246,44 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
         ## new file for every bundle if not merging
         new = True
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.nc_projection = nc_projection
+        new = False
 
         ## if we are clipping to a given polygon get the clip_mask here
         if clip:
             clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
 
+        if (os.path.exists(ofile) & (not new)):
+            datasets = gemo.datasets
+        else:
+            datasets = []
 
         ## write lat/lon
         if (output_geolocation):
-            if (os.path.exists(ofile) & (not new)):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
+                gemo.write('lon', lon)
                 lon = None
                 if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat)
+                gemo.write('lat', lat)
                 lat = None
                 if verbosity > 1: print('Wrote lat')
-                new=False
 
         ## write x/y
         if (output_xy):
-            if os.path.exists(ofile) & (not new):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'x', x, new=new)
+                gemo.write('xm', x)
                 x = None
                 if verbosity > 1: print('Wrote x')
-                ac.output.nc_write(ofile, 'y', y)
+                gemo.write('ym', y)
                 y = None
                 if verbosity > 1: print('Wrote y')
-                new=False
 
         ## convert bands
         b_vaa = []
@@ -345,9 +342,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             #    ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
             ## write to netcdf file
-            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
-                                new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
-            new = False
+            gemo.write(ds, data, replace_nan = True, ds_att = ds_att)
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
         ## update geometry from band tags
@@ -357,7 +352,9 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
         while raa_ave >= 180: raa_ave = abs(raa_ave-360)
         gatts['raa'] = raa_ave
         ## update nc gatts
-        ac.shared.nc_gatts_update(ofile, gatts)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.gatts_update()
+        gemo.close()
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
