@@ -4,6 +4,7 @@
 ## 2023-02-19
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2023-12-04 (QV) removed tiff support and added HDF support
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None,
                settings = {},
@@ -249,18 +250,21 @@ def l1_convert(inputfile, output = None,
                 clip_mask = clip_mask.astype(bool) == False
         ## end tiff projection
 
-        new=True
+        ## output file
+        gemo = ac.gem.gem(ofile, new = True)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.nc_projection = nc_projection
+
         ## write lat/lon
         if (setu['output_geolocation']):
             if verbosity > 1: print('Writing geolocation lon/lat')
             if image_type == 'tiff': lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-            ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
+            gemo.write('lon', lon)
             if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
             lon = None
-            ac.output.nc_write(ofile, 'lat', lat)
+            gemo.write('lat', lat)
             if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
             lat = None
-            new=False
 
         ## per pixel cosine sun zenith
         mus = np.cos(np.radians(sza))
@@ -269,36 +273,34 @@ def l1_convert(inputfile, output = None,
         if (setu['output_geometry']):
             if verbosity > 1: print('Writing geometry')
             ## azimuth
-            ac.output.nc_write(ofile, 'vaa', vaa, attributes=gatts, new=new, nc_projection=nc_projection)
+            gemo.write('vaa', vaa)
             if verbosity > 1: print('Wrote vaa ({})'.format(vaa.shape))
             vaa = None
-            ac.output.nc_write(ofile, 'saa', saa, attributes=gatts)
+            gemo.write('saa', saa)
             if verbosity > 1: print('Wrote saa ({})'.format(saa.shape))
             saa = None
-            ac.output.nc_write(ofile, 'raa', raa, attributes=gatts)
+            gemo.write('raa', raa)
             if verbosity > 1: print('Wrote raa ({})'.format(raa.shape))
             raa = None
 
             ## zenith
-            ac.output.nc_write(ofile, 'vza', vza, attributes=gatts)
+            gemo.write('vza', vza)
             if verbosity > 1: print('Wrote vaa ({})'.format(vza.shape))
             vza = None
-            ac.output.nc_write(ofile, 'sza', sza, attributes=gatts)
+            gemo.write('sza', sza)
             if verbosity > 1: print('Wrote saa ({})'.format(sza.shape))
             sza = None
-            new=False
 
         ## write x/y
         if (setu['output_xy']) & (image_type == 'tiff'):
             if verbosity > 1: print('Writing geolocation x/y')
             x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-            ac.output.nc_write(ofile, 'xm', x, new=new)
+            gemo.write('xm', x)
             if verbosity > 1: print('Wrote xm ({})'.format(x.shape))
             x = None
-            ac.output.nc_write(ofile, 'ym', y)
+            gemo.write('ym', y)
             if verbosity > 1: print('Wrote ym ({})'.format(y.shape))
             y = None
-            new=False
 
         ## run through bands
         for bi, band in enumerate(rsrd['rsr_bands']):
@@ -326,7 +328,7 @@ def l1_convert(inputfile, output = None,
             if setu['output_lt']:
                 ds = 'Lt_{}'.format(rsrd['wave_name'][band])
                 ## write toa radiance
-                ac.output.nc_write(ofile, ds, data, dataset_attributes = ds_att)
+                gemo.write(ds, data, ds_att = ds_att)
                 if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
             ## convert to rhot
@@ -342,14 +344,14 @@ def l1_convert(inputfile, output = None,
             if clip: data[clip_mask] = np.nan
 
             ## write to netcdf file
-            ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts,
-                                    new=new, dataset_attributes = ds_att, nc_projection=nc_projection)
+            gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
             new = False
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
+        gemo.close()
 
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
