@@ -9,6 +9,8 @@
 ##                2022-11-16 (QV) added dfoo outputs
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-03-27 (QV) added multiple full tile merging
+##                2024-04-17 (QV) use new gem NetCDF handling
+##                                fixed tile merging: masking of angle datasets and AUX data
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -39,6 +41,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
     new = True
     warp_to = None
+    ofile_aux_new = True
 
     setu = {}
     ofile = None
@@ -96,11 +99,7 @@ def l1_convert(inputfile, output = None, settings = {},
             geometry_type=setu['geometry_type']
             geometry_res=setu['geometry_res']
             geometry_override=setu['geometry_override']
-            geometry_per_band=setu['geometry_per_band']
-            geometry_fixed_footprint=setu['geometry_fixed_footprint']
 
-            s2_auxiliary_include = setu['s2_auxiliary_include']
-            s2_auxiliary_project = setu['s2_auxiliary_project']
             netcdf_projection = setu['netcdf_projection']
 
             dilate = setu['s2_dilate_blackfill']
@@ -163,7 +162,7 @@ def l1_convert(inputfile, output = None, settings = {},
         vza = np.nanmean(grmeta['VIEW']['Average_View_Zenith'])
         vaa = np.nanmean(grmeta['VIEW']['Average_View_Azimuth'])
         raa = np.abs(saa-vaa)
-        while raa > 180: raa = abs(raa-360)
+        while raa > 180: raa = np.abs(360 - raa)
 
         ## read rsr
         rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
@@ -310,13 +309,21 @@ def l1_convert(inputfile, output = None, settings = {},
         ## new file for every bundle if not merging
         if (merge_tiles is False):
             new = True
-            new_pan = True
+            ofile_aux_new = True
 
         ## if we are clipping to a given polygon get the clip_mask here
         if clip:
             clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
             print('clip mask', clip_mask.shape)
+
+        if new:
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
+            gemo.nc_projection = nc_projection
+            new = False
+        else:
+            gatts =  {k: gemo.gatts[k] for k in gemo.gatts} ## read gatts to be updated
 
         ## start the conversion
         ## write geometry
@@ -436,14 +443,12 @@ def l1_convert(inputfile, output = None, settings = {},
                     dfoo_ = ac.shared.warp_from_source(target_file, dct_prj, dfoo, warp_to=warp_to)
                     dfoo_[mask] = -1
                     if clip: dfoo_[clip_mask] = -1
-                    ac.output.nc_write(ofile, 'dfoo', dfoo_, replace_nan=True,
-                                                attributes=gatts, new=new, nc_projection=nc_projection)
+                    gemo.write('dfoo', dfoo_, replace_nan = True)
                     if verbosity > 1: print('Wrote dfoo {}'.format(dfoo_.shape))
                     dfoo_ = None
-                    new = False
 
                 ## compute band specific geometry
-                if geometry_per_band:
+                if setu['geometry_per_band']:
                     print('Computing band specific per detector geometry')
                     vza_all = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1]), len(bands)))+np.nan
                     vaa_all = np.zeros((int(dfoo.shape[0]), int(dfoo.shape[1]), len(bands)))+np.nan
@@ -453,7 +458,7 @@ def l1_convert(inputfile, output = None, settings = {},
                     vaa_grid = np.zeros((grid_shape[0], grid_shape[1], len(bands)))+np.nan
 
                     ## use footprint from B1
-                    if geometry_fixed_footprint:
+                    if setu['geometry_fixed_footprint']:
                         gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.gml'.format(bundle, granule))
                         gml_files.sort()
                         jp2_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.jp2'.format(bundle, granule))
@@ -472,7 +477,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         print('Computing band specific geometry - {}'.format(Bn))
 
                         ## band specific footprint
-                        if not geometry_fixed_footprint:
+                        if not setu['geometry_fixed_footprint']:
                             gml = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO_B{}.gml'.format(bundle, granule, Bn[1:].zfill(2)))
                             jp2 = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO_B{}.jp2'.format(bundle, granule, Bn[1:].zfill(2)))
 
@@ -535,6 +540,8 @@ def l1_convert(inputfile, output = None, settings = {},
             ## add out of swath masks to vza and sza
             vza[mask] = np.nan
             sza[mask] = np.nan
+            vaa[mask] = np.nan
+            saa[mask] = np.nan
 
             ## clip geometry data
             if clip:
@@ -544,119 +551,117 @@ def l1_convert(inputfile, output = None, settings = {},
                 vaa[clip_mask] = np.nan
 
             if setu['s2_write_vaa']:
-                ac.output.nc_write(ofile, 'vaa', vaa, replace_nan=True,
-                                        attributes=gatts, new=new, nc_projection=nc_projection)
-                new = False
+                gemo.write('vaa', vaa, replace_nan = True)
                 if verbosity > 1: print('Wrote vaa {}'.format(vaa.shape))
 
             if setu['s2_write_saa']:
-                ac.output.nc_write(ofile, 'saa', saa, replace_nan=True,
-                                        attributes=gatts, new=new, nc_projection=nc_projection)
-                new = False
+                gemo.write('saa', saa, replace_nan = True)
                 if verbosity > 1: print('Wrote saa {}'.format(saa.shape))
 
             ## compute relative azimuth angle
             raa = np.abs(saa-vaa)
             ## raa along 180 degree symmetry
             tmp = np.where(raa>180)
-            raa[tmp]=np.abs(raa[tmp] - 360)
+            raa[tmp]=np.abs(360 - raa[tmp])
             raa[mask] = np.nan
             vaa = None
 
-            ac.output.nc_write(ofile, 'raa', raa, replace_nan=True,
-                                    attributes=gatts, new=new, nc_projection=nc_projection)
+            gemo.write('raa', raa, replace_nan = True)
             if verbosity > 1: print('Wrote raa {}'.format(raa.shape))
             raa = None
-            new = False
-            ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
+            gemo.write('vza', vza, replace_nan = True)
             if verbosity > 1: print('Wrote vza {}'.format(vza.shape))
-            ac.output.nc_write(ofile, 'sza', sza, replace_nan=True)
+            gemo.write('sza', sza, replace_nan = True)
             if verbosity > 1: print('Wrote sza {}'.format(sza.shape))
             sza = None
             vza = None
 
             ## write per band geometry
-            if (geometry_per_band) & ((geometry_type == 'grids') | (geometry_type == 'grids_footprint')):
+            if (setu['geometry_per_band']) & ((geometry_type == 'grids') | (geometry_type == 'grids_footprint')):
                 for bi, b in enumerate(rsr_bands):
                     Bn = 'B{}'.format(b)
                     print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
                     ## band specific view zenith angle
                     vza = ac.shared.warp_from_source(target_file, dct_prj, vza_all[:,:,bi], warp_to=warp_to)
-                    ac.output.nc_write(ofile, 'vza_{}'.format(waves_names[b]), vza, replace_nan=True)
+                    vza[mask] = np.nan
+                    gemo.write('vza_{}'.format(waves_names[b]), vza, replace_nan = True)
                     vza = None
                     ## band specific view azimuth angle
                     vaa = ac.shared.warp_from_source(target_file, dct_prj, vaa_all[:,:,bi], warp_to=warp_to)
+                    vaa[mask] = np.nan
                     if setu['s2_write_vaa']:
-                        ac.output.nc_write(ofile, 'vaa_{}'.format(waves_names[b]), vaa, replace_nan=True,
-                                                attributes=gatts, new=new, nc_projection=nc_projection)
+                        gemo.write('vaa_{}'.format(waves_names[b]), vaa, replace_nan = True)
+
                     ## compute relative azimuth angle
                     raa = np.abs(saa-vaa)
                     vaa = None
                     tmp = np.where(raa>180)
-                    raa[tmp]=np.abs(raa[tmp] - 360)
+                    raa[tmp]=np.abs(360 - raa[tmp])
                     raa[mask] = np.nan
-                    ac.output.nc_write(ofile, 'raa_{}'.format(waves_names[b]), raa, replace_nan=True)
+                    gemo.write('raa_{}'.format(waves_names[b]), raa, replace_nan = True)
                     raa = None
-            ## delete sun azimuth & mask
+            ## delete sun azimuth
             saa = None
-            mask = None
+            ## keep mask for AUX subsetting
+            ## mask = None
+
+        if os.path.exists(ofile) & (not new):
+            gemo.datasets_read()
+            datasets = gemo.datasets
+        else:
+            datasets = []
 
         ## write lat/lon
         if (output_geolocation):
-            if (os.path.exists(ofile) & (not new)):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
-                print(lon.shape)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
+                gemo.write('lon', lon)
+                if verbosity > 1: print('Wrote lon {}'.format(lon.shape))
                 lon = None
-                if verbosity > 1: print('Wrote lon')
-                print(lat.shape)
-                ac.output.nc_write(ofile, 'lat', lat)
+                gemo.write('lat', lat)
+                if verbosity > 1: print('Wrote lat {}'.format(lat.shape))
                 lat = None
-                if verbosity > 1: print('Wrote lat')
-                new=False
 
         ## write x/y
         if (output_xy):
-            if os.path.exists(ofile) & (not new):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
-            if ('xx' not in datasets) or ('yy' not in datasets):
+            if ('xm' not in datasets) or ('ym' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
-                ac.output.nc_write(ofile, 'xx', x, new=new)
+                gemo.write('xm', x)
+                if verbosity > 1: print('Wrote xm {}'.format(x.shape))
                 x = None
-                if verbosity > 1: print('Wrote xx')
-                ac.output.nc_write(ofile, 'yy', y)
+                gemo.write('ym', y)
+                if verbosity > 1: print('Wrote ym {}'.format(y.shape))
                 y = None
-                if verbosity > 1: print('Wrote yy')
-                new=False
 
         ## auxiliary data
-        if s2_auxiliary_include:
+        if setu['s2_auxiliary_include']:
             ofile_aux = '{}/{}'.format(os.path.dirname(ofile), os.path.basename(ofile).replace('_L1R.nc', '_AUX.nc'))
-            ofile_aux_new = True
             for source in ['AUX_CAMSFO', 'AUX_ECMWFT']:
                 ## read aux data
                 aux_data = ac.sentinel2.auxiliary(bundle, granule, sources=[source])
                 if len(aux_data) > 0:
                     ## add to gatts
                     for ai, an in enumerate(aux_data):
-                        gatts['{}_{}_{}'.format(source, an, 'dimensions')] = aux_data[an]['values'].shape
-                        gatts['{}_{}_{}'.format(source, an, 'values')] = aux_data[an]['values'].flatten()
-                        gatts['{}_{}_{}'.format(source, an, 'longitudes')] = aux_data[an]['longitudes'].flatten()
-                        gatts['{}_{}_{}'.format(source, an, 'latitudes')] = aux_data[an]['latitudes'].flatten()
-                    ## project to extent
-                    if s2_auxiliary_project:
+                        for ak in ['values', 'longitudes', 'latitudes']:
+                            ak_ = '{}_{}_{}'.format(source, an, ak)
+                            if ak_ not in gatts: gatts[ak_] = []
+                            gatts[ak_] += [v for v in aux_data[an][ak].flatten()]
+
+                    ## project to extent - this could be moved to after l1r is complete, based on aux data in gatts
+                    if setu['s2_auxiliary_project']:
+                        if ofile_aux_new:
+                            gemoa = ac.gem.gem(ofile_aux, new = True)
+                            gemoa.gatts = {k: gatts[k] for k in gatts}
+                            gemoa.nc_projection = nc_projection
+                            ofile_aux_new = False
+
                         aux_file = '{}/GRANULE/{}/AUX_DATA/{}'.format(bundle, granule, source)
                         # gdal warp
                         #adata = ac.shared.read_band(aux_file, sub=None, warp_to=warp_to)
                         lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
+                        aux_shape = lon.shape
                         llo = np.vstack((lon.flatten(),lat.flatten())).T
                         lon = None
                         lat = None
@@ -666,13 +671,16 @@ def l1_convert(inputfile, output = None, settings = {},
                             v = aux_data[an]['values'].flatten()
                             ## interpolate and fill edges
                             ret = scipy.interpolate.griddata(lli, v, llo)
-                            ret = ac.shared.fillnan(ret.reshape(int(gatts['global_dims'][0]), int(gatts['global_dims'][1])))
+                            ret = ac.shared.fillnan(ret.reshape(aux_shape[0], aux_shape[1]))
+                            ret[mask] = np.nan
                             ## write
-                            ac.output.nc_write(ofile_aux, '{}_{}'.format(source, an), ret, replace_nan=True,
-                                                attributes=gatts, new = ofile_aux_new, nc_projection=nc_projection)
+                            print('{}_{}'.format(source, an), ret.shape)
+                            gemoa.write('{}_{}'.format(source, an), ret, replace_nan = True)
                             if verbosity > 1: print('Wrote {}'.format('{}_{}'.format(source, an)))
                             ret = None
-                            ofile_aux_new = False
+
+        ## delete mask
+        mask = None
 
         ## write TOA bands
         quant = float(meta['QUANTIFICATION_VALUE'])
@@ -713,15 +721,25 @@ def l1_convert(inputfile, output = None, settings = {},
                         ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                     ## write to ms file
-                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
-                                        dataset_attributes = ds_att, nc_projection=nc_projection)
-                    new = False
+                    gemo.write(ds, data, replace_nan = True, ds_att = ds_att)
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
             else:
                 continue
 
         ## update attributes
-        ac.shared.nc_gatts_update(ofile, gatts)
+        gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.gatts_update()
+        gemo.close()
+
+        ## update attributes of aux file
+        ## aux output file could be written here, or running through ofiles after the main loop
+        if setu['s2_auxiliary_include'] & setu['s2_auxiliary_project']:
+            try:
+                gemoa.gatts = {k: gatts[k] for k in gatts}
+                gemoa.gatts_update()
+                gemoa.close()
+            except:
+                pass
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
