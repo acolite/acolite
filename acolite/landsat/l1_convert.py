@@ -12,6 +12,7 @@
 ##                2023-04-20 (QV) fix for changed extension case
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-03-28 (QV) added multi-tile merging
+##                2024-04-17 (QV) use new gem NetCDF handling
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -384,6 +385,14 @@ def l1_convert(inputfile, output = None, settings = {},
             clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
 
+
+        ## create new file
+        if new:
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.gatts = {k: gatts[k] for k in gatts}
+            gemo.nc_projection = nc_projection
+            new = False
+
         ## start the conversion
         ## write geometry
         if ('VAA' in fmeta) & ('SAA' in fmeta) & ('VZA' in fmeta) & ('SZA' in fmeta):
@@ -411,13 +420,11 @@ def l1_convert(inputfile, output = None, settings = {},
                 vaa = None
                 saa = None
                 mask = None
-                ac.output.nc_write(ofile, 'raa', raa, replace_nan=True,
-                                    attributes=gatts, new=new, nc_projection=nc_projection)
+                gemo.write('raa', raa, replace_nan=True,)
                 if verbosity > 1: print('Wrote raa')
-                new = False
-                ac.output.nc_write(ofile, 'vza', vza, replace_nan=True)
+                gemo.write('vza', vza, replace_nan=True,)
                 if verbosity > 1: print('Wrote vza')
-                ac.output.nc_write(ofile, 'sza', sza, replace_nan=True)
+                gemo.write('sza', sza, replace_nan=True,)
                 if verbosity > 1: print('Wrote sza')
                 sza = None
                 vza = None
@@ -425,35 +432,34 @@ def l1_convert(inputfile, output = None, settings = {},
             mus = np.asarray(gatts['mus'])  ## average cos sun zenith
             #mus.shape+=(1,1)
 
+        if os.path.exists(ofile) & (not new):
+            gemo.datasets_read()
+            datasets = gemo.datasets
+            #datasets = ac.shared.nc_datasets(ofile)
+        else:
+            datasets = []
+
         ## write lat/lon
         if (output_geolocation):
-            if os.path.exists(ofile) & (not new):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=False)
-                ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
+                gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon')
-                ac.output.nc_write(ofile, 'lat', lat)
+                gemo.write('lat', lat)
                 if verbosity > 1: print('Wrote lat')
-                new=False
 
         ## write x/y
         if (output_xy):
-            if os.path.exists(ofile) & (not new):
-                datasets = ac.shared.nc_datasets(ofile)
-            else:
-                datasets = []
-            if ('xx' not in datasets) or ('yy' not in datasets):
+            if ('xm' not in datasets) or ('ym' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False)
-                ac.output.nc_write(ofile, 'xx', x, new=new)
-                if verbosity > 1: print('Wrote xx')
-                ac.output.nc_write(ofile, 'yy', y)
-                if verbosity > 1: print('Wrote yy')
-                new=False
+                gemo.write('xm', x)
+                x = None
+                if verbosity > 1: print('Wrote xm')
+                gemo.write('ym', y)
+                y = None
+                if verbosity > 1: print('Wrote ym')
 
         ## write TOA bands
         if verbosity > 1: print('Converting bands')
@@ -486,9 +492,12 @@ def l1_convert(inputfile, output = None, settings = {},
                     if output_pan & pan:
                         ## write output
                         ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
-                        ac.output.nc_write(ofile_pan, ds, data, attributes=gatts,replace_nan=True,
-                                           new=new_pan, dataset_attributes = ds_att, nc_projection=nc_projection_pan)
-                        new_pan = False
+                        if new_pan:
+                            gemop = ac.gem.gem(ofile_pan, new = True)
+                            gemop.gatts = {k: gatts[k] for k in gatts}
+                            gemop.nc_projection = nc_projection_pan
+                            new_pan = False
+                        gemop.write(ds, data, ds_att = ds_att, replace_nan = True)
                         if verbosity > 1: print('Converting bands: Wrote {} to separate L1R_pan'.format(ds))
 
                     ## prepare for low res output
@@ -498,9 +507,7 @@ def l1_convert(inputfile, output = None, settings = {},
                     if clip: data[clip_mask] = np.nan
 
                     ## write to ms file
-                    ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new,
-                                       dataset_attributes = ds_att, nc_projection=nc_projection)
-                    new = False
+                    gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
                 else:
                     if b in thermal_bands:
@@ -515,9 +522,7 @@ def l1_convert(inputfile, output = None, settings = {},
 
                             ## clip data
                             if clip: data[clip_mask] = np.nan
-                            ac.output.nc_write(ofile, ds, data, replace_nan=True,
-                                               attributes=gatts, new=new, dataset_attributes=ds_att)
-                            new = False
+                            gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
                             if verbosity > 1: print('Converting bands: Wrote {}'.format(ds))
                     else:
                         continue
@@ -532,15 +537,18 @@ def l1_convert(inputfile, output = None, settings = {},
                 ds_att = {'band':b}
                 for k in fmeta[b]: ds_att[k] = fmeta[b][k]
                 data = ac.shared.read_band(fmeta[b]['FILE'], sub=sub, warp_to=warp_to)
-                #if clip: data[clip_mask] = 0
-                ac.output.nc_write(ofile, ds, data, replace_nan=True,
-                                               attributes=gatts, new=new, dataset_attributes=ds_att)
-                new = False
+                gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
                 if verbosity > 1: print('Writing QA bands: Wrote {}'.format(ds))
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
+
+        gemo.close()
+        try:
+            gemop.close()
+        except:
+            pass
 
         if limit is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
