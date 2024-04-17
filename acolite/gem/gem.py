@@ -141,19 +141,21 @@ class gem(object):
                     self.nc_projection[k] = {'data': d, 'attributes': a}
 
         ## write dataset
-        def write(self, ds, data, ds_att = {}, replace_nan = False):
+        def write(self, ds, data, ds_att = {}, replace_nan = False, update_projection = False):
             if self.new:
                 self.close() # close if open
                 if os.path.exists(self.file): os.remove(self.file) # delete if exists
                 ## create new netcdf file
                 self.nc = ac.output.nc_write(self.file, ds, data, dataset_attributes=ds_att,
-                                             new=self.new, return_nc = True, attributes=self.gatts, nc_projection=self.nc_projection)
+                                             new=self.new, return_nc = True, attributes=self.gatts,
+                                             nc_projection=self.nc_projection)
                 self.nc_mode = 'w'
                 self.new = False # new file has been created
                 self.setup() # read in attributes
             else:
                 if self.nc_mode != 'a': self.open('a')
-                ac.output.nc_write(self.nc, ds, data, dataset_attributes = ds_att, replace_nan = replace_nan)
+                ac.output.nc_write(self.nc, ds, data, dataset_attributes = ds_att, replace_nan = replace_nan,
+                                            update_projection = update_projection, nc_projection=self.nc_projection)
 
             if self.verbosity > 0: print('Wrote {}'.format(ds))
 
