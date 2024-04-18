@@ -106,6 +106,8 @@ def acolite_map(ncf, output = None,
             norm=mpl.colors.Normalize(vmin=pard['min'], vmax=pard['max'])#, clip=setu['map_fill_outrange'])
         else:
             part = r'$\rho_{}$ RGB'.format(par[-1])
+            if setu['map_title_rgb_wavelengths']:
+                part += ' ({})'.format(', '.join(['{:.0f} nm'.format(w) for w in rgb_used]))
 
         ## title and outputfile
         title = '{}\n{}'.format(title_base, part)
@@ -546,8 +548,10 @@ def acolite_map(ncf, output = None,
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
             if len(rho_wv) < 3: continue
             ## read and stack rgb
+            rgb_used = []
             for iw, w in enumerate(rgb_wave):
                 wi, ww = ac.shared.closest_idx(rho_wv, w)
+                rgb_used.append(ww)
                 #ds_name = '{}{}'.format(ds_base,ww)
                 ds_name = [ds for ds in gem.datasets if (ds_base in ds) & ('{:.0f}'.format(ww) in ds)][0]
                 data = gem.data(ds_name)
