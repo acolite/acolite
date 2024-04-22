@@ -9,6 +9,8 @@
 ##                2024-04-16 (QV) moved Landsat thermals to file
 ##                                gem is now independent of shared.nc_read
 ##                                file handle is passed to output.nc_write if file exists
+##                2024-04-20 (QV) added mask keyword for data method
+##                2024-04-22 (QV) added xdim and ydim, added test for presence of nc_projection datasets
 
 import acolite as ac
 import os, sys, json
@@ -32,6 +34,8 @@ class gem(object):
             ## attributes and datasets
             self.gatts = None
             self.datasets = []
+            self.xdim = None
+            self.ydim = None
             self.nc_projection = None
             self.nc_projection_keys = []
 
@@ -88,13 +92,16 @@ class gem(object):
         ## read available datasets
         def datasets_read(self, group = None):
             if self.nc_mode != 'r': self.open('r')
+            ## store dimensions
+            self.xdim = len(self.nc.dimensions['x'])
+            self.ydim = len(self.nc.dimensions['y'])
             if group is not None:
                 if group in self.nc.groups: self.datasets = list(self.nc.groups[group].variables.keys())
             else:
                 self.datasets = list(self.nc.variables.keys())
 
         ## read dataset
-        def data(self, ds, attributes = False, store = False, return_data = True, sub = None):
+        def data(self, ds, attributes = False, store = False, return_data = True, sub = None, mask = True):
             ## data already in memory
             if ds in self.data_mem:
                 cdata = self.data_mem[ds]
@@ -114,7 +121,7 @@ class gem(object):
                     ## mask data
                     cmask = cdata.mask
                     cdata = cdata.data
-                    if ds not in self.nc_projection_keys:
+                    if (ds not in self.nc_projection_keys) & (mask): ## mask if requested
                         if cdata.dtype in [np.dtype('float32'), np.dtype('float64')]:
                             cdata[cmask] = np.nan
                     if (self.store) or (store):
@@ -137,6 +144,7 @@ class gem(object):
                 self.nc_projection = {}
                 self.nc_projection_keys = [self.gatts['projection_key'], 'x', 'y']
                 for k in self.nc_projection_keys:
+                    if k not in self.datasets: continue
                     d, a = self.data(k, attributes = True)
                     self.nc_projection[k] = {'data': d, 'attributes': a}
 
