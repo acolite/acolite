@@ -48,6 +48,9 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     lat = None
 
     ## parse settings
+    if 'user' not in ac.settings:
+        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
     for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
 
