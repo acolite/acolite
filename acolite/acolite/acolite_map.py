@@ -15,6 +15,7 @@
 ##                2023-09-28 (QV) improved rgb mapping with mpl>3.7
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2024-04-20 (QV) set out of range data to min/max for RGB scaling
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -554,7 +555,7 @@ def acolite_map(ncf, output = None,
                 rgb_used.append(ww)
                 #ds_name = '{}{}'.format(ds_base,ww)
                 ds_name = [ds for ds in gem.datasets if (ds_base in ds) & ('{:.0f}'.format(ww) in ds)][0]
-                data = gem.data(ds_name)
+                data = gem.data(ds_name, mask = False)
 
                 ## autoscale rgb to percentiles
                 if setu['rgb_autoscale']:
@@ -567,7 +568,12 @@ def acolite_map(ncf, output = None,
                 tmp = ac.shared.rgb_stretch(data, gamma = gamma, bsc = bsc, stretch=setu['rgb_stretch'])
 
                 ## mask
-                tmp[np.isnan(data)] = 1
+                #tmp[np.isnan(data)] = 1
+
+                ## set min/max to rgb stretch
+                tmp[data<=bsc[0]] = 0
+                tmp[data>=bsc[1]] = 1
+
                 ## stack RGB
                 if iw == 0:
                     im = tmp
