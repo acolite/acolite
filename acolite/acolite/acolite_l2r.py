@@ -92,6 +92,7 @@ def acolite_l2r(gem,
         hyper = True
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'], step=0.1)
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
+        del rsr
     else:
         rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
 
@@ -122,6 +123,7 @@ def acolite_l2r(gem,
                 if (setu['pressure'] != setu['pressure_default']): continue
             if (k == 'wind') & (setu['wind'] is not None): continue
             if k in anc: gem.gatts[k] = 1.0 * anc[k]
+        del clon, clat, anc
     else:
         if (setu['s2_auxiliary_default']) & (gem.gatts['sensor'][0:2] == 'S2') & (gem.gatts['sensor'][4:] == 'MSI'):
             ## get mid point values from AUX ECMWFT
@@ -151,9 +153,11 @@ def acolite_l2r(gem,
                                                                    gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
                                                                    gem.gatts['AUX_{}_values'.format(aux_par)])
                     gem.gatts['pressure'] = lndi(clon, clat)/100 # convert from Pa to hPa
+                    del lndi
                 elif 'msl' in gem.datasets:  # S2Resampling, msiresampling
                     lndi = gem.data('msl')
                     gem.gatts['pressure'] = lndi(lndi.len/2, lndi.len/2) / 100  # convert from Pa to hPa
+                    del lndi
                 ## ozone
                 aux_par = 'ECMWFT_tco3'
                 if 'AUX_{}_values'.format(aux_par) in gem.gatts:
@@ -161,6 +165,7 @@ def acolite_l2r(gem,
                                                                    gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
                                                                    gem.gatts['AUX_{}_values'.format(aux_par)])
                     gem.gatts['uoz'] = lndi(clon, clat)**-1 * 0.0021415 # convert from kg/m2 to cm-atm
+                    del lndi
                 ## water vapour
                 aux_par = 'ECMWFT_tcwv'
                 if 'AUX_{}_values'.format(aux_par) in gem.gatts:
@@ -168,9 +173,12 @@ def acolite_l2r(gem,
                                                                    gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
                                                                    gem.gatts['AUX_{}_values'.format(aux_par)])
                     gem.gatts['uwv'] = lndi(clon, clat)/10 # convert from kg/m2 to g/cm2
+                    del lndi
                 elif 'tcwv' in gem.datasets:
                     lndi = gem.data('tcwv')
                     gem.gatts['uwv'] = lndi(lndi.len/2, lndi.len/2) / 10  # convert from kg/m2 to g/cm2
+                    del lndi
+                del clon, clat
 
     ## elevation provided
     if setu['elevation'] is not None:
@@ -287,6 +295,7 @@ def acolite_l2r(gem,
                     if setu['gas_transmittance'] is False: gem.bands[b][k] = 1.0
             gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
     ## end bands dataset
+    del rhot_ds, tg_dict
 
     ## atmospheric correction
     if setu['aerosol_correction'] == 'dark_spectrum':
@@ -313,6 +322,7 @@ def acolite_l2r(gem,
             gem.data_mem[ds] = geom_mean[ds]
         else:
             tmp = gem.data(ds, store=True)
+            del tmp
         if len(np.atleast_1d(gem.data(ds)))>1:
             use_revlut=True ## if any dataset more than 1 dimension use revlut
             per_pixel_geometry = True
@@ -321,6 +331,8 @@ def acolite_l2r(gem,
             gem.data_mem[ds].shape+=(1,1)
         gem.data_mem['{}_mean'.format(ds)] = np.asarray(np.nanmean(gem.data(ds))) ## also store tile mean
         gem.data_mem['{}_mean'.format(ds)].shape+=(1,1) ## make 1,1 dimensions
+
+    del geom_mean
 
     ## for tiled processing track tile positions and average geometry
     tiles = []
@@ -369,6 +381,7 @@ def acolite_l2r(gem,
         segment_data = {}
         rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
         finite_mask = np.isfinite(gem.data(rhot_ds[0]))
+        del rhot_ds
         segment_mask = skimage.measure.label(finite_mask)
         segments = np.unique(segment_mask)
 
@@ -1369,6 +1382,7 @@ def acolite_l2r(gem,
                     romix[segment_data[segment]['sub']] = romix_[sidx]
                     astot[segment_data[segment]['sub']] = astot_[sidx]
                     dutott[segment_data[segment]['sub']] = dutott_[sidx]
+                del romix_, astot_, dutott_
 
             ## write ac parameters
             if setu['dsf_write_tiled_parameters']:
@@ -1435,9 +1449,11 @@ def acolite_l2r(gem,
                                         lutdw[luts[0]]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], 0.001)).flatten()
                     rorayl_cur = ac.shared.rsr_convolute_nd(rorayl_hyper, lutdw[luts[0]]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                     dutotr_cur = ac.shared.rsr_convolute_nd(dutotr_hyper, lutdw[luts[0]]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                    del rorayl_hyper, dutotr_hyper
                 else:
                     rorayl_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
                     dutotr_cur = lutdw[luts[0]]['rgi'][b]((xi[0], lutdw[luts[0]]['ipd']['dutott'], xi[1], xi[2], xi[3], xi[4], 0.001))
+                del xi
 
             ## create full scene parameters for segmented processing
             if setu['dsf_aot_estimate'] == 'segmented':
@@ -1448,6 +1464,7 @@ def acolite_l2r(gem,
                 for sidx, segment in enumerate(segment_data):
                     rorayl_cur[segment_data[segment]['sub']] = rorayl_[sidx]
                     dutotr_cur[segment_data[segment]['sub']] = dutotr_[sidx]
+                del rorayl_, dutotr_
 
             ## create full scene parameters for tiled processing
             if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
@@ -1473,6 +1490,9 @@ def acolite_l2r(gem,
             cur_rhorc = (cur_rhorc - rorayl_cur) / (dutotr_cur)
             gemo.write(dso.replace('rhos_', 'rhorc_'), cur_rhorc, ds_att = ds_att)
             del cur_rhorc, rorayl_cur, dutotr_cur
+
+        if ac_opt == 'dsf' and setu['slicing']:
+            del valid_mask
 
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
