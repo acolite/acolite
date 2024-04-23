@@ -4,6 +4,7 @@
 ## 2023-05-02
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2024-04-23 (MB) read ancillary data of resampled input if requested
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -32,9 +33,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         setu = ac.acolite.settings.parse(sensor, settings=settings)
         output = setu['output']
         if output is None:
-            odir = os.path.dirname(imagefile)
+            odir = os.path.dirname(bundle)
         else:
             odir = output
+        s2_auxiliary_default = setu['s2_auxiliary_default']
 
 #     ## check if ROI polygon is given
 #     clip, clip_mask = False, None
@@ -120,5 +122,59 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                 gemo.write(dso, d)
         gemi.close()
         gemo.close()
+
+        ## auxiliary data, S2Resampling or msiresampling
+        if s2_auxiliary_default:
+            try:
+                datasets = ac.shared.nc_datasets(bundle)
+                # msiresampling can interpolate ancillary to each pixel
+                if 'tcwv_interpolated' in datasets \
+                        and 'msl_interpolated' in datasets \
+                        and 'tco3_interpolated' in datasets \
+                        and 'u10_interpolated' in datasets \
+                        and 'v10_interpolated' in datasets:
+                    for source,name,b in [('AUX_ECMWFT', 'tcwv', 'tcwv'),
+                                          ('AUX_ECMWFT', 'msl', 'msl'),
+                                          ('AUX_ECMWFT', 'tco3', 'tco3'),
+                                          ('AUX_ECMWFT', 'u10', '_0u'),
+                                          ('AUX_ECMWFT', 'v10', '_0v')]:
+                        data = ac.shared.nc_data(bundle, f"{name}_interpolated")
+                        height, width = data.shape
+                        # ACOLITE so far uses a single ancillary value only and does not interpolate to the pixels.
+                        # An array is expected in values, it is the central value that will be selected
+                        gatts['{}_{}_{}'.format(source, b, 'dimensions')] = (3, 1)
+                        gatts['{}_{}_{}'.format(source, b, 'values')] = [data[0, 0], data[height//2, width//2], data[-1, -1]]
+                        gatts['{}_{}_{}'.format(source, b, 'longitudes')] = []
+                        gatts['{}_{}_{}'.format(source, b, 'latitudes')] = []
+                        del data
+                    ac.shared.nc_gatts_update(ofile, gatts)
+                    print(f"using embedded ECMWF ancillary data available on pixel resolution")
+                else:
+                    # S2Resampling in a patched version provides lat and lon for the ancillary data grid.
+                    # A ticket is open to add this behaviour to SNAP.
+                    # Until then s2_auxiliary_default must be used with s2_auxiliary_interpolate=False
+                    try:
+                        lat = ac.shared.nc_data(bundle, 'aux_latitude')
+                        lon = ac.shared.nc_data(bundle, 'aux_longitude')
+                    except Exception as e:
+                        print("no aux_latitude and aux_longitude in tie-points. Use Calvalus S2 reader: {e}")
+                        lat = []
+                        lon = []
+                    for source,b in [('AUX_ECMWFT', 'tcwv'),
+                                     ('AUX_ECMWFT', 'msl'),
+                                     ('AUX_ECMWFT', 'tco3'),
+                                     ('AUX_ECMWFT', '_0u'),
+                                     ('AUX_ECMWFT', '_0v')]:
+                        data = ac.shared.nc_data(bundle, b)
+                        gatts['{}_{}_{}'.format(source, b, 'dimensions')] = data.shape
+                        gatts['{}_{}_{}'.format(source, b, 'values')] = data.flatten()
+                        gatts['{}_{}_{}'.format(source, b, 'longitudes')] = lon.flatten()
+                        gatts['{}_{}_{}'.format(source, b, 'latitudes')] = lat.flatten()
+                    ac.shared.nc_gatts_update(ofile, gatts)
+                    print(f"using embedded ECMWF ancillary data available on coarse geographic grid")
+            except Exception as e:
+                print(f"cannot use embedded ECMWF data: {e}")
+                raise e
+
         ofiles.append(ofile)
     return(ofiles, setu)

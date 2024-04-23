@@ -13,6 +13,9 @@
 ##                2023-10-31 (QV) improved memory management, moved ttot_all interpolation to glint correction
 ##                2023-12-07 (QV) option to use S2 AUX
 ##                2024-03-14 (QV) update settings handling
+##                2024-04-23 (MB) use ancillary data included in resampled MSI
+import math
+
 
 def acolite_l2r(gem,
                 output = None,
@@ -128,6 +131,10 @@ def acolite_l2r(gem,
                 gem.gatts['uoz'] = gem.gatts['AUX_ECMWFT_tco3_values'][int(len(gem.gatts['AUX_ECMWFT_tco3_values'])/2)] ** -1 * 0.0021415 # convert from kg/m2 to cm-atm
             if 'AUX_ECMWFT_tcwv_values' in gem.gatts:
                 gem.gatts['uwv'] = gem.gatts['AUX_ECMWFT_tcwv_values'][int(len(gem.gatts['AUX_ECMWFT_tcwv_values'])/2)]/10 # convert from kg/m2 to g/cm2
+            if 'AUX_ECMWFT__0u_values' in gem.gatts and 'AUX_ECMWFT__0v_values' in gem.gatts:  # S2Resampling, msiresampling
+                u_wind = gem.gatts['AUX_ECMWFT__0u_values'][int(len(gem.gatts['AUX_ECMWFT__0u_values'])/2)]
+                v_wind = gem.gatts['AUX_ECMWFT__0v_values'][int(len(gem.gatts['AUX_ECMWFT__0v_values'])/2)]
+                gem.gatts['wind'] = math.sqrt(u_wind * u_wind + v_wind * v_wind)
 
             ## interpolate to scene centre
             if setu['s2_auxiliary_interpolate']:
@@ -144,6 +151,9 @@ def acolite_l2r(gem,
                                                                    gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
                                                                    gem.gatts['AUX_{}_values'.format(aux_par)])
                     gem.gatts['pressure'] = lndi(clon, clat)/100 # convert from Pa to hPa
+                elif 'msl' in gem.datasets:  # S2Resampling, msiresampling
+                    lndi = gem.data('msl')
+                    gem.gatts['pressure'] = lndi(lndi.len/2, lndi.len/2) / 100  # convert from Pa to hPa
                 ## ozone
                 aux_par = 'ECMWFT_tco3'
                 if 'AUX_{}_values'.format(aux_par) in gem.gatts:
@@ -158,6 +168,9 @@ def acolite_l2r(gem,
                                                                    gem.gatts['AUX_{}_latitudes'.format(aux_par)]),
                                                                    gem.gatts['AUX_{}_values'.format(aux_par)])
                     gem.gatts['uwv'] = lndi(clon, clat)/10 # convert from kg/m2 to g/cm2
+                elif 'tcwv' in gem.datasets:
+                    lndi = gem.data('tcwv')
+                    gem.gatts['uwv'] = lndi(lndi.len/2, lndi.len/2) / 10  # convert from kg/m2 to g/cm2
 
     ## elevation provided
     if setu['elevation'] is not None:
