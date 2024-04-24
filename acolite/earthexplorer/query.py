@@ -116,6 +116,10 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
         ## get scene list
         response = session.post(api_url+'/scene-list-get', data = json.dumps({"listId": 'acolite_query'}))
 
+        if response.json()['data'] is None:
+            print('No results found for {}'.format(scene))
+            return
+            
         ## parse scene list, get metadata
         for s in response.json()['data']:
             if verbosity > 2: print(s['entityId'])
