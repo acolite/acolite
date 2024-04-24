@@ -6,7 +6,7 @@
 ##
 ## for the RAdCor project 2023-2024
 ##
-## modifications: 2024-04-24 (QV) added as function, added sensor aliases dict
+## modifications: 2024-04-24 (QV) added as function, added sensor aliases dict, added PS_22
 
 def import_fits(sensor, bands, aer_models = ['C', 'M']):
     import acolite as ac
@@ -25,11 +25,8 @@ def import_fits(sensor, bands, aer_models = ['C', 'M']):
 
     ## sensor aliases to APSFS outputs
     aliases = {'PlanetScope_SD8': 'SD_00', 'PlanetScope_SD5': 'SD_00',
-               'PlanetScope_0c': 'PS_0C0D',  'PlanetScope_0d05': 'PS_0C0D', 'PlanetScope_0d06': 'PS_0C0D',
-               'PlanetScope_0e': 'PS_0E',
-               'PlanetScope_0f': 'PS_0F10',
-               'PlanetScope_22': 'PS_0F10', ## this is wrong!!
-               }
+               'PlanetScope_0c': 'PS_0C0D', 'PlanetScope_0d05': 'PS_0C0D', 'PlanetScope_0d06': 'PS_0C0D',
+               'PlanetScope_0e': 'PS_0E', 'PlanetScope_0f': 'PS_0F10', 'PlanetScope_22': 'PS_22',}
 
     ## Load PSF data
     coefs_psf_ray = {}
