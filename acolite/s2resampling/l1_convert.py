@@ -6,6 +6,8 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2024-04-23 (MB) read ancillary data of resampled input if requested
 
+import numpy as np
+
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
     import datetime, dateutil.parser, os, copy
@@ -123,22 +125,22 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         gemi.close()
         gemo.close()
 
-        ## auxiliary data, S2Resampling or msiresampling
+        ## auxiliary data from S2Resampling or msiresampling
         if s2_auxiliary_default:
             try:
                 datasets = ac.shared.nc_datasets(bundle)
-                # msiresampling can interpolate ancillary to each pixel
+                # hrocresampling interpolates ancillary to each pixel
                 if 'tcwv_interpolated' in datasets \
                         and 'msl_interpolated' in datasets \
                         and 'tco3_interpolated' in datasets \
                         and 'u10_interpolated' in datasets \
                         and 'v10_interpolated' in datasets:
-                    for source,name,b in [('AUX_ECMWFT', 'tcwv', 'tcwv'),
-                                          ('AUX_ECMWFT', 'msl', 'msl'),
-                                          ('AUX_ECMWFT', 'tco3', 'tco3'),
-                                          ('AUX_ECMWFT', 'u10', '_0u'),
-                                          ('AUX_ECMWFT', 'v10', '_0v')]:
-                        data = ac.shared.nc_data(bundle, f"{name}_interpolated")
+                    for source,name,b in [('AUX_ECMWFT', 'tcwv_interpolated', 'tcwv'),
+                                          ('AUX_ECMWFT', 'msl_interpolated', 'msl'),
+                                          ('AUX_ECMWFT', 'tco3_interpolated', 'tco3'),
+                                          ('AUX_ECMWFT', 'u10_interpolated', '_0u'),
+                                          ('AUX_ECMWFT', 'v10_interpolated', '_0v')]:
+                        data = ac.shared.nc_data(bundle, name)
                         height, width = data.shape
                         # ACOLITE so far uses a single ancillary value only and does not interpolate to the pixels.
                         # An array is expected in values, it is the central value that will be selected
@@ -149,6 +151,35 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                         del data
                     ac.shared.nc_gatts_update(ofile, gatts)
                     print(f"using embedded ECMWF ancillary data available on pixel resolution")
+                # msiresampling provides ancillary data on a coarse grid with lat and lon
+                elif 'tcwv' in datasets \
+                        and 'msl' in datasets \
+                        and 'tco3' in datasets \
+                        and 'u10' in datasets \
+                        and 'v10' in datasets:
+                    try:
+                        lat = ac.shared.nc_data(bundle, 'aux_latitude')
+                        lon = ac.shared.nc_data(bundle, 'aux_longitude')
+                        rows = lat.shape[0]
+                        cols = lon.shape[0]
+                        lat = np.tile(lat, (cols, 1)).T
+                        lon = np.tile(lon, (rows, 1))
+                    except Exception as e:
+                        print("no aux_latitude and aux_longitude in tie-points. Use Calvalus S2 reader: {e}")
+                        lat = []
+                        lon = []
+                    for source,name,b in [('AUX_ECMWFT', 'tcwv', 'tcwv'),
+                                          ('AUX_ECMWFT', 'msl', 'msl'),
+                                          ('AUX_ECMWFT', 'tco3', 'tco3'),
+                                          ('AUX_ECMWFT', 'u10', '_0u'),
+                                          ('AUX_ECMWFT', 'v10', '_0v')]:
+                        data = ac.shared.nc_data(bundle, name)
+                        gatts['{}_{}_{}'.format(source, b, 'dimensions')] = data.shape
+                        gatts['{}_{}_{}'.format(source, b, 'values')] = data.flatten()
+                        gatts['{}_{}_{}'.format(source, b, 'longitudes')] = lon.flatten()
+                        gatts['{}_{}_{}'.format(source, b, 'latitudes')] = lat.flatten()
+                    ac.shared.nc_gatts_update(ofile, gatts)
+                    print(f"using embedded ECMWF ancillary data available on coarse geographic grid")
                 else:
                     # S2Resampling in a patched version provides lat and lon for the ancillary data grid.
                     # A ticket is open to add this behaviour to SNAP.
@@ -156,6 +187,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                     try:
                         lat = ac.shared.nc_data(bundle, 'aux_latitude')
                         lon = ac.shared.nc_data(bundle, 'aux_longitude')
+                        rows = lat.shape[0]
+                        cols = lon.shape[0]
+                        lat = np.tile(lat, (cols, 1)).T
+                        lon = np.tile(lon, (rows, 1))
                     except Exception as e:
                         print("no aux_latitude and aux_longitude in tie-points. Use Calvalus S2 reader: {e}")
                         lat = []
