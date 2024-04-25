@@ -14,7 +14,6 @@
 ##                2023-12-07 (QV) option to use S2 AUX
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-23 (MB) use ancillary data included in resampled MSI
-import math
 
 
 def acolite_l2r(gem,
@@ -136,7 +135,7 @@ def acolite_l2r(gem,
             if 'AUX_ECMWFT__0u_values' in gem.gatts and 'AUX_ECMWFT__0v_values' in gem.gatts:  # S2Resampling, msiresampling
                 u_wind = gem.gatts['AUX_ECMWFT__0u_values'][int(len(gem.gatts['AUX_ECMWFT__0u_values'])/2)]
                 v_wind = gem.gatts['AUX_ECMWFT__0v_values'][int(len(gem.gatts['AUX_ECMWFT__0v_values'])/2)]
-                gem.gatts['wind'] = math.sqrt(u_wind * u_wind + v_wind * v_wind)
+                gem.gatts['wind'] = np.sqrt(u_wind * u_wind + v_wind * v_wind)
 
             ## interpolate to scene centre
             if setu['s2_auxiliary_interpolate']:
