@@ -7,6 +7,7 @@
 ##                2023-09-12 (QV) added attempt to download from CDSE
 ##                2023-09-21 (QV) added attempt to download from EarthExplorer
 ##                2023-10-21 (QV) added ECOSTRESS download from EarthExplorer
+##                2024-04-27 (QV) moved APIs 
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -49,14 +50,14 @@ def inputfile_test(inputfile):
 
                 ## Copernicus Data Space Ecosystem
                 if download_source == 'CDSE':
-                    urls, scenes = ac.cdse.query(scene=bn)
+                    urls, scenes = ac.api.cdse.query(scene=bn)
                     if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
-                    local_scenes = ac.cdse.download(urls, output = ddir, verbosity = ac.config['verbosity'])
+                    local_scenes = ac.api.cdse.download(urls, output = ddir, verbosity = ac.config['verbosity'])
                 ## EarthExplorer
                 if download_source == 'EarthExplorer':
-                    entity_list, identifier_list, dataset_list = ac.earthexplorer.query(scene=bn)
+                    entity_list, identifier_list, dataset_list = ac.api.earthexplorer.query(scene=bn)
                     if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
-                    local_scenes = ac.earthexplorer.download(entity_list, dataset_list, identifier_list, output = ddir, verbosity = ac.config['verbosity'])
+                    local_scenes = ac.api.earthexplorer.download(entity_list, dataset_list, identifier_list, output = ddir, verbosity = ac.config['verbosity'])
 
                 if len(local_scenes) == 1:  file = '{}'.format(local_scenes[0])
                 if not os.path.exists(file): continue
