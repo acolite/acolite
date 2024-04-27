@@ -4,6 +4,7 @@
 ## 2022-03-02
 ## modifications: 2024-03-21 (QV) added circular extraction, and (p)ixel and (m)etre options for box and radius units
 ##                2024-03-25 (QV) optional external mask, added output of image subset position
+##                2024-04-25 (QV) use gem for file reading
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
@@ -143,7 +144,11 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             gsub = [j0, i0, box_size_pix, box_size_pix]
 
     ## extract data
-    sub = {ds: ac.shared.nc_data(ncf, ds, sub=gsub) for ds in dataset_list}
+    #sub = {ds: ac.shared.nc_data(ncf, ds, sub=gsub) for ds in dataset_list}
+    gem = ac.gem.gem(ncf)
+    sub = {ds: gem.data(ds, sub=gsub) for ds in dataset_list}
+    gem.close()
+    gem = None
 
     ## get single element for box size 1
     if gsub[2:] == [1,1]: sub = {ds:sub[ds][0,0] for ds in sub}
