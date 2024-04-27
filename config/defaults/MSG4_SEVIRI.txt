@@ -1,0 +1,41 @@
+## ACOLITE default settings for MSG4_SEVIRI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+##
+seviri_hrv=False
+pans_scale_factor=3
+
+## dark spectrum fitting options
+dsf_aot_estimate=resolved
+dsf_interface_reflectance=True
+resolved_geometry=True
+dsf_spectrum_option=percentile
+dsf_percentile=1
+luts=ACOLITE-LUT-202110-MOD2
+
+dsf_filter_aot=True
+dsf_filter_percentile=0
+dsf_filter_box=3
+dsf_write_aot_550=True
+
+dsf_smooth_aot=True
+dsf_smooth_box=1,1
+dsf_tile_dimensions=38,38
+
+## masking settings
+l2w_mask_wave=1600
+l2w_mask_threshold=0.05
+l2w_mask_smooth=False
+l2w_mask_negative_rhow=False
+
+## rgb settings
+rgb_min=0.02,0.02,0.02
+rgb_max=0.4,0.4,0.4
+rgb_red_wl=1640
+rgb_green_wl=810
+rgb_blue_wl=640
+map_title_rgb_wavelengths=True

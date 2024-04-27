@@ -397,6 +397,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## SEVIRI
+        try:
+            ret = ac.seviri.bundle_test(bundle)
+            meta = ac.seviri.metadata(ret)
+            if (meta['AIID'] == 'SEVI'):
+                input_type = 'SEVIRI'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end SEVIRI
+        ################
+
+        ################
         ## DIMAP
         try:
             dimfile, datfile = ac.dimap.bundle_test(bundle)

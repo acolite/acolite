@@ -21,20 +21,27 @@ def acolite_pans(ncf, output = None, settings = None):
     if '_L2R.nc' in bn:
         ncfp = ncf.replace('_L2R.nc', '_L1R_pan.nc')
 
+    if 'SEVIRI' in bn:
+        ncfp = ncfp.replace('_pan', '_HRV')
+
     if not os.path.exists(ncfp):
         print('No L1R_pan.nc file available for {}'.format(ncf))
         return
 
+    ## Open gem
+    gem = ac.gem.gem(ncf)
+
     ## parse settings
-    setu = ac.acolite.settings.parse(None, settings=settings)
+    if 'user' not in ac.settings:
+        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
+        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
+    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=settings)
     for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
 
     if setu['pans_method'] not in ['panr', 'visr']:
         print('pans_method={} not configured, using panr')
         setu['pans_method'] = 'panr'
 
-    ## Open gem
-    gem = ac.gem.gem(ncf)
     if gem.gatts['sensor'] not in setu['pans_sensors']:
         print('Pan sharpening not supported for {}'.format(gem.gatts['sensor']))
         gem.close()
@@ -48,7 +55,7 @@ def acolite_pans(ncf, output = None, settings = None):
 
     # read pan gem
     gemp = ac.gem.gem(ncfp)
-    dsp = [ds for ds in gemp.datasets if ('rhot_' in ds) | ('pan' == ds)][0]
+    dsp = [ds for ds in gemp.datasets if ('rhot_' in ds) | ('pan' == ds) | ('hrv' == ds)][0]
     rhos_datasets = [ds for ds in gem.datasets if 'rhos_' in ds]
     rhos_wave = np.asarray([float(ds.split('_')[1]) for ds in rhos_datasets])
     rhot_datasets = [ds for ds in gem.datasets if 'rhot_' in ds]

@@ -135,6 +135,9 @@ viirs_mask_immixed_bands=I03/M10
 viirs_mask_immixed_maxrat=0.2
 viirs_mask_immixed_maxdif=0.002
 
+## SEVIRI settings
+seviri_hrv=False
+
 ## TACT settings
 tact_run=False
 tact_profile_source=era5
@@ -451,7 +454,7 @@ pans_bgr=480,560,655
 pans_rgb_rhot=True
 pans_rgb_rhos=True
 pans_export_geotiff_rgb=False
-pans_sensors=L7_ETM,L8_OLI,L9_OLI,PRISMA
+pans_sensors=L7_ETM,L8_OLI,L9_OLI,PRISMA,MSG1_SEVIRI,MSG2_SEVIRI,MSG3_SEVIRI,MSG4_SEVIRI
 pans_scale_factor=None
 
 # more mapping options - under development
