@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-19
 ## modifications: 2023-09-25 (QV) changed to separate earthexplorer credentials
+##                2024-04-27 (QV) moved to acolite.api
 
 def auth(api_url = None, return_auth = False, netrc_machine = 'earthexplorer'):
     import os, requests, json, netrc

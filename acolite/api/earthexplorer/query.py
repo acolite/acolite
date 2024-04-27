@@ -5,6 +5,7 @@
 ## modifications: 2023-09-20 (QV) moved roi_wkt to function, added cloudCoverFilter
 ##                2023-11-13 (QV) removed adding one day to queries where start == end
 ##                2023-11-21 (QV) added dataset as keyword, added ecostress_type
+##                2024-04-27 (QV) moved to acolite.api
 
 def query(scene = None, collection = 2, level = 1, dataset = None,
                 landsat_type = None, ecostress_type = None,
@@ -21,7 +22,7 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
     if api_url is None: api_url = ac.config['EARTHEXPLORER_api']
 
     ## get access token for query
-    access_token = ac.earthexplorer.auth(api_url=api_url)
+    access_token = ac.api.earthexplorer.auth(api_url=api_url)
     if access_token is None:
         print('Could not get EarthExplorer access token!')
         return
@@ -119,7 +120,7 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
         if response.json()['data'] is None:
             print('No results found for {}'.format(scene))
             return
-            
+
         ## parse scene list, get metadata
         for s in response.json()['data']:
             if verbosity > 2: print(s['entityId'])

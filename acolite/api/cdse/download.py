@@ -4,6 +4,7 @@
 ## 2023-09-12
 ## modifications: 2023-09-19 (QV) retrieve access token per url to avoid time outs
 ##                2023-10-22 (QV) added optional scenes list
+##                2024-04-27 (QV) moved to acolite.api
 
 def download(urls, scenes = [], output = None, auth = None, auth_url = None, netrc_machine = 'cdse',
                   extract_zip = True, remove_zip = True, override = False, verbosity = 1):

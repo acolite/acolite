@@ -44,8 +44,7 @@ from acolite import adjacency
 from acolite import gem
 from acolite import parameters
 
-from acolite import cdse
-from acolite import earthexplorer
+from acolite import api
 
 ## ignore numpy errors
 import numpy as np

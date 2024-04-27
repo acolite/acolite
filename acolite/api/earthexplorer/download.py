@@ -4,6 +4,7 @@
 ## 2023-09-19
 ## modifications: 2023-09-20 (QV) removed lxml and use HTMLparser
 ##                2023-11-21 (QV) added ECOSTRESS download
+##                2024-04-27 (QV) moved to acolite.api
 
 def download(entity_list, dataset_list, identifier_list, output = None,
                   extract_tar = True, remove_tar = True, override = False, verbosity = 1):
@@ -69,7 +70,7 @@ def download(entity_list, dataset_list, identifier_list, output = None,
 
             ## try authentication
             if verbosity > 1: print('Getting EarthExplorer access token')
-            access_token, auth = ac.earthexplorer.auth(return_auth = True)
+            access_token, auth = ac.api.earthexplorer.auth(return_auth = True)
             if verbosity > 1: print('Got access_token {}'.format(access_token))
 
             ## set up session with X-Auth-Token
