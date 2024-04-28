@@ -47,7 +47,7 @@ def get_scene(scene, download_directory = None):
 
     ## EarthData
     if download_source == 'EarthData':
-        local_scenes = ac.api.earthdata.query(sensor, scene = bn,
+        local_scenes = ac.api.earthdata.query(sensor, scene = bn, download = True,
                                               local_directory = download_directory, verbosity = ac.config['verbosity'])
 
     ## return local paths
