@@ -2,13 +2,12 @@
 ## sets up queries for EarthData, downloads if asked
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-04-28
-## modifications:
+## modifications: 2024-04-28 (QV) added scene search option
 ##
 
-def query(sensor, lon, lat, start_date = None, end_date = None, api = 'atom', verbosity = 5,
+def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          granule_id = None, ## search on granule name to be implemented "producergranuleid"
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os
@@ -31,30 +30,40 @@ def query(sensor, lon, lat, start_date = None, end_date = None, api = 'atom', ve
             dataset = 'PACE_OCI_L1B_SCI'
             datacenter = 'OB_CLOUD'
             collection_id = 'C2804798373-OB_CLOUD' ## L1B
+            api = 'json'
         elif sensoru in ['ECOSTRESS', 'ISS_ECOSTRESS']:
             collection_id = []
             collection_id.append('C1545228916-LPDAAC_ECS') ## ECO1BMAPRAD
             collection_id.append('C1534584923-LPDAAC_ECS') ## ECO1BGEO
             api = 'json'
-        elif 'VIIRS' in sensoru:
+            if scene is not None:
+                 api = 'json'
+                 print('Scene retrieval for ECOSTRESS not yet implemented')
+                 return
+        elif ('VIIRS' in sensoru) | (sensoru in ['VNP', 'VJ1', 'VJ2']):
             ## track which resolution files to get
             mod, img = True, True
             if 'MOD' in sensoru: img = False ## only MOD
             if 'IMG' in sensoru: mod = False ## only IMG
 
             ## if specific sensor is requested
-            if 'SUOMI-NPP' in sensoru: sensor_ids = ['VNP']
-            elif 'JPSS1' in sensoru: sensor_ids = ['VJ1']
-            elif 'JPSS2' in sensoru: sensor_ids = ['VJ2']
+            if ('SUOMI-NPP' in sensoru) | (sensoru == 'VNP'): sensor_ids = ['VNP']
+            elif ('JPSS1' in sensoru) | (sensoru == 'VJ1'): sensor_ids = ['VJ1']
+            elif ('JPSS2' in sensoru) | (sensoru == 'VJ2'): sensor_ids = ['VJ2']
             else: sensor_ids = ['VNP', 'VJ1', 'VJ2']
 
             dataset = []
+            collection_id = [] ## to add for json api
             for sid in sensor_ids:
                 if mod: dataset += ['{}02MOD'.format(sid), '{}03MOD'.format(sid)]
                 if img: dataset += ['{}02IMG'.format(sid), '{}03IMG'.format(sid)]
             datacenter = ['LAADS'] * len(dataset)
             print(dataset)
             api = 'atom'
+            if scene is not None:
+                api = 'json'
+                print('Scene retrieval for VIIRS not yet implemented')
+                return
         else:
             print('Sensor {} not configured.'.format(sensor))
             return
@@ -73,10 +82,10 @@ def query(sensor, lon, lat, start_date = None, end_date = None, api = 'atom', ve
     for di in range(n):
         ## construct query url
         if api == 'atom':
-            query_url = ac.api.earthdata.url_atom(dataset[di], lat, lon, start_date = start_date,
+            query_url = ac.api.earthdata.url_atom(dataset[di], lat, lon, scene = scene, start_date = start_date,
                                                     end_date = end_date, datacenter = datacenter[di])
         elif api == 'json':
-            query_url = ac.api.earthdata.url_json(collection_id[di], lat, lon,
+            query_url = ac.api.earthdata.url_json(collection_id[di], lat, lon, scene = scene,
                                                     start_date = start_date, end_date = end_date)
         if verbosity > 3: print(query_url)
 
