@@ -141,11 +141,11 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                                           ('AUX_ECMWFT', 'u10_interpolated', '_0u'),
                                           ('AUX_ECMWFT', 'v10_interpolated', '_0v')]:
                         data = ac.shared.nc_data(bundle, name)
-                        height, width = data.shape
+                        median = np.median(data.compressed())
                         # ACOLITE so far uses a single ancillary value only and does not interpolate to the pixels.
                         # An array is expected in values, it is the central value that will be selected
                         gatts['{}_{}_{}'.format(source, b, 'dimensions')] = (3, 1)
-                        gatts['{}_{}_{}'.format(source, b, 'values')] = [data[0, 0], data[height//2, width//2], data[-1, -1]]
+                        gatts['{}_{}_{}'.format(source, b, 'values')] = [median, median, median]
                         gatts['{}_{}_{}'.format(source, b, 'longitudes')] = []
                         gatts['{}_{}_{}'.format(source, b, 'latitudes')] = []
                         del data
