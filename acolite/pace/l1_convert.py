@@ -14,6 +14,8 @@ def l1_convert(inputfile, output = None, settings = None):
 
     ## get run verbosity
     verbosity = ac.settings['run']['verbosity']
+    if (settings is None) & ('user' in ac.settings):
+        settings = {k: ac.settings['user'][k] for k in ac.settings['user']}
 
     ## parse inputfile
     if type(inputfile) != list:
