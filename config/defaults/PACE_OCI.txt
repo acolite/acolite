@@ -5,6 +5,7 @@
 ## settings you want to change from the ones in this defaults file.
 ##
 
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
 add_detector_name=True
 default_projection_resolution=1200,1200
 output_projection_radius=10
