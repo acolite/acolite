@@ -9,6 +9,7 @@
 ##                2022-07-07 (QV) added SRTM1 DEM
 ##                2022-08-04 (QV) added GED and retry option
 ##                2022-08-17 (QV) added .netrc auth, simplified url checks for earthdata
+##                2024-05-01 (QV) added earthdatacloud.nasa.gov check for earthdata
 
 def download_file(url, file, auth = None, session = None,
                     parallel = False, verbosity = 0, verify_ssl = True, retry = 1):
@@ -27,7 +28,7 @@ def download_file(url, file, auth = None, session = None,
 
     start = time.time()
 
-    if ('gsfc.nasa.gov' in url) or ('cr.usgs.gov' in url):
+    if ('gsfc.nasa.gov' in url) or ('earthdatacloud.nasa.gov' in url) or ('cr.usgs.gov' in url):
         ## try to get auth from netrc
         if (auth is None):
             try:
