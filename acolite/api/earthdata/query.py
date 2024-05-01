@@ -3,11 +3,12 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-04-28
 ## modifications: 2024-04-28 (QV) added scene search option
-##
+##                2024-05-01 (QV) added level2 download for PACE
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
+          level2 = False, ## for PACE L2 AOP data
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os
@@ -31,6 +32,10 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
             datacenter = 'OB_CLOUD'
             collection_id = 'C2804798373-OB_CLOUD' ## L1B
             api = 'json'
+            if level2:
+                collection_id = 'C2910373786-OB_CLOUD' ## L2 AOP
+                dataset = 'PACE_OCI_L2_AOP_NRT'
+
         elif sensoru in ['ECOSTRESS', 'ISS_ECOSTRESS']:
             collection_id = []
             collection_id.append('C1545228916-LPDAAC_ECS') ## ECO1BMAPRAD
