@@ -27,8 +27,11 @@ def url_atom(dataset, lat, lon, scene = None, start_date = None, end_date = None
 
         if end_date is not None:
             edate = dateutil.parser.parse(end_date)
+            add_day = 0
             if start_date is not None:
-                if edate == sdate: edate+=datetime.timedelta(days=1)
+                if edate == sdate: add_day = 1 ## add one day if start = end date
+            if 'T' not in end_date: add_day = 1 ## add one day if no time is given
+            edate+=datetime.timedelta(days=add_day)
             query_url += '&endTime={}Z'.format(edate.isoformat())
 
     return(query_url)

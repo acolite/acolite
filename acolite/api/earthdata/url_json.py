@@ -28,8 +28,11 @@ def url_json(collection_id, lat, lon, scene = None, start_date = None, end_date 
 
         if end_date is not None:
             edate = dateutil.parser.parse(end_date)
+            add_day = 0
             if start_date is not None:
-                if edate == sdate: edate+=datetime.timedelta(days=1)
+                if edate == sdate: add_day = 1 ## add one day if start = end date
+            if 'T' not in end_date: add_day = 1 ## add one day if no time is given
+            edate+=datetime.timedelta(days=add_day)
             temporal[1] = '{}Z'.format(edate.isoformat())
         query_url += '&temporal={}'.format(','.join([str(v) for v in temporal]))
 
