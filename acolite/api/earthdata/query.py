@@ -4,11 +4,12 @@
 ## 2024-04-28
 ## modifications: 2024-04-28 (QV) added scene search option
 ##                2024-05-01 (QV) added level2 download for PACE
+##                2024-05-04 (QV) added level2_type options AOP/BGC/IOP/PAR
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          level2 = False, ## for PACE L2 AOP data
+          level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os
@@ -32,9 +33,24 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
             datacenter = 'OB_CLOUD'
             collection_id = 'C2804798373-OB_CLOUD' ## L1B
             api = 'json'
+
+            ## download L2 data
             if level2:
-                collection_id = 'C2910373786-OB_CLOUD' ## L2 AOP
-                dataset = 'PACE_OCI_L2_AOP_NRT'
+                if level2_type == 'AOP':
+                    collection_id = 'C2910373786-OB_CLOUD' ## L2 AOP
+                    dataset = 'PACE_OCI_L2_AOP_NRT'
+                elif level2_type == 'BGC':
+                    collection_id = 'C2910373790-OB_CLOUD' ## L2 BGC
+                    dataset = 'PACE_OCI_L2_BGC_NRT'
+                elif level2_type == 'IOP':
+                    collection_id = 'C2910373800-OB_CLOUD' ## L2 IOP
+                    dataset = 'PACE_OCI_L2_IOP_NRT'
+                elif level2_type == 'PAR':
+                    collection_id = 'C2903276791-OB_CLOUD' ## L2 PAR
+                    dataset = 'PACE_OCI_L2_PAR_NRT'
+                else:
+                    print('L2 type level2_type={} not recognised.'.format(level2_type))
+                    return
 
         elif sensoru in ['ECOSTRESS', 'ISS_ECOSTRESS']:
             collection_id = []
