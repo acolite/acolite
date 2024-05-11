@@ -8,6 +8,7 @@
 ##                2023-05-09 (QV) added option to crop
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2024-05-11 (QV) update for L1G2 data
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
@@ -117,11 +118,14 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         d = ac.shared.distance_se(doy)
 
         ## lon and lat keys
-        lat_key = 'Latitude_SWIR'
-        lon_key = 'Longitude_SWIR'
-        if 'PRS_L1G_STD_OFFL_' in os.path.basename(file):
+        bn = os.path.basename(file)
+        l1g = ('PRS_L1G_STD_OFFL_' in bn) | ('PRS_L1G2_STD_OFFL_' in bn)
+        if l1g:
             lat_key = 'Latitude'
             lon_key = 'Longitude'
+        else:
+            lat_key = 'Latitude_SWIR'
+            lon_key = 'Longitude_SWIR'
 
         ## mask for L1G format
         mask_value = 65535
@@ -137,6 +141,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
             print('Using user specified L2C file {}'.format(l2file))
         else:
             l2file = os.path.dirname(file) + os.path.sep + os.path.basename(file).replace('PRS_L1_STD_OFFL_', 'PRS_L2C_STD_')
+
         if not os.path.exists(l2file):
             print('PRISMA processing only supported when L2 geometry is present.')
             print('Please put {} in the same directory as {}'.format(os.path.basename(l2file), os.path.basename(file)))
@@ -163,9 +168,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         vza, vaa, sza, saa, raa = None, None, None, None, None
         with h5py.File(l2file, mode='r') as f:
             ## L1G format
-            if 'PRS_L1G_STD_OFFL_' in os.path.basename(file):
-                #lat_key = 'Latitude'
-                #lon_key = 'Longitude'
+            if l1g:
                 if sub is None:
                     vza = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Zenith_Angle'][:]
                     vaa = f['HDFEOS']['SWATHS']['PRS_L1_HCO']['Geometric Fields']['Sensor_Azimuth_Angle'][:]
