@@ -93,8 +93,9 @@ class gem(object):
         def datasets_read(self, group = None):
             if self.nc_mode != 'r': self.open('r')
             ## store dimensions
-            self.xdim = len(self.nc.dimensions['x'])
-            self.ydim = len(self.nc.dimensions['y'])
+            if ('x' in self.nc.dimensions) & ('y' in self.nc.dimensions):
+                self.xdim = len(self.nc.dimensions['x'])
+                self.ydim = len(self.nc.dimensions['y'])
             if group is not None:
                 if group in self.nc.groups: self.datasets = list(self.nc.groups[group].variables.keys())
             else:
