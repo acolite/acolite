@@ -52,11 +52,6 @@ def default(gem, settings = None, lutdw = None, new_file = False):
     ##
     aot = gem.gatts['ac_aot_550']
     model = gem.gatts['ac_model']
-    if 'ac_lut' in gem.gatts:
-        lut = gem.gatts['ac_lut']
-    else:
-        aer_nm = {'C': 'MOD1', 'M': 'MOD2', 'U': 'MOD3'}
-        lut = [lut for lut in luts if aer_nm[model] in lut][0]
 
     if 'aot_550' in gem.datasets:
         print('Per-pixel aot found, not yet implemented.')
@@ -124,6 +119,12 @@ def default(gem, settings = None, lutdw = None, new_file = False):
                                       sensor = sensor, lut_par = ['ttot'], return_lut_array = True)
     luts = list(lutdw.keys())
     print(luts)
+
+    if 'ac_lut' in gem.gatts:
+        lut = gem.gatts['ac_lut']
+    else:
+        aer_nm = {'C': 'MOD1', 'M': 'MOD2', 'U': 'MOD3'}
+        lut = [lut for lut in luts if aer_nm[model] in lut][0]
 
     pressure = setu['pressure_default'] # ac.settings['run']['pressure_default']
     wind = setu['wind_default'] # ac.settings['run']['wind_default']
