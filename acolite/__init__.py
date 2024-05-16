@@ -40,6 +40,7 @@ from acolite import masking
 from acolite import tact
 from acolite import acolite
 from acolite import adjacency
+from acolite import glint
 
 from acolite import gem
 from acolite import parameters
