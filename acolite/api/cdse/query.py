@@ -4,6 +4,8 @@
 ## 2023-09-12
 ## modifications: 2023-09-20 (QV) moved roi_wkt to function
 ##                2024-04-08 (QV) added processor_version
+##                2024-04-27 (QV) moved to acolite.api
+##                2024-05-16 (QV) remove leading T from tile, check tile length
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None,
@@ -84,7 +86,11 @@ def query(scene = None, collection = None, product = None,
     if cloud_cover is not None:
         query_list.append(f"Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq 'cloudCover' and att/OData.CSC.DoubleAttribute/Value lt {cloud_cover})")
     if tile is not None:
-        query_list.append(f"Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'tileId' and att/OData.CSC.StringAttribute/Value eq '{tile}')")
+        if tile[0] == 'T': tile = tile[1:]
+        if len(tile) != 5:
+            print('MGRS tile length should be 5 characters: {}'.format(tile))
+        else:
+            query_list.append(f"Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'tileId' and att/OData.CSC.StringAttribute/Value eq '{tile}')")
     if bright_cover is not None:
         query_list.append(f"Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq 'brightCover' and att/OData.CSC.DoubleAttribute/Value lt {bright_cover})")
     if timeliness is not None:
