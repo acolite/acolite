@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-01-26
-## modifications:
+## modifications: 2024-05-21 (QV) skip negative rhos masking if rhos datasets are not present
 ##
 
 def acolite_flags(gem, create_flags_dataset=True, write_flags_dataset=False, return_flags_dataset=True):
@@ -114,20 +114,23 @@ def acolite_flags(gem, create_flags_dataset=True, write_flags_dataset=False, ret
 
     ####
     ## negative rhos
-    if ac.settings['run']['verbosity'] > 3: print('Computing negative reflectance mask.')
-    neg_mask = None
-    for ci, cur_par in enumerate(rhos_ds):
-        if rhos_waves[ci]<ac.settings['run']['l2w_mask_negative_wave_range'][0]: continue
-        if rhos_waves[ci]>ac.settings['run']['l2w_mask_negative_wave_range'][1]: continue
-        if ac.settings['run']['verbosity'] > 3: print('Computing negative reflectance mask from {}.'.format(cur_par))
-        cwave = rhos_waves[ci]
-        cur_par = [ds for ds in rhos_ds if ('{:.0f}'.format(cwave) in ds)][0]
-        cur_data = gem.data(cur_par)
-        #if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
-        if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
-        neg_mask = (neg_mask) | (cur_data < 0)
-    flags = (flags) | (neg_mask.astype(np.int32)*(2**ac.settings['run']['flag_exponent_negative']))
-    neg_mask = None
+    if len(rhos_waves) == 0:
+        if ac.settings['run']['verbosity'] > 3: print('Not computing negative reflectance mask as there are no rhos datasets.')
+    else:
+        if ac.settings['run']['verbosity'] > 3: print('Computing negative reflectance mask.')
+        neg_mask = None
+        for ci, cur_par in enumerate(rhos_ds):
+            if rhos_waves[ci]<ac.settings['run']['l2w_mask_negative_wave_range'][0]: continue
+            if rhos_waves[ci]>ac.settings['run']['l2w_mask_negative_wave_range'][1]: continue
+            if ac.settings['run']['verbosity'] > 3: print('Computing negative reflectance mask from {}.'.format(cur_par))
+            cwave = rhos_waves[ci]
+            cur_par = [ds for ds in rhos_ds if ('{:.0f}'.format(cwave) in ds)][0]
+            cur_data = gem.data(cur_par)
+            #if setu['l2w_mask_smooth']: cur_data = scipy.ndimage.gaussian_filter(cur_data, setu['l2w_mask_smooth_sigma'])
+            if neg_mask is None: neg_mask = np.zeros(cur_data.shape).astype(bool)
+            neg_mask = (neg_mask) | (cur_data < 0)
+        flags = (flags) | (neg_mask.astype(np.int32)*(2**ac.settings['run']['flag_exponent_negative']))
+        neg_mask = None
     ## end negative rhos
     ####
 
