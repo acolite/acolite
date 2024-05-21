@@ -304,10 +304,15 @@ radcor_aot_selection=minimum
 radcor_skip_pan=False
 
 ## radcor optimisation options
+radcor_optimise_target_rhos=None
 radcor_optimise_target_lon=None
 radcor_optimise_target_lat=None
-radcor_optimise_target_rhos=None
+radcor_optimise_target_type=pixel
+radcor_optimise_target_size=1
+radcor_optimise_target_units=pixel
+radcor_optimise_target_mask=False
 radcor_optimise_tolerance=0.001
+radcor_optimise_aot_cost=rmsd
 
 ## radcor output options
 radcor_write_rhot=True

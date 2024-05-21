@@ -9,7 +9,7 @@
 ## modifications: 2024-03-18 (QV) added as function
 ##                2024-03-25 (QV) added numpy import
 ##                2024-03-26 (QV) added check for tsdsf_psf_complete_method
-
+##                2024-05-21 (QV) added radcor_optimise_aot_cost and radcor_optimise_target_type
 def validate_settings(settings):
     import numpy as np
 
@@ -21,11 +21,25 @@ def validate_settings(settings):
     if settings['radcor_aot_estimate'] not in estimatelist:
         print('Error: radcor_aot_estimate must be one of: {}'.format(', '.join(estimatelist)))
         valid = False
+
     if settings['radcor_aot_estimate'] == 'optimise':
-        for k in ['radcor_optimise_target_lon', 'radcor_optimise_target_lat', 'radcor_optimise_target_rhos']:
+        for k in ['radcor_optimise_target_lon', 'radcor_optimise_target_lat', 'radcor_optimise_target_rhos',
+                  'radcor_optimise_aot_cost']:
             if (settings[k] is None):
                 print('Provide {} for radcor_aot_estimate=optimise'.format(k))
                 valid = False
+        costlist = ['RMSD', 'MAPD']
+        if (valid) & (settings['radcor_optimise_aot_cost'].upper() not in costlist):
+            print('Error: radcor_optimise_aot_cost must be one of: {}'.format(', '.join(costlist)))
+            valid = False
+        targetlist = ['pixel', 'box', 'circle']
+        if (valid) & (settings['radcor_optimise_target_type'] not in targetlist):
+            print('Error: radcor_optimise_target_type must be one of: {}'.format(', '.join(targetlist)))
+            valid = False
+        if (valid) & (settings['radcor_optimise_target_type'] != 'pixel') & (settings['radcor_optimise_target_units'][0].lower() not in ['p', 'm']):
+             print('Error: radcor_optimise_target_units must be m(etre) or p(ixel)')
+             valid = False
+
 
     ## check forced aerosol model
     if settings['radcor_force_model'] is not None:

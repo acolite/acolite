@@ -52,9 +52,10 @@ output_projection_radius
 output_projection_epsilon
 radcor_initial_aot
 radcor_psf_radius
+radcor_optimise_target_rhos
 radcor_optimise_target_lon
 radcor_optimise_target_lat
-radcor_optimise_target_rhos
+radcor_optimise_target_size
 radcor_force_aot
 radcor_aot_estimate_centre_extent
 radcor_optimise_tolerance
