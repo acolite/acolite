@@ -3,8 +3,9 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-05-15
 ## modifications: 2024-05-16 (QV) added function, check if file exists, added new_file option
+##                2024-05-22 (QV) added write keyword, update to use gem.write_ds
 
-def default(gem, settings = None, lutdw = None, new_file = False):
+def default(gem, settings = None, lutdw = None, write = True, new_file = False):
     import acolite as ac
     import numpy as np
     import os, time, shutil
@@ -16,17 +17,22 @@ def default(gem, settings = None, lutdw = None, new_file = False):
         opened = True
     gemf = gem.file
 
-    if not os.path.exists(gemf):
-        print('File does not exist {}'.format(gemf))
-        if opened: gem.close()
-        return
+    if gemf is None: write = False ## no writing if file is None
+
+    if (write):
+        if (not os.path.exists(gemf)):
+            print('File does not exist {}'.format(gemf))
+            if opened: gem.close()
+            return
 
     if 'glint_correction' in gem.gatts:
         print('Glint correction already applied to {}'.format(gemf))
         if opened: gem.close()
         return
 
-    if new_file:
+    ## create new file if requested
+    ## otherwise L2R file will be updated if write = True
+    if (write) & (new_file):
         gemi = '{}'.format(gemf)
         oname = os.path.basename(gemi).replace('L2R', 'L2R_GC')
         odir = os.path.dirname(gemi)
@@ -49,7 +55,7 @@ def default(gem, settings = None, lutdw = None, new_file = False):
     setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
     for k in setu: ac.settings['run'][k] = setu[k]  ## update run settings with user settings and sensor defaults
 
-    ##
+    ## get aerosol information, currently only fixed
     aot = gem.gatts['ac_aot_550']
     model = gem.gatts['ac_model']
 
@@ -112,13 +118,18 @@ def default(gem, settings = None, lutdw = None, new_file = False):
             gc_swir1, gc_swir1_b = None, None
             gc_swir2, gc_swir2_b = None, None
 
-    print(gc_swir1_b, gc_swir2_b, gc_user_b)
+    #print(gc_swir1_b, gc_swir2_b, gc_user_b)
 
+    romix_par = 'romix'
+    if setu['dsf_interface_reflectance']: romix_par = 'romix+rsky_t'
+    add_rsky = romix_par == 'romix+rsky_t'
+
+    ## import lut if not passed to function
     if lutdw is None:
-        lutdw = ac.aerlut.import_luts(add_rsky = False, par = 'romix',
+        lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par,
                                       sensor = sensor, lut_par = ['ttot'], return_lut_array = True)
     luts = list(lutdw.keys())
-    print(luts)
+    #print(luts)
 
     if 'ac_lut' in gem.gatts:
         lut = gem.gatts['ac_lut']
@@ -136,8 +147,10 @@ def default(gem, settings = None, lutdw = None, new_file = False):
     vza = gem.gatts['vza']
     sza = gem.gatts['sza']
 
-    #xi = [pressure, raa, vza, sza, wind]
-    xi = [pressure, raa, vza, sza]
+    if add_rsky:
+        xi = [pressure, raa, vza, sza, wind]
+    else:
+        xi = [pressure, raa, vza, sza]
 
     ## compute total optical thickness based on aot and model
     ## currently only fixed values
@@ -147,12 +160,11 @@ def default(gem, settings = None, lutdw = None, new_file = False):
             ttot_all[b] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], aot))
         if len(xi) == 5:
             ttot_all[b] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], aot))
-        print(b, ttot_all[b])
 
     ## start glint correction
     if ((gc_swir1 is not None) and (gc_swir2 is not None)) or (gc_user is not None):
         t0 = time.time()
-        print('Starting glint correction')
+        if setu['verbosity'] > 1: print('Starting glint correction')
 
         ## compute scattering angle
         sza = np.radians(sza)
@@ -187,7 +199,7 @@ def default(gem, settings = None, lutdw = None, new_file = False):
         gc_mask_data = gem.data(gc_mask)
 
         if gc_mask_data is None: ## reference rhos dataset can be missing for night time images (tgas computation goes negative)
-            print('No glint mask could be determined.')
+            if setu['verbosity'] > 1: print('No glint mask could be determined.')
         else:
             sub_gc = np.where(np.isfinite(gc_mask_data) & \
                               (gc_mask_data<=setu['glint_mask_rhos_threshold']))
@@ -198,11 +210,9 @@ def default(gem, settings = None, lutdw = None, new_file = False):
                 rhos_ds = bands[b]['rhos_ds']
                 if rhos_ds not in [gc_swir1, gc_swir2, gc_user]: continue
                 if rhos_ds not in gem.datasets: continue
-                print(rhos_ds)
                 ttot_all_b = ttot_all[b] * 1.0
                 T_cur  = np.exp(-1.*(ttot_all_b/muv)) * np.exp(-1.*(ttot_all_b/mus))
                 del ttot_all_b
-
 
                 ## subset if 2d
                 T_cur_sub = T_cur[sub_gc] if len(np.atleast_2d(T_cur)) > 1 else T_cur * 1.0
@@ -213,8 +223,6 @@ def default(gem, settings = None, lutdw = None, new_file = False):
                     if rhos_ds == gc_swir1: T_SWIR1 = T_cur_sub * 1.0
                     if rhos_ds == gc_swir2: T_SWIR2 = T_cur_sub * 1.0
                 del T_cur, T_cur_sub
-            print(T_SWIR1, T_SWIR2)
-
 
             ## swir band choice is made for first band
             gc_choice = False
@@ -223,7 +231,7 @@ def default(gem, settings = None, lutdw = None, new_file = False):
                 rhos_ds = bands[b]['rhos_ds']
                 if rhos_ds not in gem.datasets: continue
                 if b not in ttot_all: continue
-                print('Performing glint correction for band {} ({} nm)'.format(b, bands[b]['wave_name']))
+                if setu['verbosity'] > 5: print('Performing glint correction for band {} ({} nm)'.format(b, bands[b]['wave_name']))
                 ## load rhos dataset
                 cur_data, cur_att = gem.data(rhos_ds, attributes = True)
 
@@ -281,7 +289,14 @@ def default(gem, settings = None, lutdw = None, new_file = False):
                     if setu['glint_write_rhog_ref']:
                         tmp = np.zeros((gem.ydim, gem.xdim), dtype=np.float32) + np.nan
                         tmp[sub_gc] = rhog_ref
-                        gem.write('rhog_ref', tmp)
+                        ## add to gem
+                        ds = 'rhog_ref'
+                        gem.data_mem[ds] = tmp
+                        gem.data_att[ds] = {}
+                        ## write and clear
+                        if write: gem.write_ds(ds, clear = True)
+                        ## old write option
+                        #gem.write('rhog_ref', tmp)
                         del tmp
                     ## end select glint correction band
 
@@ -300,14 +315,29 @@ def default(gem, settings = None, lutdw = None, new_file = False):
                 ## remove glint from rhos
                 cur_data[sub_gc]-=cur_rhog
                 for a in bands[b]: cur_att[a] = bands[b][a]
-                gem.write(rhos_ds, cur_data, ds_att = cur_att)
+
+                ## add to gem
+                ds = rhos_ds
+                gem.data_mem[ds] = cur_data
+                gem.data_att[ds] = cur_att
+                ## write and clear
+                if write: gem.write_ds(ds, clear = True)
+                ## old write option
+                #gem.write(rhos_ds, cur_data, ds_att = cur_att)
                 del cur_data
 
                 ## write band glint
                 if setu['glint_write_rhog_all']:
                     tmp = np.zeros((gem.ydim, gem.xdim), dtype=np.float32) + np.nan
                     tmp[sub_gc] = cur_rhog
-                    gem.write(rhos_ds.replace('rhos_', 'rhog_'), tmp, ds_att=cur_att)
+                    ## add to gem
+                    ds = rhos_ds.replace('rhos_', 'rhog_')
+                    gem.data_mem[ds] = tmp
+                    gem.data_att[ds] = cur_att
+                    ## write and clear
+                    if write: gem.write_ds(ds, clear = True)
+                    ## old write option
+                    #gem.write(ds, tmp, ds_att=cur_att)
                     del tmp
                 del cur_rhog
             del sub_gc, rhog_ref
@@ -322,12 +352,12 @@ def default(gem, settings = None, lutdw = None, new_file = False):
     if setu['glint_write_rhog_all'] & ('rhog' not in gem.gatts['auto_grouping']):
         gem.gatts['auto_grouping'] += ':rhog'
     gem.gatts['glint_correction'] = 'default'
-    gem.gatts_update()
+    if write: gem.gatts_update()
 
     ## close and return
-    if opened:
+    if (opened) & (write):
         gem.close()
         del gem
         return(gemf)
     else:
-        return(gem)
+        return

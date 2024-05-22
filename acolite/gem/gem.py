@@ -11,6 +11,8 @@
 ##                                file handle is passed to output.nc_write if file exists
 ##                2024-04-20 (QV) added mask keyword for data method
 ##                2024-04-22 (QV) added xdim and ydim, added test for presence of nc_projection datasets
+##                2024-05-21 (QV) added write_ds
+##                2024-05-22 (QV) added use_stored to data, added file = None option
 
 import acolite as ac
 import os, sys, json
@@ -39,11 +41,13 @@ class gem(object):
             self.nc_projection = None
             self.nc_projection_keys = []
 
-            ## if creating new dataset, delete existing file
-            if (self.new) & (os.path.exists(self.file)): os.remove(self.file)
+            ## if file is None then no file testing is performed
+            if self.file is not None:
+                ## if creating new dataset, delete existing file
+                if (self.new) & (os.path.exists(self.file)): os.remove(self.file)
 
-            ## if exists, read in gatts, datasets, and projection
-            if os.path.exists(self.file): self.setup()
+                ## if exists, read in gatts, datasets, and projection
+                if os.path.exists(self.file): self.setup()
 
         ## basic set up read in gatts, datasets, and projection
         def setup(self):
@@ -102,9 +106,9 @@ class gem(object):
                 self.datasets = list(self.nc.variables.keys())
 
         ## read dataset
-        def data(self, ds, attributes = False, store = False, return_data = True, sub = None, mask = True):
+        def data(self, ds, attributes = False, store = False, use_stored = True, return_data = True, sub = None, mask = True):
             ## data already in memory
-            if ds in self.data_mem:
+            if (ds in self.data_mem) & (use_stored):
                 cdata = self.data_mem[ds]
                 catt = {}
                 if ds in self.data_att: catt = self.data_att[ds]
@@ -167,6 +171,19 @@ class gem(object):
                                             update_projection = update_projection, nc_projection=self.nc_projection)
 
             if self.verbosity > 0: print('Wrote {}'.format(ds))
+
+        ## write dataset from data_mem
+        def write_ds(self, ds, clear = False):
+            if ds in self.data_mem:
+                data = self.data_mem[ds]
+                if clear: del self.data_mem[ds]
+                ds_att = {}
+                if ds in self.data_att:
+                    ds_att = self.data_att[ds]
+                    if clear: del self.data_att[ds]
+                self.write(ds, data, ds_att = ds_att)
+            else:
+                if self.verbosity > 0: print('Dataset {} not in data_mem'.format(ds))
 
         ## update global attributes
         def gatts_update(self, close = True):
