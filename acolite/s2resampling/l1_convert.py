@@ -4,6 +4,7 @@
 ## 2023-05-02
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2024-05-22 (QV) update gem dataset atts
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -68,22 +69,25 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
         ## read data
         gemi = ac.gem.gem(bundle)
         data = {}
+        atts = {}
         for ds in dsets:
             print('Reading {}'.format(ds))
             d, att = gemi.data(ds, attributes = True)
             data[dsets[ds]] = d
+            atts[dsets[ds]] = att
 
         ## compute raa
         data['raa'] = np.abs(data['saa'] - data['vaa'])
         raasub = np.where(data['raa'] > 180)
         data['raa'][raasub] =np.abs(360-data['raa'][raasub])
+        atts['raa'] = {}
 
         ## write data
         gemo = ac.gem.gem(ofile, new = True)
         gemo.gatts = {k: gatts[k] for k in gatts}
         for dso in data:
             print('Writing {}'.format(dso))
-            gemo.write(dso, data[dso])
+            gemo.write(dso, data[dso], ds_att = atts[dso])
             data[dso] = None
 
         saa = None
@@ -93,7 +97,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             dso = 'rhot_{}'.format(rsrd['wave_name'][b])
             print(ds, dso)
             d, att = gemi.data(ds, attributes = True)
-            gemo.write(dso, d)
+            gemo.write(dso, d, ds_att = att)
 
             ## add band specific geometry data
             if setu['geometry_per_band']:
@@ -104,20 +108,20 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                 dso = 'vza_{}'.format(rsrd['wave_name'][b])
                 print(dso)
                 d, att = gemi.data('view_zenith_B{}'.format(b), attributes = True)
-                gemo.write(dso, d)
+                gemo.write(dso, d, ds_att = att)
 
                 ## read band view azimuth angle
                 dso = 'vaa_{}'.format(rsrd['wave_name'][b])
                 print(dso)
                 d, att = gemi.data('view_azimuth_B{}'.format(b), attributes = True)
-                gemo.write(dso, d)
+                gemo.write(dso, d, ds_att = att)
 
                 dso = 'raa_{}'.format(rsrd['wave_name'][b])
                 d = np.abs(saa - d)
                 raasub = np.where(d > 180)
                 d[raasub] = np.abs(360 - d[raasub])
                 print(dso)
-                gemo.write(dso, d)
+                gemo.write(dso, d, ds_att = att)
         gemi.close()
         gemo.close()
         ofiles.append(ofile)
