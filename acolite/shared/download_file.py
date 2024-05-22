@@ -10,6 +10,7 @@
 ##                2022-08-04 (QV) added GED and retry option
 ##                2022-08-17 (QV) added .netrc auth, simplified url checks for earthdata
 ##                2024-05-01 (QV) added earthdatacloud.nasa.gov check for earthdata
+##                2024-05-22 (QV) use EARTHDATA_urls from config
 
 def download_file(url, file, auth = None, session = None,
                     parallel = False, verbosity = 0, verify_ssl = True, retry = 1):
@@ -28,7 +29,7 @@ def download_file(url, file, auth = None, session = None,
 
     start = time.time()
 
-    if ('gsfc.nasa.gov' in url) or ('earthdatacloud.nasa.gov' in url) or ('cr.usgs.gov' in url):
+    if any([u in url for u in ac.config['EARTHDATA_urls']]):
         ## try to get auth from netrc
         if (auth is None):
             try:

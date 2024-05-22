@@ -65,6 +65,9 @@ lut_url=https://raw.githubusercontent.com/acolite/acolite_luts/main
 EARTHDATA_u=
 EARTHDATA_p=
 
+## URLs to use EarthData credentials for
+EARTHDATA_urls=gsfc.nasa.gov,earthdatacloud.nasa.gov,cr.usgs.gov
+
 ## EarthExplorer API
 EARTHEXPLORER_api=https://m2m.cr.usgs.gov/api/api/json/stable
 EARTHEXPLORER_download=https://earthexplorer.usgs.gov/download
