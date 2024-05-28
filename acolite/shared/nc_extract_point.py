@@ -14,8 +14,9 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     import numpy as np
 
     ## read netcdf attributes and datasets
-    gatts = ac.shared.nc_gatts(ncf)
-    datasets = ac.shared.nc_datasets(ncf)
+    gem = ac.gem.gem(ncf)
+    gatts = gem.gatts # ac.shared.nc_gatts(ncf)
+    datasets = gem.datasets # ac.shared.nc_datasets(ncf)
     for ds in ['transverse_mercator', 'x', 'y']:
         if ds in datasets:
             datasets.remove(ds)
@@ -35,6 +36,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
 
         if (radius_pix <= 1):
             print('Radius size in pixels has to > 1')
+            gem.close()
             return
     ## else determine box size in pixels
     else:
@@ -45,6 +47,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
         box_size_pix = np.round(box_size_pix).astype(int)
         if (box_size_pix & 1) == 0:
             print('Box size in pixels has to be odd.')
+            gem.close()
             return
 
     ## find datasets to extract
@@ -69,14 +72,15 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     if len(dataset_list) == 0: return()
 
     ## read lat lon
-    lon = ac.shared.nc_data(ncf, 'lon')
-    lat = ac.shared.nc_data(ncf, 'lat')
+    lon = gem.data('lon') # ac.shared.nc_data(ncf, 'lon')
+    lat = gem.data('lat') # ac.shared.nc_data(ncf, 'lat')
 
     ## is requested point in this scene?
     latrange = np.nanpercentile(lat, (0,100))
     lonrange = np.nanpercentile(lon, (0,100))
     if (st_lat < latrange[0]) | (st_lat > latrange[1]) | (st_lon < lonrange[0]) | (st_lon > lonrange[1]):
         print('Point {}N {}E not in scene {}'.format(st_lat, st_lon, ncf))
+        gem.close()
         return
 
     ## find pixel
@@ -113,6 +117,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                     print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
                 else:
                     print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    gem.close()
                     return
 
             if (i0 + box_size_pix) > lat.shape[0]-1:
@@ -121,6 +126,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                     print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
                 else:
                     print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    gem.close()
                     return
 
             j0 = j - hbox
@@ -130,6 +136,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                     print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
                 else:
                     print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    gem.close()
                     return
 
             if (j0 + box_size_pix) > lat.shape[1]-1:
@@ -138,6 +145,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                     print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
                 else:
                     print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    gem.close()
                     return
 
             ##  set up subset
@@ -145,7 +153,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
 
     ## extract data
     #sub = {ds: ac.shared.nc_data(ncf, ds, sub=gsub) for ds in dataset_list}
-    gem = ac.gem.gem(ncf)
+    #gem = ac.gem.gem(ncf)
     sub = {ds: gem.data(ds, sub=gsub) for ds in dataset_list}
     gem.close()
     gem = None
@@ -185,6 +193,10 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     dct['rhot_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhot_datasets']]
     dct['rhos_datasets'] = [ds for ds in dct['datasets'] if 'rhos_' in ds]
     dct['rhos_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhos_datasets']]
+    dct['rhosu_datasets'] = [ds for ds in dct['datasets'] if 'rhosu_' in ds]
+    dct['rhosu_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhosu_datasets']]
+    dct['rhoe_datasets'] = [ds for ds in dct['datasets'] if 'rhoe_' in ds]
+    dct['rhoe_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhoe_datasets']]
     dct['rhow_datasets'] = [ds for ds in dct['datasets'] if 'rhow_' in ds]
     dct['rhow_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhow_datasets']]
     dct['Rrs_datasets'] = [ds for ds in dct['datasets'] if 'Rrs_' in ds]
