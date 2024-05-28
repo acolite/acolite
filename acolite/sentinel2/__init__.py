@@ -11,5 +11,6 @@ from .metadata_scene import *
 from .l1_convert import *
 from .gpt_geometry import *
 
+from .auxiliary_json import *
 from .auxiliary import *
 from .multi_tile_extent import *
