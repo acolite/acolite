@@ -4,7 +4,7 @@
 ## 2021-11-27
 ## modifications:
 
-def auxiliary(bundle, granule, sources = ['AUX_CAMSFO', 'AUX_ECMWFT'], key_name = 'cfVarName', reshape = False):
+def auxiliary(bundle, granule, sources = ['AUX_CAMSFO', 'AUX_CAMSRE', 'AUX_ECMWFT'], key_name = 'cfVarName', reshape = False):
     import os, pygrib
 
     data = {}

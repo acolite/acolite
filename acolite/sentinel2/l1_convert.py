@@ -638,7 +638,7 @@ def l1_convert(inputfile, output = None, settings = {},
         ## auxiliary data
         if setu['s2_auxiliary_include']:
             ofile_aux = '{}/{}'.format(os.path.dirname(ofile), os.path.basename(ofile).replace('_L1R.nc', '_AUX.nc'))
-            for source in ['AUX_CAMSFO', 'AUX_ECMWFT']:
+            for source in ['AUX_CAMSFO', 'AUX_CAMSRE', 'AUX_ECMWFT']:
                 ## read aux data
                 aux_data = ac.sentinel2.auxiliary(bundle, granule, sources=[source])
                 if len(aux_data) > 0:
