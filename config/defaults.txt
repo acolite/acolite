@@ -406,6 +406,8 @@ offsets_toa=None
 # output RGB / maps
 rgb_rhot=True
 rgb_rhos=True
+rgb_rhosu=False
+rgb_rhoe=False
 rgb_rhorc=False
 rgb_rhow=False
 map_l1r=False

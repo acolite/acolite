@@ -16,6 +16,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2024-04-20 (QV) set out of range data to min/max for RGB scaling
+##                2024-05-28 (QV) add gem open/close, generalised rgb outputs
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -269,7 +270,12 @@ def acolite_map(ncf, output = None,
             plt.close()
 
     ## open NetCDF
-    gem = ac.gem.gem(ncf)
+    opened = False
+    if type(ncf) is str:
+        gem = ac.gem.gem(ncf)
+        opened = True
+    else:
+        gem = ncf
 
     ## get info from netcdf file
     datasets_lower = [ds.lower() for ds in gem.datasets]
@@ -355,10 +361,9 @@ def acolite_map(ncf, output = None,
         plot_parameters = [k for k in gem.datasets if k not in plot_skip]
     else:
         plot_parameters = [k for k in gem.datasets if k in plot_datasets]
-    if setu['rgb_rhot']: plot_parameters+=['rgb_rhot']
-    if setu['rgb_rhos']: plot_parameters+=['rgb_rhos']
-    if setu['rgb_rhorc']: plot_parameters+=['rgb_rhorc']
-    if setu['rgb_rhow']: plot_parameters+=['rgb_rhow']
+    for k in setu:
+        if k[0:7] != 'rgb_rho': continue
+        if setu[k]: plot_parameters+=[k]
 
     ## handle wildcards
     for par in plot_parameters:
@@ -510,44 +515,19 @@ def acolite_map(ncf, output = None,
 
         cparl = cpar.lower()
         ## RGB
-        if (cpar == 'rgb_rhot') | (cpar == 'rgb_rhos') | (cpar == 'rgb_rhorc') | (cpar == 'rgb_rhow'):
+        if (cpar[0:7] == 'rgb_rho'):
             ## find datasets for RGB compositing
             rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
-            if cpar == 'rgb_rhot':
-                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhot_' in ds]
-                if len(ds_base) == 0:
-                    ds_base = 'rhot_'
-                else:
-                    ds_base = '_'.join(ds_base[0]) + '_'
-                    if setu['add_band_name']: ds_base = 'rhot_'
-
-            if cpar == 'rgb_rhos':
-                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhos_' in ds]
-                if len(ds_base) == 0:
-                    ds_base = 'rhos_'
-                else:
-                    ds_base = '_'.join(ds_base[0]) + '_'
-                    if setu['add_band_name']: ds_base = 'rhos_'
-
-            if cpar == 'rgb_rhorc':
-                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhorc_' in ds]
-                if len(ds_base) == 0:
-                    ds_base = 'rhorc_'
-                else:
-                    ds_base = '_'.join(ds_base[0]) + '_'
-                    if setu['add_band_name']: ds_base = 'rhorc_'
-
-            if cpar == 'rgb_rhow':
-                ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if 'rhow_' in ds]
-                if len(ds_base) == 0:
-                    ds_base = 'rhow_'
-                else:
-                    ds_base = '_'.join(ds_base[0]) + '_'
-                    if setu['add_band_name']: ds_base = 'rhow_'
-
+            ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if cpar.split('_')[1] in ds]
+            if len(ds_base) == 0:
+                ds_base = '{}_'.format(cpar.split('_')[1])
+            else:
+                ds_base = '_'.join(ds_base[0]) + '_'
+                if setu['add_band_name']: ds_base = '{}_'.format(cpar.split('_')[1])
             rho_ds = [ds for ds in gem.datasets if ds_base in ds[0:len(ds_base)]]
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
             if len(rho_wv) < 3: continue
+
             ## read and stack rgb
             rgb_used = []
             for iw, w in enumerate(rgb_wave):
@@ -590,3 +570,7 @@ def acolite_map(ncf, output = None,
 
         ## plot figure
         output_map(im, cpar)
+
+    if opened:
+        gem.close()
+        del gem
