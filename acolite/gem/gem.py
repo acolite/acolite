@@ -49,6 +49,10 @@ class gem(object):
                 ## if exists, read in gatts, datasets, and projection
                 if os.path.exists(self.file): self.setup()
 
+        ## when deleted
+        def __del__(self):
+            self.close()
+
         ## basic set up read in gatts, datasets, and projection
         def setup(self):
             self.new = False
