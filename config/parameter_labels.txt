@@ -120,6 +120,13 @@ ndvi_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,1
 ndvi_rhot,-0.5,0.5,False,default,NDVI $\rho_t$,1
 ndvi_rhot_i,-0.5,0.5,False,default,NDVI (I) $\rho_t$,1
 ndvi_rhot_m,-0.5,0.5,False,default,NDVI (M) $\rho_t$,1
+ndvi_rhos,-0.5,1,False,default,NDVI $\rho_s$,1
+ndvi_rhos_i,-0.5,0.5,False,default,NDVI (I) $\rho_s$,1
+ndvi_rhos_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,1
+ndvi_rhosu,-0.5,1,False,default,NDVI $\rho_{su}$,1
+ndvi_rhosu_i,-0.5,0.5,False,default,NDVI (I) $\rho_{su}$,1
+ndvi_rhosu_m,-0.5,0.5,False,default,NDVI (M) $\rho_{su}$,1
+
 #
 slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),1
 #

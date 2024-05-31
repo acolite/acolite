@@ -1310,7 +1310,7 @@ def acolite_l2w(gem,
 
         #############################
         ## NDVI
-        if (cur_par == 'ndvi') | (cur_par == 'ndvi_rhot'):
+        if (cur_par == 'ndvi') | (cur_par.split('_')[0] == 'ndvi'):
             mask = False ## no water mask
             par_split = cur_par.split('_')
             par_attributes = {'algorithm':'NDVI', 'dataset':'rhos'}
@@ -1325,10 +1325,14 @@ def acolite_l2w(gem,
             required_datasets,req_waves_selected = [],[]
             ds_waves = [w for w in rhos_waves]
             ds_names = [ds for ds in rhos_ds]
-            if cur_par=='ndvi_rhot':
-                par_attributes['dataset']='rhot'
-                ds_waves = [w for w in rhot_waves]
-                ds_names = [ds for ds in rhot_ds]
+            if len(par_split) == 2:
+                par_attributes['dataset']=par_split[1]
+                ds_names = [ds for ds in gem.datasets if '{}_'.format(par_split[1]) in ds]
+                ds_waves = [int(ds.split('_')[-1]) for ds in ds_names]
+            #if cur_par=='ndvi_rhot':
+            #    par_attributes['dataset']='rhot'
+            #    ds_waves = [w for w in rhot_waves]
+            #    ds_names = [ds for ds in rhot_ds]
 
             ## number of products possible (for VIIRS use both I and M bands)
             ndvi_products = 1

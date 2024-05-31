@@ -17,6 +17,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2024-04-20 (QV) set out of range data to min/max for RGB scaling
 ##                2024-05-28 (QV) add gem open/close, generalised rgb outputs
+##                2024-05-31 (QV) fix for generalised rgb outputs and the presence of other datasets containing rho
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -518,7 +519,7 @@ def acolite_map(ncf, output = None,
         if (cpar[0:7] == 'rgb_rho'):
             ## find datasets for RGB compositing
             rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
-            ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if cpar.split('_')[1] in ds]
+            ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if cpar.split('_')[1] in ds[0:len(cpar.split('_')[1])]]
             if len(ds_base) == 0:
                 ds_base = '{}_'.format(cpar.split('_')[1])
             else:
