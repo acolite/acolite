@@ -9,6 +9,7 @@ from .metadata_granule import *
 from .metadata_scene import *
 
 from .l1_convert import *
+from .l2_convert import *
 from .gpt_geometry import *
 
 from .auxiliary_json import *

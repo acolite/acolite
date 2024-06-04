@@ -10,6 +10,7 @@
 ##                2021-02-11 (QV) adapted for acolite-gen, renamed from scene_meta
 ##                2021-10-13 (QV) adapted for new processing baseline which includes TOA offsets
 ##                2022-05-17 (QV) adapted for processing older N0201 files
+##                2024-06-04 (QV) added Sen2Cor metadata
 
 def metadata_scene(metafile):
     import dateutil.parser
@@ -31,7 +32,9 @@ def metadata_scene(metafile):
     tags = ['PRODUCT_START_TIME','PRODUCT_STOP_TIME','PRODUCT_URI','PROCESSING_LEVEL',
             'PRODUCT_TYPE', 'PROCESSING_BASELINE', 'GENERATION_TIME','SPACECRAFT_NAME',
             'DATATAKE_SENSING_START', 'SENSING_ORBIT_NUMBER', 'SENSING_ORBIT_DIRECTION',
-            'PRODUCT_FORMAT', 'QUANTIFICATION_VALUE', 'U']
+            'PRODUCT_FORMAT', 'QUANTIFICATION_VALUE', 'U',
+            'BOA_QUANTIFICATION_VALUE', 'AOT_QUANTIFICATION_VALUE', 'WVP_QUANTIFICATION_VALUE' ## sen2cor
+             ]
 
     for tag in tags:
         tdom = xmldoc.getElementsByTagName(tag)
@@ -99,5 +102,12 @@ def metadata_scene(metafile):
         bandi = t.getAttribute('band_id')
         band = banddata['BandNames'][bandi]
         banddata['RADIO_ADD_OFFSET'][band] = float(t.firstChild.nodeValue)
+
+    tdom = xmldoc.getElementsByTagName('BOA_ADD_OFFSET')
+    for t in tdom:
+        if 'BOA_ADD_OFFSET' not in banddata: banddata['BOA_ADD_OFFSET'] = {}
+        bandi = t.getAttribute('band_id')
+        band = banddata['BandNames'][bandi]
+        banddata['BOA_ADD_OFFSET'][band] = float(t.firstChild.nodeValue)
 
     return(metadata,banddata)

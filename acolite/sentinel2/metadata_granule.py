@@ -7,6 +7,7 @@
 ##                2020-10-28 (QV) fill nans in angles grids
 ##                2021-02-11 (QV) adapted for acolite-gen, renamed from granule_meta
 ##                2021-02-17 (QV) added fillnan keyword, added per detector grids, renamed safe_tile_grid
+##                2024-06-04 (QV) added Sen2Cor metadata
 
 def metadata_granule(metafile, fillnan=False):
     import dateutil.parser
@@ -26,6 +27,8 @@ def metadata_granule(metafile, fillnan=False):
 
     metadata = {}
     tags = ['TILE_ID','DATASTRIP_ID', 'SENSING_TIME']
+    tags+= ['AOT_RETRIEVAL_ACCURACY', 'AOT_RETRIEVAL_METHOD', 'GRANULE_MEAN_AOT', 'GRANULE_MEAN_WV', 'OZONE_SOURCE', 'OZONE_VALUE'] ## sen2cor
+
     for tag in tags:
         tdom = xmldoc.getElementsByTagName(tag)
         if len(tdom) > 0: metadata[tag] = tdom[0].firstChild.nodeValue
