@@ -5,9 +5,11 @@
 ## modifications: 2024-03-21 (QV) added circular extraction, and (p)ixel and (m)etre options for box and radius units
 ##                2024-03-25 (QV) optional external mask, added output of image subset position
 ##                2024-04-25 (QV) use gem for file reading
+##                2024-06-05 (QV) added lat and lon parameter names as keyword
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
+                     lat_par = 'lat', lon_par = 'lon',
                      extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p',
                      external_mask = None):
     import acolite as ac
@@ -72,8 +74,8 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     if len(dataset_list) == 0: return()
 
     ## read lat lon
-    lon = gem.data('lon') # ac.shared.nc_data(ncf, 'lon')
-    lat = gem.data('lat') # ac.shared.nc_data(ncf, 'lat')
+    lon = gem.data(lon_par) # ac.shared.nc_data(ncf, 'lon')
+    lat = gem.data(lat_par) # ac.shared.nc_data(ncf, 'lat')
 
     ## is requested point in this scene?
     latrange = np.nanpercentile(lat, (0,100))
