@@ -4,6 +4,7 @@
 ## 2022-04-12
 ## modifications: 2022-12-25 (QV) added SR option
 ##                2023-01-05 (QV) added L4 and L1-5 MSS
+##                2024-06-15 (QV) change to S2_HARMONIZED
 
 def find_scenes(isodate_start, isodate_end=None, day_range=1,
                 surface_reflectance=False,
@@ -78,9 +79,11 @@ def find_scenes(isodate_start, isodate_end=None, day_range=1,
         ## harmonized has scenes from new processing shifted to old processing
         ## we take the offset into account in agh for >= PB4 data
         if surface_reflectance:
-            collections += ['COPERNICUS/S2_SR'] # COPERNICUS/S2_SR_HARMONIZED
+            #collections += ['COPERNICUS/S2_SR'] # COPERNICUS/S2_SR_HARMONIZED
+            collections += ['COPERNICUS/S2_SR_HARMONIZED'] # COPERNICUS/S2_SR superseded by COPERNICUS/S2_SR_HARMONIZED in Jun 2024
         else:
-            collections.append('COPERNICUS/S2') # 'COPERNICUS/S2_HARMONIZED'
+            #collections.append('COPERNICUS/S2') # 'COPERNICUS/S2_HARMONIZED'
+            collections.append('COPERNICUS/S2_HARMONIZED') # COPERNICUS/S2 superseded by COPERNICUS/S2_HARMONIZED in Jun 2024
 
     print('Checking collections {}'.format(' '.join(collections)))
 

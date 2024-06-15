@@ -16,6 +16,7 @@
 ##                2023-02-01 (QV) added extra parameters output for L2 ST data
 ##                2023-06-21 (QV) new version using computePixels, previous version renamed to agh_old
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
+##                2024-06-15 (QV) added to S2_SR_HARMONIZED
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, datetime, dateutil.parser, requests, json, time
@@ -186,7 +187,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         satellite_sensor = '{}_MSI'.format(satellite)
         scale_factor = 0.0001
         add_factor = 0
-        if (im['properties']['PROCESSING_BASELINE'][1]>='4') & ~('S2_HARMONIZED' in im['id']):
+        if (im['properties']['PROCESSING_BASELINE'][1]>='4') & ~(('S2_HARMONIZED' in im['id']) | ('S2_SR_HARMONIZED' in im['id'])) :
             add_factor = -1000
 
     elif 'LANDSAT_PRODUCT_ID' in im['properties']: ## Landsat image
