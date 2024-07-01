@@ -20,8 +20,9 @@ def nc_read(file, dataset, group = None):
 ##              2017-03-16 (QV) added sub keyword (xoff, yoff, xcount, ycount)
 ##              2023-10-31 (QV) added dtype keyword
 ##              2024-02-21 (QV) assume 3d array subset is keeps the first dimension
+##              2024-07-01 (QV) add index for 3d array subset
 
-def nc_data(file, dataset, crop=False, sub=None, attributes=False, group=None, dtype=None):
+def nc_data(file, dataset, crop=False, sub=None, attributes=False, group=None, dtype=None, axis_3d = 0):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
         if group is not None:
@@ -32,14 +33,24 @@ def nc_data(file, dataset, crop=False, sub=None, attributes=False, group=None, d
             else:
                 if len(crop) == 4:
                     if len(nc.variables[dataset].shape) == 3:
-                        data = nc.variables[dataset][:, crop[2]:crop[3]:1,crop[0]:crop[1]:1]
+                        if axis_3d == 0:
+                            data = nc.variables[dataset][:, crop[2]:crop[3]:1,crop[0]:crop[1]:1]
+                        if axis_3d == 1:
+                            data = nc.variables[dataset][crop[2]:crop[3]:1, :, crop[0]:crop[1]:1]
+                        if axis_3d == 2:
+                            data = nc.variables[dataset][crop[2]:crop[3]:1,crop[0]:crop[1]:1, :]
                     else:
                         data = nc.variables[dataset][crop[2]:crop[3]:1,crop[0]:crop[1]:1]
                 else: data = nc.variables[dataset][:]
         else:
             if len(sub) == 4:
                 if len(nc.variables[dataset].shape) == 3:
-                    data = nc.variables[dataset][:, sub[1]:sub[1]+sub[3]:1,sub[0]:sub[0]+sub[2]:1]
+                    if axis_3d == 0:
+                        data = nc.variables[dataset][:, sub[1]:sub[1]+sub[3]:1,sub[0]:sub[0]+sub[2]:1]
+                    if axis_3d == 1:
+                        data = nc.variables[dataset][sub[1]:sub[1]+sub[3]:1,:,sub[0]:sub[0]+sub[2]:1]
+                    if axis_3d == 2:
+                        data = nc.variables[dataset][sub[1]:sub[1]+sub[3]:1,sub[0]:sub[0]+sub[2]:1,:]
                 else:
                     data = nc.variables[dataset][sub[1]:sub[1]+sub[3]:1,sub[0]:sub[0]+sub[2]:1]
             else: data = nc.variables[dataset][:]
