@@ -241,6 +241,7 @@ def identify_bundle(bundle, input_type = None, output = None):
         try:
             gatts = ac.shared.nc_gatts(bundle)
             if 'PACE' in gatts['title']: platform = 'PACE'
+            if 'OCI Level-2 Data' == gatts['title']: platform = 'PACE'
             if '{}_{}'.format(platform, gatts['instrument']) == 'PACE_OCI':
                 input_type = 'PACE'
                 break ## exit loop
