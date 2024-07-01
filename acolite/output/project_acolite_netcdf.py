@@ -306,6 +306,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
 
     ## write results
     for di, ds in enumerate(datasets_out):
+        if ds in ['l2_flags']: continue
+
         if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
         gemo.write(ds, data_out_stack[:,:,di], ds_att = datasets_att[ds])
         if output_counts:
