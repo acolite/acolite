@@ -10,10 +10,10 @@
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
+          pace_oci_version = 'v2.0', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
-    import os
+    import os, json
     import acolite as ac
 
     if (download) & (local_directory is None):
@@ -30,30 +30,21 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
     if (dataset is None) & (datacenter is None) & (collection_id is None):
         ## configure PACE
         if sensoru in ['PACE', 'OCI', 'PACE_OCI']:
+
+            ## read collection ids
+            with open('{}/API/pace_oci_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
+                pace_oci_collection_id = json.load(f)
+
             dataset = 'PACE_OCI_L1B_SCI'
             datacenter = 'OB_CLOUD'
-            #collection_id = 'C2804798373-OB_CLOUD' ## L1B v1.0
-            collection_id = 'C3026581150-OB_CLOUD' ## L1B v2.0
+            collection_id = pace_oci_collection_id[pace_oci_version]['L1B']
             api = 'json'
 
             ## download L2 data
             if level2:
-                if level2_type == 'AOP':
-                    #collection_id = 'C2910373786-OB_CLOUD' ## L2 AOP v1.0
-                    collection_id = 'C3020920190-OB_CLOUD'  ## L2 AOP v2.0
-                    dataset = 'PACE_OCI_L2_AOP_NRT'
-                elif level2_type == 'BGC':
-                    #collection_id = 'C2910373790-OB_CLOUD' ## L2 BGC v1.0
-                    collection_id = 'C3020920290-OB_CLOUD' ## L2 BGC v2.0
-                    dataset = 'PACE_OCI_L2_BGC_NRT'
-                elif level2_type == 'IOP':
-                    #collection_id = 'C2910373800-OB_CLOUD' ## L2 IOP v1.0
-                    collection_id = 'C3020920493-OB_CLOUD' ## L2 IOP v2.0
-                    dataset = 'PACE_OCI_L2_IOP_NRT'
-                elif level2_type == 'PAR':
-                    #collection_id = 'C2903276791-OB_CLOUD' ## L2 PAR v1.0
-                    collection_id = 'C3020920715-OB_CLOUD' ## L2 PAR v2.0
-                    dataset = 'PACE_OCI_L2_PAR_NRT'
+                dataset = 'PACE_OCI_L2_{}_NRT'.format(level2_type)
+                if 'L2_{}'.format(level2_type) in pace_oci_collection_id[pace_oci_version]:
+                    collection_id = pace_oci_collection_id[pace_oci_version]['L2_{}'.format(level2_type)]
                 else:
                     print('L2 type level2_type={} not recognised.'.format(level2_type))
                     return
