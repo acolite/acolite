@@ -10,7 +10,7 @@
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          pace_oci_version = 'v2.0', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
+          pace_oci_version = 'v2.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os, json
@@ -35,13 +35,18 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
             with open('{}/API/pace_oci_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
                 pace_oci_collection_id = json.load(f)
 
-            dataset = 'PACE_OCI_L1B_SCI'
-            datacenter = 'OB_CLOUD'
-            collection_id = pace_oci_collection_id[pace_oci_version]['L1B']
             api = 'json'
+            if level2: pace_oci_level = 'L2'
 
-            ## download L2 data
-            if level2:
+            if pace_oci_level == 'L1B':
+                dataset = 'PACE_OCI_L1B_SCI'
+                datacenter = 'OB_CLOUD'
+                collection_id = pace_oci_collection_id[pace_oci_version]['L1B']
+            elif pace_oci_level == 'L1C':
+                dataset = 'PACE_OCI_L1C_SCI'
+                datacenter = 'OB_CLOUD'
+                collection_id = pace_oci_collection_id[pace_oci_version]['L1C']
+            elif pace_oci_level == 'L2':
                 dataset = 'PACE_OCI_L2_{}_NRT'.format(level2_type)
                 if 'L2_{}'.format(level2_type) in pace_oci_collection_id[pace_oci_version]:
                     collection_id = pace_oci_collection_id[pace_oci_version]['L2_{}'.format(level2_type)]
