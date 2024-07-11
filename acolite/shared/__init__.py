@@ -66,6 +66,7 @@ from .limit_wkt import *
 
 from .similarity_read import *
 from .gauss_response import *
+from .square_response import *
 from .sun_position import *
 from .rsr_hyper import *
 
