@@ -13,15 +13,16 @@ output_projection_radius=10
 ## dark spectrum fitting options
 dsf_aot_estimate=fixed
 dsf_wave_range=1200,2300
+dsf_tile_dimensions=6,6
+dsf_spectrum_option=percentile
+dsf_percentile=1
+dsf_interface_reflectance=False
+resolved_geometry=False
 
+## masking settings
 l2w_mask_wave=2300
 l2w_mask_threshold=0.02
 l2w_mask_smooth=False
 l2w_mask_negative_wave_range=440,900
 l2w_mask_high_toa_wave_range=440,1050
 l2w_mask_high_toa_threshold=0.3
-
-dsf_interface_reflectance=False
-resolved_geometry=False
-dsf_spectrum_option=percentile
-dsf_percentile=1
