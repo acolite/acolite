@@ -6,6 +6,7 @@
 ## modifications: 2024-04-15 (QV) updated for first light data, integrated as function
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2024-07-01 (QV) added L2 conversion
+##                2024-07-03 (QV) store band irradiance
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -145,6 +146,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## read band data
             band_waves = []
             band_widths = []
+            band_irradiance = []
             for det in ['blue', 'red', 'SWIR']:
                 print('Reading data from detector {}'.format(det))
                 f0_det = ac.shared.nc_data(file, '{}_solar_irradiance'.format(det), group='sensor_band_parameters')
@@ -166,6 +168,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
                     band_waves.append(att['wave'])
                     band_widths.append(att['width'])
+                    band_irradiance.append(att['f0'])
 
                     ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
                     gemo.write(ds_name, tmp[bi, :,:], ds_att = att)
@@ -175,6 +178,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## update attributes
             gatts['band_waves'] = band_waves
             gatts['band_widths'] = band_widths
+            gatts['band_irradiance'] = band_irradiance
         ## end level1 data
 
         ## level2 data
