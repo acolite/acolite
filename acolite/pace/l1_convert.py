@@ -7,6 +7,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2024-07-01 (QV) added L2 conversion
 ##                2024-07-03 (QV) store band irradiance
+##                2024-07-11 (QV) changed attributes loading, added instrument_gain for SWIR
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -149,31 +150,53 @@ def l1_convert(inputfile, output = None, settings = None):
             band_irradiance = []
             for det in ['blue', 'red', 'SWIR']:
                 print('Reading data from detector {}'.format(det))
-                f0_det = ac.shared.nc_data(file, '{}_solar_irradiance'.format(det), group='sensor_band_parameters')
-                wv_det = ac.shared.nc_data(file, '{}_wavelength'.format(det), group='sensor_band_parameters')
+                f0_det, f0_att = ac.shared.nc_data(file, '{}_solar_irradiance'.format(det), \
+                                                   group = 'sensor_band_parameters', attributes = True)
+                wv_det, wv_att = ac.shared.nc_data(file, '{}_wavelength'.format(det), \
+                                                   group = 'sensor_band_parameters', attributes = True)
 
                 if det == 'SWIR':
-                    bp_det = ac.shared.nc_data(file, '{}_bandpass'.format(det), group='sensor_band_parameters')
+                    bp_det, bp_att = ac.shared.nc_data(file, '{}_bandpass'.format(det), \
+                                                   group = 'sensor_band_parameters', attributes = True)
                 else:
                     bp_det = np.zeros(len(wv_det))+5.0
 
                 ## read detector data
-                tmp = ac.shared.nc_data(file, 'rhot_{}'.format(det), group='observation_data', sub=sub)
-                print(det, tmp.shape, len(wv_det))
+                rhot, rhot_att = ac.shared.nc_data(file, 'rhot_{}'.format(det), \
+                                                   group = 'observation_data', attributes = True, sub = sub)
+                print(det, rhot.shape, len(wv_det))
 
                 for bi, wave in enumerate(wv_det):
                     if not np.isfinite(wave): continue
 
                     att = {'f0': f0_det[bi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave), 'width': bp_det[bi]}
 
+                    ## SWIR instrument gain
+                    ## presumed same order as PACE_OCI_L1B_LUT_RSR_baseline_1.1.1.nc
+                    ## 0 - 939.71497
+                    ## 1 - 1038.315
+                    ## 2 - 1250.375  standard gain
+                    ## 3 - 1248.5525 high gain
+                    ## 4 - 1378.165
+                    ## 5 - 1619.625  standard gain
+                    ## 6 - 1618.0349 high gain
+                    ## 7 - 2130.5923
+                    ## 8 - 2258.43
+                    if (det == 'SWIR'):
+                        if (bi in [3, 6]):
+                            att['instrument_gain'] = 'high'
+                        else:
+                            att['instrument_gain'] = 'standard'
+                    ## end SWIR gain
+
                     band_waves.append(att['wave'])
                     band_widths.append(att['width'])
                     band_irradiance.append(att['f0'])
 
                     ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
-                    gemo.write(ds_name, tmp[bi, :,:], ds_att = att)
+                    gemo.write(ds_name, rhot[bi, :,:], ds_att = att)
                     print('Wrote {}'.format(ds_name))
-                tmp = None
+                rhot = None
 
             ## update attributes
             gatts['band_waves'] = band_waves
