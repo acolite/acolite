@@ -14,7 +14,7 @@
 ##                2023-12-07 (QV) option to use S2 AUX
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-23 (MB) use ancillary data included in resampled MSI
-
+##                2024-07-22 (QV) include PACE_OCI SWIR RSR
 
 def acolite_l2r(gem,
                 output = None,
@@ -90,6 +90,18 @@ def acolite_l2r(gem,
     if gem.gatts['sensor'] in ac.config['hyper_sensors']:
         hyper = True
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'], step=0.1)
+        ## update PACE OCI response with known RSR
+        if gem.gatts['sensor'] == 'PACE_OCI':
+            ## SWIR
+            swir_bands = [282, 283, 284, 285, 286, 287, 288, 289, 290]
+            rsrd_swir = ac.shared.rsr_dict('PACE_OCI_SWIR')
+            for bi, b in enumerate(swir_bands):
+                swir_b = rsrd_swir['PACE_OCI_SWIR']['rsr_bands'][bi]
+                #print(bi, b, swir_b, rsrd_swir['PACE_OCI_SWIR']['wave_nm'][swir_b])
+                rsr[b]['wave'] = np.asarray(rsrd_swir['PACE_OCI_SWIR']['rsr'][swir_b]['wave'])
+                rsr[b]['response'] = np.asarray(rsrd_swir['PACE_OCI_SWIR']['rsr'][swir_b]['response'])
+            del rsrd_swir
+        ## end update PACE OCI response
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
         del rsr
     else:
@@ -1248,7 +1260,7 @@ def acolite_l2r(gem,
             continue ## skip if we don't have rhot for a band that is in the RSR file
 
         ## temporary fix
-        if gem.bands[b]['wave_mu'] < 0.345:
+        if (gem.bands[b]['wave_mu'] < 0.345) & (lutdw[luts[0]]['meta']['wave'][0] >= 0.34):
             if verbosity > 2: print('Band {} at {} nm wavelength < 345 nm'.format(b, gem.bands[b]['wave_name']))
             continue ## skip if below LUT range
 

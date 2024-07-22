@@ -8,6 +8,7 @@
 ##                2024-07-01 (QV) added L2 conversion
 ##                2024-07-03 (QV) store band irradiance
 ##                2024-07-11 (QV) changed attributes loading, added instrument_gain for SWIR
+##                2024-07-22 (QV) include SWIR RSR
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -144,6 +145,9 @@ def l1_convert(inputfile, output = None, settings = None):
             gemo.write('raa', raa)
             raa = None
 
+            ## read SWIR RSR
+            rsrd_swir = ac.shared.rsr_dict('PACE_OCI_SWIR')
+
             ## read band data
             band_waves = []
             band_widths = []
@@ -171,7 +175,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
                     att = {'f0': f0_det[bi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave), 'width': bp_det[bi]}
 
-                    ## SWIR instrument gain
+                    ## SWIR instrument gain and update band name
                     ## presumed same order as PACE_OCI_L1B_LUT_RSR_baseline_1.1.1.nc
                     ## 0 - 939.71497
                     ## 1 - 1038.315
@@ -187,7 +191,9 @@ def l1_convert(inputfile, output = None, settings = None):
                             att['instrument_gain'] = 'high'
                         else:
                             att['instrument_gain'] = 'standard'
-                    ## end SWIR gain
+                        swir_b = rsrd_swir['PACE_OCI_SWIR']['rsr_bands'][bi]
+                        att['wave_name'] = rsrd_swir['PACE_OCI_SWIR']['wave_name'][swir_b]
+                    ## end SWIR gain and band name
 
                     band_waves.append(att['wave'])
                     band_widths.append(att['width'])
