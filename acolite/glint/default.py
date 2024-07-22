@@ -4,6 +4,7 @@
 ## 2024-05-15
 ## modifications: 2024-05-16 (QV) added function, check if file exists, added new_file option
 ##                2024-05-22 (QV) added write keyword, update to use gem.write_ds
+##                2024-07-04 (QV) added update dataset info
 
 def default(gem, settings = None, lutdw = None, write = True, new_file = False):
     import acolite as ac
@@ -15,6 +16,8 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
     if type(gem) is str:
         gem = ac.gem.gem(gem)
         opened = True
+    else:
+        gemo.setup() ## update dataset info
     gemf = gem.file
 
     if gemf is None: write = False ## no writing if file is None
