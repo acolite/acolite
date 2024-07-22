@@ -14,6 +14,8 @@ output_projection_radius=10
 dsf_aot_estimate=fixed
 dsf_wave_range=1200,2300
 dsf_tile_dimensions=6,6
+dsf_tile_smoothing=False
+
 dsf_spectrum_option=percentile
 dsf_percentile=1
 dsf_interface_reflectance=False
