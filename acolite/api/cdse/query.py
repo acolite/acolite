@@ -9,7 +9,7 @@
 ##                2024-07-24 (QV) added L2, land and RR products
 
 def query(scene = None, collection = None, product = None,
-               start_date = None, end_date = None,  roi = None, level = 1, 
+               start_date = None, end_date = None,  roi = None, level = 1,
                cloud_cover = None, tile = None, processor_version = None, ## S2
                bright_cover = None, timeliness = None, full_resolution = True, land = False, ## S3
                verbosity = 1,
@@ -25,9 +25,12 @@ def query(scene = None, collection = None, product = None,
 
     ## get collection info from scene
     if scene is not None:
-        if ('MSIL1C' in scene) | (scene[0:3] in ['S2A', 'S2B']):
+        if (scene[0:3] in ['S2A', 'S2B']):
             collection = "SENTINEL-2"
-            product = "S2MSI1C" ## S2MSI1C for Level 1 MSI data
+            if ('MSIL1C' in scene):
+                product = "S2MSI1C" ## S2MSI1C for Level 1 MSI data
+            if ('MSIL2A' in scene):
+                product = "S2MSI2A" ## S2MSI2A for Level 2 MSI data
 
         if ('SEN3' in scene) | (scene[0:3] in ['S3A', 'S3B']):
             collection = "SENTINEL-3"
