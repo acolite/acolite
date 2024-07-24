@@ -6,6 +6,7 @@
 ##                2023-11-13 (QV) removed adding one day to queries where start == end
 ##                2023-11-21 (QV) added dataset as keyword, added ecostress_type
 ##                2024-04-27 (QV) moved to acolite.api
+##                2024-07-24 (QV) added level id from scene
 
 def query(scene = None, collection = 2, level = 1, dataset = None,
                 landsat_type = None, ecostress_type = None,
@@ -57,6 +58,9 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
                     print('Could not determine landsat_type based on scene name "{}"'.format(scene))
                     return
                 print('Assuming landsat_type "{}" based on scene name {}'.format(landsat_type, scene))
+                if '_L1' in scene: level = 1
+                if '_L2' in scene: level = 2
+                print('Assuming level "{}" based on scene name {}'.format(level, scene))
 
         ## set up dataset
         if ecostress_type is None:
