@@ -6,7 +6,7 @@
 ##                2023-11-13 (QV) removed adding one day to queries where start == end
 ##                2023-11-21 (QV) added dataset as keyword, added ecostress_type
 ##                2024-04-27 (QV) moved to acolite.api
-##                2024-07-24 (QV) added level id from scene
+##                2024-07-24 (QV) added level id from scene, verify level when adding identifiers
 
 def query(scene = None, collection = 2, level = 1, dataset = None,
                 landsat_type = None, ecostress_type = None,
@@ -198,9 +198,11 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
     identifier_list = []
     for sc in metadata_list:
         for m in sc:
-             if 'Product Identifier' in m['fieldName']:
+            if 'Product Identifier' in m['fieldName']:
+                ## test if level corresponds to requested level
+                if ('Landsat' in m['fieldName']) &  (m['fieldName'][-1] != '{}'.format(level)):  continue
                 identifier_list.append(m['value'])
-             elif 'Local Granule ID' in m['fieldName']:
+            elif 'Local Granule ID' in m['fieldName']:
                 identifier_list.append(m['value'])
 
     if verbosity > 0: print('Found {} total scenes'.format(len(entity_list)))
