@@ -6,11 +6,12 @@
 ##                2024-04-08 (QV) added processor_version
 ##                2024-04-27 (QV) moved to acolite.api
 ##                2024-05-16 (QV) remove leading T from tile, check tile length
+##                2024-07-24 (QV) added L2, land and RR products
 
 def query(scene = None, collection = None, product = None,
-               start_date = None, end_date = None,  roi = None,
+               start_date = None, end_date = None,  roi = None, level = 1, 
                cloud_cover = None, tile = None, processor_version = None, ## S2
-               bright_cover = None, timeliness = None, ## S3
+               bright_cover = None, timeliness = None, full_resolution = True, land = False, ## S3
                verbosity = 1,
                max_results = 1000, odata_url = None, attributes = False):
 
@@ -40,10 +41,24 @@ def query(scene = None, collection = None, product = None,
     if (product is None):
         ## use defaults
         if collection == 'SENTINEL-2':
-            product = "S2MSI1C"
+            if level == 1:
+                product = "S2MSI1C"
+            if level == 2:
+                product = "S2MSI2A"
+
             if verbosity > 0: print('Using default product {} for {}'.format(product, collection))
         if collection == 'SENTINEL-3':
-            product = "OL_1_EFR___"
+            if level == 1:
+                product = "OL_1_EFR___"
+                if not full_resolution: product = "OL_1_ERR___"
+            if level == 2:
+                if not land:
+                    product = "OL_2_WFR___"
+                    if not full_resolution: product = "OL_2_WRR___"
+                else:
+                    product = "OL_2_LFR___"
+                    if not full_resolution: product = "OL_2_LRR___"
+
             if verbosity > 0: print('Using default product {} for {}'.format(product, collection))
         if (product is None):
             print('Please provide product (e.g. S2MSI1C or OL_1_EFR___)  for query without scene identifier')
