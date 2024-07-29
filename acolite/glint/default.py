@@ -5,6 +5,7 @@
 ## modifications: 2024-05-16 (QV) added function, check if file exists, added new_file option
 ##                2024-05-22 (QV) added write keyword, update to use gem.write_ds
 ##                2024-07-04 (QV) added update dataset info
+##                2024-07-29 (QV) fixes when gem is passed
 
 def default(gem, settings = None, lutdw = None, write = True, new_file = False):
     import acolite as ac
@@ -17,7 +18,8 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
         gem = ac.gem.gem(gem)
         opened = True
     else:
-        gem.setup() ## update dataset info
+        if gem.file is not None:
+            gem.setup() ## update dataset info
     gemf = gem.file
 
     if gemf is None: write = False ## no writing if file is None
@@ -121,7 +123,7 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
             gc_swir1, gc_swir1_b = None, None
             gc_swir2, gc_swir2_b = None, None
 
-    #print(gc_swir1_b, gc_swir2_b, gc_user_b)
+    print(gc_swir1_b, gc_swir2_b, gc_user_b)
 
     romix_par = 'romix'
     if setu['dsf_interface_reflectance']: romix_par = 'romix+rsky_t'
