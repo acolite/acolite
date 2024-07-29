@@ -123,7 +123,7 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
             gc_swir1, gc_swir1_b = None, None
             gc_swir2, gc_swir2_b = None, None
 
-    print(gc_swir1_b, gc_swir2_b, gc_user_b)
+    #print(gc_swir1_b, gc_swir2_b, gc_user_b)
 
     romix_par = 'romix'
     if setu['dsf_interface_reflectance']: romix_par = 'romix+rsky_t'
