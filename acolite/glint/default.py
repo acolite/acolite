@@ -17,7 +17,7 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
         gem = ac.gem.gem(gem)
         opened = True
     else:
-        gemo.setup() ## update dataset info
+        gem.setup() ## update dataset info
     gemf = gem.file
 
     if gemf is None: write = False ## no writing if file is None
