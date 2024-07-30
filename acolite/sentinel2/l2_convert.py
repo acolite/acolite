@@ -110,7 +110,7 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
         ## make global attributes for L1R NetCDF
         gatts = {'sensor':sensor, 'isodate':isodate, 'global_dims':global_dims,
-                 'granule': granule, 'mgrs_tile': mgrs_tile, 'acolite_file_type': 'S2C_L2A'}
+                 'granule': granule, 'mgrs_tile': mgrs_tile, 'acolite_file_type': 'L2A'}
         gatts['tile_code'] = '{}'.format(gatts['mgrs_tile'])
         stime = dateutil.parser.parse(gatts['isodate'])
 
