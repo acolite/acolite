@@ -2,9 +2,9 @@
 ## converts Sentinel-2 L2A Sen2Cor .SAFE bundle data to s2c_l2a NetCDF
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-06-04
-## modifications:
+## modifications: 2024-07-30 (QV) added skip_bands to not include band 9 (or others if so desired)
 
-def l2_convert(inputfile, output = None, settings = {}, verbosity = 5):
+def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_bands = ['9']):
     import numpy as np
     import acolite as ac
     import os, dateutil.parser, time
@@ -212,6 +212,8 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
         if verbosity > 1: print('Converting bands')
         for bi, b in enumerate(rsr_bands):
+            if skip_bands is not None:
+                if b in skip_bands: continue
             Bn = 'B{}'.format(b)
             if Bn not in safe_files[granule]: continue
             if os.path.exists(safe_files[granule][Bn]['path']):
