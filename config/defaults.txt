@@ -57,7 +57,7 @@ netcdf_compression_least_significant_digit=None
 netcdf_discretisation=False
 
 ## Landsat options
-landsat_qa_bands=PIXEL,RADSAT,SATURATION
+landsat_qa_bands=PIXEL,RADSAT,SATURATION,AEROSOL
 landsat_qa_output=False
 
 ## Sentinel-2 options

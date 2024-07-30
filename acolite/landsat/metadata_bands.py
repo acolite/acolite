@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-05
 ## modifications: 2023-04-20 (QV) fix for changed extension case
+##                2024-07-30 (QV) added L2 support
 
 def metadata_bands(bundle, meta):
     import os
@@ -49,7 +50,10 @@ def metadata_bands(bundle, meta):
                         if '_VCID_' in k:
                             b = k[-8:]
                         else:
-                            if par != 'BAND_{}'.format(b): continue
+                            if par not in ['BAND_{}'.format(b), 'BAND_ST_{}'.format(b)]: continue
+                    else:
+                        b = '{}'.format(par)
+
                 fmeta[b] = {'FILE':file, 'PAR':par}
                 for sk in meta.keys():
                     for ssk in meta[sk].keys():
