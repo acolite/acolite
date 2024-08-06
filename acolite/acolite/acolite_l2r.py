@@ -1778,9 +1778,14 @@ def acolite_l2r(gem,
             gc_wind = 20
             gc_lut = gemo.gatts['ac_model']
 
-            raa = gem.gatts['raa']
-            sza = gem.gatts['sza']
-            vza = gem.gatts['vza']
+            raa = gem.gatts['raa'] if 'raa' in gem.gatts else np.nanmean(gem.data('raa'))
+            sza = gem.gatts['sza'] if 'sza' in gem.gatts else np.nanmean(gem.data('sza'))
+            vza = gem.gatts['vza'] if 'vza' in gem.gatts else np.nanmean(gem.data('vza'))
+
+            ## flatten 1 element arrays
+            if raa.shape == (1,1): raa = raa.flatten()
+            if sza.shape == (1,1): sza = sza.flatten()
+            if vza.shape == (1,1): vza = vza.flatten()
 
             ## get surface reflectance for fixed geometry
             if len(np.atleast_1d(raa)) == 1:
