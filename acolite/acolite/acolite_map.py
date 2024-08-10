@@ -464,6 +464,15 @@ def acolite_map(ncf, output = None,
             setu['map_scalebar_position'] = 'UL'
         posv = {'U': 0.85, 'L': 0.10}
         posh = {'R': 0.95, 'L': 0.05}
+        if 'map_scalebar_position_vu' in setu:
+            posv['U'] = float(setu['map_scalebar_position_vu'])
+        if 'map_scalebar_position_vl' in setu:
+            posv['L'] = float(setu['map_scalebar_position_vl'])
+        if 'map_scalebar_position_hr' in setu:
+            posh['R'] = float(setu['map_scalebar_position_hr'])
+        if 'map_scalebar_position_hl' in setu:
+            posh['L'] = float(setu['map_scalebar_position_hl'])
+
         if setu['map_scalebar_position'][0]=='U':
             latsc = lats+abs(latn-lats)*posv['U'] #0.87
         if setu['map_scalebar_position'][0]=='L':
@@ -497,7 +506,7 @@ def acolite_map(ncf, output = None,
         xsbl = lonsc + (scale_sign*scaleline)/2
         ysbl = latsc + (latr * 0.03)
         ## compute positions in pixels
-        if not setu['map_pcolormesh']:
+        if not (setu['map_pcolormesh'] | setu['map_cartopy']):
             tmp = ((lon - xsb[0])**2 + (lat - ysb[0])**2)**0.5
             il, jl = np.where(tmp == np.nanmin(tmp))
             tmp = ((lon - xsb[1])**2 + (lat - ysb[1])**2)**0.5
@@ -507,6 +516,9 @@ def acolite_map(ncf, output = None,
             tmp = ((lon - xsbl)**2 + (lat - ysbl)**2)**0.5
             ip, jp = np.where(tmp == np.nanmin(tmp))
             xsbl, ysbl = jp, ip
+        if setu['map_cartopy'] & setu['map_projected']:
+            xsb, ysb = crs_proj(xsb, ysb)
+            xsbl, ysbl = crs_proj(xsbl, ysbl)
     ## end prepare scale bar
 
     ## make plots
