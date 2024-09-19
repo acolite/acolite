@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-07-30
 ## modifications: 2024-07-30 (QV) adapted from ac.landsat.l1_convert
+##                2024-09-19 (QV) removed mus for conversion of rhos
 
 def l2_convert(inputfile, output = None, settings = {},
 
@@ -454,7 +455,7 @@ def l2_convert(inputfile, output = None, settings = {},
                     if b in pan_bands:
                         continue
                     else: ## not a pan band
-                        data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=mus, warp_to=warp_to)
+                        data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=1, warp_to=warp_to)
                     ds = 'rhos_l2a_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     for k in fmeta[b]: ds_att[k] = fmeta[b][k]
