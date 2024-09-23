@@ -4,6 +4,7 @@
 ## 2021-02-05
 ## modifications: 2023-04-20 (QV) fix for changed extension case
 ##                2024-07-30 (QV) added L2 support
+##                2024-09-23 (QV) added _L2 suffix to L2 keys
 
 def metadata_bands(bundle, meta):
     import os
@@ -59,6 +60,7 @@ def metadata_bands(bundle, meta):
                     for ssk in meta[sk].keys():
                         if ssk[-len(par):] == par:
                             kb = ssk[0:-len(par)-1]
+                            if 'LEVEL2' in sk: kb += '_L2'
                             v = meta[sk][ssk]
                             try: v=float(v)
                             except: pass

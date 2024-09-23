@@ -455,7 +455,15 @@ def l2_convert(inputfile, output = None, settings = {},
                     if b in pan_bands:
                         continue
                     else: ## not a pan band
-                        data = ac.landsat.read_toa(fmeta[b], sub=sub, mus=1, warp_to=warp_to)
+                        ## read data
+                        data = ac.shared.read_band(fmeta[b]['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)
+
+                        ## convert to reflectance
+                        slope = float(fmeta[b]['REFLECTANCE_MULT_L2'])
+                        offset = float(fmeta[b]['REFLECTANCE_ADD_L2'])
+                        data *= slope
+                        data += offset
+
                     ds = 'rhos_l2a_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     for k in fmeta[b]: ds_att[k] = fmeta[b][k]
@@ -482,8 +490,8 @@ def l2_convert(inputfile, output = None, settings = {},
                             data = ac.shared.read_band(fmeta[b]['FILE'], sub=sub, warp_to=warp_to).astype(np.float32)
 
                             ## convert to temperature
-                            slope = float(fmeta[b]['TEMPERATURE_MULT'])
-                            offset = float(fmeta[b]['TEMPERATURE_ADD'])
+                            slope = float(fmeta[b]['TEMPERATURE_MULT_L2'])
+                            offset = float(fmeta[b]['TEMPERATURE_ADD_L2'])
                             data *= slope
                             data += offset
 
