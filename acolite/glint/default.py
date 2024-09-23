@@ -292,6 +292,9 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
 
                     ## write reference glint
                     if setu['glint_write_rhog_ref']:
+                        ## set x/y dims here - should have been done elsewhere
+                        gem.ydim = cur_data.shape[0]
+                        gem.xdim = cur_data.shape[1]
                         tmp = np.zeros((gem.ydim, gem.xdim), dtype=np.float32) + np.nan
                         tmp[sub_gc] = rhog_ref
                         ## add to gem
@@ -333,6 +336,9 @@ def default(gem, settings = None, lutdw = None, write = True, new_file = False):
 
                 ## write band glint
                 if setu['glint_write_rhog_all']:
+                    ## set x/y dims here - should have been done elsewhere
+                    gem.ydim = cur_data.shape[0]
+                    gem.xdim = cur_data.shape[1]
                     tmp = np.zeros((gem.ydim, gem.xdim), dtype=np.float32) + np.nan
                     tmp[sub_gc] = cur_rhog
                     ## add to gem
