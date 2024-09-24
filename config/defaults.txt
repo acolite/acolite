@@ -289,10 +289,9 @@ adjacency_correction=False
 adjacency_correction_method=radcor
 
 ## radcor options
-radcor_initial_aot=1.0
-radcor_psf_radius=3.5
-radcor_psf_rescale=False
-radcor_psf_complete_method=neighbourhood
+radcor_kernel_radius=3.5
+radcor_kernel_rescale=False
+radcor_kernel_complete_method=neighbourhood
 radcor_force_model=None
 radcor_force_aot=None
 radcor_edge_extend=False
@@ -313,6 +312,7 @@ radcor_optimise_target_units=pixel
 radcor_optimise_target_mask=False
 radcor_optimise_tolerance=0.001
 radcor_optimise_aot_cost=rmsd
+radcor_optimise_plot_range=-0.01,0.06
 
 ## radcor output options
 radcor_write_rhot=True
@@ -321,10 +321,11 @@ radcor_write_rhosu=True
 radcor_development=False
 radcor_diagnostic_plots=False
 
-## ts-dsf options
-tsdsf_psf_radius=None
-tsdsf_psf_rescale=False
-tsdsf_psf_complete_method=neighbourhood
+## tsdsf options
+tsdsf_initial_aot=1.0
+tsdsf_kernel_radius=None
+tsdsf_kernel_rescale=False
+tsdsf_kernel_complete_method=neighbourhood
 tsdsf_psf_centre_zero=True
 tsdsf_bratio_option=percentile
 tsdsf_bratio_percentile=1
