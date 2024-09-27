@@ -58,6 +58,10 @@ A suitable Python environment can for example be set up using conda and the pack
             conda activate acolite
             conda install -c conda-forge numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib  cartopy
 
+It may be needed to install JP2000 support to process Sentinel-2 imagery:
+
+            conda install -c conda-forge libgdal-jp2openjpeg
+
 ## Installation
 * cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
 * cd into the new acolite directory `cd acolite`
