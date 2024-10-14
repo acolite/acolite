@@ -11,6 +11,7 @@ dsf_filter_percentile
 dsf_min_tile_aot
 dsf_max_tile_aot
 dsf_min_tile_cover
+dsf_wave_range
 exp_swir_threshold
 exp_fixed_epsilon_percentile
 exp_fixed_aerosol_reflectance_percentile
@@ -66,6 +67,7 @@ radcor_optimise_plot_range
 tsdsf_kernel_radius
 tsdsf_initial_aot
 tsdsf_bratio_percentile
+tsdsf_wave_range
 map_xtick_rotation
 map_ytick_rotation
 station_lon

@@ -329,6 +329,7 @@ tsdsf_kernel_complete_method=neighbourhood
 tsdsf_psf_centre_zero=True
 tsdsf_bratio_option=percentile
 tsdsf_bratio_percentile=1
+tsdsf_wave_range=400,2500
 
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
