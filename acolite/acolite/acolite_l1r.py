@@ -26,7 +26,7 @@ def acolite_l1r(bundle, settings = None, input_type=None):
     ## test path lengths on windows
     if 'win' in sys.platform:
         input_lengths = [len(b) for b in bundle]
-        if any([i >= 256 - 82 for i in input_lengths]): ## 82 chars is the granule band data relative to .SAFE
+        if any([i >= 256 - 82 - 1 for i in input_lengths]): ## 82 chars is the granule band data relative to .SAFE
             print('Warning: Rather long input filename ({} characters)'.format(max(input_lengths)))
             print('This may give issues in Windows due to path length limitations, file(s):')
             for b in bundle: print(len(b), b)
