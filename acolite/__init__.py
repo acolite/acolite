@@ -105,6 +105,24 @@ else:
             version_long+=' pull {}'.format(gd['FETCH_HEAD'])
             version = 'Generic GitHub Clone p{}'.format(gd['FETCH_HEAD'])
 
+## replace $ACDIR in config by ac.path
+for t in config:
+    if '$ACDIR' == config[t][0:6]:
+        # os.path.join did not give the intended result on Windows
+        config[t] = path + '/' + config[t].replace('$ACDIR', '')
+        config[t] = config[t].replace('/', os.sep)
+        ## make acolite dirs if they do not exist
+        if not (os.path.exists(config[t])):
+            os.makedirs(config[t])
+## end replace $ACDIR
+
+## add credentials
+credentials = shared.import_config(config['credentials_file'])
+for cr in credentials:
+    if cr not in config: config[cr] = credentials[cr]
+del credentials
+## end add credentials
+
 ## run through config data
 for t in config:
     ## set EARTHDATA credentials
@@ -115,17 +133,6 @@ for t in config:
     if ',' in config[t]:
         config[t] = config[t].split(',')
         continue
-
-    ## test paths
-    ## replace $ACDIR in config by ac.path
-    if '$ACDIR' == config[t][0:6]:
-        # os.path.join did not give the intended result on Windows
-        config[t] = path + '/' + config[t].replace('$ACDIR', '')
-        config[t] = config[t].replace('/', os.sep)
-
-        ## make acolite dirs if they do not exist
-        if not (os.path.exists(config[t])):
-            os.makedirs(config[t])
 
     if (os.path.exists(config[t])):
         config[t] = os.path.abspath(config[t])
@@ -140,6 +147,8 @@ with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
 
 settings = {}
 ## read default processing settings
-settings['defaults'] =  acolite.settings.parse(None, settings=acolite.settings.load(None), merge=False)
+settings['defaults'] = acolite.settings.parse(None, settings=acolite.settings.load(None), merge=False)
 ## copy defaults to run, run will be updated with user settings and sensor defaults
 settings['run'] = {k:settings['defaults'][k] for k in settings['defaults']}
+## empty user settings
+settings['user'] = {}

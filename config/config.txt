@@ -60,10 +60,14 @@ lut_url=https://raw.githubusercontent.com/acolite/acolite_luts/main
 ## URL for China
 #lut_url=https://raw.gitmirror.com/acolite/acolite_luts/main
 
+## location of credentials file
+credentials_file=$ACDIR/config/credentials.txt
+
 ## EarthData credentials (will be set to environment variables by acolite)
 ## alternatively use .netrc for machine earthdata
-EARTHDATA_u=
-EARTHDATA_p=
+## credentials are now by default stored in config/credentials.txt
+#EARTHDATA_u=
+#EARTHDATA_p=
 
 ## URLs to use EarthData credentials for
 EARTHDATA_urls=gsfc.nasa.gov,earthdatacloud.nasa.gov,cr.usgs.gov,ladsweb.modaps.eosdis.nasa.gov
@@ -74,9 +78,10 @@ EARTHEXPLORER_download=https://earthexplorer.usgs.gov/download
 EARTHEXPLORER_ers=https://ers.cr.usgs.gov
 
 ## EarthExplorer credentials
-## alternatively use .netrc vor machine earthexplorer
-EARTHEXPLORER_u=
-EARTHEXPLORER_p=
+## alternatively use .netrc for machine earthexplorer
+## credentials are now by default stored in config/credentials.txt
+#EARTHEXPLORER_u=
+#EARTHEXPLORER_p=
 
 ## CDSE urls
 CDSE_odata=https://catalogue.dataspace.copernicus.eu/odata/v1
@@ -84,8 +89,9 @@ CDSE_auth=https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/ope
 
 ## CDSE credentials
 ## alternatively use .netrc for machine cdse
-CDSE_u=
-CDSE_p=
+## credentials are now by default stored in config/credentials.txt
+#CDSE_u=
+#CDSE_p=
 
 ## attributes not to write in output files
 skip_attributes=EARTHDATA_u,EARTHDATA_p,EARTHEXPLORER_u,EARTHEXPLORER_p,CDSE_u,CDSE_p
