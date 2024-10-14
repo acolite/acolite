@@ -27,7 +27,7 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
 
         if type is None:
             try:
-                soup = BeautifulSoup(response.text)
+                soup = BeautifulSoup(response.text, features="html.parser")
                 type = 'soup'
             except:
                 pass
