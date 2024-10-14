@@ -51,6 +51,10 @@ from acolite import api
 import numpy as np
 olderr = np.seterr(all='ignore')
 
+## ignore osr exceptions
+from osgeo import ogr
+ogr.DontUseExceptions() #ogr.UseExceptions()
+
 import os, sys, datetime, platform
 ## get platform identifiers
 uname = platform.uname()
