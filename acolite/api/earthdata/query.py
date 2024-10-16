@@ -6,6 +6,7 @@
 ##                2024-05-01 (QV) added level2 download for PACE
 ##                2024-05-04 (QV) added level2_type options AOP/BGC/IOP/PAR
 ##                2024-07-02 (QV) updated to version 2.0 datasets
+##                2024-10-16 (QV) added SeaHawk1
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
@@ -87,6 +88,15 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
                 api = 'json'
                 print('Scene retrieval for VIIRS not yet implemented')
                 return
+
+        elif sensoru in ['SEAHAWK', 'SEAHAWK_HAWKEYE', 'SEAHAWK1', 'SEAHAWK1_HAWKEYE']:
+            collection_id = ['C3160685741-OB_CLOUD'] ## L1A
+            dataset = ['SeaHawk-1 HawkEye Level-1A  Data, version 1']
+            datacenter = ['OB_CLOUD']
+            api = 'json'
+            if scene is not None:
+                 print('Scene retrieval for HawkEye not yet implemented')
+                 return
         else:
             print('Sensor {} not configured.'.format(sensor))
             return
