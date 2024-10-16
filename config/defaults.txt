@@ -239,6 +239,7 @@ cirrus_g_vnir=1.0
 cirrus_g_swir=0.5
 
 ## generic options
+rsr_version=None
 resolved_geometry=False
 ancillary_data=True
 #ancillary_type=TOAST,MET_NCEP,MET_NCEP_NEXT

@@ -11,6 +11,7 @@
 ##                2024-03-27 (QV) added multiple full tile merging
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                                fixed tile merging: masking of angle datasets and AUX data
+##                2024-10-16 (QV) added RSR versioning support
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -165,7 +166,10 @@ def l1_convert(inputfile, output = None, settings = {},
         while raa > 180: raa = np.abs(360 - raa)
 
         ## read rsr
-        rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
+        if setu['rsr_version'] is None:
+            rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
+        else:
+            rsrf = ac.path+'/data/RSR/{}_{}.txt'.format(sensor, setu['rsr_version'])
         rsr, rsr_bands = ac.shared.rsr_read(rsrf)
         waves = np.arange(250, 2500)/1000
         waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)

@@ -15,6 +15,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-23 (MB) use ancillary data included in resampled MSI
 ##                2024-07-22 (QV) include PACE_OCI SWIR RSR
+##                2024-10-16 (QV) added RSR versioning support
 
 def acolite_l2r(gem,
                 output = None,
@@ -86,6 +87,9 @@ def acolite_l2r(gem,
 
     ## read rsrd and get band wavelengths
     hyper = False
+    sensor_version = None
+    sensor_lut = None
+
     ## hyperspectral
     if gem.gatts['sensor'] in ac.config['hyper_sensors']:
         hyper = True
@@ -105,10 +109,19 @@ def acolite_l2r(gem,
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
         del rsr
     else:
-        rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
+        if setu['rsr_version'] is None:
+            rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
+        else: ## use versioned RSR
+            sensor_version = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
+            rsrd = ac.shared.rsr_dict(sensor_version)
 
     if gem.gatts['sensor'] in rsrd:
-        rsrd = rsrd[gem.gatts['sensor']]
+        sensor_lut = '{}'.format(gem.gatts['sensor'])
+        rsrd = rsrd[sensor_lut]
+    elif (sensor_version is not None) & (sensor_version in rsrd):
+        print('Using RSR {} for sensor {}'.format(sensor_version, gem.gatts['sensor']))
+        sensor_lut = '{}'.format(sensor_version)
+        rsrd = rsrd[sensor_lut]
     else:
         print('Could not find {} RSR'.format(gem.gatts['sensor']))
         return()
@@ -511,12 +524,12 @@ def acolite_l2r(gem,
     t0 = time.time()
     print('Loading LUTs {}'.format(setu['luts']))
     ## load reverse lut romix -> aot
-    if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, \
+    if use_revlut: revl = ac.aerlut.reverse_lut(sensor_lut, par=par, \
                                                 rsky_lut = setu['dsf_interface_lut'], base_luts=setu['luts'])
     ## load aot -> atmospheric parameters lut
     ## QV 2022-04-04 interface reflectance is always loaded since we include wind in the interpolation below
     ## not necessary for runs with par == romix, to be fixed
-    lutdw = ac.aerlut.import_luts(add_rsky=True, par=(par if par == 'romix+rsurf' else 'romix+rsky_t'), sensor=None if hyper else gem.gatts['sensor'],
+    lutdw = ac.aerlut.import_luts(add_rsky=True, par=(par if par == 'romix+rsurf' else 'romix+rsky_t'), sensor=None if hyper else sensor_lut,
                                   rsky_lut = setu['dsf_interface_lut'],
                                   base_luts = setu['luts'], pressures = setu['luts_pressures'],
                                   reduce_dimensions=setu['luts_reduce_dimensions'])
@@ -766,7 +779,7 @@ def acolite_l2r(gem,
                         aot_band[lut][aot_band[lut]>setu['dsf_max_tile_aot']]=np.nan
 
                     tel = time.time()-t0
-                    if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
+                    if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(sensor_lut, b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
                 ## store current band results
                 aot_dict[b] = aot_band
@@ -1515,7 +1528,7 @@ def acolite_l2r(gem,
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
         del cur_data
-        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(sensor_lut, b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
 
     ## update outputfile dataset info
     gemo.datasets_read()

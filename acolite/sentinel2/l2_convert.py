@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-06-04
 ## modifications: 2024-07-30 (QV) added skip_bands to not include band 9 (or others if so desired)
+##                2024-10-16 (QV) added RSR versioning support
 
 def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_bands = ['9']):
     import numpy as np
@@ -102,7 +103,10 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_band
         mgrs_tile = grmeta['TILE_ID'].split('_')[-2]
 
         ## read rsr for band names
-        rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
+        if setu['rsr_version'] is None:
+            rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
+        else:
+            rsrf = ac.path+'/data/RSR/{}_{}.txt'.format(sensor, setu['rsr_version'])
         rsr, rsr_bands = ac.shared.rsr_read(rsrf)
         waves = np.arange(250, 2500)/1000
         waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
