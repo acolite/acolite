@@ -1,0 +1,30 @@
+## ACOLITE default settings for SeaHawk1_HawkEye
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## copy datasets from L1R to L2R
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+dsf_write_aot_550=True
+
+## dark spectrum fitting options
+dsf_aot_estimate=tiled
+dsf_wave_range=400,900
+
+l2w_mask_wave=866
+l2w_mask_threshold=0.12
+l2w_mask_negative_rhow=False
+
+dsf_intercept_pixels=1000
+dsf_tile_dimensions=50,50
+
+rgb_red_wl=671
+rgb_green_wl=556
+rgb_blue_wl=447
+
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+default_projection_resolution=120,120

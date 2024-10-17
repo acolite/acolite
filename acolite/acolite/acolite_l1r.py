@@ -159,6 +159,13 @@ def acolite_l1r(bundle, settings = None, input_type=None):
     ################
 
     ################
+    ## SeaDAS L1B
+    if input_type == 'SeaDAS':
+        l1r_files, setu = ac.seadas.l1_convert(bundle, settings = setu)
+    ## end SeaDAS L1B
+    ################
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files, setu = ac.planet.l1_convert(bundle, settings = setu)

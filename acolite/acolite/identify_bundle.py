@@ -251,6 +251,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## SeaDAS L1B
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            if (gatts['processing_level'] == 'L1B') & \
+                (gatts['instrument'] in ['HAWKEYE']):
+                input_type = 'SeaDAS'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end SeaDAS L1B
+        ################
+
+        ################
         ## Planet data
         ## unzip files if needed
         try:
