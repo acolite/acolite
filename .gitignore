@@ -46,6 +46,7 @@ data/GEO/SEVIRI/*.nc
 
 #--------------------------------------------------------------------
 # Specific to Python
+.env/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
