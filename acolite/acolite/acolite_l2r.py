@@ -675,6 +675,9 @@ def acolite_l2r(gem,
                 band_sub = np.where(np.isfinite(band_data))
                 if len(band_sub[0])>0:
                     band_data[band_sub] /= gem.bands[b]['tt_gas']
+                else:
+                    print('No valid TOA data for band {}'.format(b))
+                    continue
 
                 ## store rhod
                 if setu['dsf_aot_estimate'] in ['fixed', 'tiled', 'segmented']:
