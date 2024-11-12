@@ -70,9 +70,8 @@ def identify_bundle(bundle, input_type = None, output = None):
         try:
             safe_files = ac.sentinel2.safe_test(bundle)
             granule = safe_files['granules'][0]
-            #grmeta = ac.sentinel2.metadata_granule(safe_files[granule]['metadata']['path'])
             meta, band_data= ac.sentinel2.metadata_scene(safe_files['metadata']['path'])
-            if meta['SPACECRAFT_NAME'] in ['Sentinel-2A', 'Sentinel-2B']:
+            if meta['SPACECRAFT_NAME'] in ['Sentinel-2A', 'Sentinel-2B', 'Sentinel-2C']:
                 input_type = 'Sentinel-2'
                 break ## exit loop
         except:

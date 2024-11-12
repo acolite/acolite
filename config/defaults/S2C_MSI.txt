@@ -1,0 +1,29 @@
+## ACOLITE default settings for S2C_MSI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## copy datasets from L1R to L2R
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+s2_write_vaa=False
+s2_write_saa=False
+
+## dark spectrum fitting options
+dsf_aot_estimate=tiled
+dsf_spectrum_option=intercept
+dsf_wave_range=400,900
+s2_target_res=10
+resolved_geometry=True
+gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1
+offsets_toa=0,0,0,0,0,0,0,0,0,0,0,0,0
+
+dsf_intercept_pixels=200
+dsf_tile_dimensions=600,600
+
+geometry_per_band=False
+geometry_fixed_footprint=False
+luts_reduce_dimensions=True
+
+rsr_version=V4

@@ -77,15 +77,21 @@ def l1_convert(inputfile, output = None, settings = {},
             sensor = 'S2A_MSI'
         elif meta['SPACECRAFT_NAME'] == 'Sentinel-2B':
             sensor = 'S2B_MSI'
+        elif meta['SPACECRAFT_NAME'] == 'Sentinel-2C':
+            sensor = 'S2C_MSI'
         else:
             print('{} not supported'.format(meta['SPACECRAFT_NAME']))
             continue
+
         if meta['PROCESSING_LEVEL'] != 'Level-1C':
             print('Processing of {} Sentinel-2 {} data not supported'.format(bundle, meta['PROCESSING_LEVEL']))
             continue
 
         ## merge sensor specific settings
         if new:
+            ## delete rsr_version if it is set to None
+            if settings['rsr_version'] is None: del settings['rsr_version']
+            ## load sensor settings
             setu = ac.acolite.settings.parse(sensor, settings=settings)
             verbosity = setu['verbosity']
             if output is None: output = setu['output']
