@@ -1,4 +1,4 @@
-## ACOLITE default settings for S2A_MSI
+## ACOLITE default settings for S2C_MSI
 ##
 ## Note that it is not recommended to edit this file to change settings.
 ## Instead make a new empty settings file for your run, listing only the
@@ -26,4 +26,4 @@ geometry_per_band=False
 geometry_fixed_footprint=False
 luts_reduce_dimensions=True
 
-#rsr_version=V4
+rsr_version=V4
