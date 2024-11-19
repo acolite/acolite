@@ -122,7 +122,10 @@ def query(scene = None, collection = None, product = None,
 
     ## add top # otherwise run through pages
     if max_results is not None:
-        if (max_results>0) & (max_results<=1000): query += '&$top={}'.format(max_results)
+        if (max_results>0) & (max_results<=1000):
+            query += '&$top={}'.format(max_results)
+        else:
+            print('Invalid value for max_results={}, needs to be >0 and <=1000'.format(max_results))
 
     ## also return attributes
     if attributes:
