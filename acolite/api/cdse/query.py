@@ -153,13 +153,14 @@ def query(scene = None, collection = None, product = None,
     while '@odata.nextLink' in results:
         response = requests.get(results['@odata.nextLink'])
         results = response.json()
-        if verbosity > 1: print("{} Found {} more scenes".format(datetime.datetime.now().isoformat()[0:19], len(results['value'])))
-        for v in results['value']:
-            if verbosity > 2: print(v['Id'], v['Name'])
-            url = f"{odata_url}/Products({v['Id']})/$value"
-            urls.append(url)
-            scenes.append(v['Name'])
-            if attributes: atts.append(v['Attributes'])
+        if 'value' in results:
+            if verbosity > 1: print("{} Found {} more scenes".format(datetime.datetime.now().isoformat()[0:19], len(results['value'])))
+            for v in results['value']:
+                if verbosity > 2: print(v['Id'], v['Name'])
+                url = f"{odata_url}/Products({v['Id']})/$value"
+                urls.append(url)
+                scenes.append(v['Name'])
+                if attributes: atts.append(v['Attributes'])
 
     if verbosity > 0: print('Found {} total scenes'.format(len(urls)))
     if attributes: return(urls, scenes, atts)
