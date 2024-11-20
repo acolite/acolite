@@ -318,6 +318,7 @@ radcor_optimise_plot_range=-0.01,0.06
 
 ## radcor output options
 radcor_write_rhot=True
+radcor_write_rhotc=False
 radcor_write_rhoe=True
 radcor_write_rhosu=True
 radcor_development=False
