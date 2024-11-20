@@ -18,6 +18,7 @@
 ##                2024-04-20 (QV) set out of range data to min/max for RGB scaling
 ##                2024-05-28 (QV) add gem open/close, generalised rgb outputs
 ##                2024-05-31 (QV) fix for generalised rgb outputs and the presence of other datasets containing rho
+##                2024-11-20 (QV) changed RGB title labeling
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -108,7 +109,7 @@ def acolite_map(ncf, output = None,
             ## normalisation
             norm=mpl.colors.Normalize(vmin=pard['min'], vmax=pard['max'])#, clip=setu['map_fill_outrange'])
         else:
-            part = r'$\rho_{}$ RGB'.format(par[-1])
+            part = r'$\rho_{}$ RGB'.format('{'+par.replace('rgb_rho', '')+'}')
             if setu['map_title_rgb_wavelengths']:
                 part += ' ({})'.format(', '.join(['{:.0f} nm'.format(w) for w in rgb_used]))
 
