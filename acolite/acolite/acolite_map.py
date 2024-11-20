@@ -542,7 +542,7 @@ def acolite_map(ncf, output = None,
                 if setu['add_band_name']: ds_base = '{}_'.format(cpar.split('_')[1])
             rho_ds = [ds for ds in gem.datasets if ds_base in ds[0:len(ds_base)]]
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
-            if len(rho_wv) < 3: continue
+            if len(rho_wv) < 2: continue
 
             ## read and stack rgb
             rgb_used = []
