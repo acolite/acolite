@@ -220,7 +220,9 @@ def acolite_map(ncf, output = None,
                                              markersize = markersize, mec=mec, mfc=mfc, mew=mew)
                     ## plot marker label
                     if p['label_plot']:
-                        plt.text(p['pxl'], p['pyl'], p['label'], color='white', fontsize=fontsize, zorder=10,
+                        text_color = 'white'
+                        if mfc is not None: text_color = mfc
+                        plt.text(p['pxl'], p['pyl'], p['label'], color=text_color, fontsize=fontsize, zorder=10,
                                  path_effects = [pe.withStroke(linewidth=2, foreground=p['color'])],
                                  verticalalignment=points[pname]['va'], horizontalalignment=points[pname]['ha'])
             ## end add point markers
