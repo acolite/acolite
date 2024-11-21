@@ -18,6 +18,7 @@
 ##                2024-04-20 (QV) set out of range data to min/max for RGB scaling
 ##                2024-05-28 (QV) add gem open/close, generalised rgb outputs
 ##                2024-05-31 (QV) fix for generalised rgb outputs and the presence of other datasets containing rho
+##                2024-11-20 (QV) changed RGB title labeling
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -108,7 +109,7 @@ def acolite_map(ncf, output = None,
             ## normalisation
             norm=mpl.colors.Normalize(vmin=pard['min'], vmax=pard['max'])#, clip=setu['map_fill_outrange'])
         else:
-            part = r'$\rho_{}$ RGB'.format(par[-1])
+            part = r'$\rho_{}$ RGB'.format('{'+par.replace('rgb_rho', '')+'}')
             if setu['map_title_rgb_wavelengths']:
                 part += ' ({})'.format(', '.join(['{:.0f} nm'.format(w) for w in rgb_used]))
 
@@ -219,7 +220,9 @@ def acolite_map(ncf, output = None,
                                              markersize = markersize, mec=mec, mfc=mfc, mew=mew)
                     ## plot marker label
                     if p['label_plot']:
-                        plt.text(p['pxl'], p['pyl'], p['label'], color='white', fontsize=fontsize, zorder=10,
+                        text_color = 'white'
+                        if mfc is not None: text_color = mfc
+                        plt.text(p['pxl'], p['pyl'], p['label'], color=text_color, fontsize=fontsize, zorder=10,
                                  path_effects = [pe.withStroke(linewidth=2, foreground=p['color'])],
                                  verticalalignment=points[pname]['va'], horizontalalignment=points[pname]['ha'])
             ## end add point markers
@@ -539,7 +542,7 @@ def acolite_map(ncf, output = None,
                 if setu['add_band_name']: ds_base = '{}_'.format(cpar.split('_')[1])
             rho_ds = [ds for ds in gem.datasets if ds_base in ds[0:len(ds_base)]]
             rho_wv = [int(ds.split('_')[-1]) for ds in rho_ds]
-            if len(rho_wv) < 3: continue
+            if len(rho_wv) < 2: continue
 
             ## read and stack rgb
             rgb_used = []

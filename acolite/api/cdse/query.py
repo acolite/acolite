@@ -122,7 +122,10 @@ def query(scene = None, collection = None, product = None,
 
     ## add top # otherwise run through pages
     if max_results is not None:
-        if (max_results>0) & (max_results<=1000): query += '&$top={}'.format(max_results)
+        if (max_results>0) & (max_results<=1000):
+            query += '&$top={}'.format(max_results)
+        else:
+            print('Invalid value for max_results={}, needs to be >0 and <=1000'.format(max_results))
 
     ## also return attributes
     if attributes:
@@ -141,7 +144,7 @@ def query(scene = None, collection = None, product = None,
     results = response.json()
 
     if 'value' in results:
-        if verbosity > 1: print("Found {} scenes".format(len(results['value'])))
+        if verbosity > 1: print("{} Found {} scenes".format(datetime.datetime.now().isoformat()[0:19], len(results['value'])))
         for v in results['value']:
             if verbosity > 2: print(v['Id'], v['Name'])
             url = f"{odata_url}/Products({v['Id']})/$value"
@@ -153,13 +156,14 @@ def query(scene = None, collection = None, product = None,
     while '@odata.nextLink' in results:
         response = requests.get(results['@odata.nextLink'])
         results = response.json()
-        if verbosity > 1: print("Found {} more scenes".format(len(results['value'])))
-        for v in results['value']:
-            if verbosity > 2: print(v['Id'], v['Name'])
-            url = f"{odata_url}/Products({v['Id']})/$value"
-            urls.append(url)
-            scenes.append(v['Name'])
-            if attributes: atts.append(v['Attributes'])
+        if 'value' in results:
+            if verbosity > 1: print("{} Found {} more scenes".format(datetime.datetime.now().isoformat()[0:19], len(results['value'])))
+            for v in results['value']:
+                if verbosity > 2: print(v['Id'], v['Name'])
+                url = f"{odata_url}/Products({v['Id']})/$value"
+                urls.append(url)
+                scenes.append(v['Name'])
+                if attributes: atts.append(v['Attributes'])
 
     if verbosity > 0: print('Found {} total scenes'.format(len(urls)))
     if attributes: return(urls, scenes, atts)
