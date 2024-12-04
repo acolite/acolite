@@ -9,7 +9,7 @@
 ##                2024-07-24 (QV) added L2, land and RR products
 
 def query(scene = None, collection = None, product = None,
-               start_date = None, end_date = None,  roi = None, level = 1,
+               start_date = None, end_date = None,  roi = None, level = 1, sensor = None,
                cloud_cover = None, tile = None, processor_version = None, ## S2
                bright_cover = None, timeliness = None, full_resolution = True, land = False, ## S3
                verbosity = 1,
@@ -51,16 +51,22 @@ def query(scene = None, collection = None, product = None,
 
             if verbosity > 0: print('Using default product {} for {}'.format(product, collection))
         if collection == 'SENTINEL-3':
-            if level == 1:
-                product = "OL_1_EFR___"
-                if not full_resolution: product = "OL_1_ERR___"
-            if level == 2:
-                if not land:
-                    product = "OL_2_WFR___"
-                    if not full_resolution: product = "OL_2_WRR___"
-                else:
-                    product = "OL_2_LFR___"
-                    if not full_resolution: product = "OL_2_LRR___"
+            if sensor is None: sensor = 'OLCI'
+
+            if sensor == 'OLCI':
+                if level == 1:
+                    product = "OL_1_EFR___"
+                    if not full_resolution: product = "OL_1_ERR___"
+                if level == 2:
+                    if not land:
+                        product = "OL_2_WFR___"
+                        if not full_resolution: product = "OL_2_WRR___"
+                    else:
+                        product = "OL_2_LFR___"
+                        if not full_resolution: product = "OL_2_LRR___"
+            if sensor == 'SLSTR':
+                if level == 1:
+                    product = 'SL_1_RBT___'
 
             if verbosity > 0: print('Using default product {} for {}'.format(product, collection))
         if (product is None):
