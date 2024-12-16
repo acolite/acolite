@@ -10,6 +10,8 @@
 ##                2024-03-25 (QV) added numpy import
 ##                2024-03-26 (QV) added check for tsdsf_kernel_complete_method
 ##                2024-05-21 (QV) added radcor_optimise_aot_cost and radcor_optimise_target_type
+##                2024-12-16 (QV) removed radcor/tsdsf_kernel_rescale and added renormalise to radcor/tsdsf_kernel_complete_method
+
 def validate_settings(settings):
     import numpy as np
 
@@ -64,18 +66,16 @@ def validate_settings(settings):
             print('Error: radcor_edge_extend_method must be one of: {}'.format(', '.join(expandlist)))
             valid = False
 
-    ## check how to complete the psf
-    if not settings['radcor_kernel_rescale']:
-        completelist = ['average', 'neighbourhood']
-        if settings['radcor_kernel_complete_method'] not in completelist:
-            print('Error: radcor_kernel_complete_method must be one of: {}'.format(', '.join(completelist)))
-            valid = False
+    ## check how to complete the psf for radcor
+    completelist = ['average', 'neighbourhood', 'renormalise']
+    if settings['radcor_kernel_complete_method'] not in completelist:
+        print('Error: radcor_kernel_complete_method must be one of: {}'.format(', '.join(completelist)))
+        valid = False
 
-    ## check how to complete the psf
-    if not settings['tsdsf_kernel_rescale']:
-        completelist = ['average', 'neighbourhood']
-        if settings['tsdsf_kernel_complete_method'] not in completelist:
-            print('Error: tsdsf_kernel_complete_method must be one of: {}'.format(', '.join(completelist)))
-            valid = False
+    ## check how to complete the psf for tsdsf
+    completelist = ['average', 'neighbourhood', 'renormalise']
+    if settings['tsdsf_kernel_complete_method'] not in completelist:
+        print('Error: tsdsf_kernel_complete_method must be one of: {}'.format(', '.join(completelist)))
+        valid = False
 
     return(valid)

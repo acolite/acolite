@@ -291,7 +291,6 @@ adjacency_correction_method=radcor
 
 ## radcor options
 radcor_kernel_radius=5.0
-radcor_kernel_rescale=False
 radcor_kernel_complete_method=neighbourhood
 radcor_force_model=None
 radcor_force_aot=None
@@ -327,7 +326,6 @@ radcor_diagnostic_plots=False
 ## tsdsf options
 tsdsf_initial_aot=1.0
 tsdsf_kernel_radius=None
-tsdsf_kernel_rescale=False
 tsdsf_kernel_complete_method=neighbourhood
 tsdsf_psf_centre_zero=False
 tsdsf_bratio_option=percentile
