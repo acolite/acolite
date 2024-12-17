@@ -166,6 +166,13 @@ def acolite_l1r(bundle, settings = None, input_type=None):
     ################
 
     ################
+    ## AVHRR
+    if input_type == 'AVHRR':
+        l1r_files, setu = ac.avhrr.l1_convert(bundle, settings = setu)
+    ## end AVHRR
+    ################
+
+    ################
     ## Planet
     if input_type == 'Planet':
         l1r_files, setu = ac.planet.l1_convert(bundle, settings = setu)

@@ -436,6 +436,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## AVHRR
+        try:
+            image_file, meta_file = ac.avhrr.bundle_test(bundle)
+            meta = ac.avhrr.metadata(meta_file)
+            if ('AVHRR' in meta['sensor']):
+                input_type = 'AVHRR'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end AVHRR
+        ################
+
+        ################
         ## HYPSO
         try:
             gatts = ac.shared.nc_gatts(bundle)

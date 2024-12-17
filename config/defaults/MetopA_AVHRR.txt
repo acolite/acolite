@@ -1,0 +1,20 @@
+## ACOLITE default settings for S3A_SLSTR
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_tile_dimensions=12,12
+
+min_tgas_aot=0.8
+min_tgas_rho=0.7
+
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+rgb_red_wl=868
+rgb_green_wl=659
+rgb_blue_wl=554

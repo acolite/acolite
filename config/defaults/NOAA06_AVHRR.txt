@@ -1,0 +1,25 @@
+## ACOLITE default settings for NOAA06/AVHRR
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=600,900
+dsf_tile_dimensions=12,12
+
+min_tgas_aot=0.8
+min_tgas_rho=0.7
+
+l2w_mask_wave=900
+l2w_mask_threshold=0.05
+
+blackfill_wave=845
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+rgb_red_wl=845
+rgb_green_wl=845
+rgb_blue_wl=640
