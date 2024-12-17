@@ -2,7 +2,7 @@
 ## parse sensor from Sentinel-3/OLCI or ENVISAT/MERIS xfdumanifest.xml file
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-11-03
-## modifications:
+## modifications: 2024-12-04 (QV) added SLSTR sensor identification
 ##
 
 def metadata_parse(metafile):
@@ -12,7 +12,7 @@ def metadata_parse(metafile):
     except:
         print('Error opening metadata file.')
         return
-        
+
     metadata = {}
     tags = ['sentinel-safe:familyName', 'sentinel-safe:number',
             'envisat:productName', 'envisat:productType',
@@ -31,6 +31,9 @@ def metadata_parse(metafile):
     if (metadata['sentinel-safe:platform']['sentinel-safe:familyName'] == 'Sentinel-3') &\
        (metadata['sentinel-safe:instrument']['sentinel-safe:familyName'] == 'Ocean Land Colour Instrument'):
         sensor = 'S3{}_OLCI'.format(metadata['sentinel-safe:platform']['sentinel-safe:number'])
+    if (metadata['sentinel-safe:platform']['sentinel-safe:familyName'] == 'Sentinel-3') &\
+       (metadata['sentinel-safe:instrument']['sentinel-safe:familyName'] == 'Sea and Land Surface Temperature Radiometer'):
+        sensor = 'S3{}_SLSTR'.format(metadata['sentinel-safe:platform']['sentinel-safe:number'])
     if (metadata['sentinel-safe:platform']['sentinel-safe:familyName'] == 'Envisat') &\
        (metadata['sentinel-safe:instrument']['sentinel-safe:familyName'] == 'MEdium Resolution Imaging Spectrometer'):
         sensor = 'EN1_MERIS'
