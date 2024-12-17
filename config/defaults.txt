@@ -287,7 +287,7 @@ glint_write_rhog_all=False
 
 ## adjacency correction options
 adjacency_correction=False
-adjacency_correction_method=radcor
+adjacency_correction_method=None
 
 ## radcor options
 radcor_kernel_radius=5.0
