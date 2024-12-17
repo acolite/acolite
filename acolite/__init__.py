@@ -47,6 +47,7 @@ from acolite import gem
 from acolite import parameters
 
 from acolite import api
+from acolite import rtm
 
 ## ignore numpy errors
 import numpy as np
