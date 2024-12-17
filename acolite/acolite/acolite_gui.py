@@ -11,6 +11,8 @@
 ##                2021-01-05 (QV) added text colour to Buttons so the labels are visible in Mac OS Dark Mode
 ##                2021-04-14 (QV) changed for acolite-generic
 ##                2022-02-21 (QV) reset settings when restoring
+##                2024-12-16 (QV) added atmospheric correction options to GUI
+##                2024-12-17 (QV) updated atmospheric correction methods
 
 ## Process class that returns exceptions
 import multiprocessing as mp
@@ -94,6 +96,7 @@ def acolite_gui(*args, version=None):
             ## set up containers
             inputframe=tk.Frame(self, width=600, height=100, pady=3)
             roiframe=tk.Frame(self, width=600, height=100, pady=3)
+            algframe=tk.Frame(self, width=600, height=100, pady=3)
             optframe=tk.Frame(self, width=600, height=100, pady=3)
             saveframe=tk.Frame(self, width=600, height=100, pady=3)
             runframe=tk.Frame(self, width=600, height=100, pady=3)
@@ -102,9 +105,10 @@ def acolite_gui(*args, version=None):
 
             inputframe.grid(row=0, sticky='ew')
             roiframe.grid(row=1, sticky='ew')
-            optframe.grid(row=2, sticky='ew')
-            saveframe.grid(row=3, sticky='ew')
-            runframe.grid(row=4, sticky='ew')
+            algframe.grid(row=2, sticky='ew')
+            optframe.grid(row=3, sticky='ew')
+            saveframe.grid(row=4, sticky='ew')
+            runframe.grid(row=5, sticky='ew')
 
             ### input and output
             l = tk.Label(inputframe, text='Input and output')
@@ -182,6 +186,33 @@ def acolite_gui(*args, version=None):
             bpoly = tk.Button(poly, text='Select polygon...', command=self.select_poly, fg='Black')
             bpoly.grid(row=0, column=2)
             ###
+
+            ### frame for algorithm options
+            algframe.grid_columnconfigure(0,weight=1)
+            l = tk.Label(algframe, text='Atmospheric correction algorithm')
+            l.grid(row=0, column=0)
+            ### ac algorithm
+            acframe=tk.Frame(algframe)
+            acframe.grid(column=0, row=2)
+
+            l=tk.Label(acframe, text='Optical:')
+            l.grid(column=0, row=0)
+            self.ac_alg=IntVar()
+            self.ac_alg.set(1)
+            c = tk.Radiobutton(acframe, text="DSF", variable=self.ac_alg, value=1)
+            c.grid(column=1, row=0)
+            c = tk.Radiobutton(acframe, text="RAdCor", variable=self.ac_alg, value=2)
+            c.grid(column=2, row=0)
+            c = tk.Radiobutton(acframe, text="EXP", variable=self.ac_alg, value=0)
+            c.grid(column=3, row=0)
+
+            l=tk.Label(acframe, text='Thermal:')
+            l.grid(column=4, row=0)
+
+            self.tact_run=IntVar()
+            self.tact_run.set(0)
+            c = tk.Checkbutton(acframe, text="TACT", variable=self.tact_run)
+            c.grid(column=5, row=0)
 
             ### frame for output options
             optframe.grid_columnconfigure(0,weight=1)
@@ -344,6 +375,35 @@ def acolite_gui(*args, version=None):
             self.acolite_settings['polygon']=self.tpoly.get(1.0,END).strip()
             if (self.acolite_settings['polygon']==''): self.acolite_settings['polygon'] = None
 
+            ## clear atmospheric correction settings
+            if 'atmospheric_correction' in self.acolite_settings:
+                del self.acolite_settings['atmospheric_correction']
+            #if 'adjacency_correction' in self.acolite_settings:
+            #    del self.acolite_settings['adjacency_correction']
+            if 'adjacency_correction_method' in self.acolite_settings:
+                del self.acolite_settings['adjacency_correction_method']
+            if 'tact_run' in self.acolite_settings:
+                del self.acolite_settings['tact_run']
+
+            ## set atmospheric correction option
+            ac_alg = self.ac_alg.get()
+            ac_tact = self.tact_run.get()
+            if ac_alg == 0:
+                self.acolite_settings['atmospheric_correction'] = True
+                self.acolite_settings['atmospheric_correction_method'] = 'exponential'
+            elif ac_alg == 1:
+                self.acolite_settings['atmospheric_correction'] = True
+                self.acolite_settings['atmospheric_correction_method'] = 'dark_spectrum'
+            elif ac_alg == 2:
+                #self.acolite_settings['adjacency_correction'] = True
+                #self.acolite_settings['adjacency_correction_method'] = 'radcor'
+                self.acolite_settings['atmospheric_correction'] = True
+                self.acolite_settings['atmospheric_correction_method'] = 'radcor'
+            if ac_tact != 0:
+                self.acolite_settings['tact_run'] = True
+            else:
+                self.acolite_settings['tact_run'] = False
+
             ## get l2w parameters
             l2w_parameters=self.tl2wpar.get(1.0,END).strip().split(',')
             if (len(l2w_parameters) == 1) and (l2w_parameters[0]==''):
@@ -433,6 +493,25 @@ def acolite_gui(*args, version=None):
                     if 'polygon' not in self.acolite_settings: self.acolite_settings['polygon'] = ''
                     if self.acolite_settings['polygon'] is not None:
                         self.tpoly.insert(END,self.acolite_settings['polygon'])
+
+                    # ## set atmospheric correction options
+                    v = 1
+                    tag = 'atmospheric_correction_method'
+                    if tag in self.acolite_settings:
+                        if self.acolite_settings[tag] == 'exponential': v = 0
+                        if self.acolite_settings[tag] == 'dark_spectrum': v = 1
+                        if self.acolite_settings[tag] == 'radcor': v = 2
+                    #if ('adjacency_correction' in self.acolite_settings) &\
+                    #   ('adjacency_correction_method' in self.acolite_settings):
+                    #    if (self.acolite_settings['adjacency_correction']) & \
+                    #       (self.acolite_settings['adjacency_correction_method'] == 'radcor'):
+                    #       v = 2
+                    self.ac_alg.set(v)
+                    ## set tact
+                    v = 1
+                    tag = 'tact_run'
+                    if tag in self.acolite_settings: v = 1 if self.acolite_settings[tag] else 0
+                    self.tact_run.set(v)
 
                     ##
                     if 'l2w_parameters' in self.acolite_settings:
