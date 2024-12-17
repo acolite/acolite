@@ -82,9 +82,9 @@ config['path'] = path
 
 ## update version info
 if 'version' in config:
-    version = 'Generic Version {}'.format(config['version'])
+    version = '{}'.format(config['version'])
 else:
-    version = 'Generic GitHub Clone'
+    version = 'GitHub Clone'
 
     gitdir = '{}/.git'.format(path)
     gd = {}
