@@ -10,6 +10,7 @@
 ##                2023-02-06 (QV) added WKT polygon output
 ##                2024-03-14 (QV) update settings handling
 ##                2024-03-28 (QV) added station limit creation
+##                2024-13-17 (QV) update for atmospheric_correction_method
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -202,19 +203,26 @@ def acolite_run(settings, inputfile=None, output=None):
             ## do VIS-SWIR atmospheric correction
             if ac.settings['run']['atmospheric_correction']:
                 if gatts['acolite_file_type'] == 'L1R':
-                    if (ac.settings['run']['adjacency_correction']) & (ac.settings['run']['adjacency_correction_method'] == 'radcor'):
-                        l2r = ac.adjacency.radcor.radcor(l1r)
-                        if l2r is None: l2r = []
-                    else:
+                    ## run dsf or exp
+                    if (ac.settings['run']['atmospheric_correction_method'] in ['dark_spectrum', 'exponential']):
                         ret = ac.acolite.acolite_l2r(l1r)
                         if len(ret) != 2:
                             l2r = []
                         else:
                             l2r, _ = ret
+                    ## run radcor
+                    elif (ac.settings['run']['atmospheric_correction_method'] == 'radcor'):
+                        l2r = ac.adjacency.radcor.radcor(l1r)
+                        if l2r is None: l2r = []
+                    else:
+                        print('Option atmospheric_correction_method={} not configured, use dark_spectrum, radcor, or exponential'.format(ac.settings['run']['atmospheric_correction_method']))
                 else:
                     l2r = '{}'.format(l1r)
 
-                if (ac.settings['run']['adjacency_correction']) & (ac.settings['run']['adjacency_correction_method'] == 'glad'):
+                ## run glad after dsf (not recommended as a general method)
+                if (ac.settings['run']['adjacency_correction']) &\
+                    (ac.settings['run']['adjacency_correction_method'] == 'glad') &\
+                    (ac.settings['run']['atmospheric_correction_method'] == 'dark_spectrum'):
                     if len(l2r) > 0:
                         ret = ac.adjacency.glad.glad_l2r(l2r, settings = ac.settings['run'], verbosity = ac.config['verbosity'])
                         l2r = [] if ret is None else ret
