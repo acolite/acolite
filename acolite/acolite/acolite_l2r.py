@@ -16,6 +16,7 @@
 ##                2024-04-23 (MB) use ancillary data included in resampled MSI
 ##                2024-07-22 (QV) include PACE_OCI SWIR RSR
 ##                2024-10-16 (QV) added RSR versioning support
+##                2024-12-17 (QV) changed aerosol_correction to atmospheric_correction_method
 
 def acolite_l2r(gem,
                 output = None,
@@ -322,12 +323,12 @@ def acolite_l2r(gem,
     del rhot_ds, tg_dict
 
     ## atmospheric correction
-    if setu['aerosol_correction'] == 'dark_spectrum':
+    if setu['atmospheric_correction_method'] == 'dark_spectrum':
         ac_opt = 'dsf'
-    elif  setu['aerosol_correction'] == 'exponential':
+    elif  setu['atmospheric_correction_method'] == 'exponential':
         ac_opt = 'exp'
     else:
-        print('Option {} {} not configured'.format('aerosol_correction', setu['aerosol_correction']))
+        print('Option {} {} not configured'.format('atmospheric_correction_method', setu['atmospheric_correction_method']))
         ac_opt = 'dsf'
     print('Using {} atmospheric correction'.format(ac_opt.upper()))
 

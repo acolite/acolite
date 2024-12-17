@@ -215,7 +215,7 @@ flag_exponent_dem_shadow=6
 
 ## atmospheric correction settings
 atmospheric_correction=True
-aerosol_correction=dark_spectrum
+atmospheric_correction_method=dark_spectrum
 
 ## gas transmittance settings
 gas_transmittance=True
