@@ -7,6 +7,8 @@
 ##                2024-04-27 (QV) moved to acolite.api
 ##                2024-05-16 (QV) remove leading T from tile, check tile length
 ##                2024-07-24 (QV) added L2, land and RR products
+##                2024-12-04 (QV) added SLSTR
+##                2024-12-18 (QV) added result checking and pagination info
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None, level = 1, sensor = None,
@@ -147,6 +149,7 @@ def query(scene = None, collection = None, product = None,
 
     ## query url
     response = requests.get(query)
+    print('Status code {}'.format(response.status_code))
     results = response.json()
 
     if 'value' in results:
@@ -159,10 +162,13 @@ def query(scene = None, collection = None, product = None,
             if attributes: atts.append(v['Attributes'])
 
     ## paginate results
+    page = 1
     while '@odata.nextLink' in results:
         response = requests.get(results['@odata.nextLink'])
+        if verbosity > 1: print('Status code {}'.format(response.status_code))
         results = response.json()
         if 'value' in results:
+            page +=1
             if verbosity > 1: print("{} Found {} more scenes".format(datetime.datetime.now().isoformat()[0:19], len(results['value'])))
             for v in results['value']:
                 if verbosity > 2: print(v['Id'], v['Name'])
@@ -170,6 +176,12 @@ def query(scene = None, collection = None, product = None,
                 urls.append(url)
                 scenes.append(v['Name'])
                 if attributes: atts.append(v['Attributes'])
+        else:
+            if verbosity > 1:
+                print('No value tag in results page')
+                print(results)
+
+    if verbosity > 1: print('Accessed {} page{} of results'.format(page, 's' if page != 1 else ''))
 
     if verbosity > 0: print('Found {} total scenes'.format(len(urls)))
     if attributes: return(urls, scenes, atts)
