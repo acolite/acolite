@@ -4,11 +4,12 @@
 ## modifications: 2021-07-06 (QV) updated with new cumulative distribution prediction
 ##                                ex/resolution now in km
 ##                2024-03-20 (QV) moved to radcor.tools
+##                2025-01-13 (QV) replaced deprecated scipy derivative with radcor tools function
 
 def w_kernel(coef_aer, coef_ray, tray, taer, ex = 0, res = 0.03, pressure=1013.25):
     import acolite as ac
     import numpy as np
-    from scipy.misc import derivative
+    #from scipy.misc import derivative
 
     # Construct the the weighted cumulative function
     def fun_grad(r, pressure=1013.25):
@@ -56,7 +57,9 @@ def w_kernel(coef_aer, coef_ray, tray, taer, ex = 0, res = 0.03, pressure=1013.2
 
 
     ##
-    wm = derivative(fun_grad, rm, dx=0.001) / 2 / np.pi / rm
+    #wm = derivative(fun_grad, rm, dx=0.001) / 2 / np.pi / rm
+    wm = ac.adjacency.radcor.tools.derivative(fun_grad, rm, dx=0.001) / 2 / np.pi / rm
+
     wm = wm[1:,] + wm[:-1,]
     wm = wm[:,1:] + wm[:,:-1]
     wm = (res)**2 * wm / 4
