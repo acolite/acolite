@@ -40,7 +40,7 @@ RAdCor processing is presented in:
 
 * Castagna et al. 2024, [The RAdCor ATBD](https://github.com/acolite/radcor_atbd/blob/main/radcor_D_2_1_ATB.pdf)
 
-* Castagna and Vanhellemont (2025), [A generalised physics-based correction for adjacency effects]()
+* Castagna and Vanhellemont (under review), [A generalised physics-based correction for adjacency effects]()
 
 The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and allows for processing of Landsat thermal band data to surface temperatures. TACT was presented in:
 
