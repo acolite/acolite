@@ -36,6 +36,12 @@ First results using ACOLITE/DSF for PRISMA are presented in:
 
 * Braga et al. 2022, [Assessment of PRISMA water reflectance using autonomous hyperspectral radiometry](http://dx.doi.org/10.1016/j.isprsjprs.2022.08.009)
 
+RAdCor processing is presented in:
+
+* Castagna et al. 2024, [The RAdCor ATBD](https://github.com/acolite/radcor_atbd/blob/main/radcor_D_2_1_ATB.pdf)
+
+* Castagna and Vanhellemont (2025), [A generalised physics-based correction for adjacency effects]()
+
 The Thermal Atmospheric Correction Tool (TACT) is now integrated in ACOLITE and allows for processing of Landsat thermal band data to surface temperatures. TACT was presented in:
 
 * Vanhellemont 2020a, [Automated water surface temperature retrieval from Landsat 8/TIRS](https://doi.org/10.1016/j.rse.2019.111518)
