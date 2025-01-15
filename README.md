@@ -38,7 +38,7 @@ First results using ACOLITE/DSF for PRISMA are presented in:
 
 RAdCor processing is presented in:
 
-* Castagna et al. 2024, [The RAdCor ATBD](https://github.com/acolite/radcor_atbd/blob/main/radcor_D_2_1_ATB.pdf)
+* Castagna et al. 2024, [The RAdCor ATBD](https://raw.githubusercontent.com/acolite/radcor_atbd/main/radcor_D_2_1_ATB.pdf)
 
 * Castagna and Vanhellemont (under review), [A generalised physics-based correction for adjacency effects]()
 
