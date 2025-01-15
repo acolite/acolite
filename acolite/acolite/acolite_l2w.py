@@ -172,6 +172,8 @@ def acolite_l2w(gem,
     for ci, cur_par in enumerate(rhot_ds):
         if rhot_waves[ci]<setu['l2w_mask_high_toa_wave_range'][0]: continue
         if rhot_waves[ci]>setu['l2w_mask_high_toa_wave_range'][1]: continue
+
+        # TODO high TOA mask computed even if disabled in user settings
         if verbosity > 3: print('Computing TOA limit mask from {} > {}.'.format(cur_par, setu['l2w_mask_high_toa_threshold']))
         cwave = rhot_waves[ci]
         cur_par = [ds for ds in rhot_ds if ('{:.0f}'.format(cwave) in ds)][0]

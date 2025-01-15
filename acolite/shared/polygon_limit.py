@@ -13,16 +13,16 @@ def polygon_limit(poly):
     env = lyr.GetExtent()
 
     ## convert to WGS84 in degrees
-    source_srs = lyr.GetSpatialRef()
-    target_srs = osr.SpatialReference()
-    target_srs.ImportFromEPSG(4326)
-    transform = osr.CoordinateTransformation(source_srs, target_srs)
-    point1 = ogr.CreateGeometryFromWkt("POINT ({} {})".format(env[0], env[2]))
-    point1.Transform(transform)
-    point2 = ogr.CreateGeometryFromWkt("POINT ({} {})".format(env[1], env[3]))
-    point2.Transform(transform)
-    limit = [point1.GetX(),point1.GetY(),point2.GetX(),point2.GetY()]
+    # source_srs = lyr.GetSpatialRef()
+    # target_srs = osr.SpatialReference()
+    # target_srs.ImportFromEPSG(4326)
+    # transform = osr.CoordinateTransformation(source_srs, target_srs)
+    # point1 = ogr.CreateGeometryFromWkt("POINT ({} {})".format(env[0], env[2]))
+    # point1.Transform(transform)
+    # point2 = ogr.CreateGeometryFromWkt("POINT ({} {})".format(env[1], env[3]))
+    # point2.Transform(transform)
+    # limit = [point1.GetX(),point1.GetY(),point2.GetX(),point2.GetY()]
 
     ## close dataset
     vector_ds = None
-    return(limit)
+    return([env[0],env[2],env[1],env[3]])

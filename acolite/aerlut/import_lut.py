@@ -74,6 +74,7 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
                         lut_sub_idx.append(j)
                         lut_sub_par.append(jk)
             ## add ttot if not in NetCDF
+            # TODO ttot seems to be Rayleigh + aerosol transmittance
             if ('ttot' in lut_par) & ('ttot' not in meta['par']):
                 for j, jk in enumerate(meta['par']):
                     if 'tray' == jk: tri = j

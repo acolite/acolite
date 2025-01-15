@@ -4,6 +4,7 @@
 ## 2023-12-12
 import math
 
+
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import numpy as np
     import re
@@ -39,9 +40,10 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                 print('Failed to import polygon {}'.format(poly))
 
     ## get F0 for radiance -> reflectance computation
-    # TODO check version of the coddington to use (2021 / 2023)
+    # TODO check version of the coddington to use (2021 or 2023 ?)
     #  How the .txt file are produced ?  what is their unit ?
-    #  The original files from https://lasp.colorado.edu/lisird/data/tsis1_hsrs_p1nm say W meter-2 nm-1
+    #  The original files from https://lasp.colorado.edu/lisird/data/tsis1_hsrs_p1nm say W m-2 nm-1
+    #  There is a factor of 1e3 between ACOLITE FO .txt and the original data, so the unit in ACOLITE are likely (W m-2 um-1)
     f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
     ofiles = []
@@ -266,15 +268,12 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
             ## compute radiance
             # There is a 'radiance scale factor'
-            # The unit says uW * 1000 (representing the packed data) so dividing by 1000 gives uW
+            # The unit says uW/cm2/nm/sr * 1000 (representing the packed data) so dividing by 1000 gives uW/cm2/nm/sr
             #print(description['units'])
             cdata_radiance = cdata_radiance.astype(np.float32) / float(header['radiance scale factor'])
 
             # There is no offset
             #cdata_radiance += header['data offset values'][bi]
-
-            # The data is in uW, so scaling to W  is uW * 1e-6
-            cdata_radiance * 1e-6
 
             if (clip) & (clip_mask is not None): cdata_radiance[clip_mask] = np.nan
 
@@ -285,11 +284,14 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                                             attributes = gatts, dataset_attributes = ds_att, new = new)
                 new = False
 
-            ## compute reflectance
-            cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0']/10 * mu0)
+            # compute reflectance
+            # The WISE radiance data is in [uW cm-2 nm-1 sr-1]
+            # Scaling ACOLITE FO file [W m2 um-1] to the original TSIS data [W m2 nm-1] is * 1e-3
+            # Scaling [W m2 nm-1] to [uW cm-2 nm-1 sr-1] is 1e2
+            cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / ((bands[b]['f0']*1e-3*1e2) * mu0)
             cdata_radiance = None
 
-            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,\
+            ac.output.nc_write(ofile, 'rhot_{}'.format(bands[b]['wave_name']), cdata,
                                             attributes = gatts, dataset_attributes = ds_att, new = new)
             cdata = None
             new = False

@@ -52,6 +52,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                 if not add_rsky: aot_idx = 6
 
                 ## LUT with 18 monochromatic wavelengths (0.39-2.4)
+                # TODO LUT have 82 irregularly spaced wavelengths (0.34-2.5)
                 lut_data, lut_meta = ac.aerlut.import_lut(lutid, lutdir, sensor = sensor, lut_par = lut_par, get_remote = get_remote)
             else:
                 ## indices for reducing LUT size
@@ -103,7 +104,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
             lut_dict[lut]['lut'] = np.stack(lutd)
             ipd = lut_dict[lut]['ipd']
 
-            if (add_rsky) & (par == 'romix+rsky_t'):
+            if add_rsky & (par == 'romix+rsky_t'):
                 tlut = lut_dict[lut]['lut']
                 rskyd = ac.aerlut.import_rsky_luts(models=[int(lut[-1])], lutbase=rsky_lut, get_remote = get_remote)
                 rlut = rskyd[int(lut[-1])]['lut']
@@ -121,8 +122,10 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                 ax = len(ipd)
                 tlut = np.insert(tlut, (ax), rlut, axis=1)
 
-                ## model rsky at toa
-                ## (utott * dtott * rsky) / (1. - rsky * astot)
+                # TODO here rsky should be computed at sensor altitude z
+                #   (utott(z) * dtott * rsky) / (1. - rsky * astot(z))
+                # model rsky at toa
+                # (utott * dtott * rsky) / (1. - rsky * astot)
                 tmp = (tlut[:, ipd['utott'],:,:,:,:,:]*\
                        tlut[:, ipd['dtott'],:,:,:,:,:]*
                        tlut[:, ax,:,:,:,:,:]) /\
@@ -178,6 +181,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
                 lut_dict[lut]['lut'] = lut_dict[lut]['lut'][:,:,:,:,vza_sub[0]:vza_sub[1],:,:,aot_sub[0]:aot_sub[1]]
 
             ## add product of transmittances
+            # TODO dutott seems to be upwelling total transmittance * downwelling total transmittance
             if add_dutott:
                 lut_dict[lut]['meta']['par']+=['dutott']
                 ax = int(lut_dict[lut]['dim'][1][-1])+1

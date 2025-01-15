@@ -199,6 +199,7 @@ def acolite_l2r(gem,
             par = 'romix+rsurf'
             print(par)
     else:
+        # TODO 'dsf_interface_reflectance' is set to False for hyperspectral sensor, why ?
         par = 'romix'
 
     ## set wind to wind range
@@ -286,6 +287,7 @@ def acolite_l2r(gem,
     ## if path reflectance is tiled or resolved, use reverse lut
     ## no need to use reverse lut if fixed geometry is used
     ## we want to use the reverse lut to derive aot if the geometry data is resolved
+    # TODO why the statement above ?
     for ds in geom_ds:
         if ds not in gem.datasets:
             gem.data_mem[ds] = geom_mean[ds]
@@ -465,7 +467,7 @@ def acolite_l2r(gem,
                     gemo.write(k, gem.data_mem[k])
                     gem.data_mem[k] = None
 
-    t0 = time.time()
+    t0 = time.perf_counter()
     print('Loading LUTs {}'.format(setu['luts']))
     ## load reverse lut romix -> aot
     if use_revlut: revl = ac.aerlut.reverse_lut(gem.gatts['sensor'], par=par, \
@@ -473,12 +475,13 @@ def acolite_l2r(gem,
     ## load aot -> atmospheric parameters lut
     ## QV 2022-04-04 interface reflectance is always loaded since we include wind in the interpolation below
     ## not necessary for runs with par == romix, to be fixed
+    # TODO is rsurf Fresnel reflectance from 6S ?
     lutdw = ac.aerlut.import_luts(add_rsky=True, par=(par if par == 'romix+rsurf' else 'romix+rsky_t'), sensor=None if hyper else gem.gatts['sensor'],
                                   rsky_lut = setu['dsf_interface_lut'],
                                   base_luts = setu['luts'], pressures = setu['luts_pressures'],
                                   reduce_dimensions=setu['luts_reduce_dimensions'])
     luts = list(lutdw.keys())
-    print('Loading LUTs took {:.1f} s'.format(time.time()-t0))
+    print('Loading LUTs took {:.1f} s'.format(time.perf_counter()-t0))
 
     ## #####################
     ## dark spectrum fitting
@@ -527,6 +530,7 @@ def acolite_l2r(gem,
 
                 if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
 
+                # TODO why * 1. ? convert to float ?
                 band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
                 band_shape = band_data.shape
                 valid = np.isfinite(band_data)*(band_data>0)
@@ -540,6 +544,7 @@ def acolite_l2r(gem,
                     #band_data = scipy.ndimage.median_filter(band_data, size=setu['dsf_filter_box'])
                     band_data = scipy.ndimage.percentile_filter(band_data, setu['dsf_filter_percentile'], size=setu['dsf_filter_box'])
                     band_data[mask] = np.nan
+
                 band_sub = np.where(valid)
                 del valid, mask
 
@@ -554,6 +559,7 @@ def acolite_l2r(gem,
                         band_data = np.array((np.nanpercentile(band_data[band_sub], setu['dsf_percentile'])))
                     if setu['dsf_spectrum_option'] == 'intercept':
                         band_data = ac.shared.intercept(band_data[band_sub], setu['dsf_intercept_pixels'])
+
                     band_data.shape+=(1,1) ## make 1,1 dimensions
                     gk='_mean'
                     #if not use_revlut:
@@ -608,7 +614,9 @@ def acolite_l2r(gem,
                     continue
                 del band_sub
 
-                ## do gas correction
+                # TODO: Is it correct to divide the reflectance value by the transmission factor gor gas correction ?
+                #  I think it should be multiplication, to diminish the reflectance value after transmission.
+                # do gas correction
                 band_sub = np.where(np.isfinite(band_data))
                 if len(band_sub[0])>0:
                     band_data[band_sub] /= gem.bands[b]['tt_gas']
@@ -629,7 +637,7 @@ def acolite_l2r(gem,
                 aot_band = {}
                 for li, lut in enumerate(luts):
                     aot_band[lut] = np.zeros(band_data.shape, dtype=np.float32)+np.nan
-                    t0 = time.time()
+                    t0 = time.perf_counter()
 
                     ## reverse lut interpolates rhot directly to aot
                     if use_revlut:
@@ -715,7 +723,7 @@ def acolite_l2r(gem,
                         aot_band[lut][aot_band[lut]<setu['dsf_min_tile_aot']]=np.nan
                         aot_band[lut][aot_band[lut]>setu['dsf_max_tile_aot']]=np.nan
 
-                    tel = time.time()-t0
+                    tel = time.perf_counter()-t0
                     if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(gem.gatts['sensor'], b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
                 ## store current band results
@@ -800,14 +808,18 @@ def acolite_l2r(gem,
             ## select model based on min rmsd for 2 bands
             if verbosity > 1: print('Choosing best fitting model: {} ({} bands)'.format(setu['dsf_model_selection'], setu['dsf_nbands']))
 
-            ## run through model results, get rhod and rhop for n lowest bands
+            # TODO rhod is rho_dark and rhop is rho_path
+            # run through model results, get rhod and rhop for n lowest bands
             for li, lut in enumerate(luts):
                 ## select model based on minimum rmsd between n best fitting bands
                 if setu['dsf_model_selection'] == 'min_drmsd':
                     if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
                     rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],setu['dsf_nbands_fit']), dtype=np.float32) + np.nan
                     rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],setu['dsf_nbands_fit']), dtype=np.float32) + np.nan
+
+                    # TODO I don't understand the control flow of the RMSD computation
                     for bi, b in enumerate(aot_bands):
+                        print(f"Running for band {b}")
 
                         ## use band specific geometry if available
                         gk_raa = '{}'.format(gk)
@@ -1227,7 +1239,7 @@ def acolite_l2r(gem,
             if gem.bands[b]['wave_nm'] > 1000: g = setu['cirrus_g_swir'] * 1.0
             cur_data -= (rho_cirrus * g)
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
         ds_att = gem.bands[b]
@@ -1365,6 +1377,9 @@ def acolite_l2r(gem,
                         ds_att['dutott'] = dutott[0]
 
             ## do atmospheric correction
+            # TODO atmospheric removal equation is: (rho_t / total_transmittance_gas) - rho_path
+            #   total_transmittance_gas is the product of each gas total transmittance (Downwelling + Upwelling)
+            #   rho_path is the sum of Rayleigh + aerosol reflectance from 6S
             rhot_noatm = (cur_data / gem.bands[b]['tt_gas']) - romix
             del romix
             cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
@@ -1453,7 +1468,7 @@ def acolite_l2r(gem,
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
         del cur_data
-        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(gem.gatts['sensor'], b, time.perf_counter()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
 
     ## update outputfile dataset info
     gemo.datasets_read()
@@ -1505,7 +1520,7 @@ def acolite_l2r(gem,
 
         ## start glint correction
         if ((gc_swir1 is not None) and (gc_swir2 is not None)) or (gc_user is not None):
-            t0 = time.time()
+            t0 = time.perf_counter()
             print('Starting glint correction')
 
             ## compute scattering angle
@@ -1521,6 +1536,7 @@ def acolite_l2r(gem,
 
             muv = np.cos(vza)
             mus = np.cos(sza)
+            # This is also called costheta_plus in rayleigh.py
             cos2omega = mus*muv + np.sin(sza)*np.sin(vza)*np.cos(raa)
             del sza, vza, raa
 
