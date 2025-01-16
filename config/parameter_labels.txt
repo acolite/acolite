@@ -22,47 +22,49 @@ aot_550,0,0.5,False,viridis,$\tau_{a} 550 nm$,1
 #
 ## SPM Nechad with generic option
 #
-spm_nechad,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
-spm_nechad_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
-spm_nechad2010_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
-spm_nechad2010ave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad (Ave),gm$^{-3}$
-spm_nechad2016,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
-spm_nechad2016_*,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
-spm_nechadave,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
-spm_nechadave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
+SPM_Nechad,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
+SPM_Nechad_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
+SPM_Nechad2010_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
+SPM_Nechad2010ave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad (Ave),gm$^{-3}$
+SPM_Nechad2016,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
+SPM_Nechad2016_*,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
+SPM_Nechadave,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
+SPM_Nechadave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
 #
 ## T Nechad with generic option
 #
-tur_nechad,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
-tur_nechad_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
-tur_nechad2009_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
-tur_nechad2009ave_*,1,100,True,Planck_Parchment_RGB,T Nechad (Ave),FNU
-tur_nechad2016,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
-tur_nechad2016_*,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
-tur_nechadave,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
-tur_nechadave_*,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
+TUR_Nechad,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
+TUR_Nechad_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
+TUR_Nechad2009_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
+TUR_Nechad2009ave_*,1,100,True,Planck_Parchment_RGB,T Nechad (Ave),FNU
+TUR_Nechad2016,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
+TUR_Nechad2016_*,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
+TUR_Nechadave,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
+TUR_Nechadave_*,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
 #
 ## T Dogliotti with generic option
 #
-tur_dogliotti,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
-tur_dogliotti_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
-tur_dogliotti2015,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
-tur_dogliotti2022_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2022,FNU
+TUR_Dogliotti,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
+TUR_Dogliotti_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
+TUR_Dogliotti2015_nir,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015 NIR,FNU
+TUR_Dogliotti2015_red,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015 Red,FNU
+TUR_Dogliotti2015,1,100,True,Planck_Parchment_RGB,T Dogliotti 2015,FNU
+TUR_Dogliotti2022_*,1,100,True,Planck_Parchment_RGB,T Dogliotti 2022,FNU
 #
 ## Novoa switching TUR and SPM with generic option
 #
-tur_novoa2017,1,100,True,Planck_Parchment_RGB,T Novoa 2017,FNU
-tur_novoa2017_i,1,100,True,Planck_Parchment_RGB,T Novoa 2017 (I),FNU
-tur_novoa2017_m,1,100,True,Planck_Parchment_RGB,T Novoa 2017 (M),FNU
-tur_novoa2017_switch,0,5,True,default,Novoa 2017 Switch,1
-tur_novoa2017_i_switch,0,5,True,default,Novoa 2017 Switch (I),1
-tur_novoa2017_m_switch,0,5,True,default,Novoa 2017 Switch (M),1
-spm_novoa2017,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017,FNU
-spm_novoa2017_i,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017 (I),FNU
-spm_novoa2017_m,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017 (M),FNU
-spm_novoa2017_switch,0,5,True,default,Novoa 2017 Switch,1
-spm_novoa2017_i_switch,0,5,True,default,Novoa 2017 Switch (I),1
-spm_novoa2017_m_switch,0,5,True,default,Novoa 2017 Switch (M),1
+TUR_Novoa2017,1,100,True,Planck_Parchment_RGB,T Novoa 2017,FNU
+TUR_Novoa2017_i,1,100,True,Planck_Parchment_RGB,T Novoa 2017 (I),FNU
+TUR_Novoa2017_m,1,100,True,Planck_Parchment_RGB,T Novoa 2017 (M),FNU
+TUR_Novoa2017_switch,0,5,True,default,Novoa 2017 Switch,1
+TUR_Novoa2017_i_switch,0,5,True,default,Novoa 2017 Switch (I),1
+TUR_Novoa2017_m_switch,0,5,True,default,Novoa 2017 Switch (M),1
+SPM_Novoa2017,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017,FNU
+SPM_Novoa2017_i,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017 (I),FNU
+SPM_Novoa2017_m,1,100,True,Planck_Parchment_RGB,SPM Novoa 2017 (M),FNU
+SPM_Novoa2017_switch,0,5,True,default,Novoa 2017 Switch,1
+SPM_Novoa2017_i_switch,0,5,True,default,Novoa 2017 Switch (I),1
+SPM_Novoa2017_m_switch,0,5,True,default,Novoa 2017 Switch (M),1
 #
 ## CHL_OC
 #
@@ -128,7 +130,6 @@ ndvi_rhos_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,1
 ndvi_rhosu,-0.5,1,False,default,NDVI $\rho_{su}$,1
 ndvi_rhosu_i,-0.5,0.5,False,default,NDVI (I) $\rho_{su}$,1
 ndvi_rhosu_m,-0.5,0.5,False,default,NDVI (M) $\rho_{su}$,1
-
 #
 slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),1
 #
@@ -264,21 +265,22 @@ qaa_v5_a_*,0.0,0.8,False,default,QAA v5 $a$,$m^{-1}$
 qaa_v6_a_*,0.0,0.8,False,default,QAA v6 $a$,$m^{-1}$
 qaa_v5_bbp_*,0.0,0.3,False,default,QAA v5 $bbp$,$m^{-1}$
 qaa_v6_bbp_*,0.0,0.3,False,default,QAA v6 $bbp$,$m^{-1}$
-qaa_v5_kd_*,0.2,2.0,False,default,QAA v5 $K_d$,$m^{-1}$
-qaa_v6_kd_*,0.2,2.0,False,default,QAA v6 $K_d$,$m^{-1}$
-qaa_v5_kdpar_nechad,0.2,2.0,False,default,QAA v5 $KdPAR$ $Nechad$,$m^{-1}$
-qaa_v6_kdpar_nechad,0.2,2.0,False,default,QAA v6 $KdPAR$ $Nechad$,$m^{-1}$
-qaa_v6_kdpar_lee,0.2,2.0,False,default,QAA v6 $KdPAR$ $Lee$,$m^{-1}$
-qaa_v6_kdpar_lee_roots,0.2,2.0,False,default,QAA v6 $KdPAR$ $Lee$,$m^{-1}$
-qaa_v6_zeu_lee,0.5,4.0,False,YlGnBu,QAA $z_{eu}$,$m$
+qaa_v5_Kd_*,0.2,2.0,False,default,QAA v5 $K_d$,$m^{-1}$
+qaa_v6_Kd_*,0.2,2.0,False,default,QAA v6 $K_d$,$m^{-1}$
+qaa_v5_KdPAR_Nechad,0.2,2.0,False,default,QAA v5 $KdPAR$ $Nechad$,$m^{-1}$
+qaa_v6_KdPAR_Nechad,0.2,2.0,False,default,QAA v6 $KdPAR$ $Nechad$,$m^{-1}$
+qaa_v6_KPAR_Lee,0.2,2.0,False,default,QAA v6 $KPAR$ $Lee$,$m^{-1}$
+qaa_v6_KPAR_Lee_roots,0.2,2.0,False,default,QAA v6 $KPAR$ $Lee$,$m^{-1}$
+qaa_v6_Zeu_Lee,0.5,4.0,False,YlGnBu,QAA $z_{eu}$,$m$
 #
 ## P3QAA
 p3qaa_a_*,0.0,0.8,False,default,P3QAA $a$,$m^{-1}$
 p3qaa_bb_*,0.0,0.4,False,default,P3QAA $b_b$,$m^{-1}$
-p3qaa_kd_*,0.2,4.0,False,default,P3QAA $K_d$,$m^{-1}$
-p3qaa_zsd,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$,$m$
-p3qaa_zsd_biased,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$ biased,$m$
+p3qaa_Kd_*,0.2,4.0,False,default,P3QAA $K_d$,$m^{-1}$
+p3qaa_zSD,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$,$m$
+p3qaa_zSD_biased,0.0,3.0,False,YlGnBu,P3QAA $z_{SD}$ biased,$m$
 p3qaa_eta,0.5,0.7,False,default,P3QAA $\eta$,1
+p3qaa_KPAR,0.2,2.0,False,default,P3QAA $KPAR$,$m^{-1}$
 #
 ## DEM
 dem,0,1000,False,Planck_Parchment_RGB,DEM,m
