@@ -1,7 +1,6 @@
 name: acolite
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python=3
   - pyresample
@@ -10,6 +9,8 @@ dependencies:
   - numpy
   - pyhdf
   - gdal
+  - libgdal-jp2openjpeg
+  - libgdal-netcdf
   - netcdf4
   - h5py
   - pygrib
