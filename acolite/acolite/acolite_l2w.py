@@ -167,6 +167,10 @@ def acolite_l2w(gem,
                 (cur_par.replace('rhos_', 'Rrs_') in setu['l2w_parameters']):
                 new_par = cur_par.replace('rhos_', 'Rrs_')
                 if new_par not in copy_datasets: copy_datasets.append(new_par)
+            if (('rrs_*' in setu['l2w_parameters'])) |\
+                (cur_par.replace('rhos_', 'rrs_') in setu['l2w_parameters']):
+                new_par = cur_par.replace('rhos_', 'rrs_')
+                if new_par not in copy_datasets: copy_datasets.append(new_par)
 
         ## add existing par or evaluate wildcards
         if (cur_par in setu['l2w_parameters']):
@@ -194,6 +198,13 @@ def acolite_l2w(gem,
             att_add = {'algorithm':'Remote sensing reflectance', 'dataset':'rhos'}
             att_add['reference']=''
             att_add['algorithm']=''
+        if 'rrs_' in cur_par:
+            factor = 1.0/np.pi
+            cur_tag = cur_par.replace('rrs_','rhos_')
+            mask = True
+            att_add = {'algorithm':'Subsurface remote sensing reflectance', 'dataset':'rhos'}
+            att_add['reference']=''
+            att_add['algorithm']=''
         if 'rhow_' in cur_par:
             factor = 1.0
             cur_tag = cur_par.replace('rhow_','rhos_')
@@ -211,6 +222,9 @@ def acolite_l2w(gem,
         print('Copying {}, base dataset {}'.format(cur_par, cur_tag))
         cur_data, cur_att = gem.data(cur_tag, attributes=True)
         if factor != 1.0: cur_data *= factor
+
+        ## Lee et al 2002 subsurface reflectance
+        if cur_par[0:3] == 'rrs': cur_data /= (0.52 + 1.7 * cur_data)
 
         ## apply mask to Rrs and rhow
         if (mask) & (setu['l2w_mask_water_parameters']): cur_data[(l2_flags & flag_value)!=0] = np.nan

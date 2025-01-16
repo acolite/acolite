@@ -19,6 +19,7 @@
 ##                2024-05-28 (QV) add gem open/close, generalised rgb outputs
 ##                2024-05-31 (QV) fix for generalised rgb outputs and the presence of other datasets containing rho
 ##                2024-11-20 (QV) changed RGB title labeling
+##                2025-01-16 (QV) removed transformation to lower case for parameter names
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -60,7 +61,7 @@ def acolite_map(ncf, output = None,
         ## find out parameter scaling to use
         if not rgb:
             ## get parameter config
-            cparl = par.lower()
+            cparl = '{}'.format(par)
             sp = cparl.split('_')
             wave = None
             if ('{}_*'.format('_'.join(sp[0:-1])) in pscale) & (cparl not in pscale):
@@ -282,7 +283,7 @@ def acolite_map(ncf, output = None,
         gem = ncf
 
     ## get info from netcdf file
-    datasets_lower = [ds.lower() for ds in gem.datasets]
+    datasets = [ds for ds in gem.datasets]
     imratio = None
 
     ## combine default and user defined settings
@@ -529,7 +530,7 @@ def acolite_map(ncf, output = None,
         if 'projection_key' in gem.gatts:
             if cpar in ['x', 'y', gem.gatts['projection_key']]: continue
 
-        cparl = cpar.lower()
+        cparl = '{}'.format(cpar)
         ## RGB
         if (cpar[0:7] == 'rgb_rho'):
             ## find datasets for RGB compositing
@@ -577,10 +578,10 @@ def acolite_map(ncf, output = None,
                     im = np.dstack((im, tmp))
         ## other parameters
         else:
-            if cparl not in datasets_lower:
+            if cparl not in datasets:
                 print('{} not in {}'.format(cpar, ncf))
                 continue
-            ds = [ds for di, ds in enumerate(gem.datasets) if cparl==datasets_lower[di]][0]
+            ds = [ds for di, ds in enumerate(gem.datasets) if cparl==datasets[di]][0]
             ## read data
             im = gem.data(ds)
 

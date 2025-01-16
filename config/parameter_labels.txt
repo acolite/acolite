@@ -1,15 +1,17 @@
 ## ACOLITE Python output parameter label configuration
-## note parameter names should be all lower case
+## note parameter names should match L2W parameter names
 ## next line is the header - should be before any parameter lines
 header=parameter,min,max,log,cmap,name,unit
 #
 ## generic reflectances
 #
 rhot_*,0,0.15,False,Greys_r,$\rho_{t}$,1
+rhotc_*,0,0.15,False,Greys_r,$\rho_{tc}$,1
 rhorc_*,0,0.15,False,Greys_r,$\rho_{rc}$,1
 rhos_*,0,0.1,False,Greys_r,$\rho_{s}$,1
 rhow_*,0,0.1,False,Greys_r,$\rho_{w}$,1
-rrs_*,0,0.03,False,Greys_r,$Rrs$,$sr^{-1}$
+Rrs_*,0,0.05,False,Greys_r,$Rrs$,$sr^{-1}$
+rrs_*,0.0,0.10,False,Greys_r,$rrs$,$sr^{-1}$
 rhog_*,0,0.02,False,Greys_r,$\rho_{g}$,1
 rhoe_*,0,0.02,False,Greys_r,$\rho_{e}$,1
 rho_cirrus,0,0.05,False,Greys_r,$\rho_{cirrus}$,1
