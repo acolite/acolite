@@ -20,6 +20,7 @@
 ##                2024-05-31 (QV) fix for generalised rgb outputs and the presence of other datasets containing rho
 ##                2024-11-20 (QV) changed RGB title labeling
 ##                2025-01-16 (QV) removed transformation to lower case for parameter names
+##                                added user parameter scaling file
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -316,7 +317,9 @@ def acolite_map(ncf, output = None,
             limit = setu['limit']
 
     ## load parameter configuration
-    pscale = ac.acolite.parameter_scaling()
+    pscale = ac.acolite.parameter_scaling(file = ac.config['parameter_labels'])
+    pscale_u = ac.acolite.parameter_scaling(file = ac.config['parameter_labels_user'])
+    for k in pscale_u: pscale[k] = pscale_u[k]
 
     crs = None
     if setu['map_projected']:

@@ -6,13 +6,15 @@
 ##                2018-07-18 (QV) changed acolite import name
 ##                2018-09-10 (QV) added encoding
 ##                2021-03-15 (QV) adapted for acg
+##                2025-01-16 (QV) added file specification
 
-def parameter_scaling():
+def parameter_scaling(file = None):
     import acolite as ac
     import numpy as np
     param = {}
     header = None
-    with open(ac.config['parameter_labels'], 'r', encoding="utf-8") as f:
+    if file is None: file = ac.config['parameter_labels']
+    with open(file, 'r', encoding="utf-8") as f:
         for line in f.readlines():
             line = line.strip()
             if len(line) == 0: continue
