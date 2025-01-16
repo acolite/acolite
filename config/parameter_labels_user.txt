@@ -1,0 +1,6 @@
+## ACOLITE Python user parameter label configuration
+## note parameter names should match L2W parameter names
+## see examples in parameter_labels.txt file
+## next line is the header - should be before any parameter lines
+header=parameter,min,max,log,cmap,name,unit
+## Parameter configuration goes below
