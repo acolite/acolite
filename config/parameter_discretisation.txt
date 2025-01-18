@@ -18,10 +18,14 @@ raa_*,True,float32,float32,0,1
 ## generic reflectances
 #
 rhot_*,True,float32,uint16,-0.1,0.0001
+rhotc_*,True,float32,uint16,-0.1,0.0001
 rhos_*,True,float32,uint16,-0.1,0.0001
+rhosu_*,True,float32,uint16,-0.1,0.0001
+rhoe_*,True,float32,uint16,-0.1,0.0001
 rhorc_*,True,float32,uint16,-0.1,0.0001
 rhow_*,True,float32,uint16,-0.1,0.0001
 Rrs_*,True,float32,uint16,-0.03,0.00003
+rrs_*,True,float32,uint16,-0.03,0.00003
 #
 ## generic products
 #
