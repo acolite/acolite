@@ -17,7 +17,8 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
     import numpy as np
     from osgeo import gdal
     gdal.DontUseExceptions()
-    if gdal.__version__ < '3.3':
+    from packaging import version
+    if version.parse(gdal.__version__) < version.parse('3.3'):
         from osgeo.utils import gdal_merge
     else:
         from osgeo_utils import gdal_merge
