@@ -37,6 +37,8 @@ def query(scene = None, collection = None, product = None,
         if ('SEN3' in scene) | (scene[0:3] in ['S3A', 'S3B']):
             collection = "SENTINEL-3"
             product = scene[4:15] ## OL_1_EFR___ for Level 1 full resolution OLCI data
+            if product[0:2] == 'OL': sensor = 'OLCI'
+            if product[0:2] == 'SL': sensor = 'SLSTR'
 
     ## if scene is not given we need at least collection and product info
     if (collection is None):
