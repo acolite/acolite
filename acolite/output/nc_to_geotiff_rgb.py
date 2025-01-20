@@ -9,6 +9,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                                removed some keywords
 ##                2024-04-16 (QV) use gem NetCDF handling
+##                2025-01-20 (QV) added rhotc and rhosu
 
 def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_temp_files = True):
 
@@ -56,16 +57,31 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
     rhos_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhos_']
     rhos_wave = [int(ds.split('_')[-1]) for ds in rhos_ds]
 
-    for base in ['rhot', 'rhos']:
+    rhosu_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhosu_']
+    rhosu_wave = [int(ds.split('_')[-1]) for ds in rhosu_ds]
+    rhotc_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhotc_']
+    rhotc_wave = [int(ds.split('_')[-1]) for ds in rhotc_ds]
+
+    for base in ['rhot', 'rhos', 'rhotc', 'rhosu']:
         if (base == 'rhot'):
             if (setu['rgb_rhot'] is False): continue
             if len(rhot_ds) < 3: continue
             cwaves = [w for w in rhot_wave]
 
         if (base == 'rhos'):
-            if (setu['rgb_rhot'] is False): continue
+            if (setu['rgb_rhos'] is False): continue
             if len(rhos_ds) < 3: continue
             cwaves = [w for w in rhos_wave]
+
+        if (base == 'rhotc'):
+            if (setu['rgb_rhotc'] is False): continue
+            if len(rhotc_ds) < 3: continue
+            cwaves = [w for w in rhotc_wave]
+
+        if (base == 'rhosu'):
+            if (setu['rgb_rhosu'] is False): continue
+            if len(rhosu_ds) < 3: continue
+            cwaves = [w for w in rhosu_wave]
 
         ## make temporary band files
         tempfiles = []
