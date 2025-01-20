@@ -64,20 +64,28 @@ uname = platform.uname()
 python = {'platform':sys.platform, 'version':sys.version}
 system = {'sysname': uname.system, 'release': uname.release, 'machine': uname.machine, 'version': uname.version}
 
-code_path = os.path.dirname(os.path.abspath(__file__))
+## find code_path and determine if binary
+if getattr(sys, 'frozen', False): ## if pyinstaller binary
+    binary = True #sys._MEIPASS
+    code_path  = os.path.abspath(sys.argv[0]) ## use launch path
+else:  ## if Python code
+    binary = False
+    code_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.dirname(code_path)
 
 ## find config file
-if not os.path.exists('{}{}config'.format(path, os.path.sep)):
-    range_level = 0
-    ## check if binary distribution
-    if os.path.join('dist','acolite','_internal') in path:
-        range_level = 3 ## three levels for this file
-    elif os.path.join('dist','acolite') in path:
-        range_level = 2 ## two levels for this file
-    for i in range(range_level): path = os.path.split(path)[0]
+search_config = True
+while search_config:
+    cfile = os.path.join(path, 'config','config.txt')
+    if os.path.exists(cfile):
+        search_config = False
+    else:
+        path = os.path.split(path)[0]
+    if len(path) <= 1:
+        print('Could not find ACOLITE config file.')
+        sys.exit()
 
-cfile = os.path.join(path, 'config','config.txt')
+## read config
 config = shared.import_config(cfile)
 config['code_path'] = code_path
 config['path'] = path
