@@ -11,6 +11,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2024-03-28 (QV) added station limit creation
 ##                2024-13-17 (QV) update for atmospheric_correction_method
+##                2025-01-20 (QV) updated RGB output logic
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -134,6 +135,17 @@ def acolite_run(settings, inputfile=None, output=None):
             inputfile_list = [i for i in inputfile if len(i) > 0]
     nruns = len(inputfile_list)
 
+    ## which rgb maps to output from l1r, l2r, l2w files
+    l1r_rgb = {'rgb_{}'.format(k): ac.settings['run']['rgb_{}'.format(k)] \
+                for k in ac.settings['run']['l1r_rgb_keys'] if 'rgb_{}'.format(k) in ac.settings['run']}
+    l1r_rgb_create = any([l1r_rgb[k] for k in l1r_rgb])
+    l2r_rgb = {'rgb_{}'.format(k): ac.settings['run']['rgb_{}'.format(k)] \
+                for k in ac.settings['run']['l2r_rgb_keys'] if 'rgb_{}'.format(k) in ac.settings['run']}
+    l2r_rgb_create = any([l2r_rgb[k] for k in l2r_rgb])
+    l2w_rgb = {'rgb_{}'.format(k): ac.settings['run']['rgb_{}'.format(k)] \
+                for k in ac.settings['run']['l2w_rgb_keys'] if 'rgb_{}'.format(k) in ac.settings['run']}
+    l2w_rgb_create = any([l2w_rgb[k] for k in l2w_rgb])
+
     ## track processed scenes
     processed = {}
     ## run through bundles to process
@@ -190,13 +202,11 @@ def acolite_run(settings, inputfile=None, output=None):
 
             ## L1R geotiff outputs
             if ac.settings['run']['l1r_export_geotiff']: ac.output.nc_to_geotiff(l1r)
-            if ac.settings['run']['l1r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(l1r)
+            if ac.settings['run']['l1r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(l1r, rgb_datasets = [k.replace('rgb_','') for k in l1r_rgb if l1r_rgb[k]])
 
             ## rhot RGB
-            if (ac.settings['run']['map_l1r']) | (ac.settings['run']['rgb_rhot']):
-                ac.acolite.acolite_map(l1r, plot_all = ac.settings['run']['map_l1r'], \
-                                            settings = {'rgb_rhot': True, 'rgb_rhorc': False,
-                                                        'rgb_rhos': False, 'rgb_rhow': False, })
+            if (ac.settings['run']['map_l1r']) | (l1r_rgb_create):
+                ac.acolite.acolite_map(l1r, plot_all = ac.settings['run']['map_l1r'], settings = l1r_rgb)
 
             ## do VIS-SWIR atmospheric correction
             if ac.settings['run']['atmospheric_correction']:
@@ -244,13 +254,11 @@ def acolite_run(settings, inputfile=None, output=None):
                     for ncf in l2r_:
                         ## L2R geotiff outputs
                         if ac.settings['run']['l2r_export_geotiff']: ac.output.nc_to_geotiff(ncf)
-                        if ac.settings['run']['l2r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(ncf)
+                        if ac.settings['run']['l2r_export_geotiff_rgb']: ac.output.nc_to_geotiff_rgb(ncf, rgb_datasets = [k.replace('rgb_','') for k in l2r_rgb if l2r_rgb[k]])
 
                         ## make rgb rhos maps
-                        if (ac.settings['run']['map_l2r']) | (ac.settings['run']['rgb_rhos']) | (ac.settings['run']['rgb_rhorc']):
-                            ac.acolite.acolite_map(ncf, plot_all = ac.settings['run']['map_l2r'], \
-                                                        settings = {'rgb_rhot': False, 'rgb_rhorc': ac.settings['run']['rgb_rhorc'],
-                                                                    'rgb_rhos': ac.settings['run']['rgb_rhos'], 'rgb_rhow': False, })
+                        if (ac.settings['run']['map_l2r']) | l2r_rgb_create:
+                            ac.acolite.acolite_map(ncf, plot_all = ac.settings['run']['map_l2r'], settings = l2r_rgb)
 
                     ## compute l2w parameters
                     if ac.settings['run']['l2w_parameters'] is not None:
@@ -261,10 +269,8 @@ def acolite_run(settings, inputfile=None, output=None):
                                 l2w_files.append(ret)
 
                                 ## make l2w maps
-                                if (ac.settings['run']['map_l2w']) | (ac.settings['run']['rgb_rhow']):
-                                    ac.acolite.acolite_map(ret, plot_all=ac.settings['run']['map_l2w'],
-                                                                settings = {'rgb_rhot': False, 'rgb_rhorc': False,
-                                                                            'rgb_rhos': False, 'rgb_rhow': ac.settings['run']['rgb_rhow'], })
+                                if (ac.settings['run']['map_l2w']) | l2w_rgb_create:
+                                    ac.acolite.acolite_map(ret, plot_all=ac.settings['run']['map_l2w'], settings =l2w_rgb)
 
             ## run TACT thermal atmospheric correction
             if ac.settings['run']['tact_run']:
@@ -298,22 +304,19 @@ def acolite_run(settings, inputfile=None, output=None):
                     reprojected.append(ncfo)
 
                     ## make rgb  maps
-                    if (otype == 'l1r') & ((ac.settings['run']['rgb_rhot']) | (ac.settings['run']['map_l1r'])):
-                        ac.acolite.acolite_map(ncfo, plot_all = ac.settings['run']['map_l1r'],
-                                                     settings = {'rgb_rhot': True, 'rgb_rhorc': False,
-                                                                 'rgb_rhos': False, 'rgb_rhow': False, })
+                    if (otype == 'l1r') & (l1r_rgb_create | ac.settings['run']['map_l1r']):
+                        ac.acolite.acolite_map(ncfo, plot_all = ac.settings['run']['map_l1r'], settings = l1r_rgb)
+                        rgb_datasets = [k.replace('rgb_','') for k in l1r_rgb if l1r_rgb[k]]
 
                     ## make rgb  maps
-                    if (otype == 'l2r') & ((ac.settings['run']['rgb_rhos']) | (ac.settings['run']['rgb_rhorc']) | (ac.settings['run']['map_l2r'])):
-                        ac.acolite.acolite_map(ncfo, plot_all = ac.settings['run']['map_l2r'],
-                                                     settings = {'rgb_rhot': False, 'rgb_rhorc': ac.settings['run']['rgb_rhorc'],
-                                                                 'rgb_rhos': ac.settings['run']['rgb_rhos'], 'rgb_rhow': False, })
+                    if (otype == 'l2r') & (l2r_rgb_create | ac.settings['run']['map_l2r']):
+                        ac.acolite.acolite_map(ncfo, plot_all = ac.settings['run']['map_l2r'], settings = l2r_rgb)
+                        rgb_datasets = [k.replace('rgb_','') for k in l2r_rgb if l2r_rgb[k]]
 
                     ## make rgb and other maps
-                    if (otype == 'l2w') & ((ac.settings['run']['rgb_rhow']) | (ac.settings['run']['map_l2w'])):
-                        ac.acolite.acolite_map(ncfo, plot_all = ac.settings['run']['map_l2w'],
-                                                     settings = {'rgb_rhot': False, 'rgb_rhorc': False,
-                                                                 'rgb_rhos': False, 'rgb_rhow': True, })
+                    if (otype == 'l2w') & (l2w_rgb_create | ac.settings['run']['map_l2w']):
+                        ac.acolite.acolite_map(ncfo, plot_all = ac.settings['run']['map_l2w'], settings = l2w_rgb)
+                        rgb_datasets = [k.replace('rgb_','') for k in l2w_rgb if l2w_rgb[k]]
 
                     ## make tact maps
                     if (otype == 'l2t') & (ac.settings['run']['map_l2t']):
@@ -327,7 +330,7 @@ def acolite_run(settings, inputfile=None, output=None):
                     ## output rgb geotiff
                     if '{}_export_geotiff_rgb'.format(otype) in ac.settings['run']:
                         if ac.settings['run']['{}_export_geotiff_rgb'.format(otype)]:
-                            ac.output.nc_to_geotiff_rgb(ncfo)
+                            ac.output.nc_to_geotiff_rgb(ncfo, rgb_datasets = rgb_datasets)
                 processed[i]['{}_reprojected'.format(otype)] = reprojected
     ## end reproject data
 
