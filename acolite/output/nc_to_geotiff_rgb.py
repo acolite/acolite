@@ -9,9 +9,12 @@
 ##                2024-03-14 (QV) update settings handling
 ##                                removed some keywords
 ##                2024-04-16 (QV) use gem NetCDF handling
-##                2025-01-20 (QV) added rhotc and rhosu
+##                2025-01-20 (QV) added use of rgb_datasets and unified output naming with png outputs
 
-def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_temp_files = True):
+def nc_to_geotiff_rgb(f, settings = None, min_wave = 2,
+                        rgb_datasets = ['rhot', 'rhos', 'rhotc', 'rhosu', 'rhorc', 'rhow'],
+                        use_gdal_merge_import = True,
+                        remove_temp_files = True):
 
     import os, sys, subprocess
     import acolite as ac
@@ -51,37 +54,15 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
         if setu['output'] is not None:
             out = '{}/{}'.format(setu['output'], os.path.basename(out))
 
-    ## find datasets and wavelengths
-    rhot_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhot_']
-    rhot_wave = [int(ds.split('_')[-1]) for ds in rhot_ds]
-    rhos_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhos_']
-    rhos_wave = [int(ds.split('_')[-1]) for ds in rhos_ds]
+    ## run through rho datasets
+    for base in rgb_datasets:
+        key = 'rgb_{}'.format(base)
+        if key not in setu: continue
+        if setu[key] is False: continue
 
-    rhosu_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhosu_']
-    rhosu_wave = [int(ds.split('_')[-1]) for ds in rhosu_ds]
-    rhotc_ds = [ds for ds in gem.datasets if ds[0:5] == 'rhotc_']
-    rhotc_wave = [int(ds.split('_')[-1]) for ds in rhotc_ds]
-
-    for base in ['rhot', 'rhos', 'rhotc', 'rhosu']:
-        if (base == 'rhot'):
-            if (setu['rgb_rhot'] is False): continue
-            if len(rhot_ds) < 3: continue
-            cwaves = [w for w in rhot_wave]
-
-        if (base == 'rhos'):
-            if (setu['rgb_rhos'] is False): continue
-            if len(rhos_ds) < 3: continue
-            cwaves = [w for w in rhos_wave]
-
-        if (base == 'rhotc'):
-            if (setu['rgb_rhotc'] is False): continue
-            if len(rhotc_ds) < 3: continue
-            cwaves = [w for w in rhotc_wave]
-
-        if (base == 'rhosu'):
-            if (setu['rgb_rhosu'] is False): continue
-            if len(rhosu_ds) < 3: continue
-            cwaves = [w for w in rhosu_wave]
+        cds = [ds for ds in gem.datasets if ds.startswith('{}_'.format(base))]
+        if len(cds) < min_wave: continue
+        cwaves = [int(ds.split('_')[-1]) for ds in cds]
 
         ## make temporary band files
         tempfiles = []
