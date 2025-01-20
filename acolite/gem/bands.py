@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-05-15
 ## modifications: 2024-05-15 (QV) renamed from gem_bands, added as ac.gem.bands
+##                2025-01-20 (QV) added rhosu bands, added rsr versioning
 
 def bands(gem):
     import acolite as ac
@@ -15,6 +16,7 @@ def bands(gem):
 
     ## get rsr
     sensor = gem.gatts['sensor']
+    if ac.settings['run']['rsr_version'] is not None: sensor = '{}_{}'.format(sensor, ac.settings['run']['rsr_version'])
     rsrd = ac.shared.rsr_dict(sensor=sensor)[sensor]
 
     ## get ozone/water vapour from defaults or gatts
@@ -33,13 +35,16 @@ def bands(gem):
             bands[b] = {k:rsrd[k][b] for k in ['wave_mu', 'wave_nm', 'wave_name'] if b in rsrd[k]}
             bands[b]['rhot_ds'] = 'rhot_{}'.format(bands[b]['wave_name'])
             bands[b]['rhos_ds'] = 'rhos_{}'.format(bands[b]['wave_name'])
+            bands[b]['rhosu_ds'] = 'rhosu_{}'.format(bands[b]['wave_name'])
             if ac.settings['run']['add_band_name']:
                 bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(b, bands[b]['wave_name'])
                 bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(b, bands[b]['wave_name'])
+                bands[b]['rhosu_ds'] = 'rhosu_{}_{}'.format(b, bands[b]['wave_name'])
             if ac.settings['run']['add_detector_name']:
                 dsname = rhot_ds[bi][5:]
                 bands[b]['rhot_ds'] = 'rhot_{}'.format(dsname)
                 bands[b]['rhos_ds'] = 'rhos_{}'.format(dsname)
+                bands[b]['rhosu_ds'] = 'rhosu_{}'.format(dsname)
             for k in tg_dict:
                 if k not in ['wave']:
                     bands[b][k] = tg_dict[k][b]
@@ -50,5 +55,5 @@ def bands(gem):
     if opened:
         gem.close()
         del gem
-        
+
     return(sensor, rsrd, bands)
