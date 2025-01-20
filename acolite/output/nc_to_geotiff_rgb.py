@@ -151,8 +151,8 @@ def nc_to_geotiff_rgb(f, settings = None, use_gdal_merge_import = True, remove_t
             tempfiles.append("{}".format(outfile))
 
         ## composite to RGB
-        outfile = '{}_{}{}'.format(out, '{}_RGB'.format(base), '.tif')
-        outfile_temp = '{}_{}{}'.format(out, '{}_RGB_temp'.format(base), '.tif')
+        outfile = '{}_{}{}'.format(out, 'rgb_{}'.format(base), '.tif')
+        outfile_temp = '{}_{}{}'.format(out, 'rgb_{}_temp'.format(base), '.tif')
         if os.path.exists(outfile): os.remove(outfile)
         if os.path.exists(outfile_temp): os.remove(outfile_temp)
 
