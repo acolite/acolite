@@ -1612,6 +1612,7 @@ def radcor(ncf, settings = None):
     gemo.gatts['uwv'] = uwv
     gemo.gatts['pressure'] = pressure
     gemo.gatts['wind'] = wind
+    gemo.gatts['ofile'] = ofile
 
     ## Add rhoe to BEAM format auto-grouping
     gemo.gatts['auto_grouping'] = 'rhot:rhorc:rhos:rhow:Rrs:rhoe:rhosu'
