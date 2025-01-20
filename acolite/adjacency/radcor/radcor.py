@@ -683,6 +683,10 @@ def radcor(ncf, settings = None):
         print('\nUser supplied model and aot: radcor_force_model={} radcor_force_aot={}'.format(setu['radcor_force_model'],setu['radcor_force_aot']))
         best_mod = setu['radcor_force_model']
         best_aot = setu['radcor_force_aot']
+        ## set these to nan if user forces model and aot
+        best_fit = np.nan
+        best_idx = np.nan
+        best_band = np.nan
     else:
         print('\nRunning AOT estimation using radcor_aot_estimate={}'.format(setu['radcor_aot_estimate']))
 
@@ -1324,7 +1328,7 @@ def radcor(ncf, settings = None):
         if (setu['radcor_aot_estimate'] == 'optimise') &  (setu['radcor_force_aot'] is None):
             print('\nSelecting best fitting model from optimisation')
             best_mod = None
-            best_band = 0
+            best_band = np.nan
             for ai, am in enumerate(aer_models):
                 print('    Model {} fit to rhos: {:.4f}'.format(am, model_band_selection[am]['fit']))
                 if best_mod is None:
@@ -1392,9 +1396,9 @@ def radcor(ncf, settings = None):
             ## select model and aot
             if (setu['radcor_force_model'] is not None): ## user supplied model
                 best_mod = setu['radcor_force_model']
-                best_fit = 0                                        # AC 20240305 Maybe should be NA or Inf?
-                best_idx = 0                                        # AC 20240305 should define best_idx as 0 if C and 1 if M...
-                best_band = 0                                       # AC 20240305 Not sure what to set here, maybe nothing or NA, and have another flag to indicate if aerosol model was forced
+                best_fit = np.nan
+                best_idx = [ai for ai, amod in enumerate(aer_models) if best_mod == amod]
+                best_band = np.nan
                 print('\nForced aerosol model: {}'.format(best_mod))
                 ## check if AOT was also forced
                 if setu['radcor_force_aot'] is not None: ## user supplied aot
@@ -1634,8 +1638,9 @@ def radcor(ncf, settings = None):
     ## store bands used for TS-DSF
     gemo.gatts['ac_bands'] = ','.join([str(b) for b in bands_])
     ## store selected band index and name (only one band since we choose the model spectrally)
-    gemo.gatts['ac_band1_idx'] = best_band
-    gemo.gatts['ac_band1'] = bands_[best_band]
+    if np.isfinite(best_band):
+        gemo.gatts['ac_band1_idx'] = best_band
+        gemo.gatts['ac_band1'] = bands_[best_band]
 
     #gemo.gatts_update()
 
