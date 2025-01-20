@@ -35,8 +35,6 @@ def acolite_run(settings, inputfile=None, output=None):
     ## workaround for outputting rhorc and bt
     if 'l2w_parameters' in ac.settings['user']:
         if ac.settings['user']['l2w_parameters'] is not None:
-            if type(ac.settings['user']['l2w_parameters']) is not list:
-                ac.settings['user']['l2w_parameters'] = [ac.settings['user']['l2w_parameters']]
             for par in ac.settings['user']['l2w_parameters']:
                 if 'rhorc' in par: ac.settings['user']['output_rhorc'] = True
                 if 'bt' == par[0:2]: ac.settings['user']['output_bt'] = True

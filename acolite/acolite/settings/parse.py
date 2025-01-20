@@ -6,6 +6,7 @@
 ##                2023-01-02 (QV) test which is the lowest level of output path that needs to be created
 ##                2023-10-31 (QV) check if luts_pressures is a list
 ##                2024-03-30 (QV) convert tuples to lists
+##                2025-01-20 (QV) added generic setting list conversion
 
 def parse(sensor, settings=None, merge=True):
     import os, time
@@ -33,11 +34,12 @@ def parse(sensor, settings=None, merge=True):
             else:
                 setu = {k:settings[k] for k in settings}
 
-    ## make sure luts setting is a list
-    if 'luts' in setu:
-        if type(setu['luts']) is not list: setu['luts'] = [setu['luts']]
-    if 'luts_pressures' in setu:
-        if type(setu['luts_pressures']) is not list: setu['luts_pressures'] = [setu['luts_pressures']]
+    ## make sure certain settings are a list
+    list_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_list.txt')
+    for k in list_list:
+        if k not in setu: continue
+        if setu[k] is None: continue
+        if type(setu[k]) is not list: setu[k] = [setu[k]]
 
     ## import settings that need to be converted to ints and floats
     int_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_int.txt')
