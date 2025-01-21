@@ -9,7 +9,8 @@ def copernicus_dem_rpc(dct_limit, output=None):
     import acolite as ac
     import os
     from osgeo import gdal, gdalconst
-    if gdal.__version__ < '3.3':
+    from packaging import version
+    if version.parse(gdal.__version__) < version.parse('3.3'):
         from osgeo.utils import gdal_merge
     else:
         from osgeo_utils import gdal_merge

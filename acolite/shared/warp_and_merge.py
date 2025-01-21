@@ -15,7 +15,8 @@ def warp_and_merge(tiles, output = None, limit = None,
     import acolite as ac
 
     from osgeo import gdal, gdalconst
-    if gdal.__version__ < '3.3':
+    from packaging import version
+    if version.parse(gdal.__version__) < version.parse('3.3'):
         from osgeo.utils import gdal_merge
     else:
         from osgeo_utils import gdal_merge
