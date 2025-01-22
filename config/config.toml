@@ -19,7 +19,7 @@ hgt = '$ACDIR/data/SRTM'  # DEM SRTM HGT files; separate directories for GL1 and
 copernicus_dem = '$ACDIR/data'  # Copernicus DEM files; TODO: error?
 met = '$ACDIR/data/MET'  # MET files
 snap = 'Applications/snap'  # ESA SNAP
-ged = 'ÂCDIR/data/GED'  # ASTER GED files; separate directories will be created
+ged = '$ACDIR/data/GED'  # ASTER GED files; separate directories will be created
 libradtran = '$ACDIR/external/libRadtran-2.0.5'  # libRadtran
 
 
