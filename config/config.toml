@@ -1,0 +1,112 @@
+# ACOLITE general configuration files
+
+# $ACDIR will be replaced by the absolute path to the acolite directory at run time
+# If you want to move directories to another location, provide the full path here
+
+# ACOLITE parameters
+defaults = '$ACDIR/config/defaults.txt'
+parameter.labels = '$ACDIR/config/parameter_labels.txt'
+parameter.labels_user = '$ACDIR/config/parameter_labels_user.txt'
+parameter.cf_attributes = '$ACDIR/config/parameter_cf_attributes.json'
+parameter.discretisation = '$ACDIR/config/parameter_discretisation.txt'
+
+
+[directory]
+data = '$ACDIR/data'
+scratch = '$ACDIR/scratch'
+external = '$ACDIR/external'
+hgt = '$ACDIR/data/SRTM'  # DEM SRTM HGT files; separate directories for GL1 and GL3 will be created
+copernicus_dem = '$ACDIR/data'  # Copernicus DEM files; TODO: error?
+met = '$ACDIR/data/MET'  # MET files
+snap = 'Applications/snap'  # ESA SNAP
+ged = 'ÂCDIR/data/GED'  # ASTER GED files; separate directories will be created
+libradtran = '$ACDIR/external/libRadtran-2.0.5'  # libRadtran
+
+
+[TACT]  # TACT support
+data = '$ACDIR/data/TACT'
+grid = '$ACDIR/data/TACT/grid'
+
+[TACT.thredds]  # TACT THREDDS data URLs
+era5 = 'https://thredds.rda.ucar.edu/thredds/dodsC/files/g/ds633.0/e5.oper.an.pl'
+gdas1= 'https://thredds.rda.ucar.edu/thredds/dodsC/files/g/ds083.3'
+merra2= 'https://goldsmr5.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2I3NPASM.5.12.4'
+ncep= 'https://psl.noaa.gov/thredds/dodsC/Datasets'
+
+
+[lut]
+directory = '$ACDIR/data/LUT'  # atmospheric correction LUT data directory
+url = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'
+# url = 'https://raw.gitmirror.com/acolite/acolite_luts/main'  # for China
+
+
+[credentials]
+file = '$ACDIR/config/credentials.txt'  # location of credentials file
+
+[credentials.EarthData]  # EarthData credentials (will be set to environment variables by acolite)
+# alternatively use .netrc for machine earthdata
+# credentials are now by default stored in config/credentials.txt
+u = ""
+p = ""
+
+[credentials.EarthExplorer]
+# alternatively use .netrc for machine earthexplorer
+# credentials are now by default stored in config/credentials.txt
+u = ""
+p = ""
+
+[credentials.CDSE]
+# alternatively use .netrc for machine cdse
+# credentials are now by default stored in config/credentials.txt
+u = ""
+p = ""
+
+
+[EarthData]
+urls = [
+    "gsfc.nasa.gov",
+    "earthdatacloud.nasa.gov",
+    "cr.usgs.gov",
+    "ladsweb.modaps.eosdis.nasa.gov",
+]
+
+
+[EarthExplorer]
+api = "https://m2m.cr.usgs.gov/api/api/json/stable"
+download = "https://earthexplorer.usgs.gov/download"
+ers = "https://ers.cr.usgs.gov"
+
+
+[CDSE]
+odata = "https://catalogue.dataspace.copernicus.eu/odata/v1"
+auth = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+
+
+# attributes not to write in output files
+skip_attributes = [ "EARTHDATA_u", "EARTHDATA_p", "EARTHEXPLORER_u", "EARTHEXPLORER_p", "CDSE_u", "CDSE_p" ]
+
+# list of hyperspectral sensors (do not edit)
+hyper_sensors = [
+    "CHRIS",
+    "PRISMA",
+    "ISS_HICO",
+    "EO1_HYPERION",
+    "DESIS_HSI",
+    "ENMAP_HSI",
+    "ISS_EMIT",
+    "HYPSO1",
+    "PACE_OCI",
+]
+
+# list of thermal sensors (do not edit)
+thermal_sensors = [
+    "L5_TM",
+    "L7_ETM",
+    "L8_TIRS",
+    "L9_TIRS",
+    "ISS_ECOSTRESS",
+    "TERRA_ASTER_TIR",
+    "JPSS-1_VIIRS_TIR",
+    "JPSS-2_VIIRS_TIR",
+    "SUOMI-NPP_VIIRS_TIR",
+]
