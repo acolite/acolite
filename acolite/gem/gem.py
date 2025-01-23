@@ -13,6 +13,7 @@
 ##                2024-04-22 (QV) added xdim and ydim, added test for presence of nc_projection datasets
 ##                2024-05-21 (QV) added write_ds
 ##                2024-05-22 (QV) added use_stored to data, added file = None option
+##                2025-01-23 (QV) fix for wrong dataset attributes
 
 import acolite as ac
 import os, sys, json
@@ -158,7 +159,7 @@ class gem(object):
                     self.nc_projection[k] = {'data': d, 'attributes': a}
 
         ## write dataset
-        def write(self, ds, data, ds_att = {}, replace_nan = False, update_projection = False):
+        def write(self, ds, data, ds_att = None, replace_nan = False, update_projection = False):
             if self.new:
                 self.close() # close if open
                 if os.path.exists(self.file): os.remove(self.file) # delete if exists
