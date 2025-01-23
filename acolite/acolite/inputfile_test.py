@@ -7,7 +7,8 @@
 ##                2023-09-12 (QV) added attempt to download from CDSE
 ##                2023-09-21 (QV) added attempt to download from EarthExplorer
 ##                2023-10-21 (QV) added ECOSTRESS download from EarthExplorer
-##                2024-04-27 (QV) moved APIs 
+##                2024-04-27 (QV) moved APIs
+##                2025-01-23 (QV) test if scene exists in download directory, added S2C
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -33,34 +34,40 @@ def inputfile_test(inputfile):
             if ac.settings['run']['scene_download']:
                 ddir = ac.settings['run']['scene_download_directory']
                 if ddir is None: ddir = ac.settings['run']['output']
-                ## finc out data source to use
+                ## find out data source to use
                 bn = os.path.basename(inputfile)
-                if bn[0:3] in ['S2A', 'S2B', 'S3A', 'S3B']:
-                    download_source = 'CDSE'
-                elif bn[0:4] in ['LC08', 'LO08', 'LT08', 'LC09', 'LO09', 'LT09', 'LT04', 'LT05', 'LE07']:
-                    download_source = 'EarthExplorer'
-                elif 'ECOSTRESS' in bn:
-                    download_source = 'EarthExplorer'
+                ## test if file exists in download dir
+                if os.path.exists('{}/{}'.format(ddir, bn)):
+                    file = '{}/{}'.format(ddir, bn)
+                    print('Scene exists at {}'.format(file))
+                ## otherwise try and download it
                 else:
-                    print('Could not identify download source for scene {}'.format(file))
-                    continue
+                    if bn[0:3] in ['S2A', 'S2B', 'S2C', 'S3A', 'S3B']:
+                        download_source = 'CDSE'
+                    elif bn[0:4] in ['LC08', 'LO08', 'LT08', 'LC09', 'LO09', 'LT09', 'LT04', 'LT05', 'LE07']:
+                        download_source = 'EarthExplorer'
+                    elif 'ECOSTRESS' in bn:
+                        download_source = 'EarthExplorer'
+                    else:
+                        print('Could not identify download source for scene {}'.format(file))
+                        continue
 
-                if ac.config['verbosity'] > 0: print('Attempting download of scene {} from {}.'.format(file, download_source))
-                if ac.config['verbosity'] > 0: print('Querying {}'.format(download_source))
+                    if ac.config['verbosity'] > 0: print('Attempting download of scene {} from {}.'.format(file, download_source))
+                    if ac.config['verbosity'] > 0: print('Querying {}'.format(download_source))
 
-                ## Copernicus Data Space Ecosystem
-                if download_source == 'CDSE':
-                    urls, scenes = ac.api.cdse.query(scene=bn)
-                    if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
-                    local_scenes = ac.api.cdse.download(urls, output = ddir, verbosity = ac.config['verbosity'])
-                ## EarthExplorer
-                if download_source == 'EarthExplorer':
-                    entity_list, identifier_list, dataset_list = ac.api.earthexplorer.query(scene=bn)
-                    if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
-                    local_scenes = ac.api.earthexplorer.download(entity_list, dataset_list, identifier_list, output = ddir, verbosity = ac.config['verbosity'])
+                    ## Copernicus Data Space Ecosystem
+                    if download_source == 'CDSE':
+                        urls, scenes = ac.api.cdse.query(scene=bn)
+                        if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
+                        local_scenes = ac.api.cdse.download(urls, output = ddir, verbosity = ac.config['verbosity'])
+                    ## EarthExplorer
+                    if download_source == 'EarthExplorer':
+                        entity_list, identifier_list, dataset_list = ac.api.earthexplorer.query(scene=bn)
+                        if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
+                        local_scenes = ac.api.earthexplorer.download(entity_list, dataset_list, identifier_list, output = ddir, verbosity = ac.config['verbosity'])
 
-                if len(local_scenes) == 1:  file = '{}'.format(local_scenes[0])
-                if not os.path.exists(file): continue
+                    if len(local_scenes) == 1:  file = '{}'.format(local_scenes[0])
+                    if not os.path.exists(file): continue
             else:
                 continue
 
