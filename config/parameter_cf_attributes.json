@@ -90,6 +90,14 @@
     "long_name": "relative azimuth angle",
     "units": "degree"},
 
+{"parameter": "dem",
+    "standard_name": "surface_altitude",
+    "units": "m"},
+
+{"parameter": "dem_pressure",
+    "standard_name": "surface_air_pressure",
+    "units": "hPa"},
+
 {"parameter": "lat",
     "standard_name": "latitude",
     "long_name": "latitude",
