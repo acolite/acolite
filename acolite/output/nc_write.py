@@ -26,6 +26,7 @@
 ##                QV 2024-01-31 added skip_attributes
 ##                2024-04-15 (QV) allow passing of netCDF4 Dataset
 ##                2024-04-16 (QV) removed NetCDF compression parameters from keywords
+##                2025-01-23 (QV) added break to dataset attributes check
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -51,10 +52,12 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
     ## import atts for dataset
     atts = None
     for p in ac.param['attributes']:
-        if p['parameter'] == dataset: atts = {t:p[t] for t in p}
+        if p['parameter'] == dataset:
+            atts = {t:p[t] for t in p}
+            break
     if atts is None:
         for p in ac.param['attributes']:
-            if re.match(p['parameter'], dataset):
+            if re.match(p['parameter'], dataset) is not None:
                 atts = {t:p[t] for t in p}
                 if p['parameter'][0:2] != 'bt':
                     try:
@@ -62,6 +65,7 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                         atts['wavelength'] = wave
                     except:
                         pass
+                break
 
     ## load discretisation settings
     pdisc, discretise = None, False
