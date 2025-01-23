@@ -210,7 +210,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
             ## do VIS-SWIR atmospheric correction
             if ac.settings['run']['atmospheric_correction']:
-                if gatts['acolite_file_type'] == 'L1R':
+                if gatts['acolite_file_type'].startswith('L1R'):
                     ## run dsf or exp
                     if (ac.settings['run']['atmospheric_correction_method'] in ['dark_spectrum', 'exponential']):
                         ret = ac.acolite.acolite_l2r(l1r)
