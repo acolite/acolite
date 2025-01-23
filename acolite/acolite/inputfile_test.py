@@ -37,8 +37,8 @@ def inputfile_test(inputfile):
                 ## find out data source to use
                 bn = os.path.basename(inputfile)
                 ## test if file exists in download dir
-                if os.path.exists('{}/{}'.format(ddir, bn)):
-                    file = '{}/{}'.format(ddir, bn)
+                if os.path.exists('{}/{}'.format(ddir, os.path.basename(file))):
+                    file = '{}/{}'.format(ddir, os.path.basename(file))
                     print('Scene exists at {}'.format(file))
                 ## otherwise try and download it
                 else:
