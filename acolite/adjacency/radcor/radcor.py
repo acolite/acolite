@@ -1656,6 +1656,13 @@ def radcor(ncf, settings = None):
         if setu['radcor_crop_centre']: ## crop to centre area
             d_ = d_[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
         gemo.write(ds, d_, ds_att = a_)
+    if setu['dem_pressure'] & setu['dem_pressure_write']:
+        if setu['radcor_crop_centre']: ## crop to centre area
+            elevation = elevation[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+        gemo.write('dem', elevation)
+        gemo.write('dem_pressure',ac.ac.pressure_elevation(elevation))
+        elevation = None
+        gemo.gatts['elevation'] = median_elevation
 
     #
     # End Create ACOLITE output file
