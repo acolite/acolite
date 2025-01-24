@@ -176,13 +176,15 @@ def acolite_l2w(gem,
         ## add existing par or evaluate wildcards
         if (cur_par in setu['l2w_parameters']):
             copy_datasets.append(cur_par)
-        elif (('rhot_*' in setu['l2w_parameters']) & ('rhot_' in cur_par)):
+        elif (('rhot_*' in setu['l2w_parameters']) & (cur_par.startswith('rhot_'))):
             copy_datasets.append(cur_par)
-        elif (('rhos_*' in setu['l2w_parameters']) & ('rhos_' in cur_par)):
+        elif (('rhos_*' in setu['l2w_parameters']) & (cur_par.startswith('rhos_'))):
             copy_datasets.append(cur_par)
-        elif (('rhorc_*' in setu['l2w_parameters']) & ('rhorc_' in cur_par)):
+        elif (('rhorc_*' in setu['l2w_parameters']) & (cur_par.startswith('rhorc_'))):
             copy_datasets.append(cur_par)
-        elif (('bt*' in setu['l2w_parameters']) & ('bt' == cur_par.lower()[0:2])):
+        elif (('bt*' in setu['l2w_parameters']) & (cur_par.lower().startswith('bt'))):
+            copy_datasets.append(cur_par)
+        elif (('Ed_*' in setu['l2w_parameters']) & (cur_par.lower().startswith('ed'))):
             copy_datasets.append(cur_par)
 
     ## copy datasets
@@ -242,9 +244,9 @@ def acolite_l2w(gem,
     ## parameter loop
     ## compute other parameters
     for cur_par in setu['l2w_parameters']:
-        if cur_par.lower() in ['rhot_*', 'rhos_*', 'rrs_*', 'rhow_*', 'rhorc_*', '', ' ']: continue ## we have copied these above
+        if cur_par.lower() in ['rhot_*', 'rhos_*', 'rrs_*', 'rhow_*', 'rhorc_*', 'ed_*', '', ' ']: continue ## we have copied these above
         if cur_par.lower() in [ds.lower() for ds in ac.shared.nc_datasets(ofile)]: continue ## parameter already in output dataset (would not work if we are appending subsets to the ncdf)
-        if cur_par.lower()[0:2] == 'bt': continue
+        if cur_par.lower().startswith('bt'): continue
         cur_par = cur_par.lower() ## workaround for parameters provided with upper case
 
         ## split on underscores

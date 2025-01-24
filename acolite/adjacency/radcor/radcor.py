@@ -32,6 +32,7 @@
 ##                2024-12-02 (QV) fixed crop for optimised results
 ##                2024-12-16 (QV) removed radcor/tsdsf_kernel_rescale and added renormalise to radcor/tsdsf_kernel_complete_method
 ##                2025-01-21 (QV) added radcor_write_rhotc_separate_file option
+##                2025-01-24 (QV) added output_ed option
 
 def radcor(ncf, settings = None):
     import os, json
@@ -297,6 +298,30 @@ def radcor(ncf, settings = None):
                 if setu['radcor_write_rhotc_separate_file']:
                     gemo_l1rc.write(bands[b]['rhot_ds'], rhotc, ds_att = att)
 
+            ## write Ed
+            if setu['output_ed']:
+                ## baseline Ed with no spherical albedo effect
+                if 'se_distance' not in gemo.gatts:
+                    clon = np.nanmedian(gem.data('lon'))
+                    clat = np.nanmedian(gem.data('lat'))
+                    spos = ac.shared.sun_position(gemo.gatts['isodate'], clon, clat)
+                    gemo.gatts['se_distance'] = spos['distance'] * 1.0
+                Ed_base = (bands[b]['F0']) * gemo.gatts['se_distance']**2 * cos_sza * bands[b]['tt_gas'] * T_d_tot
+                att['Ed_base'] = Ed_base
+                ## Ed with heterogeneous surface
+                Ed =  Ed_base / (1 - rho_env_sph_est * rho_a_sph)
+                if setu['radcor_crop_centre']: ## crop to centre area
+                    Ed = Ed[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+                gemo.write(bands[b]['rhot_ds'].replace('rhot', 'Ed'), Ed, ds_att = att)
+                ## Ed with homogeneous surface
+                #Ed = Ed_base / (1 - rho_s_homo * rho_a_sph)
+                #if setu['radcor_crop_centre']: ## crop to centre area
+                #    Ed = Ed[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+                #gemo.write(bands[b]['rhot_ds'].replace('rhot', 'Edu'), Ed, ds_att = att)
+                ## Ed with no surface - doesn't need to be written as array, but convenient for SNAP spectrum viewer
+                #Ed[:] = Ed_base
+                #gemo.write(bands[b]['rhot_ds'].replace('rhot', 'Ed0'), Ed, ds_att = att)
+
             ## write rhoe
             if setu['radcor_write_rhoe']:
                 if setu['radcor_crop_centre']: ## crop to centre area
@@ -428,6 +453,11 @@ def radcor(ncf, settings = None):
     else:
         rsrd = ac.shared.rsr_dict(sensor = sensor_lut)
 
+    ## get F0 to compute Ed
+    if setu['output_ed']:
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd[sensor]['rsr'])
+
     ## Get scene average geometry
     sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
     cos_sza = np.cos(np.radians(sza))
@@ -532,6 +562,7 @@ def radcor(ncf, settings = None):
             for k in tg_dict:
                 if k not in ['wave']: bands[b][k] = tg_dict[k][b]
             bands[b]['wavelength'] = bands[b]['wave_nm']
+            if setu['output_ed']: bands[b]['F0'] = f0_b[b]
             ## track APSFS simulation band naming
             bint += 1
             ## subset SD8 bands for SD5
@@ -1631,6 +1662,7 @@ def radcor(ncf, settings = None):
     ## Add rhoe to BEAM format auto-grouping
     gemo.gatts['auto_grouping'] = 'rhot:rhorc:rhos:rhow:Rrs:rhoe:rhosu'
     if setu['radcor_write_rhotc']: gemo.gatts['auto_grouping']+=':rhotc'
+    if setu['output_ed']: gemo.gatts['auto_grouping']+=':Ed' # :Edu:Ed0
     gemo.gatts['acolite_file_type'] = 'L2R'
     gemo.gatts['radcor_version'] = '{}'.format(ac.adjacency.radcor.version)
     gemo.nc_projection = gem.nc_projection

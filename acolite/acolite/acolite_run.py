@@ -37,8 +37,9 @@ def acolite_run(settings, inputfile=None, output=None):
     if 'l2w_parameters' in ac.settings['user']:
         if ac.settings['user']['l2w_parameters'] is not None:
             for par in ac.settings['user']['l2w_parameters']:
-                if 'rhorc' in par: ac.settings['user']['output_rhorc'] = True
-                if 'bt' == par[0:2]: ac.settings['user']['output_bt'] = True
+                if par.startswith('rhorc'): ac.settings['user']['output_rhorc'] = True
+                if par.startswith('bt'): ac.settings['user']['output_bt'] = True
+                if par.startswith('Ed'): ac.settings['user']['output_ed'] = True
 
     ## check if polygon is a file or WKT
     ## if WKT make new polygon file in output directory

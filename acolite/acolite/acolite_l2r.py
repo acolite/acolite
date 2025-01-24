@@ -300,6 +300,11 @@ def acolite_l2r(gem,
                                       uoz=gem.gatts['uoz'], uwv=gem.gatts['uwv'],
                                       rsr=rsrd['rsr'])
 
+    ## for Ed
+    if setu['output_ed']:
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd['rsr'])
+
     ## make bands dataset
     gem.bands = {}
     for bi, b in enumerate(rsrd['rsr_bands']):
@@ -314,6 +319,8 @@ def acolite_l2r(gem,
                 dsname = rhot_ds[bi][5:]
                 gem.bands[b]['rhot_ds'] = 'rhot_{}'.format(dsname)
                 gem.bands[b]['rhos_ds'] = 'rhos_{}'.format(dsname)
+            if setu['output_ed']:
+                gem.bands[b]['F0'] = f0_b[b]
             for k in tg_dict:
                 if k not in ['wave']:
                     gem.bands[b][k] = tg_dict[k][b]
@@ -1330,6 +1337,7 @@ def acolite_l2r(gem,
             dutott = np.zeros(atm_shape, dtype=np.float32)+np.nan
             if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                 ttot_all[b] = np.zeros(atm_shape, dtype=np.float32)+np.nan
+            if (setu['output_ed']): dtott = np.zeros(atm_shape, dtype=np.float32)+np.nan
 
             for li, lut in enumerate(luts):
                 ls = np.where(aot_lut == li)
@@ -1361,7 +1369,7 @@ def acolite_l2r(gem,
                     ## compute hyper results and resample later
                     if hyper_res is None:
                         hyper_res = {}
-                        for prm in [par, 'astot', 'dutott', 'ttot']:
+                        for prm in [par, 'astot', 'dutott', 'ttot', 'dtott']:
                             if len(ai) == 1: ## fixed DSF
                                 hyper_res[prm] = lutdw[lut]['rgi']((xi[0], lutdw[lut]['ipd'][prm],
                                                  lutdw[lut]['meta']['wave'], xi[1], xi[2], xi[3], xi[4], ai)).flatten()
@@ -1384,6 +1392,7 @@ def acolite_l2r(gem,
                     ## total transmittance
                     if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                         ttot_all[b][ls] = ac.shared.rsr_convolute_nd(hyper_res['ttot'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
+                    if (setu['output_ed']): dtott[ls] = ac.shared.rsr_convolute_nd(hyper_res['dtott'], lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=0)
                 else:
                     ## path reflectance
                     romix[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], ai))
@@ -1393,6 +1402,7 @@ def acolite_l2r(gem,
                     ## total transmittance
                     if (setu['dsf_residual_glint_correction']) & (setu['dsf_residual_glint_correction_method']=='default'):
                         ttot_all[b][ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['ttot'], xi[1], xi[2], xi[3], xi[4], ai))
+                    if (setu['output_ed']): dtott[ls] = lutdw[lut]['rgi'][b]((xi[0], lutdw[lut]['ipd']['dtott'], xi[1], xi[2], xi[3], xi[4], ai))
                 del ls, ai, xi
 
             ## interpolate tiled processing to full scene
@@ -1404,6 +1414,9 @@ def acolite_l2r(gem,
                 target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 dutott = ac.shared.tiles_interp(dutott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                 target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
+                if (setu['output_ed']):
+                    dtott = ac.shared.tiles_interp(dtott, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                                                    target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
 
             ## create full scene parameters for segmented processing
             if setu['dsf_aot_estimate'] == 'segmented':
@@ -1413,11 +1426,16 @@ def acolite_l2r(gem,
                 romix = np.zeros(gem.gatts['data_dimensions']) + np.nan
                 astot = np.zeros(gem.gatts['data_dimensions']) + np.nan
                 dutott = np.zeros(gem.gatts['data_dimensions']) + np.nan
+                if (setu['output_ed']):
+                    dtott_ = dtott * 1.0
+                    dtott = np.zeros(gem.gatts['data_dimensions']) + np.nan
                 for sidx, segment in enumerate(segment_data):
                     romix[segment_data[segment]['sub']] = romix_[sidx]
                     astot[segment_data[segment]['sub']] = astot_[sidx]
                     dutott[segment_data[segment]['sub']] = dutott_[sidx]
+                    if (setu['output_ed']): dtott[segment_data[segment]['sub']] = dtott_[sidx]
                 del romix_, astot_, dutott_
+                if (setu['output_ed']):  del dtott_
 
             ## write ac parameters
             if setu['dsf_write_tiled_parameters']:
@@ -1441,6 +1459,14 @@ def acolite_l2r(gem,
             rhot_noatm = (cur_data / gem.bands[b]['tt_gas']) - romix
             del romix
             cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
+
+            ## compute at surface Ed
+            if setu['output_ed']:
+                cos_sza = np.cos(np.radians(gem.data('sza')))
+                se_distance = ac.shared.sun_position(gem.gatts['isodate'], 0, 0)['distance']
+                Ed = (gem.bands[b]['F0']) * se_distance**2 * cos_sza * gem.bands[b]['tt_gas'] * dtott
+                del cos_sza
+                Ed /=  (1 - cur_data * astot)
             del astot, dutott, rhot_noatm
 
         ## exponential
@@ -1532,6 +1558,12 @@ def acolite_l2r(gem,
         ## write rhos
         gemo.write(dso, cur_data, ds_att = ds_att)
         del cur_data
+
+        ## write Ed data
+        if setu['output_ed']:
+            gemo.write(dso.replace('rhos_', 'Ed_'), Ed, ds_att = ds_att)
+            del Ed
+
         if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(sensor_lut, b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
 
     ## update outputfile dataset info
