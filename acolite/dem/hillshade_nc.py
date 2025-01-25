@@ -34,7 +34,7 @@ def hillshade_nc(ncf, write_to_netcdf = False, options = [], # ['-combined']
 
     if False:
         ## get projection info and set up source dataset
-        nc_projection = ac.shared.nc_read_projection(ncf)
+        nc_projection = ac.shared.nc_projection_read(ncf)
         xrange = gatts['xrange']
         yrange = gatts['yrange']
         pixel_size = gatts['pixel_size']

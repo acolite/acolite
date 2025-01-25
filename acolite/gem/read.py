@@ -44,7 +44,7 @@ def read(ncf, sub = None, skip_datasets = [], load_data=True):
         gem['gatts']['thermal_bands'] = ['I04', 'I05', 'M12', 'M13', 'M14', 'M15', 'M16']
 
     if 'projection_key' in gem['gatts']:
-        gem['nc_projection'] = ac.shared.nc_read_projection(ncf)
+        gem['nc_projection'] = ac.shared.nc_projection_read(ncf)
 
     if load_data:
         ## read all datasets

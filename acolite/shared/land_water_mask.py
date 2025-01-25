@@ -24,7 +24,7 @@ def land_water_mask(ncf, add_lakes = True, extend = False, extend_km = 20, poly_
     gatts = ac.shared.nc_gatts(ncf)
 
     ## get nc projection
-    nc_projection = ac.shared.nc_read_projection(ncf)
+    nc_projection = ac.shared.nc_projection_read(ncf)
     if (nc_projection is None):
         if ac.settings['run']['verbosity'] > 2: print('Could not read nc_projection, not extending grid.')
 

@@ -43,7 +43,7 @@ def glad_l2r(ncf, output = None, ofile = None,
 
     ## get attributes and identify sensor
     gatts = ac.shared.nc_gatts(ncf)
-    nc_projection = ac.shared.nc_read_projection(ncf)
+    nc_projection = ac.shared.nc_projection_read(ncf)
     sensor = gatts['sensor']
 
     sensors = ['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI','S2B_MSI']

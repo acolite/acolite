@@ -22,7 +22,7 @@ from .geolocation_sub import *
 from .nc_read import *
 from .nc_write import *
 from .nc_projection_dct import *
-from .nc_read_projection import *
+from .nc_projection_read import *
 from .nc_extract_point import *
 
 from .read_band import *
