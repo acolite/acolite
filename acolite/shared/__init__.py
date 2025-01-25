@@ -71,10 +71,12 @@ from .sun_position import *
 from .rsr_hyper import *
 
 from .polylakes import *
-from .land_water_mask import *
 
 from .rgb_stretch import *
 from .scale_dist import *
+
+from .eci_geometry import *
+
 from .calc_tdifs import *
 from .read_6sv_coef import *
 from .read_6sv_ph import *
