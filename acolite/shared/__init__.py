@@ -75,8 +75,6 @@ from .polylakes import *
 from .rgb_stretch import *
 from .scale_dist import *
 
-from .eci_geometry import *
-
 from .calc_tdifs import *
 from .read_6sv_coef import *
 from .read_6sv_ph import *
