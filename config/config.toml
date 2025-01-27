@@ -3,12 +3,12 @@
 # $ACDIR will be replaced by the absolute path to the acolite directory at run time
 # If you want to move directories to another location, provide the full path here
 
-# ACOLITE parameters
+[parameters]  # ACOLITE settings
 defaults = '$ACDIR/config/defaults.txt'
-parameter.labels = '$ACDIR/config/parameter_labels.txt'
-parameter.labels_user = '$ACDIR/config/parameter_labels_user.txt'
-parameter.cf_attributes = '$ACDIR/config/parameter_cf_attributes.json'
-parameter.discretisation = '$ACDIR/config/parameter_discretisation.txt'
+labels = '$ACDIR/config/parameter_labels.txt'
+labels_user = '$ACDIR/config/parameter_labels_user.txt'
+cf_attributes = '$ACDIR/config/parameter_cf_attributes.json'
+discretisation = '$ACDIR/config/parameter_discretisation.txt'
 
 
 [directory]
@@ -16,7 +16,7 @@ data = '$ACDIR/data'
 scratch = '$ACDIR/scratch'
 external = '$ACDIR/external'
 hgt = '$ACDIR/data/SRTM'  # DEM SRTM HGT files; separate directories for GL1 and GL3 will be created
-copernicus_dem = '$ACDIR/data'  # Copernicus DEM files; TODO: error?
+copernicus_dem = '$ACDIR/data'  # Copernicus DEM files
 met = '$ACDIR/data/MET'  # MET files
 snap = 'Applications/snap'  # ESA SNAP
 ged = '$ACDIR/data/GED'  # ASTER GED files; separate directories will be created
@@ -37,27 +37,25 @@ ncep= 'https://psl.noaa.gov/thredds/dodsC/Datasets'
 [lut]
 directory = '$ACDIR/data/LUT'  # atmospheric correction LUT data directory
 url = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'
-# url = 'https://raw.gitmirror.com/acolite/acolite_luts/main'  # for China
+#url = 'https://raw.gitmirror.com/acolite/acolite_luts/main'  # for China
 
 
 [credentials]
 file = '$ACDIR/config/credentials.txt'  # location of credentials file
+# credentials are now by default stored in config/credentials.txt
 
-[credentials.EarthData]  # EarthData credentials (will be set to environment variables by acolite)
+[credentials.EarthData]  # EarthData credentials
 # alternatively use .netrc for machine earthdata
-# credentials are now by default stored in config/credentials.txt
 u = ""
 p = ""
 
-[credentials.EarthExplorer]
+[credentials.EarthExplorer]  # EarthExplorer credentials
 # alternatively use .netrc for machine earthexplorer
-# credentials are now by default stored in config/credentials.txt
 u = ""
 p = ""
 
-[credentials.CDSE]
+[credentials.CDSE]  # CDSE credentials
 # alternatively use .netrc for machine cdse
-# credentials are now by default stored in config/credentials.txt
 u = ""
 p = ""
 
