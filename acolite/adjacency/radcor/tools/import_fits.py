@@ -18,10 +18,10 @@ def import_fits(sensor, bands, aer_models = ['C', 'M']):
     bands_ = [b for b in bands if bands[b]['radcor_use_band']]
 
     ## fit directories
-    psffit_dir = '{}/{}'.format(ac.config['data_dir'], 'Shared/RAdCor/psf/fit/')    # Aerosol Point Spread Function
-    saffit_dir = '{}/{}'.format(ac.config['data_dir'], 'Shared/RAdCor/saf/fit/')    # Aerosol Spherical albedo
-    raypsf_dir = '{}/{}'.format(ac.config['data_dir'], 'Shared/RAdCor/psf_ray/fit') # Rayleigh PSF
-    raysaf_dir = '{}/{}'.format(ac.config['data_dir'], 'Shared/RAdCor/saf_ray/fit') # Rayleigh SAF
+    psffit_dir = '{}/{}'.format(ac.config['directory']['data'], 'Shared/RAdCor/psf/fit/')    # Aerosol Point Spread Function
+    saffit_dir = '{}/{}'.format(ac.config['directory']['data'], 'Shared/RAdCor/saf/fit/')    # Aerosol Spherical albedo
+    raypsf_dir = '{}/{}'.format(ac.config['directory']['data'], 'Shared/RAdCor/psf_ray/fit') # Rayleigh PSF
+    raysaf_dir = '{}/{}'.format(ac.config['directory']['data'], 'Shared/RAdCor/saf_ray/fit') # Rayleigh SAF
 
     ## sensor aliases to APSFS outputs
     aliases = {'PlanetScope_SD8': 'SD_00', 'PlanetScope_SD5': 'SD_00',

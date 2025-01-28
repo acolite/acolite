@@ -76,7 +76,7 @@ path = os.path.dirname(code_path)
 ## find config file
 search_config = True
 while search_config:
-    cfile = os.path.join(path, 'config','config.txt')
+    cfile = os.path.join(path, 'config','config.toml')
     if os.path.exists(cfile):
         search_config = False
     else:
@@ -86,7 +86,7 @@ while search_config:
         sys.exit()
 
 ## read config
-config = shared.import_config(cfile)
+config = shared.import_toml(cfile)
 config['code_path'] = code_path
 config['path'] = path
 
@@ -117,43 +117,42 @@ else:
             version = 'Generic GitHub Clone p{}'.format(gd['FETCH_HEAD'])
 
 ## replace $ACDIR in config by ac.path
-for t in config:
-    if '$ACDIR' == config[t][0:6]:
-        # os.path.join did not give the intended result on Windows
-        config[t] = path + '/' + config[t].replace('$ACDIR', '')
-        config[t] = config[t].replace('/', os.sep)
-        ## make acolite dirs if they do not exist
-        if not (os.path.exists(config[t])):
-            os.makedirs(config[t])
+for table in ('parameters', 'directory', 'TACT', 'lut', 'credentials'):
+    for t in config[table]:
+        if isinstance(t, str) and config[table][t][0:6] == '$ACDIR':
+            # os.path.join did not give the intended result on Windows
+            config[table][t] = path + '/' + config[table][t].replace('$ACDIR', '')
+            config[table][t] = config[table][t].replace('/', os.sep)
+            ## make acolite dirs if they do not exist
+            if not (os.path.exists(config[table][t])):
+                os.makedirs(config[table][t])
 ## end replace $ACDIR
 
 ## add credentials
-credentials = shared.import_config(config['credentials_file'])
-for cr in credentials:
-    if cr not in config: config[cr] = credentials[cr]
-del credentials
+credentials = shared.import_toml(config['credentials']['file'])
+for table in ('EarthData', 'EarthExplorer', 'CDSE'):
+    for cr in ('u', 'p'):
+        if credentials[table][cr] > config['credentials'][table][cr]:
+            config['credentials'][table][cr] = credentials[table][cr]
+del credentials  # TODO: delete?
 ## end add credentials
 
 ## run through config data
-for t in config:
-    ## set EARTHDATA credentials
-    if t in ['EARTHDATA_u', 'EARTHDATA_p']:
-        if (t not in os.environ) & (len(config[t]) > 0): os.environ[t] = config[t]
-        continue
-    ## split lists (currently only sensors)
-    if ',' in config[t]:
-        config[t] = config[t].split(',')
-        continue
-
-    if (os.path.exists(config[t])):
-        config[t] = os.path.abspath(config[t])
+for cr in ('u', 'p'):  # set EARTHDATA credentials
+    t = config['credentials']['EarthData'][cr]
+    if t and (f'EARTHDATA_{cr}' not in os.environ):
+        os.environ[f'EARTHDATA_{cr}'] = t
+for table in ('parameters', 'directory', 'TACT', 'lut', 'credentials'):
+    for t in config[table]:
+        if os.path.exists(config[table][t]):
+            config[table][t] = os.path.abspath(config[table][t])
 
 if 'verbosity' not in config: config['verbosity'] = 5
 
 ## read parameter scaling and settings
 param = {'scaling':acolite.parameter_scaling(), 'discretisation': acolite.parameter_discretisation()}
 import json
-with open(config['parameter_cf_attributes'], 'r', encoding='utf-8') as f:
+with open(config['parameters']['cf_attributes'], 'r', encoding='utf-8') as f:
     param['attributes'] = json.load(f)
 
 settings = {}

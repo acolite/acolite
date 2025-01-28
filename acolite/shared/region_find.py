@@ -8,7 +8,7 @@
 def region_find(region, maxlev = 3, ext='geojson'):
     import glob
     import acolite as ac
-    region_dir = ac.config['data_dir'] + '/Regions'
+    region_dir = ac.config['directory']['data'] + '/Regions'
 
     lev = 0
     gf = []

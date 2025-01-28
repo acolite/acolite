@@ -9,7 +9,7 @@ def p3qaa_coef():
     p3qaa = {}
 
     for par in pars:
-        cfg_file = ac.config['data_dir']+'/Shared/algorithms/P3QAA/{}.csv'.format(par)
+        cfg_file = ac.config['directory']['data'] + '/Shared/algorithms/P3QAA/{}.csv'.format(par)
         with open(cfg_file, 'r') as f:
             header = None
             for il, line in enumerate(f.readlines()):

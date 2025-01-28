@@ -35,15 +35,15 @@ def parse(sensor, settings=None, merge=True):
                 setu = {k:settings[k] for k in settings}
 
     ## make sure certain settings are a list
-    list_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_list.txt')
+    list_list = ac.acolite.settings.read_list(ac.config['directory']['data'] + '/ACOLITE/settings_list.txt')
     for k in list_list:
         if k not in setu: continue
         if setu[k] is None: continue
         if type(setu[k]) is not list: setu[k] = [setu[k]]
 
     ## import settings that need to be converted to ints and floats
-    int_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_int.txt')
-    float_list = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/settings_float.txt')
+    int_list = ac.acolite.settings.read_list(ac.config['directory']['data'] + '/ACOLITE/settings_int.txt')
+    float_list = ac.acolite.settings.read_list(ac.config['directory']['data'] + '/ACOLITE/settings_float.txt')
 
     ## convert values to numbers
     for k in setu:

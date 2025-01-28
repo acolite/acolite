@@ -8,7 +8,7 @@ def copernicus_dem_filelist(publicDemURLs = 'https://prism-dem-open.copernicus.e
 
     import os, requests
     import acolite as ac
-    local_dir = ac.config['copernicus_dem_dir']
+    local_dir = ac.config['directory']['copernicus_dem']
 
 
     ret = requests.get(publicDemURLs, headers={"accept":"json"})

@@ -20,7 +20,7 @@ def warp_and_merge(tiles, output = None, limit = None,
         from osgeo.utils import gdal_merge
     else:
         from osgeo_utils import gdal_merge
-    if output is None: output = '{}/'.format(ac.config['scratch_dir'])
+    if output is None: output = '{}/'.format(ac.config['directory']['scratch'])
     if type(tiles) is not list: tiles = [tiles]
 
     ## find tile extent in geographic coordinates

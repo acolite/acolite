@@ -15,7 +15,7 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
         if type(zout) is str: zout = [zout]
 
         config=[
-            "data_files_path {}/data".format(ac.config['libradtran_dir']),
+            "data_files_path {}/data".format(ac.config['directory']['libradtran']),
             'source thermal',
             'wavelength {} {}'.format(wavelength[0], wavelength[1]),
             'albedo {}'.format(albedo),
@@ -30,7 +30,7 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
         ]
 
         ## add reptran if exists
-        repfine = ac.config['libradtran_dir'] + '/data/correlated_k/reptran/reptran_solar_fine.cdf'
+        repfine = ac.config['directory']['libradtran'] + '/data/correlated_k/reptran/reptran_solar_fine.cdf'
         if os.path.exists(repfine): config.insert(2, 'mol_abs_param reptran {}'.format(reptran))
 
         if sur_temperature is not None: config += ['sur_temperature {}'.format(sur_temperature)]

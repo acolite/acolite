@@ -18,7 +18,7 @@ def auth(api_url = None, return_auth = False, netrc_machine = 'earthexplorer'):
         return()
 
     ## get api URL from config
-    if api_url is None: api_url = ac.config['EARTHEXPLORER_api']
+    if api_url is None: api_url = ac.config['EarthExplorer']['api']
 
     ## get access token
     data = {"username": auth[0], "password": auth[1]}

@@ -6,7 +6,7 @@ def libradtran_run(runfile):
     import acolite as ac
     import os
     import subprocess
-    uvspec = '{}/bin/uvspec'.format(ac.config['libradtran_dir'])
+    uvspec = '{}/bin/uvspec'.format(ac.config['directory']['libradtran'])
 
     current_path = os.getcwd()
     binpath = os.path.dirname(uvspec)

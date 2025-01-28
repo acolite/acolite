@@ -4,7 +4,7 @@
 def meris_band_info():
     import acolite as ac
 
-    band_file = '{}/{}/{}'.format(ac.config['data_dir'], 'EN1', 'band_info_meris.txt')
+    band_file = '{}/{}/{}'.format(ac.config['directory']['data'], 'EN1', 'band_info_meris.txt')
     band_data = {}
     with open(band_file, 'r') as f:
         for il, line in enumerate(f.readlines()):

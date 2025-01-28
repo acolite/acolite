@@ -5,7 +5,7 @@
 ## last updates: 2021-05-31 (QV) added remote lut retrieval
 ##               2021-10-24 (QV) added pressures and get_remote as keyword to other functions
 ##               2021-10-25 (QV) test if the wind dimension is != 1 or missing
-##                2023-08-03 (QV) get lut url from ac.config
+##               2023-08-03 (QV) get lut url from ac.config
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
@@ -20,10 +20,10 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
     import time, os
 
     ## use URL from main config
-    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut']['url'])
 
     if lutdw is None:
-        rsrf = ac.config['data_dir']+'/RSR/{}.txt'.format(sensor)
+        rsrf = ac.config['directory']['data_dir'] + '/RSR/{}.txt'.format(sensor)
         rsr, rsr_bands = ac.shared.rsr_read(rsrf)
         bands = [b for b in rsr_bands]
     else:
@@ -32,7 +32,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
 
     revl = {}
     for lut in base_luts:
-        lutdir = '{}/{}-Reverse/{}'.format(ac.config['lut_dir'], '-'.join(lut.split('-')[0:3]), sensor)
+        lutdir = '{}/{}-Reverse/{}'.format(ac.config['lut']['directory'], '-'.join(lut.split('-')[0:3]), sensor)
         if not os.path.exists(lutdir): os.makedirs(lutdir)
 
         rgi = {}

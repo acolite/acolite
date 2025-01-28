@@ -15,7 +15,7 @@ def hgt_find(limit, required=False, hgt_dir=None, hgt_url = None):
     ## identify source
     source = os.path.split(hgt_dir)[-1]
     tiles = []
-    tilefile = '{}/{}'.format(ac.config['hgt_dir'], '{}_tilelist.txt'.format(source))
+    tilefile = '{}/{}'.format(ac.config['directory']['hgt'], '{}_tilelist.txt'.format(source))
     with open(tilefile, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             tiles.append(line.strip())

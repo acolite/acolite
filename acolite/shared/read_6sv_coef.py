@@ -10,7 +10,7 @@ def read_6sv_coef(model):
     import numpy as np
     import os
 
-    model_dir = '{}/Shared/6SV/'.format(ac.config['data_dir'])
+    model_dir = '{}/Shared/6SV/'.format(ac.config['directory']['data'])
     models = [os.path.splitext(m)[0] for m in os.listdir(model_dir)]
 
     if model.upper() in ['1', 'C', 'MOD1', 'continental', 'continental_coef_6sv']:
@@ -29,7 +29,7 @@ def read_6sv_coef(model):
         print('Model {} not recognised.'.format(model))
         return
 
-    cfile = '{}/Shared/6SV/{}.csv'.format(ac.config['data_dir'], model_name)
+    cfile = '{}/Shared/6SV/{}.csv'.format(ac.config['directory']['data'], model_name)
     if os.path.exists(cfile):
         cheader = np.loadtxt(cfile, delimiter=',', max_rows=1, dtype=str)
         cheader = np.asarray([c.strip('"') for c in cheader])

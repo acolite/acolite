@@ -33,7 +33,7 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
         if sensoru in ['PACE', 'OCI', 'PACE_OCI']:
 
             ## read collection ids
-            with open('{}/API/pace_oci_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
+            with open('{}/API/pace_oci_collection_id.json'.format(ac.config['directory']['data']), 'r', encoding = 'utf-8') as f:
                 pace_oci_collection_id = json.load(f)
 
             api = 'json'

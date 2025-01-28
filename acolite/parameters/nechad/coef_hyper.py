@@ -14,11 +14,11 @@ def coef_hyper(par, year = None):
 
     if par.upper() in ['S', 'SPM', 'TSM']:
         if year is None: year = 2010
-        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//SPM_N{}_Published.txt'.format(year)
+        file = ac.config['directory']['data'] + '/Shared/algorithms/Nechad//SPM_N{}_Published.txt'.format(year)
 
     if par.upper() in ['T', 'TUR', 'TURBIDITY']:
         if year is None: year = 2009
-        file = ac.config['data_dir']+'/Shared/algorithms/Nechad//Turbidity_N{}_Published.txt'.format(year)
+        file = ac.config['directory']['data'] + '/Shared/algorithms/Nechad//Turbidity_N{}_Published.txt'.format(year)
 
     keys = ['wave','A','B','Rsq','C']
     data = {k:[] for k in keys}

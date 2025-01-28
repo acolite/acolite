@@ -10,7 +10,7 @@ def similarity_read(file=None):
     import acolite as ac
     import numpy as np
 
-    if file is None: file = '{}/Shared/REMSEM/similarityspectrumtable.txt'.format(ac.config['data_dir'])
+    if file is None: file = '{}/Shared/REMSEM/similarityspectrumtable.txt'.format(ac.config['directory']['data'])
 
     ss_data = {'wave':np.ndarray(0), 'ave':np.ndarray(0), 'std':np.ndarray(0), 'cv':np.ndarray(0)}
 

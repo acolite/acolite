@@ -14,7 +14,7 @@ def hgt_lonlat(lon1, lat1, nearest=True, hgt_dir=None, source = 'srtmgl3'):
     from scipy import interpolate
     import numpy as np
 
-    if hgt_dir is None: hgt_dir = ac.config['hgt_dir']
+    if hgt_dir is None: hgt_dir = ac.config['directory']['hgt']
 
     if source == 'srtmgl3':
         url_base = 'https://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL3.003/2000.02.11/{}.SRTMGL3.hgt.zip'

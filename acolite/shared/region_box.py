@@ -21,7 +21,7 @@ def region_box(site, site_lon, site_lat, box_size = 3, return_limit = False,
     if return_limit:
         return(limit)
     else:
-        region_dir = ac.config['data_dir']+'/Regions'
+        region_dir = ac.config['directory']['data']+'/Regions'
         if sub_dir is not None: region_dir =  '{}/{}'.format(region_dir,sub_dir)
         if not os.path.exists(region_dir): os.makedirs(region_dir)
 

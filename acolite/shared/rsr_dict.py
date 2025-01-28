@@ -15,10 +15,11 @@ def rsr_dict(sensor = None, rsrd = None, wave_range = [0.25,2.55], wave_step = 0
     ## find rsr files
     if rsrd is None:
         if sensor is None:
-            sens = glob.glob(ac.config['data_dir']+'/RSR/*.txt')
+            sens = glob.glob(ac.config['directory']['data' ] +'/RSR/*.txt')
         else:
-            sens = glob.glob(ac.config['data_dir']+'/RSR/{}.txt'.format(sensor))
-            if len(sens) == 0: print('Could not find {} RSR file at {}'.format(sensor, ac.config['data_dir']+'/RSR/'))
+            sens = glob.glob(ac.config['directory']['data'] + '/RSR/{}.txt'.format(sensor))
+            if len(sens) == 0:
+                print('Could not find {} RSR file at {}'.format(sensor, ac.config['directory']['data'] + '/RSR/'))
 
         rsrd = {}
         for rsrf in sens:

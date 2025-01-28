@@ -13,7 +13,8 @@ def parameter_scaling(file = None):
     import numpy as np
     param = {}
     header = None
-    if file is None: file = ac.config['parameter_labels']
+    if file is None:
+        file = ac.config['parameters']['labels']
     with open(file, 'r', encoding="utf-8") as f:
         for line in f.readlines():
             line = line.strip()

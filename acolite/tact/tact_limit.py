@@ -44,14 +44,14 @@ def tact_limit(isotime, limit=None,
     rsr_data = {}
     for sen in ac.config['thermal_sensors']:
         if sen in ['L5_TM', 'L7_ETM']:
-            rsr_file = "{}/RSR/{}_B6.txt".format(ac.config['data_dir'], sen)
+            rsr_file = "{}/RSR/{}_B6.txt".format(ac.config['directory']['data'], sen)
         else:
-            rsr_file = "{}/RSR/{}.txt".format(ac.config['data_dir'], sen)
+            rsr_file = "{}/RSR/{}.txt".format(ac.config['directory']['data'], sen)
         r_, b_ = ac.shared.rsr_read(rsr_file)
         rsr_data[sen]={'rsr':r_, 'bands':b_}
 
     ## directory to store retrieved profiles and simulation results
-    obase = os.path.abspath(ac.config['grid_dir']) + '/{}/'.format(source)
+    obase = os.path.abspath(ac.config['TACT']['grid']) + '/{}/'.format(source)
     if source == 'era5':
         cells, to_run = ac.tact.tact_profiles_era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source == 'gdas1':
@@ -64,7 +64,7 @@ def tact_limit(isotime, limit=None,
     ## space/time cells
     lat_cells, lon_cells, time_cells = cells
 
-    if verbosity > 1: print('Running simulations for TACT using libRadtran at {}'.format(ac.config['libradtran_dir']))
+    if verbosity > 1: print('Running simulations for TACT using libRadtran at {}'.format(ac.config['directory']['libradtran']))
     ## run stuff in multiprocessing
     with multiprocessing.Pool(processes=processes) as pool:
         results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran, wave_range=wave_range,

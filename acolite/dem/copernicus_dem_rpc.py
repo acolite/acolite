@@ -15,7 +15,7 @@ def copernicus_dem_rpc(dct_limit, output=None):
     else:
         from osgeo_utils import gdal_merge
 
-    if output == None: output = '{}'.format(ac.config['scratch_dir'])
+    if output == None: output = '{}'.format(ac.config['directory']['scratch'])
     pos = dct_limit['p']((dct_limit['xrange'][0],dct_limit['xrange'][0],\
                           dct_limit['xrange'][1],dct_limit['xrange'][1]),\
                          (dct_limit['yrange'][0],dct_limit['yrange'][1],\

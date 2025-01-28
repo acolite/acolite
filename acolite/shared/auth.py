@@ -28,10 +28,14 @@ def auth(machine):
             auth = (os.environ['{}_u'.format(machine.upper())], os.environ['{}_p'.format(machine.upper())])
 
     ## get auth from config
+    machine_to_table = {
+        "earhtdata": "EarthData",
+        "earthexplorer": "EarthExplorer",
+        "cdse": "CDSE",
+    }
     if auth is None:
-        if (ac.config['{}_u'.format(machine.upper())] != '') & \
-           (ac.config['{}_p'.format(machine.upper())] != ''):
-            auth = (ac.config['{}_u'.format(machine.upper())], ac.config['{}_p'.format(machine.upper())])
+        if ac.config[machine_to_table[machine]]["u"] and ac.config[machine_to_table[machine]]["p"]:
+            auth = (ac.config[machine_to_table[machine]].values())
 
     if auth is None:
         print('Could not determine {} credentials. Please add them to your .netrc file or ACOLITE config file.'.format(machine))

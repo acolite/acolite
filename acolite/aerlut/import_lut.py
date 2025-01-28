@@ -22,7 +22,7 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
     import acolite as ac
 
     ## use URL from main config
-    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
+    if remote_base is None: remote_base = '{}'.format(ac.config['lut']['url'])
 
     lutnc=lutdir+'/'+lutid+'.nc'
     lut = None

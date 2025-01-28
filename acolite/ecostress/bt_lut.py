@@ -13,7 +13,7 @@ def bt_lut(bt_lut_file=None):
 
     ## from https://git.earthdata.nasa.gov/projects/LPDUR/repos/ecostress_swath2grid (accessed 2022-08-11)
     if bt_lut_file is None:
-        bt_lut_file = ac.config['data_dir'] + '/ECOSTRESS/EcostressBrightnessTemperatureV01.h5'
+        bt_lut_file = ac.config['directory']['data'] + '/ECOSTRESS/EcostressBrightnessTemperatureV01.h5'
         if not os.path.exists(bt_lut_file):
             url = 'https://git.earthdata.nasa.gov/projects/LPDUR/repos/ecostress_swath2grid/raw/EcostressBrightnessTemperatureV01.h5'
             ac.shared.download_file(url, bt_lut_file)

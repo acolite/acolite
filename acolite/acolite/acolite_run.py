@@ -107,8 +107,9 @@ def acolite_run(settings, inputfile=None, output=None):
 
     ## earthdata credentials from settings file
     for k in ['EARTHDATA_u', 'EARTHDATA_p']:
-        kv = ac.settings['run'][k] if k in ac.settings['run'] else ac.config[k]
-        if len(kv) == 0: continue
+        kv = ac.settings['run'][k] if k in ac.settings['run'] else ac.config['credentials']['EarthData'][k[-1]]
+        if len(kv) == 0:
+            continue
         os.environ[k] = kv
 
     ## check if we have anything to do

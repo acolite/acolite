@@ -21,10 +21,10 @@ def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosit
     import datetime
 
     if obase is None:
-        os.path.abspath(ac.config['grid_dir']) + '/gdas1/'
+        os.path.abspath(ac.config['TACT']['grid']) + '/gdas1/'
 
     if url_base is None:
-        url_base = '{}'.format(ac.config['tact_thredds_url_gdas1'])
+        url_base = '{}'.format(ac.config['TACT']['thredds']['gdas1'])
         print('Using base URL {}'.format(url_base))
 
     ## parse date

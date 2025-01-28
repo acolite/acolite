@@ -15,12 +15,12 @@ def ged_find(limit, required = False,
     import acolite as ac
 
     if ged_dir is None:
-        ged_dir = ac.config['ged_dir'] + '/AG100.003'
+        ged_dir = ac.config['directory']['ged'] + '/AG100.003'
 
     if not os.path.exists(ged_dir): os.makedirs(ged_dir)
 
     tiles = []
-    tilefile = '{}/{}'.format(ac.config['ged_dir'], 'AG100.003_tilelist.txt')
+    tilefile = '{}/{}'.format(ac.config['directory']['ged'], 'AG100.003_tilelist.txt')
     with open(tilefile, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             tiles.append(line.strip())

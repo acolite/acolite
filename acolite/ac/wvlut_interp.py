@@ -23,14 +23,15 @@ def wvlut_interp(ths, thv, uwv=1.5, sensor=None, config='201710C',
     import numpy as np
 
     ## use URL from main config
-    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
+    if remote_base is None:
+        remote_base = '{}'.format(ac.config['lut']['url'])
 
     ## input geometry dimensions
     dim = np.atleast_1d(ths).shape
     dim2 = np.atleast_1d(uwv).shape
     onedim = ((len(dim) == 1) & (dim[0] == 1)) & ((len(dim2) == 1) & (dim2[0] == 1))
 
-    lut_path = '{}/LUT/WV'.format(ac.config['data_dir'])
+    lut_path = '{}/LUT/WV'.format(ac.config['directory']['data'])
     lut_id = 'WV_{}'.format(config)
     lutnc = '{}/{}.nc'.format(lut_path,lut_id)
 

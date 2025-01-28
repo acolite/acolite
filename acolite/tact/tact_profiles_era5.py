@@ -24,10 +24,10 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
     import acolite as ac
 
     if obase is None:
-        obase = os.path.abspath(ac.config['grid_dir']) + '/era5/'
+        obase = os.path.abspath(ac.config['TACT']['grid']) + '/era5/'
 
     if url_base is None:
-        url_base = '{}'.format(ac.config['tact_thredds_url_era5'])
+        url_base = '{}'.format(ac.config['TACT']['thredds']['era5'])
         print('Using base URL {}'.format(url_base))
 
     ## parse date

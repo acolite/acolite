@@ -9,7 +9,7 @@ def interband_calibration(file=None):
     import acolite as ac
 
     if file is None:
-        file = '{}/CHRIS/INTERBAND_CALIBRATION_COEFFS_CHRIS_PROBA.csv'.format(ac.config['data_dir'])
+        file = '{}/CHRIS/INTERBAND_CALIBRATION_COEFFS_CHRIS_PROBA.csv'.format(ac.config['directory']['data'])
 
     ## read data
     header = None

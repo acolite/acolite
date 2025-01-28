@@ -8,7 +8,7 @@
 def coef_gons(config='gons'):
     import os,sys
     import acolite as ac
-    nfile = ac.config['data_dir']+'/Shared/algorithms/chl_re/{}.txt'.format(config)
+    nfile = ac.config['directory']['data'] + '/Shared/algorithms/chl_re/{}.txt'.format(config)
 
     header = ['algorithm','red_band','rededge_band','nir_band',
               'astar_chl','chl_coef','validity','reference']

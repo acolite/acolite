@@ -9,7 +9,7 @@
 def hgt_download(tile, url_base, hgt_dir = None, override = False):
     import zipfile, os
     import acolite as ac
-    if hgt_dir is None: hgt_dir = ac.config['hgt_dir']
+    if hgt_dir is None: hgt_dir = ac.config['directory']['hgt']
     if not os.path.exists(hgt_dir): os.makedirs(hgt_dir)
 
     f_url = url_base.format(tile)

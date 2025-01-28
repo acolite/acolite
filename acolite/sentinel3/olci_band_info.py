@@ -3,7 +3,7 @@
 def olci_band_info():
     import acolite as ac
 
-    band_file = '{}/{}/{}'.format(ac.config['data_dir'],'S3', 'band_info_olci.txt')
+    band_file = '{}/{}/{}'.format(ac.config['directory']['data'], 'S3', 'band_info_olci.txt')
     band_data = {}
     with open(band_file, 'r') as f:
         for il, line in enumerate(f.readlines()):

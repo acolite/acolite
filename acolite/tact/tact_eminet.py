@@ -47,7 +47,7 @@ def tact_eminet(gem, model_path = None,
         model_file = model_base.format(satsen, netname)
         meta_file = model_file[0:-3]+'_meta.json'
         ## local file
-        model_dir = ac.config['data_dir'] + '/EMINET'
+        model_dir = ac.config['directory']['data'] + '/EMINET'
         model_path = '{}/{}/{}'.format(model_dir, model_version, model_file)
         meta_path = '{}/{}/{}'.format(model_dir, model_version, meta_file)
         ## remote file
@@ -72,7 +72,7 @@ def tact_eminet(gem, model_path = None,
 
     if water_fill:
         ## load water emissivity
-        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', 'water')
+        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['directory']['data'], 'TACT', 'water')
         em = json.load(open(emissivity_file, 'r'))
 
     ## load RSR

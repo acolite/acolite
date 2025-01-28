@@ -20,7 +20,7 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
     import acolite as ac
 
     ## get api URL from config
-    if api_url is None: api_url = ac.config['EARTHEXPLORER_api']
+    if api_url is None: api_url = ac.config['EarthExplorer']['api']
 
     ## get access token for query
     access_token = ac.api.earthexplorer.auth(api_url=api_url)
