@@ -9,7 +9,7 @@
 ##                2022-12-10 (QV) changed bias to 0.0
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
-##                2025-01-28 (QV) switch to LinearNDInterpolator
+##                2025-01-28 (QV) switch to LinearNDInterpolator, added meshgrid
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
@@ -280,17 +280,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
                 x = np.arange(x0, x0+ns, 1)
                 y = np.arange(y0, y0+nl, 1)
+                X, Y = np.meshgrid(x, y)
 
                 print('Computing lon')
-                lon = zlon(x, y)
-                gemo.write('lon', lon)
-                lon = None
+                gemo.write('lon', zlon(X, Y))
 
                 print('Computing lat')
-                lat = zlat(x, y)
-                gemo.write('lat', lat)
-                lat = None
-
+                gemo.write('lat', zlat(X, Y))
+                del X, Y
+                
             ## remove reprojected file
             if (clear_scratch) & (rpr_file is not None):
                 if os.path.exists(rpr_file):
