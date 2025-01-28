@@ -7,7 +7,6 @@
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
-    from scipy.interpolate import interp2d
 
     import datetime, dateutil.parser, os
     import acolite as ac

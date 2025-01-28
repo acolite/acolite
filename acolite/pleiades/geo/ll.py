@@ -2,7 +2,7 @@
 ## returns lon and lat arrays for Pleiades image (crop supported)
 ## written by Quinten Vanhellemont, RBINS for the PONDER project
 ## 2017-01-17
-## modifications:
+## modifications: 2025-01-28 (QV) add meshgrid for LinearNDInterpolator
 ##
 
 def ll(metadata, sub=None):
@@ -23,7 +23,9 @@ def ll(metadata, sub=None):
     x = np.arange(x0, x0+ns, 1)
     y = np.arange(y0, y0+nl, 1)
 
-    lat = zlat(x, y)
-    lon = zlon(x, y)
+    X, Y = np.meshgrid(x, y)
+    lat = zlat(X, Y)
+    lon = zlon(X, Y)
+    del x, y, X, Y
 
     return lon, lat

@@ -8,6 +8,7 @@
 ##                2023-02-21 (QV) new handling for unprojected and projected data
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-01-28 (QV) fix when pan meta is missing
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True, percentiles = (0,1,5,10,25,50,75,90,95,99,100),
@@ -69,7 +70,7 @@ def l1_convert(inputfile, output = None, settings = {},
         if output is None: output = setu['output']
         limit = setu['limit']
         poly = setu['polygon']
-        skip_pan = setu['pleiades_skip_pan']
+
         vname = setu['region_name']
 
         ## set resolution and band names
@@ -337,7 +338,7 @@ def l1_convert(inputfile, output = None, settings = {},
                                     pass
                         else:
                             if pmeta is None: continue
-                            if skip_pan: continue
+                            if setu['pleiades_skip_pan']: continue
                             pan = True
                             if sub is None:
                                 pandims = int(pmeta['NROWS']), int(pmeta['NCOLS'])
@@ -510,6 +511,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 bd = None
                 if b in ['Pan', 'PAN']:
                     pan = True
+                    if pmeta is None: continue
                     if setu['pleiades_skip_pan']: continue
                     tfiles = [f for f in pifiles]
                     bd = {k:pmeta['BAND_INFO'][btags[b]][k] for k in pmeta['BAND_INFO'][btags[b]]}
@@ -601,7 +603,7 @@ def l1_convert(inputfile, output = None, settings = {},
                         gemop.gatts = {k: gatts[k] for k in gatts}
                         gemop.nc_projection = nc_projection_pan
                         gemop.write(ds, data, ds_att = ds_att)
-                        
+
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
