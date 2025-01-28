@@ -9,10 +9,11 @@
 ##                2022-12-10 (QV) changed bias to 0.0
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-01-28 (QV) switch to LinearNDInterpolator
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import numpy as np
-    from scipy.interpolate import interp2d
+    import scipy.interpolate
 
     import datetime, dateutil.parser, os
     import acolite as ac
@@ -264,8 +265,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 plat = [tllat, trlat, brlat, bllat]
 
                 ## set up interpolator
-                zlon = interp2d(pcol, prow, plon)
-                zlat = interp2d(pcol, prow, plat)
+                zlon = scipy.interpolate.LinearNDInterpolator((pcol, prow), plon)
+                zlat = scipy.interpolate.LinearNDInterpolator((pcol, prow), plat)
 
                 ## pixel coordinate limits
                 if sensor in ['GF1_WFV1', 'GF1_WFV2', 'GF1_WFV3', 'GF1_WFV4','GF1D_PMS', 'GF6_PMS']:

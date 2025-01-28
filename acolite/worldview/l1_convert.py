@@ -7,6 +7,7 @@
 ##                2022-11-14 (QV) added subsetting of projected data
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-01-28 (QV) switch to LinearNDInterpolator
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -295,8 +296,8 @@ def l1_convert(inputfile, output = None,
                         plat.append(meta['BAND_INFO'][band_tag][k])
 
                 ## set up interpolator
-                zlon = scipy.interpolate.interp2d(pcol, prow, plon, kind='linear')
-                zlat = scipy.interpolate.interp2d(pcol, prow, plat, kind='linear')
+                zlon = scipy.interpolate.LinearNDInterpolator((pcol, prow), plon)
+                zlat = scipy.interpolate.LinearNDInterpolator((pcol, prow), plat)
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
                 gemo.write('lon', zlon(x, y))
