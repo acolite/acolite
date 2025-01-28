@@ -31,6 +31,8 @@
 ##                2024-11-20 (QV) added "adjacency corrected rhot" rhotc
 ##                2024-12-02 (QV) fixed crop for optimised results
 ##                2024-12-16 (QV) removed radcor/tsdsf_kernel_rescale and added renormalise to radcor/tsdsf_kernel_complete_method
+##                2025-01-21 (QV) added radcor_write_rhotc_separate_file option
+##                2025-01-24 (QV) added output_ed option
 
 def radcor(ncf, settings = None):
     import os, json
@@ -292,6 +294,33 @@ def radcor(ncf, settings = None):
                 if setu['radcor_crop_centre']: ## crop to centre area
                     rhotc = rhotc[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
                 gemo.write(bands[b]['rhot_ds'].replace('rhot', 'rhotc'), rhotc, ds_att = att)
+                ## write also as rhot to L1RC file
+                if setu['radcor_write_rhotc_separate_file']:
+                    gemo_l1rc.write(bands[b]['rhot_ds'], rhotc, ds_att = att)
+
+            ## write Ed
+            if setu['output_ed']:
+                ## baseline Ed with no spherical albedo effect
+                if 'se_distance' not in gemo.gatts:
+                    clon = np.nanmedian(gem.data('lon'))
+                    clat = np.nanmedian(gem.data('lat'))
+                    spos = ac.shared.sun_position(gemo.gatts['isodate'], clon, clat)
+                    gemo.gatts['se_distance'] = spos['distance'] * 1.0
+                Ed_base = (bands[b]['F0']) * gemo.gatts['se_distance']**2 * cos_sza * bands[b]['tt_gas'] * T_d_tot
+                att['Ed_base'] = Ed_base
+                ## Ed with heterogeneous surface
+                Ed =  Ed_base / (1 - rho_env_sph_est * rho_a_sph)
+                if setu['radcor_crop_centre']: ## crop to centre area
+                    Ed = Ed[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+                gemo.write(bands[b]['rhot_ds'].replace('rhot', 'Ed'), Ed, ds_att = att)
+                ## Ed with homogeneous surface
+                #Ed = Ed_base / (1 - rho_s_homo * rho_a_sph)
+                #if setu['radcor_crop_centre']: ## crop to centre area
+                #    Ed = Ed[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+                #gemo.write(bands[b]['rhot_ds'].replace('rhot', 'Edu'), Ed, ds_att = att)
+                ## Ed with no surface - doesn't need to be written as array, but convenient for SNAP spectrum viewer
+                #Ed[:] = Ed_base
+                #gemo.write(bands[b]['rhot_ds'].replace('rhot', 'Ed0'), Ed, ds_att = att)
 
             ## write rhoe
             if setu['radcor_write_rhoe']:
@@ -322,6 +351,12 @@ def radcor(ncf, settings = None):
     ## Open inputfile
     gem = ac.gem.gem(ncf)
     sensor = gem.gatts['sensor']
+
+    ## check if L1R file is passed
+    if gem.gatts['acolite_file_type'] != 'L1R':
+        print('RAdCor processing not supported for acolite_file_type={}'.format(gem.gatts['acolite_file_type']))
+        gem = None
+        return
 
     ## Get acolite run settings:
     if settings is not None:
@@ -417,6 +452,11 @@ def radcor(ncf, settings = None):
         rsrd = ac.shared.rsr_dict(rsrd = {sensor_lut : {'rsr' : rsr}})
     else:
         rsrd = ac.shared.rsr_dict(sensor = sensor_lut)
+
+    ## get F0 to compute Ed
+    if setu['output_ed']:
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd[sensor]['rsr'])
 
     ## Get scene average geometry
     sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
@@ -522,6 +562,7 @@ def radcor(ncf, settings = None):
             for k in tg_dict:
                 if k not in ['wave']: bands[b][k] = tg_dict[k][b]
             bands[b]['wavelength'] = bands[b]['wave_nm']
+            if setu['output_ed']: bands[b]['F0'] = f0_b[b]
             ## track APSFS simulation band naming
             bint += 1
             ## subset SD8 bands for SD5
@@ -1621,6 +1662,7 @@ def radcor(ncf, settings = None):
     ## Add rhoe to BEAM format auto-grouping
     gemo.gatts['auto_grouping'] = 'rhot:rhorc:rhos:rhow:Rrs:rhoe:rhosu'
     if setu['radcor_write_rhotc']: gemo.gatts['auto_grouping']+=':rhotc'
+    if setu['output_ed']: gemo.gatts['auto_grouping']+=':Ed' # :Edu:Ed0
     gemo.gatts['acolite_file_type'] = 'L2R'
     gemo.gatts['radcor_version'] = '{}'.format(ac.adjacency.radcor.version)
     gemo.nc_projection = gem.nc_projection
@@ -1642,7 +1684,16 @@ def radcor(ncf, settings = None):
         gemo.gatts['ac_band1_idx'] = best_band
         gemo.gatts['ac_band1'] = bands_[best_band]
 
-    #gemo.gatts_update()
+    ## also create separate L1R file for rhotc if radcor_write_rhotc_separate_file
+    if setu['radcor_write_rhotc'] & setu['radcor_write_rhotc_separate_file']:
+        ofile_l1rc = '{}/{}.nc'.format(output, obase.replace('L2R', 'L1RC'))
+        gemo_l1rc = ac.gem.gem(ofile_l1rc, new = True)
+        ## copy gatts
+        gemo_l1rc.gatts = {k: gemo.gatts[k] for k in gemo.gatts}
+        gemo_l1rc.gatts['acolite_file_type'] = 'L1RC'
+        ## copy projection and bands
+        gemo_l1rc.nc_projection = gemo.nc_projection
+        gemo_l1rc.bands = gemo.bands
 
     ## Read and store datasets - add cropping step
     sub = None
@@ -1656,6 +1707,17 @@ def radcor(ncf, settings = None):
         if setu['radcor_crop_centre']: ## crop to centre area
             d_ = d_[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
         gemo.write(ds, d_, ds_att = a_)
+        ## write also to L1RC file
+        if setu['radcor_write_rhotc'] & setu['radcor_write_rhotc_separate_file']:
+            gemo_l1rc.write(ds, d_, ds_att = a_)
+
+    if setu['dem_pressure'] & setu['dem_pressure_write']:
+        if setu['radcor_crop_centre']: ## crop to centre area
+            elevation = elevation[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+        gemo.write('dem', elevation)
+        gemo.write('dem_pressure',ac.ac.pressure_elevation(elevation))
+        elevation = None
+        gemo.gatts['elevation'] = median_elevation
 
     #
     # End Create ACOLITE output file
@@ -1672,6 +1734,9 @@ def radcor(ncf, settings = None):
                 if setu['radcor_crop_centre']:
                     rho_toa = rho_toa[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
                 gemo.write(bands[b]['rhot_ds'], rho_toa, ds_att = att)
+                ## write to L1RC file as well
+                if setu['radcor_write_rhotc'] & setu['radcor_write_rhotc_separate_file']:
+                    gemo_l1rc.write(bands[b]['rhot_ds'], rho_toa, ds_att = att)
                 del rho_toa
                 del att
             continue
@@ -1753,5 +1818,6 @@ def radcor(ncf, settings = None):
     gem, gemo = None, None
     if setu['radcor_development']:
         gempsf, gemconf = None, None
+    gemo_l1rc = None
 
     return(ofile)

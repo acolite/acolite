@@ -28,7 +28,7 @@ def dem_shadow_mask_nc(ncf, return_dem = False, extend = []):
     centre_lat = np.nanmedian(lat)
 
     ## get nc projection
-    nc_projection = ac.shared.nc_read_projection(ncf)
+    nc_projection = ac.shared.nc_projection_read(ncf)
     if (nc_projection is None) & (ac.settings['run']['dem_shadow_mask_extend']):
         if ac.settings['run']['verbosity'] > 2: print('Could not read nc_projection, not extending grid.')
         ac.settings['run']['dem_shadow_mask_extend'] = False

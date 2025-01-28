@@ -10,6 +10,16 @@
     "long_name": "Surface reflectance",
     "units": "1"},
 
+{"parameter": "Ed_*",
+    "standard_name": "solar_irradiance_per_unit_wavelength",
+    "long_name": "Solar irradiance",
+    "units": "mW m-2 nm-1"},
+
+{"parameter": "Ed*_*",
+    "standard_name": "solar_irradiance_per_unit_wavelength",
+    "long_name": "Solar irradiance",
+    "units": "mW m-2 nm-1"},
+
 {"parameter": "Rrs_*",
   "standard_name": "surface_ratio_of_upwelling_radiance_emerging_from_water_to_downwelling_radiative_flux_in_air",
   "long_name": "Remote sensing reflectance",
@@ -89,6 +99,14 @@
     "standard_name": "angle_of_rotation_from_solar_azimuth_to_sensor_azimuth",
     "long_name": "relative azimuth angle",
     "units": "degree"},
+
+{"parameter": "dem",
+    "standard_name": "surface_altitude",
+    "units": "m"},
+
+{"parameter": "dem_pressure",
+    "standard_name": "surface_air_pressure",
+    "units": "hPa"},
 
 {"parameter": "lat",
     "standard_name": "latitude",

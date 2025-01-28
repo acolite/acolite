@@ -22,7 +22,7 @@ from .geolocation_sub import *
 from .nc_read import *
 from .nc_write import *
 from .nc_projection_dct import *
-from .nc_read_projection import *
+from .nc_projection_read import *
 from .nc_extract_point import *
 
 from .read_band import *
@@ -71,10 +71,10 @@ from .sun_position import *
 from .rsr_hyper import *
 
 from .polylakes import *
-from .land_water_mask import *
 
 from .rgb_stretch import *
 from .scale_dist import *
+
 from .calc_tdifs import *
 from .read_6sv_coef import *
 from .read_6sv_ph import *

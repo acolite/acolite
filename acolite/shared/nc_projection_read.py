@@ -1,10 +1,10 @@
-## def nc_read_projection
+## def nc_projection_read
 ## reads projection from netcdf if present
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-12-08
-## modifications:
+## modifications: 2025-01-25 (QV) renamed from nc_read_projection
 
-def nc_read_projection(ncf):
+def nc_projection_read(ncf):
     import acolite as ac
     gatts = ac.shared.nc_gatts(ncf)
     if 'projection_key' not in gatts:

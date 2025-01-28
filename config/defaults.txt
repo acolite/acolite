@@ -40,6 +40,7 @@ output_geolocation=True
 output_xy=False
 output_geometry=True
 output_rhorc=False
+output_ed=False
 
 ## add band names to datasets
 ## not supported for all sensors
@@ -318,6 +319,7 @@ radcor_optimise_plot_range=-0.01,0.06
 ## radcor output options
 radcor_write_rhot=True
 radcor_write_rhotc=False
+radcor_write_rhotc_separate_file=False
 radcor_write_rhoe=True
 radcor_write_rhosu=True
 radcor_development=False
