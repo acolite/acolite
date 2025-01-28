@@ -119,9 +119,9 @@ else:
 ## replace $ACDIR in config by ac.path
 for table in ('parameters', 'directory', 'TACT', 'lut', 'credentials'):
     for t in config[table]:
-        if isinstance(t, str) and config[table][t][0:6] == '$ACDIR':
+        if isinstance(config[table][t], str) and config[table][t][0:6] == '$ACDIR':
             # os.path.join did not give the intended result on Windows
-            config[table][t] = path + '/' + config[table][t].replace('$ACDIR', '')
+            config[table][t] = path + config[table][t].replace('$ACDIR', '')
             config[table][t] = config[table][t].replace('/', os.sep)
             ## make acolite dirs if they do not exist
             if not (os.path.exists(config[table][t])):
@@ -144,7 +144,7 @@ for cr in ('u', 'p'):  # set EARTHDATA credentials
         os.environ[f'EARTHDATA_{cr}'] = t
 for table in ('parameters', 'directory', 'TACT', 'lut', 'credentials'):
     for t in config[table]:
-        if os.path.exists(config[table][t]):
+        if isinstance(config[table][t], str) and os.path.exists(config[table][t]):
             config[table][t] = os.path.abspath(config[table][t])
 
 if 'verbosity' not in config: config['verbosity'] = 5

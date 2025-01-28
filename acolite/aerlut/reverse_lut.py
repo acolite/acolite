@@ -23,7 +23,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
     if remote_base is None: remote_base = '{}'.format(ac.config['lut']['url'])
 
     if lutdw is None:
-        rsrf = ac.config['directory']['data_dir'] + '/RSR/{}.txt'.format(sensor)
+        rsrf = ac.config['directory']['data'] + '/RSR/{}.txt'.format(sensor)
         rsr, rsr_bands = ac.shared.rsr_read(rsrf)
         bands = [b for b in rsr_bands]
     else:

@@ -3,6 +3,35 @@
 # $ACDIR will be replaced by the absolute path to the acolite directory at run time
 # If you want to move directories to another location, provide the full path here
 
+# attributes not to write in output files
+skip_attributes = [ "EARTHDATA_u", "EARTHDATA_p", "EARTHEXPLORER_u", "EARTHEXPLORER_p", "CDSE_u", "CDSE_p" ]
+
+# list of hyperspectral sensors (do not edit)
+hyper_sensors = [
+    "CHRIS",
+    "PRISMA",
+    "ISS_HICO",
+    "EO1_HYPERION",
+    "DESIS_HSI",
+    "ENMAP_HSI",
+    "ISS_EMIT",
+    "HYPSO1",
+    "PACE_OCI",
+]
+
+# list of thermal sensors (do not edit)
+thermal_sensors = [
+    "L5_TM",
+    "L7_ETM",
+    "L8_TIRS",
+    "L9_TIRS",
+    "ISS_ECOSTRESS",
+    "TERRA_ASTER_TIR",
+    "JPSS-1_VIIRS_TIR",
+    "JPSS-2_VIIRS_TIR",
+    "SUOMI-NPP_VIIRS_TIR",
+]
+
 [parameters]  # ACOLITE settings
 defaults = '$ACDIR/config/defaults.txt'
 labels = '$ACDIR/config/parameter_labels.txt'
@@ -41,7 +70,7 @@ url = 'https://raw.githubusercontent.com/acolite/acolite_luts/main'
 
 
 [credentials]
-file = '$ACDIR/config/credentials.txt'  # location of credentials file
+file = '$ACDIR/config/credentials.toml'  # location of credentials file
 # credentials are now by default stored in config/credentials.txt
 
 [credentials.EarthData]  # EarthData credentials
@@ -78,33 +107,3 @@ ers = "https://ers.cr.usgs.gov"
 [CDSE]
 odata = "https://catalogue.dataspace.copernicus.eu/odata/v1"
 auth = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
-
-
-# attributes not to write in output files
-skip_attributes = [ "EARTHDATA_u", "EARTHDATA_p", "EARTHEXPLORER_u", "EARTHEXPLORER_p", "CDSE_u", "CDSE_p" ]
-
-# list of hyperspectral sensors (do not edit)
-hyper_sensors = [
-    "CHRIS",
-    "PRISMA",
-    "ISS_HICO",
-    "EO1_HYPERION",
-    "DESIS_HSI",
-    "ENMAP_HSI",
-    "ISS_EMIT",
-    "HYPSO1",
-    "PACE_OCI",
-]
-
-# list of thermal sensors (do not edit)
-thermal_sensors = [
-    "L5_TM",
-    "L7_ETM",
-    "L8_TIRS",
-    "L9_TIRS",
-    "ISS_ECOSTRESS",
-    "TERRA_ASTER_TIR",
-    "JPSS-1_VIIRS_TIR",
-    "JPSS-2_VIIRS_TIR",
-    "SUOMI-NPP_VIIRS_TIR",
-]
