@@ -2,11 +2,11 @@
 ## initialised interpolators for geolocation of Pleiades image
 ## written by Quinten Vanhellemont, RBINS for the PONDER project
 ## 2017-01-17
-## modifications:
+## modifications: 2025-01-28 (QV) switch to LinearNDInterpolator
 ##
 
 def init(metadata):
-    from scipy.interpolate import interp2d
+    import scipy.interpolate
 
     ## Upper Left P1
     p1_lon=metadata['VERTICES']['UL']['LON']
@@ -58,12 +58,12 @@ def init(metadata):
         plon = [p1_lon, p2_lon, p3_lon, p4_lon, pc_lon]
         plat = [p1_lat, p2_lat, p3_lat, p4_lat, pc_lat]
 
-    ## set up interpolator
-    zlon = interp2d(pcol, prow, plon)
-    zlat = interp2d(pcol, prow, plat)
+    ## set up interpolator - make col/row tuple
+    zlon = scipy.interpolate.LinearNDInterpolator((pcol, prow), plon)
+    zlat = scipy.interpolate.LinearNDInterpolator((pcol, prow), plat)
 
     ## set up interpolator for lat/lon -> row/col
-    zcol = interp2d(plon, plat, pcol)
-    zrow = interp2d(plon, plat, prow)
+    zcol = scipy.interpolate.LinearNDInterpolator((plon, plat), pcol)
+    zrow = scipy.interpolate.LinearNDInterpolator((plon, plat), prow)
 
     return (zlon, zlat), (zcol, zrow)

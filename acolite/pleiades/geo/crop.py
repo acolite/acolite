@@ -2,7 +2,7 @@
 ## finds crop position (x0, y0, ns, nl) for Pleiades image
 ## written by Quinten Vanhellemont, RBINS for the PONDER project
 ## 2017-01-17
-## modifications:
+## modifications: 2025-01-28 (QV) removed 0 indexig after switch to LinearNDInterpolator
 ##
 
 def crop(metadata, limit):
@@ -17,11 +17,11 @@ def crop(metadata, limit):
     north = limit[2]
     west = limit[3]
 
-    se_x = np.floor(zcol(east,south)[0])
-    se_y = np.ceil(zrow(east,south)[0])
+    se_x = np.floor(zcol(east,south))
+    se_y = np.ceil(zrow(east,south))
 
-    nw_x = np.ceil(zcol(west,north)[0])
-    nw_y = np.floor(zrow(west,north)[0])
+    nw_x = np.ceil(zcol(west,north))
+    nw_y = np.floor(zrow(west,north))
 
     ns = nw_x - se_x
     nl = se_y - nw_y
