@@ -8,6 +8,7 @@
 ##                2018-03-12 (QV) added file closing
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_interp_ozone
 ##                2022-11-17 (QV) added 2D interpolation
+##                2025-01-28 (QV) switched to LinearNDInterpolator
 
 def interp_ozone(file, lon, lat, dataset='ozone', kind='linear'):
     import acolite as ac
@@ -47,7 +48,7 @@ def interp_ozone(file, lon, lat, dataset='ozone', kind='linear'):
             yi,yret = min(enumerate(lats), key=lambda x: abs(x[1]-float(lat)))
             uoz = data[yi,xi]/1000.
         else:
-            interp = interpolate.interp2d(lons, lats, data, kind=kind)
+            interp = interpolate.LinearNDInterpolator(lons, lats, data)
             uoz = (interp(lon, lat))[0]
     ## 2D interp
     else:

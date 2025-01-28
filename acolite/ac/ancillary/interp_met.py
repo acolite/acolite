@@ -10,6 +10,7 @@
 ##                2018-03-12 (QV) added file closing to enable file deletion for Windows
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_interp_met
 ##                2022-11-17 (QV) added 2D interpolation
+##                2025-01-28 (QV) switched to LinearNDInterpolator
 
 def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_hum','p_water'], kind='linear'):
     import acolite as ac
@@ -38,7 +39,7 @@ def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_h
             except:
                 print("Error extracting file {}, probably incomplete download".format(file_zipped))
                 continue
-                
+
         f = SD(file, SDC.READ)
         datasets_dic = f.datasets()
         meta = f.attributes()
@@ -70,7 +71,7 @@ def interp_met(files, lon, lat, time, datasets=['z_wind','m_wind','press','rel_h
                     yi,yret = min(enumerate(lats), key=lambda x: abs(x[1]-float(lat)))
                     interp_data[dataset].append(data[yi,xi])
                 else:
-                    interp = interpolate.interp2d(lons, lats, data, kind=kind)
+                    interp = interpolate.LinearNDInterpolator(lons, lats, data)
                     idata = interp(lon, lat)
                     interp_data[dataset].append(idata[0])
                 ## add QC?
