@@ -301,6 +301,7 @@ radcor_force_aot=None
 radcor_crop_centre=False
 radcor_edge_extend=False
 radcor_edge_extend_method=average
+radcor_max_vza=15
 radcor_aot_estimate=tsdsf
 radcor_aot_estimate_centre_extent=None
 radcor_aot_estimate_centre_mask=False

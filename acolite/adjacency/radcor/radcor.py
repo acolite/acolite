@@ -446,6 +446,16 @@ def radcor(ncf, settings = None):
             print('Model radcor_force_model={} not configured'.format(aer_models[0]))
             return
 
+    ## Get scene average geometry
+    sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
+    if vza > setu['radcor_max_vza']:
+        print('The current implementation of RAdCor assumes a circular PSF and is not suited for higher viewing zenith angles.')
+        print('Scene average viewing zenith angle {:.1f} > radcor_max_vza={:.1f}')
+        return
+
+    cos_sza = np.cos(np.radians(sza))
+    cos_vza = np.cos(np.radians(vza))
+
     ## Load RSR dict
     if sensor in ac.config['hyper_sensors']:
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'], step=0.1)
@@ -457,11 +467,6 @@ def radcor(ncf, settings = None):
     if setu['output_ed']:
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd[sensor]['rsr'])
-
-    ## Get scene average geometry
-    sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
-    cos_sza = np.cos(np.radians(sza))
-    cos_vza = np.cos(np.radians(vza))
 
     #
     # End Get scene metadata

@@ -56,6 +56,7 @@ viirs_mask_immixed_maxdif
 output_projection_radius
 output_projection_epsilon
 radcor_kernel_radius
+radcor_max_vza
 radcor_optimise_target_rhos
 radcor_optimise_target_lon
 radcor_optimise_target_lat
