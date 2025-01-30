@@ -4,6 +4,7 @@
 ## 2023-02-06
 ## modifications: 2023-02-14 (QV) return None if failed
 ##                2024-04-08 (QV) added geojson
+##                2025-01-30 (QV) added encoding to output json file
 
 def polygon_from_wkt(wkt, file=None):
     import os, json
@@ -28,7 +29,7 @@ def polygon_from_wkt(wkt, file=None):
             pass
 
     if geom is not None:
-        with open(file, 'w') as f: f.write(geom.ExportToJson())
+        with open(file, 'w', encoding = 'utf-8') as f: f.write(geom.ExportToJson())
     geom = None
 
     if os.path.exists(file):
