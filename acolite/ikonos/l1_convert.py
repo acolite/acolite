@@ -55,23 +55,9 @@ def l1_convert(inputfile, output = None,
         #    print('Processing of IKONOS2 images with multiple components currently not supported.')
         #    continue
         verbosity = setu['verbosity']
-        limit=setu['limit']
-        poly=setu['polygon']
         output_geolocation=setu['output_geolocation']
         vname = setu['region_name']
         if output is None: output = setu['output']
-
-        ## check if ROI polygon is given
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    print('Using limit from polygon envelope: {}'.format(limit))
-                    print('Not yet implemented for WorldView')
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
 
         ## read rsr
         rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
