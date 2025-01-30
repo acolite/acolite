@@ -1716,7 +1716,7 @@ def radcor(ncf, settings = None):
         if setu['radcor_write_rhotc'] & setu['radcor_write_rhotc_separate_file']:
             gemo_l1rc.write(ds, d_, ds_att = a_)
 
-    if setu['dem_pressure'] & setu['dem_pressure_write']:
+    if setu['dem_pressure'] & setu['dem_pressure_write'] & (elevation is not None):
         if setu['radcor_crop_centre']: ## crop to centre area
             elevation = elevation[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
         gemo.write('dem', elevation)
