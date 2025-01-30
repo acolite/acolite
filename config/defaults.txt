@@ -16,13 +16,13 @@ l2cfile=None
 ## settings for cropping
 region_name=
 limit=None
-limit_buffer=None
 sub=None
 extend_region=False
 l1r_crop=False
 ## polygon can be a file or WKT string
 polygon=None
 polygon_limit=True
+polygon_clip=False
 polylakes=False
 polylakes_database=worldlakes
 ## station coordinates and box size
@@ -30,6 +30,9 @@ station_lon=None
 station_lat=None
 station_box_size=None
 station_box_units=km
+## add a buffer to the provided or computed limit
+limit_buffer=None
+limit_buffer_units=degrees
 ## L1 tile merging
 merge_tiles=False
 merge_full_tiles=False

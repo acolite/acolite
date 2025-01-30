@@ -12,6 +12,7 @@
 ##                2024-03-28 (QV) added station limit creation
 ##                2024-13-17 (QV) update for atmospheric_correction_method
 ##                2025-01-20 (QV) updated RGB output logic
+##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -41,32 +42,51 @@ def acolite_run(settings, inputfile=None, output=None):
                 if par.startswith('bt'): ac.settings['user']['output_bt'] = True
                 if par.startswith('Ed'): ac.settings['user']['output_ed'] = True
 
-    ## check if polygon is a file or WKT
-    ## if WKT make new polygon file in output directory
-    ## new and old polygon inputs tracked here in user settings since WKT is provided by the user
-    if 'polygon' in ac.settings['user']:
-        if ac.settings['user']['polygon'] is not None:
-            if not os.path.exists(ac.settings['user']['polygon']):
-                try:
-                    polygon_new = ac.shared.polygon_from_wkt(ac.settings['user']['polygon'],
-                                     file = '{}/polygon_{}.json'.format(ac.settings['user']['output'], ac.settings['run']['runid']))
-                    ac.settings['user']['polygon_old'] = '{}'.format(ac.settings['user']['polygon'])
-                    ac.settings['user']['polygon'] = '{}'.format(polygon_new)
-                except:
-                    print('Provided polygon is not a valid WKT polygon')
-                    print(ac.settings['user']['polygon'])
-                    ac.settings['user']['polygon'] = None
-                    pass
-
     ## update run settings
     for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
     if 'verbosity' in ac.settings['run']: ac.config['verbosity'] = int(ac.settings['run']['verbosity'])
 
+    if ac.settings['run']['polylakes']:
+        ac.settings['run']['polygon'] = ac.shared.polylakes(setu['polylakes_database'])
+        ac.settings['run']['polygon_limit'] = False
+        ac.settings['run']['polygon_clip'] = True
+
+    ## check if polygon is a file or WKT
+    ## if WKT make new polygon file in output directory
+    ## new and old polygon inputs tracked here in user settings since WKT is provided by the user
+    if 'polygon' in ac.settings['run']:
+        if ac.settings['run']['polygon'] is not None:
+            ## is the given polygon a wkt?
+            if not os.path.exists(ac.settings['run']['polygon']):
+                try:
+                    polygon_new = ac.shared.polygon_from_wkt(ac.settings['run']['polygon'],
+                                     file = '{}/polygon_{}.json'.format(ac.settings['run']['output'], ac.settings['run']['runid']))
+                    ac.settings['run']['polygon_old'] = '{}'.format(ac.settings['run']['polygon'])
+                    ac.settings['run']['polygon'] = '{}'.format(polygon_new)
+                    ac.settings['run']['polygon_clip'] = True
+                except:
+                    if ac.settings['run']['verbosity'] > 1: print('Provided polygon is not a valid WKT polygon')
+                    if ac.settings['run']['verbosity'] > 1: print(ac.settings['run']['polygon'])
+                    ac.settings['run']['polygon'] = None
+                    pass
+
+            ## read the polygon file
+            if os.path.exists(ac.settings['run']['polygon']) & ac.settings['run']['polygon_limit']:
+                try:
+                    limit = ac.shared.polygon_limit(ac.settings['run']['polygon'])
+                    ac.settings['run']['limit'] = [l for l in limit]
+                    ac.settings['run']['polygon_clip'] = True
+                    if ac.settings['run']['verbosity'] > 1: print('Using limit from polygon envelope: {}'.format(limit))
+                except:
+                    if ac.settings['run']['verbosity'] > 1: print('Failed to import polygon {}'.format(ac.settings['run']['polygon']))
+        else:
+            ac.settings['run']['polygon_clip'] = False
+            
     ## create limit based on station_lon, station_lat, station_box
     if (ac.settings['run']['station_lon'] is not None) &\
        (ac.settings['run']['station_lat'] is not None) &\
        (ac.settings['run']['station_box_size'] is not None) &\
-       (ac.settings['run']['limit'] is None) & (ac.settings['run']['polygon'] is None):
+       (ac.settings['run']['limit'] is None):
        site_lat = ac.settings['run']['station_lat']
        site_lon = ac.settings['run']['station_lon']
        box_size = ac.settings['run']['station_box_size']
@@ -91,6 +111,44 @@ def acolite_run(settings, inputfile=None, output=None):
        ac.settings['run']['limit'] = [site_lat-lat_off, site_lon-lon_off, site_lat+lat_off, site_lon+lon_off]
        print('New limit: {}'.format(ac.settings['run']['limit']))
     ## end create limit based on station information
+
+    ## check limit and add buffer if needed
+    if 'limit' in ac.settings['run']:
+        if ac.settings['run']['limit'] is not None:
+            if len(ac.settings['run']['limit']) != 4:
+                print('ROI limit should be four elements in decimal degrees: limit=S,W,N,E')
+                print('Provided in the settings:', ac.settings['run']['limit'])
+                return
+
+        ## add limit buffer
+        if 'limit_buffer' in ac.settings['run']:
+            if (ac.settings['run']['limit_buffer'] is not None):
+                if ac.settings['run']['verbosity'] > 1: print('Applying limit buffer of {} {}'.format(ac.settings['run']['limit_buffer'], ac.settings['run']['limit_buffer_units']))
+                ac.settings['run']['limit_old'] = [l for l in ac.settings['run']['limit']]
+
+                if ac.settings['run']['limit_buffer_units'][0].lower() == 'd':
+                    limit_factor = 1.0, 1.0
+                elif ac.settings['run']['limit_buffer_units'][0].lower() in ['m','k']:
+                    mean_lat = (ac.settings['run']['limit'][0] + ac.settings['run']['limit'][2]) / 2.
+                    dlon, dlat = ac.shared.distance_in_ll(lat=mean_lat)
+                    limit_factor = 1/dlat, 1/dlon
+                    if ac.settings['run']['limit_buffer_units'][0].lower() == 'm':
+                        limit_factor = limit_factor[0]/1000, limit_factor[1]/1000
+                else:
+                    print('limit_buffer_units={} not configured'.format(ac.settings['run']['limit_buffer_units']))
+                    return
+
+                ## compute limit buffer
+                limit_buffer = ac.settings['run']['limit_buffer'] * limit_factor[0], \
+                               ac.settings['run']['limit_buffer'] * limit_factor[1]
+                ac.settings['run']['limit'] = ac.settings['run']['limit_old'][0] - limit_buffer[0], \
+                                              ac.settings['run']['limit_old'][1] - limit_buffer[1], \
+                                              ac.settings['run']['limit_old'][2] + limit_buffer[0], \
+                                              ac.settings['run']['limit_old'][3] + limit_buffer[1]
+                if ac.settings['run']['verbosity'] > 1:
+                    print('Old limit: {}'.format(ac.settings['run']['limit_old']))
+                    print('New limit: {}'.format(ac.settings['run']['limit']))
+    ## end checking limit settings
 
     ## new path is only set if ACOLITE needs to make new directories
     ## and is only used if ACOLITE is asked to delete the output directory (don't use this feature!)

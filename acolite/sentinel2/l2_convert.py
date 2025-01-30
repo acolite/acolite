@@ -4,6 +4,7 @@
 ## 2024-06-04
 ## modifications: 2024-07-30 (QV) added skip_bands to not include band 9 (or others if so desired)
 ##                2024-10-16 (QV) added RSR versioning support
+##                2025-01-30 (QV) moved polygon limit
 
 def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_bands = ['9']):
     import numpy as np
@@ -74,24 +75,6 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_band
         vname = setu['region_name']
 
         limit=setu['limit']
-        ## check if ROI polygon is given
-        if setu['polylakes']:
-            poly = ac.shared.polylakes(setu['polylakes_database'])
-            setu['polygon_limit'] = False
-        else:
-            poly = setu['polygon']
-            clip, clip_mask = False, None
-            if poly is not None:
-                if os.path.exists(poly):
-                    try:
-                        limit = ac.shared.polygon_limit(poly)
-                        if setu['polygon_limit']:
-                            print('Using limit from polygon envelope: {}'.format(limit))
-                        else:
-                            limit = setu['limit']
-                        clip = True
-                    except:
-                        print('Failed to import polygon {}'.format(poly))
 
         ## output metadata
         dtime = dateutil.parser.parse(grmeta['SENSING_TIME'])
@@ -185,8 +168,8 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_band
         gatts['global_dims'] = dct_prj['dimensions']
 
         ## if we are clipping to a given polygon get the clip_mask here
-        if clip:
-            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+        if setu['polygon_clip']:
+            clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
             print('clip mask', clip_mask.shape)
 
@@ -230,7 +213,7 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_band
 
                     data /= quant
                     data[data_mask] = np.nan
-                    if clip: data[clip_mask] = np.nan
+                    if (setu['polygon_clip']): data[clip_mask] = np.nan
                     ds = 'rhos_l2a_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
 

@@ -5,6 +5,7 @@
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2023-12-04 (QV) removed tiff support and added HDF support
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def l1_convert(inputfile, output = None,
                settings = {},
@@ -72,7 +73,6 @@ def l1_convert(inputfile, output = None,
         setu = ac.acolite.settings.parse(sensor, settings=settings)
         verbosity = setu['verbosity']
         limit = setu['limit']
-        poly = setu['polygon']
         sub = setu['sub']
         vname = setu['region_name']
         if output is None: output = setu['output']
@@ -93,26 +93,6 @@ def l1_convert(inputfile, output = None,
         ## get F0 for radiance -> reflectance computation
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_b = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data']*10, rsrd['rsr'])
-
-        ## check if ROI polygon is given
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
-
-        ## add limit buffer
-        if (limit is not None) & (setu['limit_buffer'] is not None):
-            print('Applying limit buffer {}'.format(setu['limit_buffer']))
-            print('Old limit: {}'.format(limit))
-            setu['limit_old'] = limit
-            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
-                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
-            print('New limit: {}'.format(limit))
 
         warp_to = None
         if image_type == 'tiff':
@@ -245,8 +225,8 @@ def l1_convert(inputfile, output = None,
             gatts['global_dims'] = dct_prj['dimensions']
 
             ## if we are clipping to a given polygon get the clip_mask here
-            if clip:
-                clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+            if setu['polygon_clip']:
+                clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
                 clip_mask = clip_mask.astype(bool) == False
         ## end tiff projection
 
@@ -341,7 +321,7 @@ def l1_convert(inputfile, output = None,
                 data = gains[band]['gain'] * data + gains[band]['offset']
 
             data[nodata] = np.nan
-            if clip: data[clip_mask] = np.nan
+            if (setu['polygon_clip']): data[clip_mask] = np.nan
 
             ## write to netcdf file
             gemo.write(ds, data, ds_att = ds_att, replace_nan = True)

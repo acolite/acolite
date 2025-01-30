@@ -5,6 +5,7 @@
 ## modifications: 2021-12-08 (QV) added nc_projection
 ##                2021-12-31 (QV) new handling of settings
 ##                2024-03-14 (QV) update settings handling
+##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def acolite_l1r(bundle, settings = None, input_type=None):
     import acolite as ac
@@ -48,13 +49,6 @@ def acolite_l1r(bundle, settings = None, input_type=None):
         print('Warning: Multiple input types given: {}'.format(input_types))
     if input_type == None:
         print('{} not recognized.'.format(bundle[0]))
-
-    if 'limit' in setu:
-        if setu['limit'] is not None:
-            if len(setu['limit']) != 4:
-                print('ROI limit should be four elements in decimal degrees: limit=S,W,N,E')
-                print('Provided in the settings:', setu['limit'])
-                return()
 
     ################
     ## ACOLITE

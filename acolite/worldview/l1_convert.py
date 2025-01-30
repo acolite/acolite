@@ -8,6 +8,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-28 (QV) switch to LinearNDInterpolator, added meshgrid
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -74,21 +75,9 @@ def l1_convert(inputfile, output = None,
         verbosity = setu['verbosity']
         #inputfile_swir = setu['inputfile_swir']
         limit=setu['limit']
-        poly=setu['polygon']
         output_geolocation=setu['output_geolocation']
         vname = setu['region_name']
         if output is None: output = setu['output']
-
-        ## check if ROI polygon is given
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
 
         ## test if we need to do an atmospheric correction
         atmospherically_corrected = False

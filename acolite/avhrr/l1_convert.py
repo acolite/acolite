@@ -4,6 +4,7 @@
 ## 2024-11-14
 ## modifications: 2024-11-16 (QV) added data flip for ascending orbit only
 ##                2024-11-17 (QV) added 6 channel support
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
     import numpy as np
@@ -53,27 +54,6 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         output_lt = setu['output_lt']
         vname = setu['region_name']
         limit = setu['limit']
-
-        ## check if ROI polygon is given
-        if setu['polylakes']:
-            poly = ac.shared.polylakes(setu['polylakes_database'])
-            setu['polygon_limit'] = False
-        else:
-            poly = setu['polygon']
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    if setu['polygon_limit']:
-                        print('Using limit from polygon envelope: {}'.format(limit))
-                    else:
-                        limit = setu['limit']
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
-        ## end ROI polygon
-
 
         gatts = {}
         time = dateutil.parser.parse(metadata['start_date'])

@@ -6,6 +6,7 @@
 ##                2023-04-19 (QV) added quality_flags check
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling, fixed raa writing, fix for new settings handling
+##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
     import h5py
@@ -68,26 +69,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
         if skip: continue
 
         limit = setu['limit']
-        poly = setu['polygon']
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    if setu['polygon_limit']:
-                        print('Using limit from polygon envelope: {}'.format(limit))
-                    else:
-                        limit = setu['limit']
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
-        if (limit is not None) & (setu['limit_buffer'] is not None):
-            print('Applying limit buffer {}'.format(setu['limit_buffer']))
-            print('Old limit: {}'.format(limit))
-            setu['limit_old'] = limit
-            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
-                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
-            print('New limit: {}'.format(limit))
-
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
         output_lt = setu['output_lt']

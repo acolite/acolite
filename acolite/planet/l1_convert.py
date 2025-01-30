@@ -14,6 +14,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-03-28 (QV) added multi-tile merging
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -163,25 +164,6 @@ def l1_convert(inputfile, output = None, settings = {},
 
             merge_tiles = setu['merge_tiles']
             extend_region = setu['extend_region']
-
-            ## check if ROI polygon is given
-            if setu['polylakes']:
-                poly = ac.shared.polylakes(setu['polylakes_database'])
-                setu['polygon_limit'] = False
-            else:
-                poly = setu['polygon']
-            clip, clip_mask = False, None
-            if poly is not None:
-                if os.path.exists(poly):
-                    try:
-                        limit = ac.shared.polygon_limit(poly)
-                        if setu['polygon_limit']:
-                            print('Using limit from polygon envelope: {}'.format(limit))
-                        else:
-                            limit = setu['limit']
-                        clip = True
-                    except:
-                        print('Failed to import polygon {}'.format(poly))
 
             ## check if merging settings make sense
             merge_tiles = setu['merge_tiles']
@@ -351,8 +333,8 @@ def l1_convert(inputfile, output = None, settings = {},
             new_pan = True
 
         ## if we are clipping to a given polygon get the clip_mask here
-        if clip:
-            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+        if setu['polygon_clip']:
+            clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
 
         if new:
@@ -434,7 +416,7 @@ def l1_convert(inputfile, output = None, settings = {},
             print(data.shape)
 
             ## clip to poly
-            if clip: data[clip_mask] = np.nan
+            if (setu['polygon_clip']): data[clip_mask] = np.nan
 
             ds = 'rhot_{}'.format(waves_names[b])
             ds_att = {'wavelength':waves_mu[b]*1000}
@@ -478,7 +460,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 data[nodata] = np.nan
 
                 ## clip to poly
-                if clip: data[clip_mask] = np.nan
+                if (setu['polygon_clip']): data[clip_mask] = np.nan
 
                 ds = 'rhos_sr_{}'.format(waves_names[b])
                 ds_att = {'wavelength':waves_mu[b]*1000}

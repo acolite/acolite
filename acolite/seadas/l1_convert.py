@@ -4,7 +4,7 @@
 # 2024-10-16
 # initially for SeaHawk1_HawkEye, but can presumably be adapted to other L1B data
 #
-# modifications:
+# modifications:  2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -62,27 +62,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
         ## get ROI from user settings
         limit = setu['limit']
-
-        ## check if ROI polygon is given
-        poly = setu['polygon']
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    if verbosity > 1: print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    if verbosity > 1: print('Failed to import polygon {}'.format(poly))
-
-        ## add limit buffer
-        if (limit is not None) & (setu['limit_buffer'] is not None):
-            print('Applying limit buffer {}'.format(setu['limit_buffer']))
-            print('Old limit: {}'.format(limit))
-            setu['limit_old'] = limit
-            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
-                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
-            print('New limit: {}'.format(limit))
 
         sub = None
         geo_group = 'navigation_data'

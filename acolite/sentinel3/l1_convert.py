@@ -14,6 +14,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2023-11-25 (QV) added optional l2 conversion
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -95,27 +96,6 @@ def l1_convert(inputfile, output = None, settings = {},
         output_geometry = setu['output_geometry']
         vname = setu['region_name']
         output = setu['output']
-
-        ## check if ROI polygon is given
-        poly = setu['polygon']
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    if verbosity > 1: print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    if verbosity > 1: print('Failed to import polygon {}'.format(poly))
-
-        ## add limit buffer
-        if (limit is not None) & (setu['limit_buffer'] is not None):
-            print('Applying limit buffer {}'.format(setu['limit_buffer']))
-            print('Old limit: {}'.format(limit))
-            setu['limit_old'] = limit
-            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
-                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
-            print('New limit: {}'.format(limit))
 
         sub = None
         data_shape = None

@@ -9,6 +9,7 @@
 ##                2024-07-03 (QV) store band irradiance
 ##                2024-07-11 (QV) changed attributes loading, added instrument_gain for SWIR
 ##                2024-07-22 (QV) include SWIR RSR
+##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -50,27 +51,6 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## get ROI from user settings
         limit = setu['limit']
-
-        ## check if ROI polygon is given
-        poly = setu['polygon']
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    if verbosity > 1: print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    if verbosity > 1: print('Failed to import polygon {}'.format(poly))
-
-        ## add limit buffer
-        if (limit is not None) & (setu['limit_buffer'] is not None):
-            print('Applying limit buffer {}'.format(setu['limit_buffer']))
-            print('Old limit: {}'.format(limit))
-            setu['limit_old'] = limit
-            limit = limit[0] - setu['limit_buffer'], limit[1] - setu['limit_buffer'], \
-                    limit[2] + setu['limit_buffer'], limit[3] + setu['limit_buffer']
-            print('New limit: {}'.format(limit))
 
         sub = None
         if limit is None:

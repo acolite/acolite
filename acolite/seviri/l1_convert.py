@@ -5,6 +5,7 @@
 ## 2024-04-12
 ## modifications: 2024-04-17 (QV) use new gem NetCDF handling
 ##                2024-04-18 (QV) added geolocation/geometry functions , added masks for negative Lt and sza > 90
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -84,9 +85,6 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## read rsr
         rsrd = ac.shared.rsr_dict(sensor)[sensor]
-
-        if (setu['limit'] is None) & (setu['polygon'] is not None):
-            setu['limit'] = ac.shared.polygon_limit(setu['polygon'])
 
         ## figure out location
         if sub is None: ## track subset across runs

@@ -9,6 +9,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-28 (QV) fix when pan meta is missing
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True, percentiles = (0,1,5,10,25,50,75,90,95,99,100),
@@ -69,8 +70,6 @@ def l1_convert(inputfile, output = None, settings = {},
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
         limit = setu['limit']
-        poly = setu['polygon']
-
         vname = setu['region_name']
 
         ## set resolution and band names
@@ -120,17 +119,6 @@ def l1_convert(inputfile, output = None, settings = {},
         pofile = '{}/{}_L1R_pan.nc'.format(output, oname)
         gatts['oname'] = oname
         gatts['ofile'] = ofile
-
-        ## check if ROI polygon is given
-        clip, clip_mask = False, None
-        if poly is not None:
-            if os.path.exists(poly):
-                try:
-                    limit = ac.shared.polygon_limit(poly)
-                    print('Using limit from polygon envelope: {}'.format(limit))
-                    clip = True
-                except:
-                    print('Failed to import polygon {}'.format(poly))
 
         ## test scene
         if limit is not None:

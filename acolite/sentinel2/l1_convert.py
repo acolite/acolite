@@ -12,6 +12,7 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                                fixed tile merging: masking of angle datasets and AUX data
 ##                2024-10-16 (QV) added RSR versioning support
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None, settings = {},
                 percentiles_compute = True,
@@ -118,24 +119,6 @@ def l1_convert(inputfile, output = None, settings = {},
             vname = setu['region_name']
 
             limit=setu['limit']
-            ## check if ROI polygon is given
-            if setu['polylakes']:
-                poly = ac.shared.polylakes(setu['polylakes_database'])
-                setu['polygon_limit'] = False
-            else:
-                poly = setu['polygon']
-            clip, clip_mask = False, None
-            if poly is not None:
-                if os.path.exists(poly):
-                    try:
-                        limit = ac.shared.polygon_limit(poly)
-                        if setu['polygon_limit']:
-                            print('Using limit from polygon envelope: {}'.format(limit))
-                        else:
-                            limit = setu['limit']
-                        clip = True
-                    except:
-                        print('Failed to import polygon {}'.format(poly))
 
             ## check if merging settings make sense
             merge_tiles = setu['merge_tiles']
@@ -322,8 +305,8 @@ def l1_convert(inputfile, output = None, settings = {},
             ofile_aux_new = True
 
         ## if we are clipping to a given polygon get the clip_mask here
-        if clip:
-            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+        if setu['polygon_clip']:
+            clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
             print('clip mask', clip_mask.shape)
 
@@ -452,7 +435,7 @@ def l1_convert(inputfile, output = None, settings = {},
                 if (setu['s2_write_dfoo']) & (dfoo is not None):
                     dfoo_ = ac.shared.warp_from_source(target_file, dct_prj, dfoo, warp_to=warp_to)
                     dfoo_[mask] = -1
-                    if clip: dfoo_[clip_mask] = -1
+                    if (setu['polygon_clip']): dfoo_[clip_mask] = -1
                     gemo.write('dfoo', dfoo_, replace_nan = True)
                     if verbosity > 1: print('Wrote dfoo {}'.format(dfoo_.shape))
                     dfoo_ = None
@@ -554,7 +537,7 @@ def l1_convert(inputfile, output = None, settings = {},
             saa[mask] = np.nan
 
             ## clip geometry data
-            if clip:
+            if (setu['polygon_clip']):
                 sza[clip_mask] = np.nan
                 saa[clip_mask] = np.nan
                 vza[clip_mask] = np.nan
@@ -712,7 +695,7 @@ def l1_convert(inputfile, output = None, settings = {},
                     if 'RADIO_ADD_OFFSET' in band_data: data += band_data['RADIO_ADD_OFFSET'][Bn]
                     data /= quant
                     data[data_mask] = np.nan
-                    if clip: data[clip_mask] = np.nan
+                    if (setu['polygon_clip']): data[clip_mask] = np.nan
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
 

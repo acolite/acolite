@@ -5,6 +5,7 @@
 ## modifications: 2022-08-19 (QV) added ECO1BRAD support
 ##                2024-01-17 (QV) added geofile keyword
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     import os, h5py, json
@@ -22,16 +23,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
     if output is None: output = setu['output']
 
     limit, sub = None, None
-    if 'limit' in setu:
-        limit = setu['limit']
-    if ('polygon' in setu) & (limit is None):
-        poly = setu['polygon']
-        if poly is not None:
-            limit = ac.shared.polygon_limit(poly)
-            if setu['polygon_limit']:
-                print('Using limit from polygon envelope: {}'.format(limit))
-            else:
-                limit = setu['limit']
+    if 'limit' in setu: limit = setu['limit']
 
     ## parse inputfile
     if type(inputfile) != list:

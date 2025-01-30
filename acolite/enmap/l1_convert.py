@@ -7,6 +7,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-02-22 (QV) added computation of view angles
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     import numpy as np
@@ -20,7 +21,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     output_lt = setu['output_lt']
     if output is None: output = setu['output']
     verbosity = setu['verbosity']
-    poly = setu['polygon']
     limit = setu['limit']
 
     ## parse inputfile
@@ -31,17 +31,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             inputfile = list(inputfile)
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
-
-    ## check if ROI polygon is given
-    clip, clip_mask = False, None
-    if poly is not None:
-        if os.path.exists(poly):
-            try:
-                limit = ac.shared.polygon_limit(poly)
-                print('Using limit from polygon envelope: {}'.format(limit))
-                clip = True
-            except:
-                print('Failed to import polygon {}'.format(poly))
 
     ## get F0 for radiance -> reflectance computation
     f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
@@ -154,8 +143,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
                 if k in dct_prj: gatts[k] = copy.copy(dct_prj[k])
 
             ## if we are clipping to a given polygon get the clip_mask here
-            if clip:
-                clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+            if setu['polygon_clip']:
+                clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
                 clip_mask = clip_mask.astype(bool) == False
 
         ## band rsr and f0
@@ -232,7 +221,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             cdata_radiance += band_data[bname]['OffsetOfBand']
             cdata_radiance *= 1000 ## gains are W/m2/sr/nm so factor 1000 needed to get mW/m2/sr/nm
 
-            if (clip) & (clip_mask is not None): cdata_radiance[clip_mask] = np.nan
+            if (setu['polygon_clip']): cdata_radiance[clip_mask] = np.nan
 
             if output_lt:
                 ## write toa radiance

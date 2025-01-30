@@ -4,6 +4,7 @@
 ## 2024-07-30
 ## modifications: 2024-07-30 (QV) adapted from ac.landsat.l1_convert
 ##                2024-09-19 (QV) removed mus for conversion of rhos
+##                2025-01-30 (QV) moved polygon limit
 
 def l2_convert(inputfile, output = None, settings = {},
 
@@ -142,25 +143,6 @@ def l2_convert(inputfile, output = None, settings = {},
             gains = setu['gains']
             gains_toa = setu['gains_toa']
             if output is None: output = setu['output']
-
-            ## check if ROI polygon is given
-            if setu['polylakes']:
-                poly = ac.shared.polylakes(setu['polylakes_database'])
-                setu['polygon_limit'] = False
-            else:
-                poly = setu['polygon']
-            clip, clip_mask = False, None
-            if poly is not None:
-                if os.path.exists(poly):
-                    try:
-                        limit = ac.shared.polygon_limit(poly)
-                        if setu['polygon_limit']:
-                            print('Using limit from polygon envelope: {}'.format(limit))
-                        else:
-                            limit = setu['limit']
-                        clip = True
-                    except:
-                        print('Failed to import polygon {}'.format(poly))
 
             ## check if merging settings make sense
             merge_tiles = setu['merge_tiles']
@@ -362,12 +344,10 @@ def l2_convert(inputfile, output = None, settings = {},
                 for k in meta[mt]:
                     if k not in gatts: gatts[k] = float(meta[mt][k])
 
-
         ## if we are clipping to a given polygon get the clip_mask here
-        if clip:
-            clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+        if setu['polygon_clip']:
+            clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
             clip_mask = clip_mask.astype(bool) == False
-
 
         ## create new file
         if new:
@@ -390,7 +370,7 @@ def l2_convert(inputfile, output = None, settings = {},
                 vza[mask] = np.nan
                 sza[mask] = np.nan
                 ## clip geometry data
-                if clip:
+                if (setu['polygon_clip']):
                     sza[clip_mask] = np.nan
                     saa[clip_mask] = np.nan
                     vza[clip_mask] = np.nan
@@ -474,7 +454,7 @@ def l2_convert(inputfile, output = None, settings = {},
                         if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
 
                     ## clip data
-                    if clip: data[clip_mask] = np.nan
+                    if (setu['polygon_clip']): data[clip_mask] = np.nan
 
                     ## write to ms file
                     gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
@@ -496,7 +476,7 @@ def l2_convert(inputfile, output = None, settings = {},
                             data += offset
 
                             ## clip data
-                            if clip: data[clip_mask] = np.nan
+                            if (setu['polygon_clip']): data[clip_mask] = np.nan
                             gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
                             if verbosity > 1: print('Converting bands: Wrote {}'.format(ds))
                     else:

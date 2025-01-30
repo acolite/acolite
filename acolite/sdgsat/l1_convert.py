@@ -6,6 +6,7 @@
 ##                2023-02-19 (QV) fixed merged scene nc_projection
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-01-30 (QV) moved polygon limit
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import os
@@ -75,20 +76,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
 
             verbosity = setu['verbosity']
 
-            clip, clip_mask = False, None
             limit = setu['limit']
-            poly = setu['polygon']
-            if poly is not None:
-                if os.path.exists(poly):
-                    try:
-                        limit = ac.shared.polygon_limit(poly)
-                        if setu['polygon_limit']:
-                            print('Using limit from polygon envelope: {}'.format(limit))
-                        else:
-                            limit = setu['limit']
-                        clip = True
-                    except:
-                        print('Failed to import polygon {}'.format(poly))
 
             ## geometry
             saa = float(meta['SolarAzimuth'])
@@ -207,8 +195,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             gatts['global_dims'] = dct_prj['dimensions']
 
             ## if we are clipping to a given polygon get the clip_mask here
-            if clip:
-                clip_mask = ac.shared.polygon_crop(dct_prj, poly, return_sub=False)
+            if setu['polygon_clip']:
+                clip_mask = ac.shared.polygon_crop(dct_prj, setu['polygon'], return_sub=False)
                 clip_mask = clip_mask.astype(bool) == False
 
             ## output file
@@ -280,7 +268,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                         data = gains[band]['gain'] * data + gains[band]['offset']
 
                     data[nodata] = np.nan
-                    if clip: data[clip_mask] = np.nan
+                    if (setu['polygon_clip']): data[clip_mask] = np.nan
 
                     ## write to netcdf file
                     gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
