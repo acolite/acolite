@@ -39,17 +39,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
             odir = output
         s2_auxiliary_default = setu['s2_auxiliary_default']
 
-#     ## check if ROI polygon is given
-#     clip, clip_mask = False, None
-#     if poly is not None:
-#         if os.path.exists(poly):
-#             try:
-#                 limit = ac.shared.polygon_limit(poly)
-#                 print('Using limit from polygon envelope: {}'.format(limit))
-#                 clip = True
-#             except:
-#                 print('Failed to import polygon {}'.format(poly))
-
         ## datetime
         dt = dateutil.parser.parse(gatts['start_date'])
         ## output file name
