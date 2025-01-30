@@ -18,19 +18,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
     verbosity = setu['verbosity']
     if output is None: output = setu['output']
     vname = setu['region_name']
-    poly = setu['polygon']
     limit = setu['limit']
-
-#     ## check if ROI polygon is given
-#     clip, clip_mask = False, None
-#     if poly is not None:
-#         if os.path.exists(poly):
-#             try:
-#                 limit = ac.shared.polygon_limit(poly)
-#                 print('Using limit from polygon envelope: {}'.format(limit))
-#                 clip = True
-#             except:
-#                 print('Failed to import polygon {}'.format(poly))
 
     ## parse inputfile
     if type(inputfile) != list:
