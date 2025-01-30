@@ -14,6 +14,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                                added check for projection resolution
 ##                2024-04-16 (QV) update NetCDF writing, speed up read using gem
+##                2025-01-30 (QV) use run instead of user settings
 
 def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None, output_counts = False):
 
@@ -52,7 +53,7 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
         ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
         for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
     setu = ac.acolite.settings.parse(gatts['sensor'], settings=settings)
-    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
+    for k in ac.settings['run']: setu[k] = ac.settings['run'][k]
 
     if (setu['output_projection_limit'] is None) & (setu['output_projection_polygon'] is not None):
         setu['output_projection_limit'] = ac.shared.polygon_limit(setu['output_projection_polygon'])
