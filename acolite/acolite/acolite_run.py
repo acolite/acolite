@@ -81,7 +81,7 @@ def acolite_run(settings, inputfile=None, output=None):
                     if ac.settings['run']['verbosity'] > 1: print('Failed to import polygon {}'.format(ac.settings['run']['polygon']))
         else:
             ac.settings['run']['polygon_clip'] = False
-            
+
     ## create limit based on station_lon, station_lat, station_box
     if (ac.settings['run']['station_lon'] is not None) &\
        (ac.settings['run']['station_lat'] is not None) &\
@@ -252,7 +252,7 @@ def acolite_run(settings, inputfile=None, output=None):
             gatts = ac.shared.nc_gatts(l1r)
             if 'acolite_file_type' not in gatts: gatts['acolite_file_type'] = 'L1R'
             if ac.settings['run']['l1r_crop']:
-                l1r_cropped = ac.output.crop_acolite_netcdf(l1r, output = ac.settings['run']['output'], limit = ac.settings['run']['limit'], polygon = ac.settings['run']['polygon'])
+                l1r_cropped = ac.output.crop_acolite_netcdf(l1r, output = ac.settings['run']['output'], limit = ac.settings['run']['limit']
                 if l1r_cropped is not None:
                     l1r = l1r_cropped
                 else:

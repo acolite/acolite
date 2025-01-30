@@ -4,13 +4,10 @@
 ## 2023-04-02
 ## modifications: 2023-04-09 (QV) Fix for NetCDF without nc_projection
 ##                2024-04-16 (QV) Use gem for input/output
-
-def crop_acolite_netcdf(ncf, output=None, limit=None, polygon=None):
+##                2025-01-30 (QV) removed polygon keyword
+def crop_acolite_netcdf(ncf, output=None, limit=None):
     import os
     import acolite as ac
-
-    if polygon is not None:
-        limit = ac.shared.polygon_limit(polygon)
 
     if limit is None:
         print("Please provide a four element limit [S, W, N, E] or a polygon file for L1R cropping")
