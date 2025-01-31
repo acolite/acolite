@@ -4,7 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-01-26
 ## modifications: 2024-05-21 (QV) skip negative rhos masking if rhos datasets are not present
-##
+##                2024-01-31 (QV) use first dataset to determine dimensions
 
 def acolite_flags(gem, create_flags_dataset=True, write_flags_dataset=False, return_flags_dataset=True):
     import acolite as ac
@@ -37,7 +37,12 @@ def acolite_flags(gem, create_flags_dataset=True, write_flags_dataset=False, ret
     ## create l2_flags dataset
     flags_att = {}
     if (flags_name not in gem.datasets) | (create_flags_dataset):
-        flags = np.zeros(gem.data('lon').shape,np.int32)
+        dimensions = None
+        for ds in gem.datasets:
+            if ds in ['transverse_mercator', 'x', 'y',]: continue
+            dimensions = gem.data(ds).shape
+            break
+        flags = np.zeros(dimensions,np.int32)
     else:
         flags = gem.data(flags_name)
 
