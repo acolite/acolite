@@ -17,6 +17,7 @@
 ##                2024-07-22 (QV) include PACE_OCI SWIR RSR
 ##                2024-10-16 (QV) added RSR versioning support
 ##                2024-12-17 (QV) changed aerosol_correction to atmospheric_correction_method
+##                2025-01-31 (QV) check if lat/lon are present for dem
 
 def acolite_l2r(gem,
                 output = None,
@@ -212,7 +213,7 @@ def acolite_l2r(gem,
         print(gem.gatts['pressure'])
 
     ## dem pressure
-    if setu['dem_pressure']:
+    if (setu['dem_pressure']) & ((('lat' in gem.datasets) & ('lon' in gem.datasets)) | (('lat' in gem.gatts) & ('lon' in gem.gatts))):
         if verbosity > 1: print('Extracting {} DEM data'.format(setu['dem_source']))
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
             dem = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
