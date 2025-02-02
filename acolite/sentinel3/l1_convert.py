@@ -15,11 +15,10 @@
 ##                2023-11-25 (QV) added optional l2 conversion
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
+##                2025-02-02 (QV) removed percentiles
 
 def l1_convert(inputfile, output = None, settings = {},
-                percentiles_compute = True,
                 convert_l2 = False, write_l2_err = False,
-                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                 verbosity = 5):
 
     import os, glob, datetime, time, re
