@@ -1686,10 +1686,11 @@ def radcor(ncf, settings = None):
     if setu['output_ed']: gemo.gatts['auto_grouping']+=':Ed' # :Edu:Ed0
     gemo.gatts['acolite_file_type'] = 'L2R'
     gemo.gatts['radcor_version'] = '{}'.format(ac.adjacency.radcor.version)
-    gemo.nc_projection = gem.nc_projection
-    if setu['radcor_crop_centre']: ## crop to centre area
-        gemo.nc_projection['x']['data'] = gemo.nc_projection['x']['data'][cen_offset_1:x_a_dim[1] - cen_offset_1]
-        gemo.nc_projection['y']['data'] = gemo.nc_projection['y']['data'][cen_offset_0:x_a_dim[0] - cen_offset_0]
+    if gem.nc_projection is not None:
+        gemo.nc_projection = gem.nc_projection
+        if setu['radcor_crop_centre']: ## crop to centre area
+            gemo.nc_projection['x']['data'] = gemo.nc_projection['x']['data'][cen_offset_1:x_a_dim[1] - cen_offset_1]
+            gemo.nc_projection['y']['data'] = gemo.nc_projection['y']['data'][cen_offset_0:x_a_dim[0] - cen_offset_0]
     gemo.bands = bands
 
     ## add selected model and aot
