@@ -450,7 +450,7 @@ def radcor(ncf, settings = None):
     sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
     if vza > setu['radcor_max_vza']:
         print('The current implementation of RAdCor assumes a circular PSF and is not suited for higher viewing zenith angles.')
-        print('Scene average viewing zenith angle {:.1f} > radcor_max_vza={:.1f}')
+        print('Scene average viewing zenith angle {:.1f} > radcor_max_vza={:.1f}'.format(np.nanmean(vza), setu['radcor_max_vza']))
         return
 
     cos_sza = np.cos(np.radians(sza))
