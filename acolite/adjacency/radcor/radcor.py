@@ -511,9 +511,16 @@ def radcor(ncf, settings = None):
     elevation = None
     if setu['elevation'] is not None:
         elevation = float(setu['elevation'])
+
     if setu['dem_pressure']:
         if setu['verbosity'] > 1: print('Extracting {} DEM data'.format(setu['dem_source']))
-        elevation = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
+        if (('lon' in gem.datasets) & ('lat' in gem.datasets)):
+            elevation = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
+        elif (('lat' in gem.gatts) & ('lon' in gem.gatts)):
+            elevation = ac.dem.dem_lonlat(gem.gatts('lon'), gem.gatts('lat'), source = setu['dem_source'])
+        else:
+            if setu['verbosity'] > 1: print('No latitude and longitude in file for extracting DEM data')
+
     if elevation is not None:
         median_elevation = np.nanmedian(elevation)
         pressure = ac.ac.pressure_elevation(median_elevation)
