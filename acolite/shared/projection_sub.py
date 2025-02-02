@@ -4,6 +4,7 @@
 ## 2021-02-05
 ## modifications: 2021-02-09 (QV) added one pixel to sub to correspond to gdalwarp output sizes
 ##                2021-10-28 (QV) fix for negative pixel indices and scene grid offset
+##                2025-02-02 (QV) return out_lat and out_lon True if infinite ranges retrieved
 
 def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
     import numpy as np
@@ -29,6 +30,13 @@ def projection_sub(dct, limit, four_corners=True, target_pixel_size = None):
         xrange_raw, yrange_raw = dct['p']([limit[1],limit[3]],[limit[0],limit[2]])
         xrange_raw = (min(xrange_raw), max(xrange_raw))
         yrange_raw = (min(yrange_raw), max(yrange_raw))
+
+    ## return out_lon and out_lat when something goes wrong in the projection
+    if not (all(np.isfinite(xrange_raw)) & all(np.isfinite(yrange_raw))):
+        print('Infinite x and y range determined from limit and projection dict')
+        #print('Limit: {}'.format(limit))
+        #for k in dct: print(k, dct[k])
+        return({'out_lon': True, 'out_lat': True})
 
     if target_pixel_size is None:
         xrange = [xrange_raw[0] - (xrange_raw[0] % pixel_size[0]), \
