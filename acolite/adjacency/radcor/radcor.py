@@ -415,10 +415,23 @@ def radcor(ncf, settings = None):
         resolution = gem.gatts['scene_pixel_size'][0]
         print('Got spatial resolution of {} m from global attributes.\n'.format(resolution))
     else:
-        if sensor in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']: resolution = 10 ## can be 20 or 60 as well
-        elif sensor in ['L8_OLI', 'L9_OLI']: resolution = 30 # 'PRISMA'
-        elif sensor in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']: resolution = 300
-        elif 'PlanetScope' in sensor: resolution = 3
+        if sensor in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
+            resolution = 10 ## can be 20 or 60 as well
+            if 's2_target_res' in gem.gatts:
+                resolution = gem.gatts['s2_target_res']
+                print('Using resolution s2_target_res={} for MSI'.format(resolution))
+        elif sensor in ['L8_OLI', 'L9_OLI']:
+            resolution = 30 # 'PRISMA'
+        #elif sensor in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']:
+        #    resolution = 300
+        elif 'PlanetScope' in sensor:
+            resolution = 3
+        elif sensor in ['PHR1A', 'PHR1B']:
+            resolution = 2
+            print('Warning: Experimental RAdCor processing for {}'.format(sensor))
+        elif sensor in ['WorldView2', 'WorldView3']:
+            resolution = 2
+            print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         else:
             print('RAdCor processing not implemented for {}'.format(sensor))
             print('Not running RAdCor on scene {}'.format(ncf))
