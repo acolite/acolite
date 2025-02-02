@@ -13,6 +13,7 @@
 ##                2024-13-17 (QV) update for atmospheric_correction_method
 ##                2025-01-20 (QV) updated RGB output logic
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
+##                2025-02-02 (QV) moved version printout up, fixed limit_buffer when limit is None
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -45,6 +46,33 @@ def acolite_run(settings, inputfile=None, output=None):
     ## update run settings
     for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
     if 'verbosity' in ac.settings['run']: ac.config['verbosity'] = int(ac.settings['run']['verbosity'])
+
+    ## new path is only set if ACOLITE needs to make new directories
+    ## and is only used if ACOLITE is asked to delete the output directory (don't use this feature!)
+    new_path = None
+    if 'new_path' in ac.settings['run']: new_path = '{}'.format(ac.settings['run']['new_path'])
+
+    ## log file for l1r generation
+    log_file = '{}/acolite_run_{}_log_file.txt'.format(ac.settings['run']['output'], ac.settings['run']['runid'])
+    log = ac.acolite.logging.LogTee(log_file)
+
+    print('Running ACOLITE processing - {}'.format(ac.version))
+    print('Python - {} - {}'.format(ac.python['platform'], ac.python['version']).replace('\n', ''))
+    print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
+    print('Run ID - {}'.format(ac.settings['run']['runid']))
+
+    ## earthdata credentials from settings file
+    for k in ['EARTHDATA_u', 'EARTHDATA_p']:
+        kv = ac.settings['run'][k] if k in ac.settings['run'] else ac.config[k]
+        if len(kv) == 0: continue
+        os.environ[k] = kv
+
+    ## check if we have anything to do
+    if 'inputfile' not in ac.settings['run']:
+        print('Nothing to do. Did you provide a settings file or inputfile? Exiting.')
+        return()
+    else:
+        nscenes = len(ac.settings['run']['inputfile'])
 
     if ac.settings['run']['polylakes']:
         ac.settings['run']['polygon'] = ac.shared.polylakes(setu['polylakes_database'])
@@ -121,7 +149,7 @@ def acolite_run(settings, inputfile=None, output=None):
                 return
 
         ## add limit buffer
-        if 'limit_buffer' in ac.settings['run']:
+        if ('limit_buffer' in ac.settings['run']) & (ac.settings['run']['limit'] is not None):
             if (ac.settings['run']['limit_buffer'] is not None):
                 if ac.settings['run']['verbosity'] > 1: print('Applying limit buffer of {} {}'.format(ac.settings['run']['limit_buffer'], ac.settings['run']['limit_buffer_units']))
                 ac.settings['run']['limit_old'] = [l for l in ac.settings['run']['limit']]
@@ -149,33 +177,6 @@ def acolite_run(settings, inputfile=None, output=None):
                     print('Old limit: {}'.format(ac.settings['run']['limit_old']))
                     print('New limit: {}'.format(ac.settings['run']['limit']))
     ## end checking limit settings
-
-    ## new path is only set if ACOLITE needs to make new directories
-    ## and is only used if ACOLITE is asked to delete the output directory (don't use this feature!)
-    new_path = None
-    if 'new_path' in ac.settings['run']: new_path = '{}'.format(ac.settings['run']['new_path'])
-
-    ## log file for l1r generation
-    log_file = '{}/acolite_run_{}_log_file.txt'.format(ac.settings['run']['output'], ac.settings['run']['runid'])
-    log = ac.acolite.logging.LogTee(log_file)
-
-    print('Running ACOLITE processing - {}'.format(ac.version))
-    print('Python - {} - {}'.format(ac.python['platform'], ac.python['version']).replace('\n', ''))
-    print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
-    print('Run ID - {}'.format(ac.settings['run']['runid']))
-
-    ## earthdata credentials from settings file
-    for k in ['EARTHDATA_u', 'EARTHDATA_p']:
-        kv = ac.settings['run'][k] if k in ac.settings['run'] else ac.config[k]
-        if len(kv) == 0: continue
-        os.environ[k] = kv
-
-    ## check if we have anything to do
-    if 'inputfile' not in ac.settings['run']:
-        print('Nothing to do. Did you provide a settings file or inputfile? Exiting.')
-        return()
-    else:
-        nscenes = len(ac.settings['run']['inputfile'])
 
     ## make list of lists to process, one list if merging tiles
     inputfile_list = ac.acolite.inputfile_test(ac.settings['run']['inputfile'])
