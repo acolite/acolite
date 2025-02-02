@@ -568,6 +568,11 @@ def radcor(ncf, settings = None):
     bint = 0
     for bi, b in enumerate(rsrd[sensor_lut]['rsr_bands']):
         if b not in bands:
+            rhot_ds = 'rhot_{}'.format(rsrd[sensor_lut]['wave_name'][b])
+            if rhot_ds not in gem.datasets:
+                print('{} dataset for band {} not in inputfile.'.format(rhot_ds, b))
+                continue
+
             bands[b] = {k:rsrd[sensor_lut][k][b] for k in ['wave_mu', 'wave_nm', 'wave_name'] if b in rsrd[sensor_lut][k]}
             bands[b]['rhot_ds'] = 'rhot_{}'.format(bands[b]['wave_name'])
             bands[b]['rhos_ds'] = 'rhos_{}'.format(bands[b]['wave_name'])
@@ -600,6 +605,10 @@ def radcor(ncf, settings = None):
 
     ## List of bands to be used
     bands_ = [b for b in bands if (bands[b]['radcor_use_band']) & (bands[b]['tsdsf_use_band'])]
+    if len(bands_) == 0:
+        print('No band data found in inputfile.')
+        gem = None
+        return
 
     ## START DEVELOPMENT BLOCK ##
     if setu['radcor_development']:
