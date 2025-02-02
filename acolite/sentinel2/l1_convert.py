@@ -13,10 +13,9 @@
 ##                                fixed tile merging: masking of angle datasets and AUX data
 ##                2024-10-16 (QV) added RSR versioning support
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-02 (QV) removed percentiles
 
 def l1_convert(inputfile, output = None, settings = {},
-                percentiles_compute = True,
-                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
@@ -707,11 +706,6 @@ def l1_convert(inputfile, output = None, settings = {},
                         ds_att['toa_offset'] = offsets_dict[b]
                         data *= ds_att['toa_offset']
                         if verbosity > 1: print('Converting bands: Applied TOA offset {} to {}'.format(ds_att['toa_gain'], ds))
-
-                    #for k in band_data: ds_att[k] = band_data[k][b]
-                    if percentiles_compute:
-                        ds_att['percentiles'] = percentiles
-                        ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                     ## write to ms file
                     gemo.write(ds, data, replace_nan = True, ds_att = ds_att)

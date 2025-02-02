@@ -9,6 +9,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
+##                2025-02-02 (QV) removed percentiles
 
 def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     import os, zipfile, shutil
@@ -318,10 +319,6 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
                 ds_att['toa_gain'] = gains_dict[b]
                 data *= ds_att['toa_gain']
                 if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
-
-            #if percentiles_compute:
-            #    ds_att['percentiles'] = percentiles
-            #    ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
             ## write to netcdf file
             gemo.write(ds, data, replace_nan = True, ds_att = ds_att)

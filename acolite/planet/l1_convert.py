@@ -15,11 +15,9 @@
 ##                2024-03-28 (QV) added multi-tile merging
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-02 (QV) removed percentiles
 
 def l1_convert(inputfile, output = None, settings = {},
-
-                percentiles_compute = True,
-                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
                 check_sensor = True,
                 check_time = True,
@@ -426,10 +424,6 @@ def l1_convert(inputfile, output = None, settings = {},
                 data *= ds_att['toa_gain']
                 if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
 
-            if percentiles_compute:
-                ds_att['percentiles'] = percentiles
-                ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
-
             ## write to netcdf file
             gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
             if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
@@ -464,10 +458,6 @@ def l1_convert(inputfile, output = None, settings = {},
 
                 ds = 'rhos_sr_{}'.format(waves_names[b])
                 ds_att = {'wavelength':waves_mu[b]*1000}
-
-                if percentiles_compute:
-                    ds_att['percentiles'] = percentiles
-                    ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                 ## write to netcdf file
                 gemo.write(ds, data, ds_att = ds_att, replace_nan = True)

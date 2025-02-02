@@ -8,11 +8,9 @@
 ##                2024-04-16 (QV) get extend_region from setu
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-02 (QV) removed percentiles
 
-def l1_convert(inputfile, output = None, settings = {},
-                percentiles_compute = True,
-                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-                verbosity = 0):
+def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
     import os
     import dateutil.parser, time
@@ -267,9 +265,6 @@ def l1_convert(inputfile, output = None, settings = {},
 
             ds = 'rhot_{}'.format(waves_names[b])
             ds_att = {'wavelength':waves_mu[b]*1000}
-            if percentiles_compute:
-                ds_att['percentiles'] = percentiles
-                ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
             ## write to netcdf file
             #ac.output.nc_write(ofile, ds, data, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att)

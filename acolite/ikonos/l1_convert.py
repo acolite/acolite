@@ -5,12 +5,9 @@
 ## modifications: 2022-11-21 (QV) added support for older/other metadata version from BELSPO
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-02-02 (QV) removed percentiles
 
-def l1_convert(inputfile, output = None,
-               settings = {},
-               percentiles_compute = True,
-               percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-               verbosity = 0):
+def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
 
     import os, glob, dateutil.parser, datetime, time
     import numpy as np
@@ -227,9 +224,6 @@ def l1_convert(inputfile, output = None,
                     ds_att['gain'] = gains[band]['gain']
                     ds_att['offset'] = gains[band]['offset']
                     ds_att['gains_parameter'] = setu['gains_parameter']
-                if percentiles_compute:
-                    ds_att['percentiles'] = percentiles
-                    ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                 ## save PAN separately and downsample
                 if band == 'PAN':

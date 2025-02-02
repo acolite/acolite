@@ -14,6 +14,7 @@
 ##                2024-03-28 (QV) added multi-tile merging
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-02 (QV) removed percentiles
 
 def l1_convert(inputfile, output = None, settings = {},
 
@@ -22,9 +23,6 @@ def l1_convert(inputfile, output = None, settings = {},
                 output_thermal = True,
 
                 usgs_reflectance = True,
-
-                percentiles_compute = True,
-                percentiles = (0,1,5,10,25,50,75,90,95,99,100),
 
                 check_sensor = True,
                 check_time = True,
@@ -461,9 +459,6 @@ def l1_convert(inputfile, output = None, settings = {},
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
                     for k in fmeta[b]: ds_att[k] = fmeta[b][k]
-                    if percentiles_compute:
-                        ds_att['percentiles'] = percentiles
-                        ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                     if gains & (gains_dict is not None):
                         ds_att['toa_gain'] = gains_dict[b]
@@ -496,9 +491,6 @@ def l1_convert(inputfile, output = None, settings = {},
                             ds = 'bt{}'.format(b).lower()
                             ds_att = {'band':b}
                             for k in fmeta[b]: ds_att[k] = fmeta[b][k]
-                            if percentiles_compute:
-                                ds_att['percentiles'] = percentiles
-                                ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
                             data = ac.landsat.read_toa(fmeta[b], sub=sub, warp_to=warp_to)
 
                             ## clip data

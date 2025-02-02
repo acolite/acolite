@@ -10,10 +10,9 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-28 (QV) fix when pan meta is missing
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-02 (QV) removed percentiles
 
-def l1_convert(inputfile, output = None, settings = {},
-                percentiles_compute = True, percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-                verbosity = 5):
+def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
 
     import os, copy
     import dateutil.parser, time
@@ -383,9 +382,6 @@ def l1_convert(inputfile, output = None, settings = {},
 
                         ds = 'rhot_{}'.format(rsrd['wave_name'][b])
                         ds_att = {'wavelength':rsrd['wave_nm'][b]}
-                        if percentiles_compute:
-                            ds_att['percentiles'] = percentiles
-                            ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                         ## QV 2022-11-09
                         ## nc_projection does not match when using crop
@@ -572,9 +568,6 @@ def l1_convert(inputfile, output = None, settings = {},
 
                     ds = 'rhot_{}'.format(rsrd['wave_name'][b])
                     ds_att = {'wavelength':rsrd['wave_nm'][b]}
-                    if percentiles_compute:
-                        ds_att['percentiles'] = percentiles
-                        ds_att['percentiles_data'] = np.nanpercentile(data, percentiles)
 
                     ## write to netcdf file
                     if (ii == 0):

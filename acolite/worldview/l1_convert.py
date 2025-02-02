@@ -9,13 +9,12 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-28 (QV) switch to LinearNDInterpolator, added meshgrid
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-02 (QV) removed percentiles
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
                settings = {},
                convert_atmospherically_corrected = True,
-               percentiles_compute = True,
-               percentiles = (0,1,5,10,25,50,75,90,95,99,100),
                verbosity = 0):
 
     import os, glob, dateutil.parser, datetime, time
@@ -377,9 +376,6 @@ def l1_convert(inputfile, output = None,
                 ds_att['gain'] = gains[band]['gain']
                 ds_att['offset'] = gains[band]['offset']
                 ds_att['gains_parameter'] = setu['gains_parameter']
-            if percentiles_compute:
-                ds_att['percentiles'] = percentiles
-                ds_att['percentiles_data'] = np.nanpercentile(data_full, percentiles)
 
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
