@@ -55,7 +55,11 @@ def l1_convert(inputfile, output = None, settings = {},
         ## find xml files
         mfile = [os.path.basename(f) for f in glob.glob('{}/xfdumanifest.xml'.format(bundle))]
         if len(mfile)==0: mfile = [os.path.basename(f) for f in glob.glob('{}/*.xml'.format(bundle))]
-        if len(mfile)==1: mfile = mfile[0]
+        if len(mfile)==1:
+            mfile = mfile[0]
+        else:
+            print('No metadatafile found for {}'.format(bundle))
+            continue
 
         t0 = time.time()
 
