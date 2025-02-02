@@ -3,10 +3,10 @@
 ## written by Quinten Vanhellemont, RBINS for the PONDER project
 ## 2017-01-17
 ## modifications: 2025-01-28 (QV) switch to LinearNDInterpolator
-##
+##                2025-02-02 (QV) switch to ac.shared.interp2d which returns NN for the boundaries
 
 def init(metadata):
-    import scipy.interpolate
+    import acolite as ac
 
     ## Upper Left P1
     p1_lon=metadata['VERTICES']['UL']['LON']
@@ -59,11 +59,11 @@ def init(metadata):
         plat = [p1_lat, p2_lat, p3_lat, p4_lat, pc_lat]
 
     ## set up interpolator - make col/row tuple
-    zlon = scipy.interpolate.LinearNDInterpolator((pcol, prow), plon)
-    zlat = scipy.interpolate.LinearNDInterpolator((pcol, prow), plat)
+    zlon = ac.shared.interp2d((pcol, prow), plon)
+    zlat = ac.shared.interp2d((pcol, prow), plat)
 
     ## set up interpolator for lat/lon -> row/col
-    zcol = scipy.interpolate.LinearNDInterpolator((plon, plat), pcol)
-    zrow = scipy.interpolate.LinearNDInterpolator((plon, plat), prow)
+    zcol = ac.shared.interp2d((plon, plat), pcol)
+    zrow = ac.shared.interp2d((plon, plat), prow)
 
     return (zlon, zlat), (zcol, zrow)

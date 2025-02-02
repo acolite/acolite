@@ -70,6 +70,7 @@ from .gauss_response import *
 from .square_response import *
 from .sun_position import *
 from .rsr_hyper import *
+from .interp2d import *
 
 from .polylakes import *
 
