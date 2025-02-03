@@ -14,7 +14,7 @@ def merged_lut(lut, lutint, pressure, sensor = None, get_remote = True, lut_par 
     lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
 
     ## model
-    model = lut[-1]
+    model = lut.split('-MOD')[1] # lut[-1]
     mlut = lutid + lutint.replace('ACOLITE', '')
     mlut_nc = '{}/{}.nc'.format(lutdir, mlut)
 
