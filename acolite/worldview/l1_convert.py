@@ -9,7 +9,8 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-28 (QV) switch to LinearNDInterpolator, added meshgrid
 ##                2025-01-30 (QV) moved polygon limit
-##                2025-02-02 (QV) removed percentiles
+##                2025-02-02 (QV) removed percentiles, switched to ac.shared.interp2d
+##                2025-02-03 (QV) updated tile merging for projected data and user set region of interest
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -198,6 +199,11 @@ def l1_convert(inputfile, output = None,
                                     max(dct['xrange'][1], dct_vnir['xrange'][1])
                     dct['yrange'] = max(dct['yrange'][0], dct_vnir['yrange'][0]),\
                                     min(dct['yrange'][1], dct_vnir['yrange'][1])
+                    ## update dimensions
+                    dct['xdim'] = np.round((dct['xrange'][1] - dct['xrange'][0]) / dct['pixel_size'][0]).astype(int)
+                    dct['ydim'] = np.round((dct['yrange'][1] - dct['yrange'][0]) / dct['pixel_size'][1]).astype(int)
+                    dct['dimensions'] = (dct['xdim'], dct['ydim'])
+
                 ## get projection info from swir file - not used atm, check if SWIR band projection matches?
                 #swir_file=None
                 #if swir_bundle is not None:
@@ -238,14 +244,19 @@ def l1_convert(inputfile, output = None,
                 dct = {k:dct_sub[k] for k in dct_sub}
                 global_dims = dct['ydim'], dct['xdim']
 
+            ## create warp_to dataset
+            warp_to = ac.shared.projection_warp_to(dct)
+
             ## compute dimensions
             dct['xdim'] = int(np.round((dct['xrange'][1]-dct['xrange'][0]) / dct['pixel_size'][0]))
             dct['ydim'] = int(np.round((dct['yrange'][1]-dct['yrange'][0]) / dct['pixel_size'][1]))
+
             ## these should match the global dims from metadata
-            if (global_dims[0] != dct['ydim']) |  (global_dims[1] != dct['xdim']):
-                print('Global dims and projection size do not match')
-                print(global_dims[1], dct['xdim'])
-                print(global_dims[0], dct['ydim'])
+            if limit is None:
+                if (global_dims[0] != dct['ydim']) |  (global_dims[1] != dct['xdim']):
+                    print('Global dims and projection size do not match')
+                    print(global_dims[1], dct['xdim'])
+                    print(global_dims[0], dct['ydim'])
             ## add projection to gatts
             for k in ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'dimensions', 'zone']:
                 if k in dct: gatts[k] = dct[k]
@@ -284,8 +295,8 @@ def l1_convert(inputfile, output = None,
                         plat.append(meta['BAND_INFO'][band_tag][k])
 
                 ## set up interpolator
-                zlon = scipy.interpolate.LinearNDInterpolator((pcol, prow), plon)
-                zlat = scipy.interpolate.LinearNDInterpolator((pcol, prow), plat)
+                zlon = ac.shared.interp2d((pcol, prow), plon)
+                zlat = ac.shared.interp2d((pcol, prow), plat)
                 x = np.arange(1, 1+global_dims[1], 1)
                 y = np.arange(1, 1+global_dims[0], 1)
                 X, Y = np.meshgrid(x, y)
@@ -297,6 +308,8 @@ def l1_convert(inputfile, output = None,
 
         ## run through bands
         for b,band in enumerate(band_names):
+            data_full = None
+
             ## run through tiles in this bundle
             ntiles = len(meta['TILE_INFO'])
             for ti, tile_mdata in enumerate(meta['TILE_INFO']):
@@ -304,6 +317,11 @@ def l1_convert(inputfile, output = None,
                     tile = tile_mdata['FILENAME'].split('_')[1].split('-')[0]
                 except:
                     tile = ''
+
+                ## continue if subsetting is not correct and warp_to is not present
+                if (warp_to is None) & (sub is not None):
+                    if sub[1] <= sub[0]: continue
+                    if sub[3] <= sub[2]: continue
 
                 ## get tile offset
                 offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
@@ -336,6 +354,10 @@ def l1_convert(inputfile, output = None,
                     d = ac.shared.read_band(swir_file, idx=swir_meta['BAND_INFO'][bt]['index'], sub=sub, warp_to=warp_to)
                     cf = float(swir_meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(swir_meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
 
+                ## skip if one dimension is 0
+                if (d.shape[0] == 0) | (d.shape[1] == 0):
+                    continue
+
                 if cf <=0:
                     print('Warning DN scaling factor is <0, this will give bad TOA radiances/reflectances.')
                     if 'RADIOMETRICENHANCEMENT' in meta:
@@ -360,12 +382,17 @@ def l1_convert(inputfile, output = None,
                 ## apply mask
                 d[nodata] = np.nan
 
-                ## make new data full array
-                if ti == 0: data_full = np.zeros(global_dims) + np.nan
+                ## make new data full array for the current band
+                if data_full is None: data_full = np.zeros(global_dims) + np.nan
 
-                ## add in data
-                data_full[offset[1]:offset[1]+d.shape[0], offset[0]:offset[0]+d.shape[1]] = d
+                ## add in data using offset if shape does not match
+                if d.shape != data_full.shape:
+                    data_full[offset[1]:offset[1]+d.shape[0], offset[0]:offset[0]+d.shape[1]] = d
+                else:
+                    dsub = np.where(np.isnan(data_full))
+                    data_full[dsub] = d[dsub]
                 d = None
+            if data_full is None: continue
 
             ## set up dataset attributes
             ds = 'rhot_{}'.format(waves_names[band])
