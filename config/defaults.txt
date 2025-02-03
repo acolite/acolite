@@ -550,6 +550,10 @@ reproject_inputfile_dem=False
 # LUTs
 luts=ACOLITE-LUT-202110-MOD1,ACOLITE-LUT-202110-MOD2
 luts_pressures=500,750,1013,1100
+lut_base=ACOLITE-LUT-202110
+lut_models=1,2
+lut_pressures=500,750,1013,1100
+lut_base_interface=ACOLITE-RSKY-202102-82W
 luts_reduce_dimensions=False
 slicing=False
 
