@@ -33,6 +33,7 @@
 ##                2024-12-16 (QV) removed radcor/tsdsf_kernel_rescale and added renormalise to radcor/tsdsf_kernel_complete_method
 ##                2025-01-21 (QV) added radcor_write_rhotc_separate_file option
 ##                2025-01-24 (QV) added output_ed option
+##                2025-02-03 (QV) use downward gas transmittance for output_ed
 
 def radcor(ncf, settings = None):
     import os, json
@@ -306,7 +307,7 @@ def radcor(ncf, settings = None):
                     clat = np.nanmedian(gem.data('lat'))
                     spos = ac.shared.sun_position(gemo.gatts['isodate'], clon, clat)
                     gemo.gatts['se_distance'] = spos['distance'] * 1.0
-                Ed_base = (bands[b]['F0']) * gemo.gatts['se_distance']**2 * cos_sza * bands[b]['tt_gas'] * T_d_tot
+                Ed_base = (bands[b]['F0']) * gemo.gatts['se_distance']**2 * cos_sza * bands[b]['td_gas'] * T_d_tot
                 att['Ed_base'] = Ed_base
                 ## Ed with heterogeneous surface
                 Ed =  Ed_base / (1 - rho_env_sph_est * rho_a_sph)
@@ -476,11 +477,6 @@ def radcor(ncf, settings = None):
     else:
         rsrd = ac.shared.rsr_dict(sensor = sensor_lut)
 
-    ## get F0 to compute Ed
-    if setu['output_ed']:
-        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd[sensor]['rsr'])
-
     #
     # End Get scene metadata
     # --------------------------------------------------------------
@@ -546,6 +542,16 @@ def radcor(ncf, settings = None):
     ## get gas transmittance
     tg_dict = ac.ac.gas_transmittance(sza, vza, uoz = uoz, uwv = uwv, rsr = rsrd[sensor_lut]['rsr'])
 
+    ## get F0 and downward gas transmittance to compute Ed
+    if setu['output_ed']:
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd[sensor_lut]['rsr'])
+        ## downward gas transmittance
+        tdgas = ac.ac.gaslut_interp(sza, vza, pressure=pressure,
+                                    sensor=None, lutconfig='202402F', pars = ['dtdica','dtoxyg','dtniox','dtmeth'])
+        tdg = np.prod([tdgas[k] for k in tdgas if k != 'wave'], axis=0)
+        tdg_b = ac.shared.rsr_convolute_dict(np.asarray(tdgas['wave']), tdg, rsrd[sensor_lut]['rsr'])
+
     ## START DEVELOPMENT BLOCK ##
     if setu['radcor_development']:
         dev_print['sensor'] = sensor
@@ -592,7 +598,9 @@ def radcor(ncf, settings = None):
             for k in tg_dict:
                 if k not in ['wave']: bands[b][k] = tg_dict[k][b]
             bands[b]['wavelength'] = bands[b]['wave_nm']
-            if setu['output_ed']: bands[b]['F0'] = f0_b[b]
+            if setu['output_ed']:
+                bands[b]['F0'] = f0_b[b]
+                bands[b]['td_gas'] = tdg_b[b]
             ## track APSFS simulation band naming
             bint += 1
             ## subset SD8 bands for SD5

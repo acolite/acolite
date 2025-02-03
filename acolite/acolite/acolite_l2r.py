@@ -18,6 +18,7 @@
 ##                2024-10-16 (QV) added RSR versioning support
 ##                2024-12-17 (QV) changed aerosol_correction to atmospheric_correction_method
 ##                2025-01-31 (QV) check if lat/lon are present for dem
+##                2025-02-03 (QV) use downward gas transmittance for output_ed
 
 def acolite_l2r(gem,
                 output = None,
@@ -303,8 +304,14 @@ def acolite_l2r(gem,
 
     ## for Ed
     if setu['output_ed']:
+        ## solar irradiance
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data']), rsrd['rsr'])
+        ## downward gas transmittance
+        tdgas = ac.ac.gaslut_interp(geom_mean['sza'], geom_mean['vza'], pressure=geom_mean['pressure'],
+                                    sensor=None, lutconfig='202402F', pars = ['dtdica','dtoxyg','dtniox','dtmeth'])
+        tdg = np.prod([tdgas[k] for k in tdgas if k != 'wave'], axis=0)
+        tdg_b = ac.shared.rsr_convolute_dict(np.asarray(tdgas['wave']), tdg, rsrd['rsr'])
 
     ## make bands dataset
     gem.bands = {}
@@ -322,6 +329,7 @@ def acolite_l2r(gem,
                 gem.bands[b]['rhos_ds'] = 'rhos_{}'.format(dsname)
             if setu['output_ed']:
                 gem.bands[b]['F0'] = f0_b[b]
+                gem.bands[b]['td_gas'] = tdg_b[b]
             for k in tg_dict:
                 if k not in ['wave']:
                     gem.bands[b][k] = tg_dict[k][b]
@@ -1465,7 +1473,7 @@ def acolite_l2r(gem,
             if setu['output_ed']:
                 cos_sza = np.cos(np.radians(gem.data('sza')))
                 se_distance = ac.shared.sun_position(gem.gatts['isodate'], 0, 0)['distance']
-                Ed = (gem.bands[b]['F0']) * se_distance**2 * cos_sza * gem.bands[b]['tt_gas'] * dtott
+                Ed = (gem.bands[b]['F0']) * se_distance**2 * cos_sza * gem.bands[b]['td_gas'] * dtott
                 del cos_sza
                 Ed /=  (1 - cur_data * astot)
             del astot, dutott, rhot_noatm
