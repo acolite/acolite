@@ -7,6 +7,7 @@
 ##                2023-10-31 (QV) check if luts_pressures is a list
 ##                2024-03-30 (QV) convert tuples to lists
 ##                2025-01-20 (QV) added generic setting list conversion
+##                2025-02-04 (QV) added fill to load call
 
 def parse(sensor, settings=None, merge=True):
     import os, time
@@ -16,7 +17,7 @@ def parse(sensor, settings=None, merge=True):
 
     ## read default settings for sensor
     if (sensor is not None) | (merge):
-        setu = ac.acolite.settings.load(sensor)
+        setu = ac.acolite.settings.load(sensor, fill = False)
     else:
         setu = {}
 

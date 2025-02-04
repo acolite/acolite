@@ -4,8 +4,9 @@
 ## Written by Quinten Vanhellemont 2017-11-30
 ## Last modifications:
 ##                2018-07-18 (QV) changed acolite import name
+##                2025-02-04 (QV) added fill keyword
 
-def load(settings):
+def load(settings, fill = True):
     import os, glob
     import acolite as ac
 
@@ -33,7 +34,8 @@ def load(settings):
     else: setu={}
 
     ## set defaults for options not specified
-    for key in setd.keys():
-        if key in setu.keys(): continue
-        else: setu[key] = setd[key]
+    if fill:
+        for key in setd.keys():
+            if key in setu.keys(): continue
+            else: setu[key] = setd[key]
     return(setu)
