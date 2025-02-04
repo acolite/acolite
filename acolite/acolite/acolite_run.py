@@ -176,6 +176,9 @@ def acolite_run(settings, inputfile=None, output=None):
                 if ac.settings['run']['verbosity'] > 1:
                     print('Old limit: {}'.format(ac.settings['run']['limit_old']))
                     print('New limit: {}'.format(ac.settings['run']['limit']))
+        ## set new limits to user settings
+        for k in ['limit', 'limit_old']:
+            if k in ac.settings['run']: ac.settings['user'][k] = ac.settings['run'][k]
     ## end checking limit settings
 
     ## make list of lists to process, one list if merging tiles
