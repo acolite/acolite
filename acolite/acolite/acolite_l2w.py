@@ -85,16 +85,14 @@ def acolite_l2w(gem, output = None, settings = None,
 
     ## read rsr
     hyper = False
+    lut_sensor = '{}'.format(gem.gatts['sensor'])
+    if setu['rsr_version'] is not None: lut_sensor = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
     ## hyperspectral
     if gem.gatts['sensor'] in ac.config['hyper_sensors']:
         hyper = True
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
-        rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
+        rsrd = ac.shared.rsr_dict(rsrd={lut_sensor:{'rsr':rsr}})
     else:
-        if setu['rsr_version'] is not None:
-            lut_sensor = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
-        else:
-            lut_sensor = '{}'.format(gem.gatts['sensor'])
         rsrd = ac.shared.rsr_dict(sensor=lut_sensor)
 
     ## spectral turbidity/spm
@@ -111,9 +109,9 @@ def acolite_l2w(gem, output = None, settings = None,
             if grouping_key not in gem.gatts['auto_grouping']:
                 gem.gatts['auto_grouping'] += ':{}'.format(grouping_key)
             ## run through bands
-            for b in rsrd[gem.gatts['sensor']]['wave_name']:
-                w = rsrd[gem.gatts['sensor']]['wave_nm'][b]
-                wn = rsrd[gem.gatts['sensor']]['wave_name'][b]
+            for b in rsrd[lut_sensor]['wave_name']:
+                w = rsrd[lut_sensor]['wave_nm'][b]
+                wn = rsrd[lut_sensor]['wave_name'][b]
                 if (w < nechad_range[0]) or (w > nechad_range[1]): continue
                 if wn == 'nan': continue
                 setu['l2w_parameters'].append(k.replace('_*', '_{}').format(wn))
@@ -314,8 +312,8 @@ def acolite_l2w(gem, output = None, settings = None,
                         continue
 
             ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
-            for b in rsrd[gem.gatts['sensor']]['rsr_bands']:
-                if (rsrd[gem.gatts['sensor']]['wave_name'][b] == str(cw)): nechad_band = b
+            for b in rsrd[lut_sensor]['rsr_bands']:
+                if (rsrd[lut_sensor]['wave_name'][b] == str(cw)): nechad_band = b
 
             A_Nechad, C_Nechad = None, None
 
@@ -329,7 +327,7 @@ def acolite_l2w(gem, output = None, settings = None,
                 par_base = '{}_Nechad{}Ave'.format(nechad_par, cal_year)
                 A_Nechad, C_Nechad = ac.parameters.nechad.coef_band(nechad_par, cal_year = cal_year, \
                                                                 sensor = gem.gatts['sensor'], band = nechad_band, \
-                                                                rsr = rsrd[gem.gatts['sensor']]['rsr'])
+                                                                rsr = rsrd[lut_sensor]['rsr'])
 
             ## resampled to band by Nechad 2016
             if nechad_parameter == '2016':
@@ -386,9 +384,9 @@ def acolite_l2w(gem, output = None, settings = None,
             ## identify bands
             ri, rw = ac.shared.closest_idx(rhos_waves, int(cfg['algo_wave_red']))
             ni, nw = ac.shared.closest_idx(rhos_waves, int(cfg['algo_wave_nir']))
-            for b in rsrd[gem.gatts['sensor']]['rsr_bands']:
-                if (rsrd[gem.gatts['sensor']]['wave_name'][b] == str(rw)): red_band = b
-                if (rsrd[gem.gatts['sensor']]['wave_name'][b] == str(nw)): nir_band = b
+            for b in rsrd[lut_sensor]['rsr_bands']:
+                if (rsrd[lut_sensor]['wave_name'][b] == str(rw)): red_band = b
+                if (rsrd[lut_sensor]['wave_name'][b] == str(nw)): nir_band = b
 
             ## store settings in atts
             for k in cfg: par_attributes[k] = cfg[k]
@@ -459,8 +457,8 @@ def acolite_l2w(gem, output = None, settings = None,
                         continue
 
             ci, cw = ac.shared.closest_idx(rhos_waves, int(nechad_wave))
-            for b in rsrd[gem.gatts['sensor']]['rsr_bands']:
-                if (rsrd[gem.gatts['sensor']]['wave_name'][b] == str(cw)): nechad_band = b
+            for b in rsrd[lut_sensor]['rsr_bands']:
+                if (rsrd[lut_sensor]['wave_name'][b] == str(cw)): nechad_band = b
 
             A_Nechad, C_Nechad = None, None
             nechad_dict = ac.parameters.dogliotti.coef_hyper()
@@ -472,8 +470,8 @@ def acolite_l2w(gem, output = None, settings = None,
                 C_Nechad = nechad_dict['C'][didx]
             elif nechad_parameter == 'resampled':
                 # resample parameters to band
-                cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[gem.gatts['sensor']]['rsr'])
-                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, 1/nechad_dict['A_mean'], rsrd[gem.gatts['sensor']]['rsr'])
+                cdct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, nechad_dict['C'], rsrd[lut_sensor]['rsr'])
+                adct = ac.shared.rsr_convolute_dict(nechad_dict['wave']/1000, 1/nechad_dict['A_mean'], rsrd[lut_sensor]['rsr'])
                 adct = {k:1/adct[k] for k in adct}
                 A_Nechad = adct[nechad_band]
                 C_Nechad = cdct[nechad_band]
@@ -511,8 +509,8 @@ def acolite_l2w(gem, output = None, settings = None,
             ## find suitable bands for Novoa red-NIR switching algorithm
             tur_waves = []
             tur_bands = []
-            for b in rsrd[gem.gatts['sensor']]['wave_name']:
-                w = rsrd[gem.gatts['sensor']]['wave_nm'][b]
+            for b in rsrd[lut_sensor]['wave_name']:
+                w = rsrd[lut_sensor]['wave_nm'][b]
                 if (w >= setu['nechad_range'][0]) and (w <= setu['nechad_range'][1]):
                     tur_waves.append(w)
                     tur_bands.append(b)
