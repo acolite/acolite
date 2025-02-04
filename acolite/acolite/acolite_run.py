@@ -75,7 +75,7 @@ def acolite_run(settings, inputfile=None, output=None):
         nscenes = len(ac.settings['run']['inputfile'])
 
     if ac.settings['run']['polylakes']:
-        ac.settings['run']['polygon'] = ac.shared.polylakes(setu['polylakes_database'])
+        ac.settings['run']['polygon'] = ac.shared.polylakes(ac.settings['run']['polylakes_database'])
         ac.settings['run']['polygon_limit'] = False
         ac.settings['run']['polygon_clip'] = True
 
