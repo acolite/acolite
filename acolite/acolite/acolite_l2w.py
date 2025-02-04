@@ -8,7 +8,8 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-16 (QV) changed output NetCDF handling to using gem
 ##                2025-01-16 (QV) added rrs and lowercase to parameter loop
-##                2025-02-04 (QV) added additional S2C_MSI outputs, updated settings handling, added rsr_version
+##                2025-02-04 (QV) added additional S2C_MSI outputs
+##                                updated settings handling, added rsr_version, fixed rhos_ds selection
 
 def acolite_l2w(gem, output = None, settings = None,
                 target_file = None, load_data = True, new = True, ):
@@ -64,14 +65,14 @@ def acolite_l2w(gem, output = None, settings = None,
     gem.verbosity = setu['verbosity']
 
     ## get rhot and rhos wavelengths
-    rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
+    rhot_ds = [ds for ds in gem.datasets if ds.startswith('rhot_')]
     rhot_waves = [int(ds.split('_')[-1]) for ds in rhot_ds]
     if len(rhot_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhot datasets.'.format(gemf, len(rhot_ds)))
     if verbosity > 3:
         print('rhot datasets: ', rhot_ds)
         print('rhot wavelengths: ', rhot_waves)
 
-    rhos_ds = [ds for ds in gem.datasets if 'rhos_' in ds]
+    rhos_ds = [ds for ds in gem.datasets if ds.startswith('rhos_')]
     rhos_waves = [int(ds.split('_')[-1]) for ds in rhos_ds]
     if len(rhos_waves) == 0: print('{} is probably not an ACOLITE L2R file: {} rhos datasets.'.format(gemf, len(rhos_ds)))
     if verbosity > 3:
@@ -666,9 +667,7 @@ def acolite_l2w(gem, output = None, settings = None,
             for w in chl_dct['blue'] + chl_dct['green']:
                 ci, cw = ac.shared.closest_idx(rhos_waves, int(w))
                 if np.abs(cw-w) > chl_oc_wl_diff: continue
-                #cur_ds = 'rhos_{}'.format(cw)
-                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
-                cur_data = 1.0 * gem.data(cur_ds)
+                cur_data = 1.0 * gem.data(rhos_ds[ci])
                 if w in chl_dct['blue']:
                     if blue is None:
                         par_attributes['blue_wave_sel'] = [cw]
@@ -874,8 +873,7 @@ def acolite_l2w(gem, output = None, settings = None,
                     for i, reqw in enumerate(req_waves):
                         widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
                         if abs(float(selwave)-float(reqw)) > 10: continue
-                        selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                        required_datasets.append(selds)
+                        required_datasets.append(rhos_ds[widx])
                         req_waves_selected.append(selwave)
                     par_attributes['waves']=req_waves_selected
                     if len(required_datasets) != len(req_waves):
@@ -1356,10 +1354,6 @@ def acolite_l2w(gem, output = None, settings = None,
                 par_attributes['dataset']=par_split[1]
                 ds_names = [ds for ds in gem.datasets if '{}_'.format(par_split[1]) in ds]
                 ds_waves = [int(ds.split('_')[-1]) for ds in ds_names]
-            #if cur_par=='ndvi_rhot':
-            #    par_attributes['dataset']='rhot'
-            #    ds_waves = [w for w in rhot_waves]
-            #    ds_names = [ds for ds in rhot_ds]
 
             ## number of products possible (for VIIRS use both I and M bands)
             ndvi_products = 1
@@ -1436,8 +1430,7 @@ def acolite_l2w(gem, output = None, settings = None,
             for i, reqw in enumerate(req_waves):
                 widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
                 if abs(float(selwave)-float(reqw)) > 10: continue
-                selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                required_datasets.append(selds)
+                required_datasets.append(rhos_ds[widx])
                 req_waves_selected.append(selwave)
             par_attributes['waves']=req_waves_selected
             if len(required_datasets) != len(req_waves): continue
@@ -1477,8 +1470,7 @@ def acolite_l2w(gem, output = None, settings = None,
             for i, reqw in enumerate(req_waves):
                 widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
                 if abs(float(selwave)-float(reqw)) > 10: continue
-                selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                required_datasets.append(selds)
+                required_datasets.append(rhos_ds[widx])
                 req_waves_selected.append(selwave)
             par_attributes['waves']=req_waves_selected
             if len(required_datasets) != len(req_waves): continue
@@ -1488,10 +1480,9 @@ def acolite_l2w(gem, output = None, settings = None,
                 if di == 0: tmp_data = []
                 cur_data = 1.0 * gem.data(cur_ds)
                 tmp_data.append(cur_data)
-            slh_waves = [float(ds.split('_')[1]) for ds in required_datasets]
             ratio = (tmp_data[2]-tmp_data[0]) / \
-                    (slh_waves[2]+slh_waves[0])
-            par_data[par_name] = tmp_data[1] - (tmp_data[0] + (ratio)*(slh_waves[1]+slh_waves[0]))
+                    (req_waves_selected[2]+req_waves_selected[0])
+            par_data[par_name] = tmp_data[1] - (tmp_data[0] + (ratio)*(req_waves_selected[1]+req_waves_selected[0]))
             par_atts[par_name] = par_attributes
             tmp_data = None
         ## end SLH
@@ -1569,8 +1560,7 @@ def acolite_l2w(gem, output = None, settings = None,
             for i, reqw in enumerate(req_waves):
                 widx,selwave = ac.shared.closest_idx(ds_waves, reqw)
                 if abs(float(selwave)-float(reqw)) > 10: continue
-                selds='{}_{}'.format(par_attributes['dataset'],selwave)
-                required_datasets.append(selds)
+                required_datasets.append(rhos_ds[widx])
                 req_waves_selected.append(selwave)
             par_attributes['waves']=req_waves_selected
             if len(required_datasets) != len(req_waves): continue
