@@ -12,16 +12,14 @@ def acolite_l1r(bundle, input_type=None):
     import acolite as ac
     import os, sys, shutil
 
-    ## use run settings, update with sensor specific defaults in l1_convert
-    setr = {k: ac.settings['run'][k] for k in ac.settings['run']}
-
     ## set up l1r_files list
     l1r_files = []
 
     ## make bundle a list even if only one is provided
     if type(bundle) != list: bundle = [bundle]
-    setr['inputfile'] = bundle
     ac.settings['run']['inputfile'] = bundle
+    if 'output' not in ac.settings['run']:
+        ac.settings['run']['output'] = os.path.dirname(ac.settings['run']['inputfile'][0])
 
     ## test path lengths on windows
     if 'win' in sys.platform:
@@ -30,13 +28,6 @@ def acolite_l1r(bundle, input_type=None):
             print('Warning: Rather long input filename ({} characters)'.format(max(input_lengths)))
             print('This may give issues in Windows due to path length limitations, file(s):')
             for b in bundle: print(len(b), b)
-
-    ## set output directory
-    if 'output' not in setr:
-        setr['output'] = os.path.dirname(setr['inputfile'][0])
-
-    if 'output' not in ac.settings['run']:
-        ac.settings['run']['output'] = os.path.dirname(ac.settings['run']['inputfile'][0])
 
     ## identify bundle
     orig_bundle = [b for b in bundle]
@@ -58,7 +49,7 @@ def acolite_l1r(bundle, input_type=None):
         ## return bundle if ACOLITE type
         l1r_files = bundle
         gatts = ac.shared.nc_gatts(bundle[0])
-        setu = ac.acolite.settings.parse(gatts['sensor'], settings = setr)
+        setu = ac.acolite.settings.parse(gatts['sensor'], settings = ac.settings['run'])
     ## end ACOLITE
     ################
 
@@ -107,8 +98,7 @@ def acolite_l1r(bundle, input_type=None):
     ################
     ## WorldView
     if input_type == 'WorldView':
-        if 'inputfile_swir' not in setr: setr['inputfile_swir'] = None
-        l1r_files, setu = ac.worldview.l1_convert(bundle, inputfile_swir = setr['inputfile_swir'])
+        l1r_files, setu = ac.worldview.l1_convert(bundle)
     ## end WorldView
     ################
 

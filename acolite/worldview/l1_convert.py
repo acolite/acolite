@@ -42,6 +42,7 @@ def l1_convert(inputfile, output = None,
     nscenes = len(inputfile)
 
     ## parse swir inputfile
+    if setu['inputfile_swir'] is not None: inputfile_swir = setu['inputfile_swir']
     if inputfile_swir is not None:
         if type(inputfile_swir) != list:
             if type(inputfile_swir) == str:
