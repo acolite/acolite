@@ -26,22 +26,22 @@ aot_550,0,0.5,False,viridis,$\tau_{a} 550 nm$,1
 SPM_Nechad,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
 SPM_Nechad_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
 SPM_Nechad2010_*,1,100,True,Planck_Parchment_RGB,SPM Nechad,gm$^{-3}$
-SPM_Nechad2010ave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad (Ave),gm$^{-3}$
+SPM_Nechad2010Ave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad (Ave),gm$^{-3}$
 SPM_Nechad2016,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
 SPM_Nechad2016_*,1,100,True,Planck_Parchment_RGB,SPM Nechad 2016,gm$^{-3}$
-SPM_Nechadave,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
-SPM_Nechadave_*,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
+SPM_NechadAve,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
+SPM_NechadAve_*,1,100,True,Planck_Parchment_RGB,SPM Nechad Ave,gm$^{-3}$
 #
 ## T Nechad with generic option
 #
 TUR_Nechad,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
 TUR_Nechad_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
 TUR_Nechad2009_*,1,100,True,Planck_Parchment_RGB,T Nechad,FNU
-TUR_Nechad2009ave_*,1,100,True,Planck_Parchment_RGB,T Nechad (Ave),FNU
+TUR_Nechad2009Ave_*,1,100,True,Planck_Parchment_RGB,T Nechad (Ave),FNU
 TUR_Nechad2016,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
 TUR_Nechad2016_*,1,100,True,Planck_Parchment_RGB,T Nechad 2016,FNU
-TUR_Nechadave,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
-TUR_Nechadave_*,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
+TUR_NechadAve,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
+TUR_NechadAve_*,1,100,True,Planck_Parchment_RGB,T Nechad Ave,FNU
 #
 ## T Dogliotti with generic option
 #

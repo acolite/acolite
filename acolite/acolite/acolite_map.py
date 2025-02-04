@@ -21,7 +21,7 @@
 ##                2024-11-20 (QV) changed RGB title labeling
 ##                2025-01-16 (QV) removed transformation to lower case for parameter names
 ##                                added user parameter scaling file
-##                2025-02-04 (QV) improved settings handling
+##                2025-02-04 (QV) improved settings handling, changed parameter label identification
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -66,15 +66,20 @@ def acolite_map(ncf, output = None,
             cparl = '{}'.format(par)
             sp = cparl.split('_')
             wave = None
-            if ('{}_*'.format('_'.join(sp[0:-1])) in pscale) & (cparl not in pscale):
-                pard = {k:pscale['{}_*'.format('_'.join(sp[0:-1]))][k] for k in pscale['{}_*'.format('_'.join(sp[0:-1]))]}
-                wave = sp[-1]
-            elif ('{}_*'.format(sp[0]) in pscale) & (cparl not in pscale):
-                pard = {k:pscale['{}_*'.format(sp[0])][k] for k in pscale['{}_*'.format(sp[0])]}
-                wave = sp[-1]
-            elif cparl in pscale:
+            pard = None
+            ## parameter is configured
+            if cparl in pscale:
                 pard = {k:pscale[cparl][k] for k in pscale[cparl]}
             else:
+                ## is parameter configured with asterisk?
+                for i in range(len(sp)):
+                    park = '{}_*'.format('_'.join(sp[0:-i]))
+                    if (park in pscale):
+                        pard = {k:pscale[park][k] for k in pscale[park]}
+                        wave = sp[-1]
+                        break
+            ## not configured
+            if pard is None:
                 pard = {'log':False, 'name':cpar, 'unit': ''}
                 pard['cmap'] = setu['map_default_colormap']#'Planck_Parchment_RGB'
             ## do auto ranging
