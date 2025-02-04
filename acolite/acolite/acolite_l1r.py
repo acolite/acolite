@@ -6,6 +6,7 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2024-03-14 (QV) update settings handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
+##                2025-02-04 (QV) fix to use user settings, not run settings
 
 def acolite_l1r(bundle, settings = None, input_type=None):
     import acolite as ac
@@ -15,7 +16,7 @@ def acolite_l1r(bundle, settings = None, input_type=None):
     if settings is not None:
         ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
         for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+    setu = {k: ac.settings['user'][k] for k in ac.settings['user']}
 
     ## set up l1r_files list
     l1r_files = []
