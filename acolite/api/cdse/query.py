@@ -9,6 +9,7 @@
 ##                2024-07-24 (QV) added L2, land and RR products
 ##                2024-12-04 (QV) added SLSTR
 ##                2024-12-18 (QV) added result checking and pagination info
+##                2025-02-04 (QV) added S2C_MSI
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None, level = 1, sensor = None,
@@ -27,7 +28,7 @@ def query(scene = None, collection = None, product = None,
 
     ## get collection info from scene
     if scene is not None:
-        if (scene[0:3] in ['S2A', 'S2B']):
+        if (scene[0:3] in ['S2A', 'S2B', 'S2C']):
             collection = "SENTINEL-2"
             if ('MSIL1C' in scene):
                 product = "S2MSI1C" ## S2MSI1C for Level 1 MSI data
