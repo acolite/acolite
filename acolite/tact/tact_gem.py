@@ -114,7 +114,7 @@ def tact_gem(gem, output_file = True,
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None
     if (emissivity_file is None) & (emissivity not in ['ged', 'eminet', 'ndvi']):
-        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
+        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['directory']['data'], 'TACT', emissivity)
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None

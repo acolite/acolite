@@ -9,7 +9,7 @@ def coef_hyper():
     import acolite as ac
     import numpy as np
 
-    dfile = ac.config['data_dir'] + '/Shared/algorithms/Dogliotti/dogliotti_turbidity_hyperspectral.csv'
+    dfile = ac.config['directory']['data'] + '/Shared/algorithms/Dogliotti/dogliotti_turbidity_hyperspectral.csv'
 
     ## read header
     with open(dfile, 'r', encoding='utf-8') as f:

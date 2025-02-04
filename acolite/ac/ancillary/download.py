@@ -21,7 +21,7 @@ def download(date, local_dir = None,
     import urllib.request
 
     import acolite as ac
-    if local_dir == None: local_dir=ac.config['met_dir']
+    if local_dir == None: local_dir = ac.config['directory']['met']
 
     ancillary_files = ac.ac.ancillary.list_files(date)
 

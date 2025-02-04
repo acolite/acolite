@@ -10,7 +10,7 @@ def ged_download(tile, url_base, ged_dir = None, override = False):
     import acolite as ac
 
     if ged_dir is None:
-        ged_dir = ac.config['ged_dir'] + '/AG100.003'
+        ged_dir = ac.config['directory']['ged'] + '/AG100.003'
     if not os.path.exists(ged_dir): os.makedirs(ged_dir)
 
     for ext in ['.xml', '']:

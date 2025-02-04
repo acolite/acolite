@@ -16,14 +16,15 @@ def gaslut_interp(sza, vza, pressure = 1013, sensor = None,
     import numpy as np
 
     ## use URL from main config
-    if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
+    if remote_base is None:
+        remote_base = '{}'.format(ac.config['lut']['url'])
 
     ## input geometry dimensions
     dim = np.atleast_1d(sza).shape
     onedim = ((len(dim) == 1) & (dim[0] == 1))
 
     ## identify LUT file
-    lut_path = '{}/Gas'.format(ac.config['lut_dir'])
+    lut_path = '{}/Gas'.format(ac.config['lut']['directory'])
     lut_id = 'Gas_{}'.format(lutconfig)
     lutnc = '{}/{}.nc'.format(lut_path,lut_id)
 

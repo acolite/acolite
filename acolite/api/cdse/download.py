@@ -12,7 +12,7 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
     import acolite as ac
 
     ## get authentication URL from config
-    if auth_url is None: auth_url = ac.config['CDSE_auth']
+    if auth_url is None: auth_url = ac.config['CDSE']['auth']
 
     ## get credentials
     if auth is None: auth = ac.shared.auth(netrc_machine)

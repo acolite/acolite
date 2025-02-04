@@ -11,7 +11,8 @@ def polygon_from_wkt(wkt, file=None):
     from osgeo import ogr
     import acolite as ac
 
-    if file == None: file = ac.config['scratch_dir'] + '/polygon.json'
+    if file is None:
+        file = ac.config['directory']['scratch'] + '/polygon.json'
     odir = os.path.dirname(file)
     if not os.path.exists(odir): os.makedirs(odir)
 

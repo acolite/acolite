@@ -29,10 +29,10 @@ def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity
         source = '{}'.format(source_default)
 
     if obase is None:
-        obase = os.path.abspath(ac.config['grid_dir']) + '/{}/'.format(source)
+        obase = os.path.abspath(ac.config['TACT']['grid']) + '/{}/'.format(source)
 
     if url_base is None:
-        url_base = '{}'.format(ac.config['tact_thredds_url_ncep'])
+        url_base = '{}'.format(ac.config['TACT']['thredds']['ncep'])
         print('Using base URL {}'.format(url_base))
 
     ## parse date

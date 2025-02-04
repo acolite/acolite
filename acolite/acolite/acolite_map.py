@@ -86,7 +86,7 @@ def acolite_map(ncf, output = None,
             part = '{}{} [{}]'.format(pard['name'], '' if wave is None else ' {} nm'.format(wave), pard['unit'])
 
             if pard['cmap'] == 'default': pard['cmap']=setu['map_default_colormap']
-            ctfile = "{}/{}/{}.txt".format(ac.config['data_dir'], 'Shared/ColourTables', pard['cmap'])
+            ctfile = "{}/{}/{}.txt".format(ac.config['directory']['data'], 'Shared/ColourTables', pard['cmap'])
             if os.path.exists(ctfile):
                 pard['cmap'] = mpl.colors.ListedColormap(np.loadtxt(ctfile)/255.)
             else:
@@ -317,8 +317,8 @@ def acolite_map(ncf, output = None,
             limit = setu['limit']
 
     ## load parameter configuration
-    pscale = ac.acolite.parameter_scaling(file = ac.config['parameter_labels'])
-    pscale_u = ac.acolite.parameter_scaling(file = ac.config['parameter_labels_user'])
+    pscale = ac.acolite.parameter_scaling(file = ac.config['parameters']['labels'])
+    pscale_u = ac.acolite.parameter_scaling(file = ac.config['parameters']['labels_user'])
     for k in pscale_u: pscale[k] = pscale_u[k]
 
     crs = None

@@ -10,7 +10,7 @@ def parameter_discretisation():
     import numpy as np
     param = {}
     header = None
-    with open(ac.config['parameter_discretisation'], 'r', encoding="utf-8") as f:
+    with open(ac.config['parameters']['discretisation'], 'r', encoding="utf-8") as f:
         for line in f.readlines():
             line = line.strip()
             if len(line) == 0: continue

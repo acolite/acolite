@@ -12,7 +12,7 @@ def ko3_read(ko3file=None):
     import numpy as np
     import acolite as ac
 
-    if ko3file is None: ko3file = ac.config['data_dir']+'/Shared/k_o3_anderson.txt'
+    if ko3file is None: ko3file = ac.config['directory']['data'] + '/Shared/k_o3_anderson.txt'
     ko3data=[]
     ko3wave=[]
     with open(ko3file, 'r') as f:

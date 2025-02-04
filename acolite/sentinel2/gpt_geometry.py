@@ -12,7 +12,7 @@ def gpt_geometry(bundle, output=None, target_res=60, override=True, verbosity=0,
     files = []
     res = '{:.0f}'.format(target_res)
 
-    gpt = '{}/bin/gpt'.format(ac.config['snap_directory'])
+    gpt = '{}/bin/gpt'.format(ac.config['directory']['snap'])
     if os.path.exists(gpt) is False:
         if verbosity>0: print('gpt not found at {}'.format(gpt))
         return(files)
@@ -46,7 +46,7 @@ def gpt_geometry(bundle, output=None, target_res=60, override=True, verbosity=0,
 
         if not os.path.exists(geometry_file) or override:
             ## create gpt graph
-            ifile = '{}/S2/gpt_geometry_graph.xml'.format(ac.config['data_dir'])
+            ifile = '{}/S2/gpt_geometry_graph.xml'.format(ac.config['directory']['data'])
             if verbosity > 0: print('Writing gpt graph to {}'.format(gptfile, res))
             with open(ifile, 'r') as fi, open(gptfile, 'w') as fo:
                 for line in fi.readlines():

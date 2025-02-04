@@ -59,7 +59,7 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
         if use_bt_lut: btlut = ac.ecostress.bt_lut()
 
         ## read thermal coefficients
-        tcfile = ac.config['data_dir']+'/ECOSTRESS/ECOSTRESS_thermal_coefficients.json'
+        tcfile = ac.config['directory']['data'] + '/ECOSTRESS/ECOSTRESS_thermal_coefficients.json'
         coeffs = json.load(open(tcfile, 'r'))
 
         ## set up global attributes

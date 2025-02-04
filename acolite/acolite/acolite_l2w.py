@@ -113,7 +113,7 @@ def acolite_l2w(gem,
         ## remove chlor_a parameter
         setu['l2w_parameters'].remove('chlor_a')
         ## load config
-        cx_file = ac.config['data_dir']+'/Shared/algorithms/chl_ci/chl_ocx.txt'
+        cx_file = ac.config['directory']['data'] + '/Shared/algorithms/chl_ci/chl_ocx.txt'
         cx_cfg = ac.acolite.settings.read(cx_file)
         ## determine parameters
         if gem.gatts['sensor'] not in cx_cfg:
@@ -496,7 +496,7 @@ def acolite_l2w(gem,
 
             ## read config dict
             novoa_config='defaults'
-            novoa_dict = ac.shared.import_config('{}/Shared/algorithms/Novoa/{}.txt'.format(ac.config['data_dir'], novoa_config), parse=True)
+            novoa_dict = ac.shared.import_config('{}/Shared/algorithms/Novoa/{}.txt'.format(ac.config['directory']['data'], novoa_config), parse=True)
 
             ## find suitable bands for Novoa red-NIR switching algorithm
             tur_waves = []
@@ -691,7 +691,7 @@ def acolite_l2w(gem,
         if (cur_par[0:6] == 'chl_ci') | (cur_par[0:7] == 'chlor_a'):
             mask = True ## water parameter so apply mask
             ## load config
-            ci_file = ac.config['data_dir']+'/Shared/algorithms/chl_ci/defaults.txt'
+            ci_file = ac.config['directory']['data'] + '/Shared/algorithms/chl_ci/defaults.txt'
             ci_cfg = ac.acolite.settings.read(ci_file)
             for k in ci_cfg:
                 if type(ci_cfg[k]) == bool: continue
@@ -1206,7 +1206,7 @@ def acolite_l2w(gem,
             par_attributes['algorithm']=''
 
             ## read config
-            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.txt'.format(ac.config['data_dir']), parse=True)
+            fait_cfg = ac.shared.import_config('{}/Shared/algorithms/Dogliotti/dogliotti_fait.txt'.format(ac.config['directory']['data']), parse=True)
             fait_fai_threshold = float(fait_cfg['fait_fai_threshold'])
             fait_red_threshold = float(fait_cfg['fait_red_threshold'])
             fait_rgb_limit = float(fait_cfg['fait_rgb_limit'])

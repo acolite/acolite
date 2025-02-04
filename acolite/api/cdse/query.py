@@ -23,7 +23,7 @@ def query(scene = None, collection = None, product = None,
     import acolite as ac
 
     ## get odata url from ACOLITE config
-    if odata_url is None: odata_url = ac.config['CDSE_odata']
+    if odata_url is None: odata_url = ac.config['CDSE']['odata']
 
     ## get collection info from scene
     if scene is not None:

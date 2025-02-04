@@ -11,7 +11,7 @@ def merged_lut(lut, lutint, pressure, sensor = None, get_remote = True, lut_par 
 
     ## base lut
     lutid = '{}-{}mb'.format(lut, '{}'.format(pressure).zfill(4))
-    lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
+    lutdir = '{}/{}'.format(ac.config['lut']['directory'], '-'.join(lutid.split('-')[0:3]))
 
     ## model
     model = lut.split('-MOD')[1] # lut[-1]
@@ -39,7 +39,7 @@ def merged_lut(lut, lutint, pressure, sensor = None, get_remote = True, lut_par 
         ## sensor specific LUT
         if sensor is not None:
             dim_names = ['par', 'azi', 'thv', 'ths', 'wnd', 'tau']
-            rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
+            rsr_file = ac.config['directory']['data'] + '/RSR/'+sensor+'.txt'
             rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
             lut_meta['bands'] = rsr_bands
 

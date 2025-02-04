@@ -191,12 +191,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             rpr_file = None
             if reproject_to_utm:
                 if prj is None:
-                    rpr_file = '{}/{}'.format(ac.config['scratch_dir'], bn.replace('.tiff', '_reprojected.tif'))
+                    rpr_file = '{}/{}'.format(ac.config['directory']['scratch'], bn.replace('.tiff', '_reprojected.tif'))
                     if not os.path.exists(rpr_file):
                         if verbosity > 1: print('Reprojecting {} to {}'.format(image_file, epsg))
                         if verbosity > 1: print('Target file {}'.format(rpr_file))
                         ## scratch directory
-                        if not os.path.exists(ac.config['scratch_dir']): os.makedirs(ac.config['scratch_dir'])
+                        if not os.path.exists(ac.config['directory']['scratch']):
+                            os.makedirs(ac.config['directory']['scratch'])
                         ## reproject and close dataset
                         ds = gdal.Warp(rpr_file, image_file, dstSRS=epsg)
                         ds = None
@@ -301,8 +302,8 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
             ofiles.append(ofile)
 
     ## remove scratch directory
-    if os.path.exists(ac.config['scratch_dir']):
-        if (clear_scratch) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
-            os.rmdir(ac.config['scratch_dir'])
+    if os.path.exists(ac.config['directory']['scratch']):
+        if (clear_scratch) & (len(os.listdir(ac.config['directory']['scratch'])) == 0):
+            os.rmdir(ac.config['directory']['scratch'])
 
     return(ofiles, setu)

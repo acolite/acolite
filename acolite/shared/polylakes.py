@@ -26,19 +26,19 @@ def polylakes(database = 'worldlakes', remove_zip = False):
     ## local worldlakes files
     if database.lower() == 'worldlakes':
         url = 'https://opendata.arcgis.com/api/v3/datasets/0abb136c398942e080f736c8eb09f5c4_0/downloads/data?format=shp&spatialRefId=4326'
-        local_zip = '{}/{}'.format(ac.config['external_dir'], 'World_Lakes-shp.zip')
-        local_file = '{}/{}'.format(ac.config['external_dir'], 'World_Lakes-shp/World_Lakes.shp')
-        local_dir = '{}/{}'.format(ac.config['external_dir'], 'World_Lakes-shp')
+        local_zip = '{}/{}'.format(ac.config['directory']['external'], 'World_Lakes-shp.zip')
+        local_file = '{}/{}'.format(ac.config['directory']['external'], 'World_Lakes-shp/World_Lakes.shp')
+        local_dir = '{}/{}'.format(ac.config['directory']['external'], 'World_Lakes-shp')
     elif database.lower() == 'hydrolakes':
         url = 'https://97dc600d3ccc765f840c-d5a4231de41cd7a15e06ac00b0bcc552.ssl.cf5.rackcdn.com/HydroLAKES_polys_v10_shp.zip'
-        local_zip = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp.zip')
-        local_file = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10.shp')
-        local_dir = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp')
+        local_zip = '{}/{}'.format(ac.config['directory']['external'], 'HydroLAKES_polys_v10_shp.zip')
+        local_file = '{}/{}'.format(ac.config['directory']['external'], 'HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10.shp')
+        local_dir = '{}/{}'.format(ac.config['directory']['external'], 'HydroLAKES_polys_v10_shp')
     elif database.lower() == 'gshhg':
         url = 'https://www.ngdc.noaa.gov/mgg/shorelines/data/gshhg/latest/gshhg-shp-2.3.7.zip'
-        local_zip = '{}/{}'.format(ac.config['external_dir'], 'gshhg-shp-2.3.7.zip')
-        local_file = '{}/{}'.format(ac.config['external_dir'], 'gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp')
-        local_dir = '{}/{}'.format(ac.config['external_dir'], 'gshhg-shp-2.3.7')
+        local_zip = '{}/{}'.format(ac.config['directory']['external'], 'gshhg-shp-2.3.7.zip')
+        local_file = '{}/{}'.format(ac.config['directory']['external'], 'gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp')
+        local_dir = '{}/{}'.format(ac.config['directory']['external'], 'gshhg-shp-2.3.7')
 
     ## download/extract
     if not os.path.exists(local_file):

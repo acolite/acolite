@@ -16,7 +16,7 @@ def srtm15plus(path=None):
     if path is not None:
         local_file = path
     else:
-        local_file = '{}/{}'.format(ac.config['external_dir'], 'SRTM15_V2.3.nc')
+        local_file = '{}/{}'.format(ac.config['directory']['external'], 'SRTM15_V2.3.nc')
     local_dir = os.path.dirname(local_file)
 
     ## download/extract

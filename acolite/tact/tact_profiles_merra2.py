@@ -32,11 +32,11 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
         return()
 
     if url_base is None:
-        url_base = '{}'.format(ac.config['tact_thredds_url_merra2'])
+        url_base = '{}'.format(ac.config['TACT']['thredds']['merra2'])
         print('Using base URL {}'.format(url_base))
 
     if obase is None:
-        obase = os.path.abspath(ac.config['grid_dir']) + '/merra2/'
+        obase = os.path.abspath(ac.config['TACT']['grid']) + '/merra2/'
 
     ## parse date
     dt = dateutil.parser.parse(isotime)

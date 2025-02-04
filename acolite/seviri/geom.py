@@ -14,8 +14,8 @@ def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True):
     if (not geolocation) & (not geometry): return
 
     ## geolocation and geometry datasets
-    geol = ac.config['data_dir'] + '/GEO/SEVIRI/lonlat_{}.nc'.format(lon_0)
-    geom = ac.config['data_dir'] + '/GEO/SEVIRI/vaavza_{}.nc'.format(lon_0)
+    geol = ac.config['directory']['data'] + '/GEO/SEVIRI/lonlat_{}.nc'.format(lon_0)
+    geom = ac.config['directory']['data'] + '/GEO/SEVIRI/vaavza_{}.nc'.format(lon_0)
 
     ## compute geolocation
     if (geolocation) & (not os.path.exists(geol)):

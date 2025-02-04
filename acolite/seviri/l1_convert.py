@@ -26,7 +26,7 @@ def l1_convert(inputfile, output = None, settings = None):
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
     ## get F0 from EUM documentation
-    with open(ac.config['data_dir'] + '/GEO/SEVIRI/f0.json', 'r', encoding='utf8') as f:
+    with open(ac.config['directory']['data'] + '/GEO/SEVIRI/f0.json', 'r', encoding='utf8') as f:
         f0s = json.load(f)
     band_names = {1: 'VIS06', 2: 'VIS08', 3: 'NIR16', 12: 'HRV'} ## band index in nat file
 

@@ -6,7 +6,7 @@ def refri():
     import acolite as ac
     import numpy as np
 
-    file = '{}/{}'.format(ac.config['data_dir'], 'Shared/WOPP/computed_refri_T27_S0.dat')
+    file = '{}/{}'.format(ac.config['directory']['data'], 'Shared/WOPP/computed_refri_T27_S0.dat')
 
     data = {'wave':[], 'n':[]}
     with open(file, 'r', encoding="utf-8") as f:

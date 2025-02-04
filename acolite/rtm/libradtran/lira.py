@@ -21,13 +21,13 @@ class lira(object):
         if libradtran_dir is not None:
             self.libradtran_dir = libradtran_dir
         else:
-            self.libradtran_dir = ac.config['libradtran_dir']
+            self.libradtran_dir = ac.config['directory']['libradtran']
 
         ## get output dir - use acolite/scratch dir if not set
         if output is not None:
             self.output = output
         else:
-            self.output = ac.config['scratch_dir'] + os.sep + 'libRadtran'
+            self.output = ac.config['directory']['scratch'] + os.sep + 'libRadtran'
 
         ## get run name - use datetime if not set
         if run_name is not None:

@@ -24,12 +24,12 @@ def download_file(url, file, auth = None, session = None,
 
     ## first download to temp location
     bn = os.path.basename(file_path)
-    temp_file = '{}/{}'.format(ac.config['scratch_dir'], bn)
+    temp_file = '{}/{}'.format(ac.config['directory']['scratch'], bn)
     if os.path.exists(temp_file): os.remove(temp_file)
 
     start = time.time()
 
-    if any([u in url for u in ac.config['EARTHDATA_urls']]):
+    if any([u in url for u in ac.config['EarthData']['urls']]):
         ## try to get auth from netrc
         if (auth is None):
             try:

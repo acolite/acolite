@@ -255,7 +255,7 @@ def agh_old(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
             print(uoz, uwv, wind, pressure)
 
         if settings['run_hybrid_tact']:
-            emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
+            emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['directory']['data'], 'TACT', emissivity)
             #print(emissivity_file)
             print('Getting TACT parameters for scene centre location.')
             thermal_sensors = {'5':'L5_TM', '7':'L7_ETM', '8':'L8_TIRS', '9':'L9_TIRS'}

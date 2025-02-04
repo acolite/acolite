@@ -7,7 +7,7 @@
 def copernicus_dem_download(lon, lat, source = 'copernicus30'):
     import os, math, tarfile
     import acolite as ac
-    local_dir = ac.config['copernicus_dem_dir']
+    local_dir = ac.config['directory']['copernicus_dem']
 
     if source == 'copernicus30':
         resolution = 30

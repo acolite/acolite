@@ -33,7 +33,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity=5):
     f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
 
     ## get HYPERION wavelengths
-    hypf = ac.config['data_dir'] + '/HYPERION/Hyperion_cen_fwhm.dat'
+    hypf = ac.config['directory']['data'] + '/HYPERION/Hyperion_cen_fwhm.dat'
     hypd = np.loadtxt(hypf, encoding='utf-8')
     nbands = hypd.shape[0]
 

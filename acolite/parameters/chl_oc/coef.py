@@ -8,7 +8,7 @@
 def coef(config='defaults'):
     import os,sys
     import acolite as ac
-    nfile = ac.config['data_dir']+'/Shared/algorithms/chl_oc/{}.txt'.format(config)
+    nfile = ac.config['directory']['data'] + '/Shared/algorithms/chl_oc/{}.txt'.format(config)
 
     data = {}
     with open(nfile, 'r') as f:

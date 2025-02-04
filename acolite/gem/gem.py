@@ -92,7 +92,7 @@ class gem(object):
                 self.gatts = {attr : getattr(self.nc,attr) for attr in self.nc.ncattrs()}
                 ## find out if we have Landsat thermal bands
                 if 'sensor' in self.gatts:
-                    with open(ac.config['data_dir'] + '/Landsat/thermal_sensor.json', 'r', encoding = 'utf-8') as f:
+                    with open(ac.config['directory']['data'] + '/Landsat/thermal_sensor.json', 'r', encoding = 'utf-8') as f:
                         thermal_dict = json.loads(f.read())
                     if self.gatts['sensor'] in thermal_dict:
                         for k in thermal_dict[self.gatts['sensor']]:

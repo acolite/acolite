@@ -9,7 +9,7 @@
 def qaa_coef():
     import os,sys
     import acolite as ac
-    nfile = ac.config['data_dir']+'/Shared/algorithms/QAA/qaa_settings.txt'
+    nfile = ac.config['directory']['data'] + '/Shared/algorithms/QAA/qaa_settings.txt'
 
     data = {}
     with open(nfile, 'r', encoding='utf-8') as f:

@@ -51,7 +51,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
         ## run through pressures
         for ip, pr in enumerate(pressures):
             lutid = '{}-{}mb'.format(lut, '{}'.format(pr).zfill(4))
-            lutdir = '{}/{}'.format(ac.config['lut_dir'], '-'.join(lutid.split('-')[0:3]))
+            lutdir = '{}/{}'.format(ac.config['lut']['directory'], '-'.join(lutid.split('-')[0:3]))
 
             if sensor is None:
                 ## indices for reducing LUT size
@@ -75,7 +75,7 @@ def import_luts(pressures = [500, 750, 1013, 1100],
 
                 if 'bands' not in lut_meta:
                     # get bands from rsr_file as different systems may not keep dict keys in the same order
-                    rsr_file = ac.config['data_dir']+'/RSR/'+sensor+'.txt'
+                    rsr_file = ac.config['directory']['data'] + '/RSR/'+sensor+'.txt'
                     rsr, rsr_bands = ac.shared.rsr_read(file=rsr_file)
                 else:
                     rsr_bands = lut_meta['bands']

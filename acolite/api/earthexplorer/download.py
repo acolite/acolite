@@ -78,18 +78,18 @@ def download(entity_list, dataset_list, identifier_list, output = None,
             session.headers["X-Auth-Token"] = f"{access_token}"
 
             ## get csrf - this seems to be needed for EROS SSO
-            response = session.get(ac.config['EARTHEXPLORER_ers']+'/login')
+            response = session.get(ac.config['EarthExplorer']['ers'] + '/login')
             csrf = re.findall(r'name="csrf" value="(.+?)"', response.text)[0]
 
             ## log in
             if verbosity > 1: print('Logging in to EarthExplorer')
-            response = session.post(ac.config['EARTHEXPLORER_ers']+'/login',
+            response = session.post(ac.config['EarthExplorer']['ers'] + '/login',
                                     data= {"username": auth[0],"password": auth[1],"csrf": csrf}, allow_redirects=True)
 
             if verbosity > 1: print('Got SSO cookie {}'.format(session.cookies.get("EROS_SSO_production_secure")))
 
             ## get scene download page
-            response = session.get('{}/options/{}/{}'.format(ac.config['EARTHEXPLORER_download'], dataset_id, entity_id))
+            response = session.get('{}/options/{}/{}'.format(ac.config['EarthExplorer']['download'], dataset_id, entity_id))
 
             ### get data-entityid and data-productid from Download Product button
             if verbosity > 1: print('Getting data-entityid and data-productid from Download Product button')
@@ -114,7 +114,7 @@ def download(entity_list, dataset_list, identifier_list, output = None,
                 continue
             else:
                 ## now we can create url and find download url
-                url = '{}/{}/{}/EE/'.format(ac.config['EARTHEXPLORER_download'], dataproductid, entityid)
+                url = '{}/{}/{}/EE/'.format(ac.config['EarthExplorer']['download'], dataproductid, entityid)
 
                 response = session.get(url, allow_redirects=False, stream=True, timeout=1200)
                 if response.ok:
@@ -169,6 +169,6 @@ def download(entity_list, dataset_list, identifier_list, output = None,
         else:
             if os.path.exists(tfile): lfiles.append(tfile)
         if session is not None:
-            response = session.post(ac.config['EARTHEXPLORER_ers']+'/logout')
+            response = session.post(ac.config['EarthExplorer']['ers'] + '/logout')
 
     return(lfiles)

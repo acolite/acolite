@@ -7,7 +7,7 @@
 def coef(config='defaults'):
     import os,sys
     import acolite as ac
-    nfile = ac.config['data_dir']+'/Shared/algorithms/Dogliotti/{}.txt'.format(config)
+    nfile = ac.config['directory']['data'] + '/Shared/algorithms/Dogliotti/{}.txt'.format(config)
     dct = {}
     with open(nfile, 'r') as f:
         for line in f.readlines():

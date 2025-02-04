@@ -18,7 +18,7 @@ def contraband(gem, verbosity=5):
     gemf = gem.file
 
     ## compute contrabands
-    cb_file = ac.config['data_dir']+'/Shared/algorithms/Castagna/{}_contra_coefficients.txt'.format(gem.gatts['sensor'])
+    cb_file = ac.config['directory']['data'] + '/Shared/algorithms/Castagna/{}_contra_coefficients.txt'.format(gem.gatts['sensor'])
     if os.path.exists(cb_file):
         ## load config for this sensor
         cb_cfg = ac.shared.import_config(cb_file)
