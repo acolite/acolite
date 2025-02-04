@@ -10,11 +10,8 @@
 ##                2025-01-16 (QV) added rrs and lowercase to parameter loop
 ##                2025-02-04 (QV) added additional S2C_MSI outputs, updated settings handling, added rsr_version
 
-def acolite_l2w(gem, output = None, settings = None
-                sub = None,
-                target_file = None,
-                load_data = True,
-                new = True):
+def acolite_l2w(gem, output = None, settings = None,
+                target_file = None, load_data = True, new = True, ):
 
     import os
     import numpy as np
