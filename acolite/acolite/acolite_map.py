@@ -21,6 +21,7 @@
 ##                2024-11-20 (QV) changed RGB title labeling
 ##                2025-01-16 (QV) removed transformation to lower case for parameter names
 ##                                added user parameter scaling file
+##                2025-02-04 (QV) improved settings handling
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -288,10 +289,19 @@ def acolite_map(ncf, output = None,
     imratio = None
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=None if 'user' not in ac.settings else ac.settings['user'])
-    if settings is not None: ## don't overwrite user settings here
-        setu_ = ac.acolite.settings.parse(None, settings=settings, merge=False)
-        for k in setu_: setu[k] = setu_[k]
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(gem.gatts['sensor'])
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
 
     ## set font settings
     font = {'fontname':setu['map_fontname'], 'fontsize':setu['map_fontsize']}

@@ -16,10 +16,9 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-02 (QV) removed percentiles
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output = None, settings = {},
-                convert_l2 = False, write_l2_err = False,
-                verbosity = 5):
+def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, write_l2_err = False):
 
     import os, glob, datetime, time, re
     import dateutil.parser
@@ -28,7 +27,16 @@ def l1_convert(inputfile, output = None, settings = {},
     import scipy.interpolate
     import acolite as ac
 
-    if 'verbosity' in settings: verbosity = settings['verbosity']
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -83,8 +91,13 @@ def l1_convert(inputfile, output = None, settings = {},
         rsrd = ac.shared.rsr_dict(sensor)
         rsr_bands = rsrd[sensor]['rsr_bands']
 
-        ## merge sensor specific settings
-        setu = ac.acolite.settings.parse(sensor, settings=settings)
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
+
         verbosity = setu['verbosity']
 
         ## extract sensor specific settings

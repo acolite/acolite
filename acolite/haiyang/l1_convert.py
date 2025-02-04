@@ -6,17 +6,25 @@
 ##                2023-12-04 (QV) removed tiff support and added HDF support
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
+##                2025-02-04 (QV) removed percentiles, improved settings handling
 
-def l1_convert(inputfile, output = None,
-               settings = {},
-               percentiles_compute = True,
-               percentiles = (0,1,5,10,25,50,75,90,95,99,100),
-               verbosity = 0):
+def l1_convert(inputfile, output = None, settings = None):
 
     import os, glob, dateutil.parser, datetime, time
     import numpy as np
     import h5py, scipy.ndimage
     import acolite as ac
+
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -69,8 +77,13 @@ def l1_convert(inputfile, output = None,
         clon = meta['CentreLocation_Longitude']
         spos = ac.shared.sun_position(dtime, clon, clat)
 
-        ## parse sensor specific settings
-        setu = ac.acolite.settings.parse(sensor, settings=settings)
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
+
         verbosity = setu['verbosity']
         limit = setu['limit']
         sub = setu['sub']

@@ -6,24 +6,22 @@
 ##                2021-12-31 (QV) new handling of settings
 ##                2024-03-14 (QV) update settings handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
-##                2025-02-04 (QV) fix to use user settings, not run settings
+##                2025-02-04 (QV) fix user and run settings, removed settings from acolite_l1r and l1_convert calls
 
-def acolite_l1r(bundle, settings = None, input_type=None):
+def acolite_l1r(bundle, input_type=None):
     import acolite as ac
     import os, sys, shutil
 
-    ## parse run settings
-    if settings is not None:
-        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
-        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
-    setu = {k: ac.settings['user'][k] for k in ac.settings['user']}
+    ## use run settings, update with sensor specific defaults in l1_convert
+    setr = {k: ac.settings['run'][k] for k in ac.settings['run']}
 
     ## set up l1r_files list
     l1r_files = []
 
     ## make bundle a list even if only one is provided
     if type(bundle) != list: bundle = [bundle]
-    setu['inputfile'] = bundle
+    setr['inputfile'] = bundle
+    ac.settings['run']['inputfile'] = bundle
 
     ## test path lengths on windows
     if 'win' in sys.platform:
@@ -34,12 +32,15 @@ def acolite_l1r(bundle, settings = None, input_type=None):
             for b in bundle: print(len(b), b)
 
     ## set output directory
-    if 'output' not in setu:
-        setu['output'] = os.path.dirname(setu['inputfile'][0])
+    if 'output' not in setr:
+        setr['output'] = os.path.dirname(setr['inputfile'][0])
+
+    if 'output' not in ac.settings['run']:
+        ac.settings['run']['output'] = os.path.dirname(ac.settings['run']['inputfile'][0])
 
     ## identify bundle
     orig_bundle = [b for b in bundle]
-    identification = [ac.acolite.identify_bundle(b, output=setu['output']) for b in bundle]
+    identification = [ac.acolite.identify_bundle(b, output=ac.settings['run']['output']) for b in bundle]
     input_types = [i[0] for i in identification]
     bundle = [i[1] for i in identification]
     zipped = [i[2] for i in identification]
@@ -57,211 +58,211 @@ def acolite_l1r(bundle, settings = None, input_type=None):
         ## return bundle if ACOLITE type
         l1r_files = bundle
         gatts = ac.shared.nc_gatts(bundle[0])
-        setu = ac.acolite.settings.parse(gatts['sensor'], settings = setu)
+        setu = ac.acolite.settings.parse(gatts['sensor'], settings = setr)
     ## end ACOLITE
     ################
 
     ################
     ## Landsat
     if input_type == 'Landsat':
-        l1r_files, setu = ac.landsat.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.landsat.l1_convert(bundle)
     ## end Landsat
     ################
 
     ################
     ## Sentinel-2
     if input_type == 'Sentinel-2':
-        l1r_files, setu = ac.sentinel2.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.sentinel2.l1_convert(bundle)
     ## end Sentinel-2
     ################
 
     ################
     ## Sentinel-3
     if input_type == 'Sentinel-3':
-        l1r_files, setu = ac.sentinel3.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.sentinel3.l1_convert(bundle)
     ## end Sentinel-3
     ################
 
     ################
     ## VIIRS
     if input_type == 'VIIRS':
-        l1r_files, setu = ac.viirs.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.viirs.l1_convert(bundle)
     ## end VIIRS
     ################
 
     ################
     ## Pléiades/SPOT
     if input_type == 'Pléiades':
-        l1r_files, setu = ac.pleiades.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.pleiades.l1_convert(bundle)
     ## end Pléiades/SPOT
     ################
 
     ################
     ## VENUS
     if input_type == 'VENUS':
-        l1r_files, setu = ac.venus.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.venus.l1_convert(bundle)
     ## end VENUS
     ################
 
     ################
     ## WorldView
     if input_type == 'WorldView':
-        if 'inputfile_swir' not in setu: setu['inputfile_swir'] = None
-        l1r_files, setu = ac.worldview.l1_convert(bundle, inputfile_swir = setu['inputfile_swir'], settings = setu)
+        if 'inputfile_swir' not in setr: setr['inputfile_swir'] = None
+        l1r_files, setu = ac.worldview.l1_convert(bundle, inputfile_swir = setr['inputfile_swir'])
     ## end WorldView
     ################
 
     ################
     ## CHRIS
     if input_type == 'CHRIS':
-        l1r_files, setu = ac.chris.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.chris.l1_convert(bundle)
     ## end CHRIS
     ################
 
     ################
     ## PRISMA
     if input_type == 'PRISMA':
-        l1r_files, setu = ac.prisma.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.prisma.l1_convert(bundle)
     ## end PRISMA
     ################
 
     ################
     ## HICO
     if input_type == 'HICO':
-        l1r_files, setu = ac.hico.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.hico.l1_convert(bundle)
     ## end HICO
     ################
 
     ################
     ## HYPERION
     if input_type == 'HYPERION':
-        l1r_files, setu = ac.hyperion.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.hyperion.l1_convert(bundle)
     ## end HYPERION
     ################
 
     ################
     ## DESIS
     if input_type == 'DESIS':
-        l1r_files, setu = ac.desis.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.desis.l1_convert(bundle)
     ## end DESIS
     ################
 
     ################
     ## PACE
     if input_type == 'PACE':
-        l1r_files, setu = ac.pace.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.pace.l1_convert(bundle)
     ## end PACE
     ################
 
     ################
     ## SeaDAS L1B
     if input_type == 'SeaDAS':
-        l1r_files, setu = ac.seadas.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.seadas.l1_convert(bundle)
     ## end SeaDAS L1B
     ################
 
     ################
     ## AVHRR
     if input_type == 'AVHRR':
-        l1r_files, setu = ac.avhrr.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.avhrr.l1_convert(bundle)
     ## end AVHRR
     ################
 
     ################
     ## Planet
     if input_type == 'Planet':
-        l1r_files, setu = ac.planet.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.planet.l1_convert(bundle)
     ## end Planet
     ################
 
     ################
     ## GF
     if input_type == 'GF':
-        l1r_files, setu = ac.gf.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.gf.l1_convert(bundle)
     ## end GF
     ################
 
     ################
     ## AMAZONIA
     if input_type == 'AMAZONIA':
-        l1r_files, setu = ac.amazonia.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.amazonia.l1_convert(bundle)
     ## end AMAZONIA
     ################
 
     ################
     ## FORMOSAT
     if input_type == 'FORMOSAT':
-        l1r_files, setu = ac.formosat.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.formosat.l1_convert(bundle)
     ## end FORMOSAT
     ################
 
     ################
     ## SDGSAT
     if input_type == 'SDGSAT':
-        l1r_files, setu = ac.sdgsat.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.sdgsat.l1_convert(bundle)
     ## end SDGSAT
     ################
 
     ################
     ## IKONOS
     if input_type == 'IKONOS':
-        l1r_files, setu = ac.ikonos.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.ikonos.l1_convert(bundle)
     ## end IKONOS
     ################
 
     ################
     ## ECOSTRESS
     if input_type == 'ECOSTRESS':
-        l1r_files, setu = ac.ecostress.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.ecostress.l1_convert(bundle)
     ## end ECOSTRESS
     ################
 
     ################
     ## ENMAP
     if input_type == 'ENMAP':
-        l1r_files, setu = ac.enmap.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.enmap.l1_convert(bundle)
     ## end ENMAP
     ################
 
     ################
     ## EMIT
     if input_type == 'EMIT':
-        l1r_files, setu = ac.emit.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.emit.l1_convert(bundle)
     ## end EMIT
     ################
 
     ################
     ## DIMAP
     if input_type == 'DIMAP':
-        l1r_files, setu = ac.dimap.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.dimap.l1_convert(bundle)
     ## end DIMAP
     ################
 
     ################
     ## S2Resampling
     if input_type == 'S2Resampling':
-        l1r_files, setu = ac.s2resampling.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.s2resampling.l1_convert(bundle)
     ## end S2Resampling
     ################
 
     ################
     ## SEVIRI
     if input_type == 'SEVIRI':
-        l1r_files, setu = ac.seviri.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.seviri.l1_convert(bundle)
     ## end SEVIRI
     ################
 
     ################
     ## Haiyang
     if input_type == 'HAIYANG':
-        l1r_files, setu = ac.haiyang.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.haiyang.l1_convert(bundle)
     ## end Haiyang
     ################
 
     ################
     ## HYPSO
     if input_type == 'HYPSO':
-        l1r_files, setu = ac.hypso.l1_convert(bundle, settings = setu)
+        l1r_files, setu = ac.hypso.l1_convert(bundle)
     ## end HYPSO
     ################
 

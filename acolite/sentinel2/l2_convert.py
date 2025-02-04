@@ -5,13 +5,23 @@
 ## modifications: 2024-07-30 (QV) added skip_bands to not include band 9 (or others if so desired)
 ##                2024-10-16 (QV) added RSR versioning support
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-04 (QV) improved settings handling
 
-def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_bands = ['9']):
+def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
     import numpy as np
     import acolite as ac
     import os, dateutil.parser, time
 
-    if 'verbosity' in settings: verbosity = settings['verbosity']
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -22,7 +32,6 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_band
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    setu = {}
     ofile = None
     ofiles = []
     sub = None
@@ -64,8 +73,12 @@ def l2_convert(inputfile, output = None, settings = {}, verbosity = 5, skip_band
             print('Processing of {} Sentinel-2 {} data not supported by convert_l2'.format(bundle, meta['PROCESSING_LEVEL']))
             continue
 
-        ## parse settings for this sensor
-        setu = ac.acolite.settings.parse(sensor, settings=settings)
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
 

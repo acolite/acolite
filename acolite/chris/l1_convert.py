@@ -6,21 +6,38 @@
 ##                2022-01-04 (QV) added netcdf compression
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, settings = {}, verbosity = 5, output = None):
+def l1_convert(inputfile, output = None, settings = None):
     from pyhdf.SD import SD,SDC
     import datetime
     import numpy as np
     import acolite as ac
 
-    ## parse sensor specific settings
-    setu = ac.acolite.settings.parse('CHRIS', settings=settings)
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    sensor = 'CHRIS'
+
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(sensor)
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+
+    verbosity = setu['verbosity']
     interband_calibration = setu['chris_interband_calibration']
     noise_reduction = setu['chris_noise_reduction']
     vname = setu['region_name']
     output_radiance = setu['output_lt']
     if output is None: output = setu['output']
-    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:

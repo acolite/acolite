@@ -9,6 +9,7 @@
 ##                2022-08-03 (QV) added external emissivity files
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-17 (QV) use new gem NetCDF handling
+##                2025-02-04 (QV) updated settings parsing
 
 def tact_gem(gem, output_file = True,
              return_data = False,
@@ -55,14 +56,22 @@ def tact_gem(gem, output_file = True,
         d_, a_= None, None
 
     ## combine default and user defined settings
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(gem.gatts['sensor'])
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+    ## additional run settings
     if settings is not None:
-        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
-        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
-    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
-    for k in setu: ac.settings['run'][k] = setu[k] ## update run settings with user settings and sensor defaults
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
 
     ## get verbosity from run settings
-    verbosity = ac.settings['run']['verbosity']
+    verbosity = setu['verbosity']
 
     output = setu['output']
     emissivity = setu['tact_emissivity']

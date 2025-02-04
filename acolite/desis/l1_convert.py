@@ -11,18 +11,36 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output = None, settings = {}, verbosity = 5):
+def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
     import datetime, dateutil.parser, os, copy
     import acolite as ac
 
-    ## parse sensor specific settings
-    setu = ac.acolite.settings.parse('DESIS_HSI', settings=settings)
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    sensor = 'DESIS_HSI'
+
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(sensor)
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+
+    verbosity = setu['verbosity']
+
     vname = setu['region_name']
     output_lt = setu['output_lt']
     if output is None: output = setu['output']
-    verbosity = setu['verbosity']
     limit = setu['limit']
 
     ## parse inputfile

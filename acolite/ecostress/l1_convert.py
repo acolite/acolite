@@ -6,20 +6,38 @@
 ##                2024-01-17 (QV) added geofile keyword
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output=None, settings = {}, verbosity = 5):
+def l1_convert(inputfile, output=None, settings = None):
     import os, h5py, json
     import numpy as np
     import dateutil.parser, datetime
     import acolite as ac
 
-    ## read rsr
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
     sensor = 'ISS_ECOSTRESS'
+
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(sensor)
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+
+    verbosity = setu['verbosity']
+
+    ## read rsr
     rsrd = ac.shared.rsr_dict(sensor, wave_range=[7,14], wave_step=0.05)[sensor]
 
     ## parse input
-    setu = ac.acolite.settings.parse(sensor, settings=settings)
-    if 'verbosity' in setu: verbosity = setu['verbosity']
     if output is None: output = setu['output']
 
     limit, sub = None, None

@@ -7,14 +7,26 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling, fixed raa writing, fix for new settings handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
+##                2025-02-04 (QV) added acolite_file_type, improved settings handling
 
-def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
+def l1_convert(inputfile, output = None, settings = None):
     import h5py
     import numpy as np
     import scipy.ndimage
     import dateutil.parser, time
     import glob, os
     import acolite as ac
+
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## function to optimise BT lut
     from scipy import optimize
@@ -49,7 +61,13 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
         print(l1b_sensor, l1b_meta['title'], l1b_meta['processing_level'])
         ## parse settings
         sensor = '{}_{}'.format(l1b_meta['platform'], l1b_meta['instrument']).upper()
-        setu = ac.acolite.settings.parse(sensor, settings = ac.settings['user'])
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
+
         opts = setu['viirs_option'].lower().split('+')
         ## configure scan lines
         if opts[0] == 'mod': slines = 16
@@ -132,6 +150,7 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
                 gatts['obase']  = '{}_{}_{}_L1R'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'), setu['viirs_option'].upper())
                 gatts['viirs_option'] = setu['viirs_option']
                 gatts['viirs_slines'] = slines
+                gatts['acolite_file_type'] = 'L1R'
 
                 if not os.path.exists(odir): os.makedirs(odir)
                 ofile = '{}/{}.nc'.format(odir, gatts['obase'])

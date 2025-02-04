@@ -10,15 +10,31 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2024-05-11 (QV) update for L1G2 data
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
+def l1_convert(inputfile, output=None, settings = None):
     import numpy as np
     import h5py, dateutil.parser, os
     import acolite as ac
 
-    ## parse settings
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
     sensor = 'PRISMA'
-    setu = ac.acolite.settings.parse(sensor, settings=settings)
+
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(sensor)
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+
     verbosity = setu['verbosity']
     if output is None: output = setu['output']
     output_lt = setu['output_lt']

@@ -9,14 +9,24 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
+def l1_convert(inputfile, output = None, settings = None):
 
     import os
     import dateutil.parser, time
     import numpy as np
     import acolite as ac
     import scipy.ndimage
+
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -46,9 +56,15 @@ def l1_convert(inputfile, output = None, settings = {}, verbosity = 0):
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
+        sensor = meta['sensor']
 
-        ## parse sensor settings
-        setu = ac.acolite.settings.parse(meta['sensor'], settings=settings)
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
+
         verbosity = setu['verbosity']
 
         ## get other settings

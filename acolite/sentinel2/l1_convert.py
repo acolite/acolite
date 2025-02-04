@@ -14,13 +14,14 @@
 ##                2024-10-16 (QV) added RSR versioning support
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output = None, settings = {},
+def l1_convert(inputfile, output = None, settings = None,
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
                 geometry_format='GeoTIFF', ## for gpt geometry
-                verbosity = 5):
+                ):
 
     import sys, os, glob, dateutil.parser, time
     from osgeo import ogr,osr,gdal
@@ -29,7 +30,16 @@ def l1_convert(inputfile, output = None, settings = {},
     import numpy as np
     t0 = time.time()
 
-    if 'verbosity' in settings: verbosity = settings['verbosity']
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -44,7 +54,6 @@ def l1_convert(inputfile, output = None, settings = {},
     warp_to = None
     ofile_aux_new = True
 
-    setu = {}
     ofile = None
     ofiles = []
     for bundle in inputfile:
@@ -89,10 +98,13 @@ def l1_convert(inputfile, output = None, settings = {},
 
         ## merge sensor specific settings
         if new:
-            ## delete rsr_version if it is set to None
-            if settings['rsr_version'] is None: del settings['rsr_version']
-            ## load sensor settings
-            setu = ac.acolite.settings.parse(sensor, settings=settings)
+            ## get sensor specific defaults
+            setd = ac.acolite.settings.parse(sensor)
+            ## set sensor default if user has not specified the setting
+            for k in setd:
+                if k not in ac.settings['user']: setu[k] = setd[k]
+            ## end set sensor specific defaults
+
             verbosity = setu['verbosity']
             if output is None: output = setu['output']
 

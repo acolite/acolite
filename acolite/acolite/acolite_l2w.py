@@ -8,15 +8,13 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-16 (QV) changed output NetCDF handling to using gem
 ##                2025-01-16 (QV) added rrs and lowercase to parameter loop
+##                2025-02-04 (QV) added additional S2C_MSI outputs, updated settings handling, added rsr_version
 
-def acolite_l2w(gem,
-                settings = None,
+def acolite_l2w(gem, output = None, settings = None
                 sub = None,
                 target_file = None,
-                output = None,
                 load_data = True,
-                new = True,
-                verbosity=5):
+                new = True):
 
     import os
     import numpy as np
@@ -33,20 +31,31 @@ def acolite_l2w(gem,
     gemf = gem.file
 
     ## combine default and user defined settings
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(gem.gatts['sensor'])
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+
+    ## additional run settings
     if settings is not None:
-        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
-        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
-    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
-    for k in setu: ac.settings['run'][k] = setu[k] ## update run settings with user settings and sensor defaults
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## nothing to do if no l2w_parameters requested
-    if ac.settings['run']['l2w_parameters'] == None: return(None)
+    if setu['l2w_parameters'] == None: return(None)
 
     ## set up output file
     if target_file is None:
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L2R', '_L2W')
-        if 'output' in ac.settings['run']: output = ac.settings['run']['output']
+        if 'output' in setu: output = setu['output']
         odir = output if output is not None else os.path.dirname(gemf)
         ofile = '{}/{}.nc'.format(odir, output_name)
     else:
@@ -85,7 +94,11 @@ def acolite_l2w(gem,
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
     else:
-        rsrd = ac.shared.rsr_dict(sensor=gem.gatts['sensor'])
+        if setu['rsr_version'] is not None:
+            lut_sensor = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
+        else:
+            lut_sensor = '{}'.format(gem.gatts['sensor'])
+        rsrd = ac.shared.rsr_dict(sensor=lut_sensor)
 
     ## spectral turbidity/spm
     nechad_range = setu['nechad_range']
@@ -783,7 +796,7 @@ def acolite_l2w(gem,
         if (cur_par[0:6] == 'chl_re'):
             par_name = cur_par
             mask = True ## apply non water mask
-            if gem.gatts['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS'] + ac.config['hyper_sensors']:
+            if gem.gatts['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI', 'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS'] + ac.config['hyper_sensors']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem.gatts['sensor']))
                 continue
 
@@ -956,7 +969,7 @@ def acolite_l2w(gem,
             print('QAA')
             mask = True ## water parameter so apply mask
             sensor = gem.gatts['sensor']
-            if sensor not in ['L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI']:
+            if sensor not in ['L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
                 print('QAA not configured for {}'.format(gem.gatts['sensor']))
                 continue
 
@@ -1214,7 +1227,7 @@ def acolite_l2w(gem,
 
             if gem.gatts['sensor'] in ['L8_OLI', 'L9_OLI']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_OLI'])
-            elif gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI']:
+            elif gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_MSI'])
             elif 'VIIRS' in gem.gatts['sensor']:
                 fait_a_threshold = float(fait_cfg['fait_a_threshold_VIIRS'])
@@ -1420,7 +1433,7 @@ def acolite_l2w(gem,
             ds_waves = [w for w in rhos_waves]
 
             ### get required datasets
-            if gem.gatts['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.config['hyper_sensors']:
+            if gem.gatts['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.config['hyper_sensors']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem.gatts['sensor']))
                 continue
 
@@ -1461,7 +1474,7 @@ def acolite_l2w(gem,
             ds_waves = [w for w in rhos_waves]
 
             ### get required datasets
-            if gem.gatts['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.config['hyper_sensors']:
+            if gem.gatts['sensor'] not in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI', 'S3A_OLCI', 'S3B_OLCI'] + ac.config['hyper_sensors']:
                 print('Parameter {} not configured for {}.'.format(par_name,gem.gatts['sensor']))
                 continue
 

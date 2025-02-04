@@ -5,15 +5,15 @@
 ## modifications: 2024-07-30 (QV) adapted from ac.landsat.l1_convert
 ##                2024-09-19 (QV) removed mus for conversion of rhos
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-04 (QV) improved settings handling
 
-def l2_convert(inputfile, output = None, settings = {},
+def l2_convert(inputfile, output = None, settings = None,
 
                 output_thermal = True,
                 check_sensor = True,
                 check_time = True,
                 max_merge_time = 600, # seconds
-
-                verbosity = 5, vname = ''):
+                ):
 
     import os, glob, datetime, dateutil.parser, time, copy
     import acolite as ac
@@ -21,7 +21,16 @@ def l2_convert(inputfile, output = None, settings = {},
     import numpy as np
     t0 = time.time()
 
-    if 'verbosity' in settings: verbosity = settings['verbosity']
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -39,7 +48,6 @@ def l2_convert(inputfile, output = None, settings = {},
 
     ofile = None
     ofiles = []
-    setu = {}
 
     for bundle in inputfile:
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
@@ -129,7 +137,12 @@ def l2_convert(inputfile, output = None, settings = {},
 
         ## merge sensor specific settings
         if new:
-            setu = ac.acolite.settings.parse(sensor, settings=settings)
+            ## get sensor specific defaults
+            setd = ac.acolite.settings.parse(sensor)
+            ## set sensor default if user has not specified the setting
+            for k in setd:
+                if k not in ac.settings['user']: setu[k] = setd[k]
+            ## end set sensor specific defaults
             verbosity = setu['verbosity']
 
             ## get other settings

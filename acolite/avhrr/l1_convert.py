@@ -5,11 +5,23 @@
 ## modifications: 2024-11-16 (QV) added data flip for ascending orbit only
 ##                2024-11-17 (QV) added 6 channel support
 ##                2025-01-30 (QV) moved polygon limit
+##                2025-02-04 (QV) improved settings handling
 
-def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
+def l1_convert(inputfile, output=None, settings = None):
     import numpy as np
     import dateutil.parser, os
     import acolite as ac
+
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
+
+    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -48,7 +60,13 @@ def l1_convert(inputfile, output=None, settings = {}, verbosity=0):
         rsrd = ac.shared.rsr_dict(sensor)[sensor]
         #rsrd_tir = ac.shared.rsr_dict(sensor_tir)[sensor_tir]
 
-        setu = ac.acolite.settings.parse(sensor, settings=settings)
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
+
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
         output_lt = setu['output_lt']

@@ -19,6 +19,7 @@
 ##                2024-12-17 (QV) changed aerosol_correction to atmospheric_correction_method
 ##                2025-01-31 (QV) check if lat/lon are present for dem
 ##                2025-02-03 (QV) use downward gas transmittance for output_ed
+##                2025-02-04 (QV) updated settings parsing
 
 def acolite_l2r(gem,
                 output = None,
@@ -46,11 +47,19 @@ def acolite_l2r(gem,
     gemf = gem.file
 
     ## combine default and user defined settings
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+    ## get sensor specific defaults
+    setd = ac.acolite.settings.parse(gem.gatts['sensor'])
+    ## set sensor default if user has not specified the setting
+    for k in setd:
+        if k not in ac.settings['user']: setu[k] = setd[k]
+    ## end set sensor specific defaults
+    ## additional run settings
     if settings is not None:
-        ac.settings['user'] = ac.acolite.settings.parse(None, settings=settings, merge=False)
-        for k in ac.settings['user']: ac.settings['run'][k] = ac.settings['user'][k]
-    setu = ac.acolite.settings.parse(gem.gatts['sensor'], settings=ac.settings['user'])
-    for k in setu: ac.settings['run'][k] = setu[k]  ## update run settings with user settings and sensor defaults
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
 
     if 'verbosity' in setu: verbosity = setu['verbosity']
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
