@@ -430,8 +430,9 @@ def radcor(ncf, settings = None):
                 print('Using resolution s2_target_res={} for MSI'.format(resolution))
         elif sensor in ['L8_OLI', 'L9_OLI']:
             resolution = 30 # 'PRISMA'
-        #elif sensor in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']:
-        #    resolution = 300
+        elif sensor in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']:
+            resolution = 300
+            print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         elif 'PlanetScope' in sensor:
             resolution = 3
         elif sensor in ['PHR1A', 'PHR1B']:
