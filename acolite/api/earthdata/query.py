@@ -11,7 +11,7 @@
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          pace_oci_version = 'v2.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
+          pace_oci_version = 'v3.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os, json
