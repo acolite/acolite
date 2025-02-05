@@ -448,6 +448,9 @@ def radcor(ncf, settings = None):
             return
         print('Will use {} sensor default spatial resolution: {}.\n'.format(sensor, resolution))
 
+    if setu['dsf_interface_reflectance']:
+        print('Warning: dsf_interface_reflectance=True, it is recommended to set it to False for RAdCor processing')
+
     ## Compute PSF radius in pixels
     psf_radius_pixels = int(setu['radcor_kernel_radius'] * 1000 / resolution) + 0.5
 
@@ -1092,6 +1095,7 @@ def radcor(ncf, settings = None):
 
                         # This is a quick fix to avoid using this band if the minimum rho_a in the LUT is greater than rho_toa...
                         if rho_a_opt_mn > rho_a_opt_mx:
+                            print('    Warning: minimum rho_a in LUT {:.5f} is greater than rho_toa {:.5f}'.format(rho_a_opt_mn, rho_a_opt_mx))
                             tau = 5.0
                             opt = np.interp(tau, lutdw[lut]['meta']['tau'], lut_rho_a)
                         else:
