@@ -9,6 +9,7 @@
 ##                2023-10-21 (QV) added ECOSTRESS download from EarthExplorer
 ##                2024-04-27 (QV) moved APIs
 ##                2025-01-23 (QV) test if scene exists in download directory, added S2C
+##                2025-02-05 (QV) add oceandata directdataaccess for MERIS
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -36,9 +37,10 @@ def inputfile_test(inputfile):
                 if ddir is None: ddir = ac.settings['run']['output']
                 ## find out data source to use
                 bn = os.path.basename(inputfile)
+                local_file = '{}/{}'.format(ddir, os.path.basename(file))
                 ## test if file exists in download dir
-                if os.path.exists('{}/{}'.format(ddir, os.path.basename(file))):
-                    file = '{}/{}'.format(ddir, os.path.basename(file))
+                if os.path.exists(local_file):
+                    file = '{}'.format(local_file)
                     print('Scene exists at {}'.format(file))
                 ## otherwise try and download it
                 else:
@@ -48,6 +50,8 @@ def inputfile_test(inputfile):
                         download_source = 'EarthExplorer'
                     elif 'ECOSTRESS' in bn:
                         download_source = 'EarthExplorer'
+                    elif bn.startswith('EN1_MDSI_MER_'): ## MERIS data from oceandata directdataaccess
+                        download_source = 'oceandata'
                     else:
                         print('Could not identify download source for scene {}'.format(file))
                         continue
@@ -65,7 +69,16 @@ def inputfile_test(inputfile):
                         entity_list, identifier_list, dataset_list = ac.api.earthexplorer.query(scene=bn)
                         if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
                         local_scenes = ac.api.earthexplorer.download(entity_list, dataset_list, identifier_list, output = ddir, verbosity = ac.config['verbosity'])
-
+                    ## oceandata directdataaccess
+                    if download_source == 'oceandata':
+                        local_scenes = []
+                        url  = '{}/{}'.format(ac.config['oceandata_url'], bn)
+                        if ac.config['verbosity'] > 0: print('Downloading from {}'.format(download_source))
+                        try:
+                            ac.shared.download_file(url, local_file)
+                        except:
+                            if ac.config['verbosity'] > 0: print('Could not complete download from {}'.format(download_source))
+                        if os.path.exists(local_file): local_scenes.append(local_file)
                     if len(local_scenes) == 1:  file = '{}'.format(local_scenes[0])
                     if not os.path.exists(file): continue
             else:

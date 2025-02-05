@@ -71,7 +71,10 @@ credentials_file=$ACDIR/config/credentials.txt
 #EARTHDATA_p=
 
 ## URLs to use EarthData credentials for
-EARTHDATA_urls=gsfc.nasa.gov,earthdatacloud.nasa.gov,cr.usgs.gov,ladsweb.modaps.eosdis.nasa.gov
+EARTHDATA_urls=gsfc.nasa.gov,earthdatacloud.nasa.gov,cr.usgs.gov,ladsweb.modaps.eosdis.nasa.gov,oceandata.sci.gsfc.nasa.gov
+
+## OceanData URL
+oceandata_url=http://oceandata.sci.gsfc.nasa.gov/getfile
 
 ## EarthExplorer API
 EARTHEXPLORER_api=https://m2m.cr.usgs.gov/api/api/json/stable
