@@ -657,23 +657,30 @@ def radcor(ncf, settings = None):
     ## Test if settings for aot optimisation to field measurement are correct
     #
     if setu['radcor_aot_estimate'] == 'optimise':
+        print()
+        ## check if number of target rhos corresponds to the number of considered bands
         if len(setu['radcor_optimise_target_rhos']) != len(bands_):
+            print('The number of items in radcor_optimise_target_rhos ({}) does not match the number of considered bands ({}).'.format(len(setu['radcor_optimise_target_rhos']), len(bands_)))
             print('Provide radcor_optimise_target_rhos for each considered band: {}'.format(bands_))
             print('Set missing bands (e.g. SWIR) to NaN to be ignored, or to 0 to take them into account in the fit')
             gem = None
             return
-
-        ## set offsets to zero - now set before RAdCor proper
-        #cen_offset_0 = 0
-        #cen_offset_1 = 0
+        ## don't provide all NaNs!
+        if not any(np.isfinite(np.asarray(setu['radcor_optimise_target_rhos'], dtype=float))):
+            print('Zero finite items in radcor_optimise_target_rhos: {}'.format(', '.join([str(v) for v in setu['radcor_optimise_target_rhos']])))
+            gem = None
+            return
 
         ## get target bands and rhos
         opt_rhos = np.asarray(setu['radcor_optimise_target_rhos'])
+        print('The number of items in radcor_optimise_target_rhos ({}) matches the number of considered bands ({}).'.format(len(setu['radcor_optimise_target_rhos']), len(bands_)))
+        print('The provided radcor_optimise_target_rhos for each considered band:')
+        print(', '.join(['{}: {}'.format(b, opt_rhos[bi]) for bi, b in enumerate(bands_)]))
         opt_sub = np.where(np.isfinite(opt_rhos))
         opt_rhos = opt_rhos[opt_sub]
         opt_bands = [bands_[s] for s in opt_sub[0]]
-        print('Optimising aot to bands: {}'.format(opt_bands))
-        print('Optimising aot to rhos: {}'.format(opt_rhos))
+        print('Optimising aot to bands: {}'.format(', '.join([str(v) for v in opt_bands])))
+        print('Optimising aot to rhos: {}'.format(', '.join([str(v) for v in opt_rhos])))
 
         ## get target pixel
         st_lat = setu['radcor_optimise_target_lat']
