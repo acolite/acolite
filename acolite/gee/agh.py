@@ -17,6 +17,7 @@
 ##                2023-06-21 (QV) new version using computePixels, previous version renamed to agh_old
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-06-15 (QV) added to S2_SR_HARMONIZED
+##                2025-02-05 (QV) added S2C_MSI
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, datetime, dateutil.parser, requests, json, time
@@ -245,9 +246,15 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
         return()
 
     if sensor not in rsrd:
-        print('Loading RSRs: {}'.format(sensor))
-        rsrd[sensor] = ac.shared.rsr_dict(sensor=sensor)[sensor]
+        ## get sensor defaults
+        setd = ac.acolite.settings.parse(sensor)
+        if 'rsr_version' in setd:
+            lut_sensor = '{}_{}'.format(sensor, setd['rsr_version'])
+        else:
+            lut_sensor = '{}'.format(sensor)
 
+        print('Loading RSRs: {}'.format(sensor))
+        rsrd[sensor] = ac.shared.rsr_dict(sensor=lut_sensor)[lut_sensor]
 
     ## select product again
     ## cropped product seems to give empty tiles
@@ -315,7 +322,7 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     ## get average geometry
     ## will be updated later if SAA/SZA/VAA/VZA data are available
     geometry = {}
-    if sensor in ['S2A_MSI', 'S2B_MSI']:
+    if sensor in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
         geometry['saa'] = im['properties']['MEAN_SOLAR_AZIMUTH_ANGLE']
         geometry['sza'] = im['properties']['MEAN_SOLAR_ZENITH_ANGLE']
         bgeometry = {}
