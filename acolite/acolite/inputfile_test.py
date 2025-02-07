@@ -36,8 +36,8 @@ def inputfile_test(inputfile):
                 ddir = ac.settings['run']['scene_download_directory']
                 if ddir is None: ddir = ac.settings['run']['output']
                 ## find out data source to use
-                bn = os.path.basename(inputfile)
-                local_file = '{}/{}'.format(ddir, os.path.basename(file))
+                bn = os.path.basename(file)
+                local_file = '{}/{}'.format(ddir, bn)
                 ## test if file exists in download dir
                 if os.path.exists(local_file):
                     file = '{}'.format(local_file)
