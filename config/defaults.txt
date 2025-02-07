@@ -102,6 +102,7 @@ planet_store_sr=False
 
 ## Pleiades options
 pleiades_skip_pan=False
+pleiades_force_metadata_geolocation=False
 
 ## PRISMA options
 prisma_rhot_per_pixel_sza=True

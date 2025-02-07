@@ -12,6 +12,7 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-07 (QV) added pleiades_force_metadata_geolocation
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -142,13 +143,32 @@ def l1_convert(inputfile, output = None, settings = None):
                 print('Provided limit {} not covered by scene'.format(limit))
                 continue
 
-        ## find projection info based on first file
         dct = None
-        ifile = ifiles[0]
-        try:
-            dct = ac.shared.projection_read(ifile)
-        except:
-            print('Could not determine projection from {}'.format(ifile))
+        ## find projection info based on first file
+        ## of pleiades_force_metadata_geolocation is set the "old method" will be used
+        if not setu['pleiades_force_metadata_geolocation']:
+            ifile = ifiles[0]
+            try:
+                print('Reading projection from {}'.format(ifile))
+                dct = ac.shared.projection_read(ifile)
+            except:
+                print('Could not determine projection from {}'.format(ifile))
+
+            ## if we can read the projection, read other tiles and update dct
+            if dct is not None:
+                for ifile in ifiles[1:]:
+                    ## read projection
+                    print('Reading projection from {}'.format(ifile))
+                    dct_tile = ac.shared.projection_read(ifile)
+                    ## compute new ranges
+                    dct['xrange'] = min(dct['xrange'][0], dct_tile['xrange'][0]),\
+                                        max(dct['xrange'][1], dct_tile['xrange'][1])
+                    dct['yrange'] = max(dct['yrange'][0], dct_tile['yrange'][0]),\
+                                        min(dct['yrange'][1], dct_tile['yrange'][1])
+                ## update dimensions
+                dct['xdim'] = np.round((dct['xrange'][1] - dct['xrange'][0]) / dct['pixel_size'][0]).astype(int)
+                dct['ydim'] = np.round((dct['yrange'][1] - dct['yrange'][0]) / dct['pixel_size'][1]).astype(int)
+                dct['dimensions'] = (dct['xdim'], dct['ydim'])
 
         new_method, reproject = False, False
         ## set up reprojection
