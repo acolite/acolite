@@ -18,6 +18,7 @@
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-07 (QV) added tile merging
+##                2025-02-08 (QV) fixed for full tile merging
 
 def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, write_l2_err = False):
 
@@ -110,8 +111,9 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
             if k not in ac.settings['user']: setu[k] = setd[k]
         ## end set sensor specific defaults
 
-        output = setu['output']
+        if output is None: output = setu['output']
 
+        ## if not merging tiles, create a new file
         if not setu['merge_tiles']:
             new = True
             sub = None
@@ -122,12 +124,15 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                     if setu['verbosity'] > 1: print('Limit {} out of scene {}'.format(setu['limit'], bundle))
                     continue
             ## user defined sub if limit or polygon are not set
-            if sub is None:
-                if 'sub' in setu: sub = setu['sub']
+            if (sub is None) & (setu['sub'] is not None): sub = setu['sub']
         else:
             ## sub in current bundle
-            sub = crop_in[bi][0], crop_in[bi][2], crop_in[bi][1]-crop_in[bi][0], crop_in[bi][3]-crop_in[bi][2]
-            data_shape = sub_merged[3], sub_merged[2]
+            if setu['limit'] is None:
+                sub = None
+                data_shape = data_shape_merged[0],  data_shape_merged[1]
+            else:
+                sub = crop_in[bi][0], crop_in[bi][2], crop_in[bi][1]-crop_in[bi][0], crop_in[bi][3]-crop_in[bi][2]
+                data_shape = sub_merged[3], sub_merged[2]
 
         ## new empty datasets
         if new:
@@ -157,32 +162,6 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                             meta[fname][ds] = gem.data(ds)
                         else:
                             meta[fname][ds] = np.vstack((meta[fname][ds], gem.data(ds)))
-
-                        # try:
-                        #     data_ = gem.data(ds, sub=sub)
-                        #     #print(ds, data_.shape)
-                        #     if ds not in meta[fname]: meta[fname][ds] = np.zeros(data_shape, dtype = int)
-                        #     if (data_.shape[0] == 0) | (data_.shape[1] == 0): continue
-                        #     meta[fname][ds][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = data_
-                        # except:
-                        #     meta[fname][ds] = gem.data(ds)
-
-                    # if setu['merge_tiles'] & (ds == 'detector_index'):
-                    #     if ds not in meta: meta[ds] = np.zeros(data_shape, dtype = int)
-                    #     data_ = gem.data(ds, sub=sub)
-                    #     if (data_.shape[0] == 0) | (data_.shape[1] == 0): continue
-                    #     meta[ds][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = data_
-                    #     #print(ds, meta[ds].shape)
-
-                    # print(fname, ds, meta[fname][ds].shape)
-                    # if ds in ['detector_index', ]:
-                    #     if not setu['merge_tiles']:
-                    #         meta[ds] = gem.data(ds, sub = sub)
-                    #     else:
-                    #         if ds not in meta: meta[ds] = np.zeros(data_shape) + np.nan
-                    #         data_ = gem.data(ds, sub=sub)
-                    #         if (data_.shape[0] == 0) | (data_.shape[1] == 0): continue
-                    #         meta[ds][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = data_
 
             ## or full size data
             else:
@@ -243,8 +222,12 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         ## create full scene tpgs
         ## added half a pixel offset - correspond to centre (and SNAP)
         if (setu['merge_tiles']):
-            subx = np.arange(sub_merged[0],sub_merged[0]+sub_merged[2]) + 0.5
-            suby = np.arange(sub_merged[1],sub_merged[1]+sub_merged[3]) + 0.5
+            if (setu['limit'] is not None):
+                subx = np.arange(sub_merged[0],sub_merged[0]+sub_merged[2]) + 0.5
+                suby = np.arange(sub_merged[1],sub_merged[1]+sub_merged[3]) + 0.5
+            else:
+                subx = np.arange(0,data_shape_merged[1]) + 0.5
+                suby = np.arange(0,data_shape_merged[0]) + 0.5
         elif (sub is None):
             subx = np.arange(0,data_shape[1]) + 0.5
             suby = np.arange(0,data_shape[0]) + 0.5
@@ -274,7 +257,6 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                     if meta[k][l].shape != tpg_shape:
                         print('{}-{} tpg shape {} not supported'.format(k,l,meta[k][l].shape))
                         continue
-                    #print(k,l)
                     dtype_in = meta[k][l].dtype
                     rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], meta[k][l].astype(np.float64), bounds_error=False, fill_value=None)
                     tpg[l] = rgi((suby_,subx_)).astype(dtype_in)
@@ -323,14 +305,15 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
 
         ## get per pixel detector index
         if (setu['merge_tiles']):
-            print(meta['instrument_data']['detector_index'].shape)
-            di = meta['instrument_data']['detector_index'][sub_merged[1]:sub_merged[1]+sub_merged[3], sub_merged[0]:sub_merged[0]+sub_merged[2]]
+            if (setu['limit'] is not None):
+                di = meta['instrument_data']['detector_index'][sub_merged[1]:sub_merged[1]+sub_merged[3], sub_merged[0]:sub_merged[0]+sub_merged[2]]
+            else:
+                di = meta['instrument_data']['detector_index']
         elif (sub is None):
             di = meta['instrument_data']['detector_index']
         else:
             di = meta['instrument_data']['detector_index'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
         print(di.shape)
-
         ## smile correction - from l2gen smile.c
         if (setu['smile_correction']) & (product_level == 'level1'):
             if setu['verbosity'] > 1: print('Running smile correction')
