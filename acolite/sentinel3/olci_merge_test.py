@@ -79,7 +79,7 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
                 lon_merged = lon * 1.0
                 data_shape_merged = [data_shape[0], data_shape[1]]
             else:
-                scene_offsets += [scene_offsets[-1]+data_shape[0]]
+                scene_offsets += [scene_offsets[-1]+data_shape[0]-1]
                 scene_index_merged = np.vstack((scene_index_merged, np.zeros(data_shape, dtype=int)+bi))
                 lat_merged = np.vstack((lat_merged, lat))
                 lon_merged = np.vstack((lon_merged, lon))

@@ -161,7 +161,11 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                         if ds not in meta[fname]:
                             meta[fname][ds] = gem.data(ds)
                         else:
-                            meta[fname][ds] = np.vstack((meta[fname][ds], gem.data(ds)))
+                            if len(meta[fname][ds].shape) == 1:
+                                ## use hstack if one dimension, in case the number of along track pixels differs
+                                meta[fname][ds] = np.hstack((meta[fname][ds], gem.data(ds)))
+                            else:
+                                meta[fname][ds] = np.vstack((meta[fname][ds], gem.data(ds)))
 
             ## or full size data
             else:
