@@ -18,6 +18,9 @@ scratch_dir=$ACDIR/scratch
 ## External directory
 external_dir=$ACDIR/external
 
+## Scene download directory
+scene_download_directory=$ACDIR/downloads
+
 ## atmospheric correction LUT data directory
 lut_dir=$ACDIR/data/LUT
 

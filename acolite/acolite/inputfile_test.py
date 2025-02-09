@@ -10,6 +10,7 @@
 ##                2024-04-27 (QV) moved APIs
 ##                2025-01-23 (QV) test if scene exists in download directory, added S2C
 ##                2025-02-05 (QV) add oceandata directdataaccess for MERIS
+##                2025-02-09 (QV) added config download directory
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -33,8 +34,12 @@ def inputfile_test(inputfile):
             if ac.config['verbosity'] > 0: print('Path {} does not exist.'.format(file))
             ## try and download from CDSE or EarthExplorer
             if ac.settings['run']['scene_download']:
-                ddir = ac.settings['run']['scene_download_directory']
-                if ddir is None: ddir = ac.settings['run']['output']
+                if ac.settings['run']['scene_download_directory'] is not None:
+                    ddir = ac.settings['run']['scene_download_directory']
+                elif ac.config['scene_download_directory'] is not None:
+                    ddir = ac.config['scene_download_directory']
+                else:
+                    ddir = ac.settings['run']['output']
                 ## find out data source to use
                 bn = os.path.basename(file)
                 local_file = '{}/{}'.format(ddir, bn)
@@ -57,6 +62,7 @@ def inputfile_test(inputfile):
                         continue
 
                     if ac.config['verbosity'] > 0: print('Attempting download of scene {} from {}.'.format(file, download_source))
+                    if ac.config['verbosity'] > 0: print('Target directory {}'.format(ddir))
                     if ac.config['verbosity'] > 0: print('Querying {}'.format(download_source))
 
                     ## Copernicus Data Space Ecosystem
