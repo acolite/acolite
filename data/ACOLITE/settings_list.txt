@@ -24,7 +24,7 @@ dem_shadow_mask_filter_kernel
 dsf_filter_box
 dsf_smooth_box
 ancillary_type
-radcor_optimise_plot_range
+optimise_plot_range
 dsf_tile_dimensions
 map_auto_range_percentiles
 

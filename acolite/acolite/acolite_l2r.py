@@ -20,6 +20,7 @@
 ##                2025-01-31 (QV) check if lat/lon are present for dem
 ##                2025-02-03 (QV) use downward gas transmittance for output_ed
 ##                2025-02-04 (QV) updated settings parsing
+##                2025-02-10 (QV) added optimisation option
 
 def acolite_l2r(gem,
                 output = None,
@@ -90,6 +91,19 @@ def acolite_l2r(gem,
             return()
 
     if verbosity > 0: print('Running acolite for {}'.format(gemf))
+
+    ## optimised aot
+    if setu['dsf_aot_estimate'] == 'optimise':
+        ret = ac.ac.optimise_aot_homogeneous(gem, settings = setu)
+        if ret is None:
+            print('Error in aot optimisation.')
+            return
+        else:
+            opt_lut, opt_aot = ret
+        print('Setting dsf_fixed_aot={:.5f} and dsf_fixed_lut={} to optimisation results'.format(opt_aot, opt_lut))
+        setu['dsf_fixed_aot'] = opt_aot
+        setu['dsf_fixed_lut'] = opt_lut
+    ## end optimised aot
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
 

@@ -35,6 +35,7 @@
 ##                2025-01-24 (QV) added output_ed option
 ##                2025-02-03 (QV) use downward gas transmittance for output_ed
 ##                2025-02-04 (QV) updated settings parsing
+##                2025-02-10 (QV) renamed radcor_optimise_* settings to optimise_* settings, added optimise_target_rhos_file
 
 def radcor(ncf, settings = None):
     import os, json
@@ -375,6 +376,11 @@ def radcor(ncf, settings = None):
         for k in settings: setu[k] = settings[k]
     ## end additional run settings
 
+    if setu['output'] is None:
+        output = os.path.dirname(ncf)
+    else:
+        output = '{}'.format(setu['output'])
+
     if setu['rsr_version'] is not None:
         sensor_lut = '{}_{}'.format(sensor, setu['rsr_version'])
     else:
@@ -658,23 +664,61 @@ def radcor(ncf, settings = None):
     #
     if setu['radcor_aot_estimate'] == 'optimise':
         print()
+
+        ## if optimise_target_rhos_file is given, read the data, and resample to the sensor RSR
+        if (setu['optimise_target_rhos_file'] is not None):
+            print('Reading target rhos from file: {}'.format(setu['optimise_target_rhos_file']))
+            data_import = np.loadtxt(setu['optimise_target_rhos_file'], delimiter = ',', dtype = np.float32)
+            if len(data_import.shape) != 2:
+                print('Wrong shape of data in {}'.format())
+                print(data_import.shape)
+                gem = None
+                return
+
+            ## check dimensions of data
+            if data_import.shape[0] == 2:
+                wave_data = data_import[0,:]
+                rhos_data = data_import[1,:]
+            elif data_import.shape[1] == 2:
+                wave_data = data_import[:,0]
+                rhos_data = data_import[:,1]
+            else:
+                print('Wrong shape of data in {}'.format())
+                print(data_import.shape)
+                gem = None
+                return
+
+            ## convolute to sensor bands
+            rhos_bands = ac.shared.rsr_convolute_dict(wave_data/1000, rhos_data,  rsrd[sensor_lut]['rsr'], fill_value = np.nan)
+            opt_rhos = np.asarray([rhos_bands[b] for b in bands_])
+            print('Setting optimise_target_rhos to: {}'.format(', '.join(['{:.5f}'.format(v) for v in opt_rhos])))
+            setu['optimise_target_rhos'] = opt_rhos
+
         ## check if number of target rhos corresponds to the number of considered bands
-        if len(setu['radcor_optimise_target_rhos']) != len(bands_):
-            print('The number of items in radcor_optimise_target_rhos ({}) does not match the number of considered bands ({}).'.format(len(setu['radcor_optimise_target_rhos']), len(bands_)))
-            print('Provide radcor_optimise_target_rhos for each considered band: {}'.format(bands_))
+        if (setu['optimise_target_rhos'] is None):
+            print('The setting optimise_target_rhos is None, provide optimise_target_rhos for each considered band: {}'.format(bands_))
             print('Set missing bands (e.g. SWIR) to NaN to be ignored, or to 0 to take them into account in the fit')
             gem = None
             return
+
+        ## check if number of target rhos corresponds to the number of considered bands
+        if len(setu['optimise_target_rhos']) != len(bands_):
+            print('The number of items in optimise_target_rhos ({}) does not match the number of considered bands ({}).'.format(len(setu['optimise_target_rhos']), len(bands_)))
+            print('Provide optimise_target_rhos for each considered band: {}'.format(bands_))
+            print('Set missing bands (e.g. SWIR) to NaN to be ignored, or to 0 to take them into account in the fit')
+            gem = None
+            return
+
         ## don't provide all NaNs!
-        if not any(np.isfinite(np.asarray(setu['radcor_optimise_target_rhos'], dtype=float))):
-            print('Zero finite items in radcor_optimise_target_rhos: {}'.format(', '.join([str(v) for v in setu['radcor_optimise_target_rhos']])))
+        if not any(np.isfinite(np.asarray(setu['optimise_target_rhos'], dtype=float))):
+            print('Zero finite items in optimise_target_rhos: {}'.format(', '.join([str(v) for v in setu['optimise_target_rhos']])))
             gem = None
             return
 
         ## get target bands and rhos
-        opt_rhos = np.asarray(setu['radcor_optimise_target_rhos'])
-        print('The number of items in radcor_optimise_target_rhos ({}) matches the number of considered bands ({}).'.format(len(setu['radcor_optimise_target_rhos']), len(bands_)))
-        print('The provided radcor_optimise_target_rhos for each considered band:')
+        opt_rhos = np.asarray(setu['optimise_target_rhos'], dtype = np.float32)
+        print('The number of items in optimise_target_rhos ({}) matches the number of considered bands ({}).'.format(len(setu['optimise_target_rhos']), len(bands_)))
+        print('The provided optimise_target_rhos for each considered band:')
         print(', '.join(['{}: {}'.format(b, opt_rhos[bi]) for bi, b in enumerate(bands_)]))
         opt_sub = np.where(np.isfinite(opt_rhos))
         opt_rhos = opt_rhos[opt_sub]
@@ -683,8 +727,8 @@ def radcor(ncf, settings = None):
         print('Optimising aot to rhos: {}'.format(', '.join([str(v) for v in opt_rhos])))
 
         ## get target pixel
-        st_lat = setu['radcor_optimise_target_lat']
-        st_lon = setu['radcor_optimise_target_lon']
+        st_lat = setu['optimise_target_lat']
+        st_lon = setu['optimise_target_lon']
         lon = gem.data('lon')
         lat = gem.data('lat')
         latrange = np.nanpercentile(lat, (0,100))
@@ -1206,31 +1250,29 @@ def radcor(ncf, settings = None):
             i = i[0]
             j = j[0]
             print('Optimising aot to lat, lon: {}, {}'.format(st_lat, st_lon))
-            if setu['radcor_optimise_target_type'] == 'pixel':
+            if setu['optimise_target_type'] == 'pixel':
                 print('Optimising aot to pixel: {}, {}'.format(i, j))
                 print('Pixel coordinates: {}, {}'.format(lat[i,j], lon[i,j]))
             else:
-                target_dim = setu['radcor_optimise_target_size']
-                if setu['radcor_optimise_target_units'][0].lower() == 'm': target_dim /= resolution
+                target_dim = setu['optimise_target_size']
+                if setu['optimise_target_units'][0].lower() == 'm': target_dim /= resolution
 
                 ## compute target mask for box/radius matching
-                if setu['radcor_optimise_target_type'] == 'box': ## square mask
+                if setu['optimise_target_type'] == 'box': ## square mask
                     hbox = int(target_dim/2)
-                    print('Optimising aot to {} pixel {} with centre pixel: {}, {}'.format(hbox*2,
-                                                                                           setu['radcor_optimise_target_type'], i, j))
+                    print('Optimising aot to {} pixel {} with centre pixel: {}, {}'.format(hbox*2, setu['optimise_target_type'], i, j))
                     optimise_target_mask = np.zeros(lon.shape, dtype = bool)
                     optimise_target_mask[i-hbox:i+hbox+1, j-hbox:j+hbox+1] = True
-                elif setu['radcor_optimise_target_type'] == 'circle': ## circular mask
+                elif setu['optimise_target_type'] == 'circle': ## circular mask
                     radius_pix = int(target_dim)
-                    print('Optimising aot to {} with {} pixel radius and centre pixel: {}, {}'.format(setu['radcor_optimise_target_type'],
-                                                                                           radius_pix, i, j))
+                    print('Optimising aot to {} with {} pixel radius and centre pixel: {}, {}'.format(setu['optimise_target_type'], radius_pix, i, j))
                     y = np.arange(0, lon.shape[0])
                     x = np.arange(0, lon.shape[1])
                     optimise_target_mask = (x[None, :] - j) ** 2 + (y[:, None] - i) ** 2 < radius_pix**2
                 print('Centre pixel coordinates: {}, {}'.format(lat[i,j], lon[i,j]))
 
                 ## add target mask with default acolite masking
-                if setu['radcor_optimise_target_mask']:
+                if setu['optimise_target_mask']:
                     flags = ac.acolite.acolite_flags(gem, create_flags_dataset = False, write_flags_dataset = False,
                                                           return_flags_dataset = True)
                     optimise_target_mask[np.where(flags != 0)] = False ## remove pixels from target mask if non-zero flags
@@ -1246,35 +1288,13 @@ def radcor(ncf, settings = None):
                     return
 
             ## cost function for aot estimate
-            radcor_optimise_aot_cost = setu['radcor_optimise_aot_cost'].upper()
-            print('Optimising aot with cost function: {}'.format(radcor_optimise_aot_cost))
-
-            ## aot optimisation function
-            ## QV 2024-05-21 added MAPD
-            # def opt_aot(aot, return_res = False):
-            #     print('    {} {}'.format(lut, aot))
-            #     res_rhos = np.zeros(len(opt_bands))
-            #     for bi, b in enumerate(opt_bands):
-            #         rhos_ = correct_band(b, aot, new = False, write = False)
-            #         if setu['radcor_optimise_target_type'] == 'pixel':
-            #             res_rhos[bi] = rhos_[i,j]
-            #         else:
-            #             res_rhos[bi] = np.nanmean(rhos_[optimise_mask])
-            #     if return_res:
-            #         return(res_rhos)
-            #     else:
-            #         if radcor_optimise_aot_cost == 'RMSD':
-            #             return(np.nanmean((opt_rhos-res_rhos)**2)**0.5)
-            #         elif radcor_optimise_aot_cost == 'MAPD':
-            #             #mn = 0.5 * (opt_rhos + res_rhos) ## MARD
-            #             mn = 1.0 * opt_rhos ## MAPD
-            #             mn2 = np.abs(opt_rhos-res_rhos) / mn
-            #             return(np.nansum(mn2) / len(opt_bands))
+            optimise_aot_cost = setu['optimise_aot_cost'].upper()
+            print('Optimising aot with cost function: {}'.format(optimise_aot_cost))
 
             ## aot optimisation function
             ## QV 2024-05-21 added MAPD
             ## QV 2024-05-22 new version using temporary gem
-            def opt_aot(aot, return_res = False):
+            def opt_aot(aot, return_res = False, correct_band = correct_band):
                 print('    {} {}'.format(lut, aot))
                 ## make temporary gem
                 ## is not really needed if no GC requested - but
@@ -1308,7 +1328,7 @@ def radcor(ncf, settings = None):
                 res_rhos = np.zeros(len(opt_bands))
                 for bi, b in enumerate(opt_bands):
                     ds = bands[b]['rhos_ds']
-                    if setu['radcor_optimise_target_type'] == 'pixel':
+                    if setu['optimise_target_type'] == 'pixel':
                         res_rhos[bi] = gemt.data_mem[ds][i,j]
                     else:
                         res_rhos[bi] = np.nanmean(gemt.data_mem[ds][optimise_mask])
@@ -1318,9 +1338,9 @@ def radcor(ncf, settings = None):
                 if return_res:
                     return(res_rhos)
                 else:
-                    if radcor_optimise_aot_cost == 'RMSD':
+                    if optimise_aot_cost == 'RMSD':
                         return(np.nanmean((opt_rhos-res_rhos)**2)**0.5)
-                    elif radcor_optimise_aot_cost == 'MAPD':
+                    elif optimise_aot_cost == 'MAPD':
                         #mn = 0.5 * (opt_rhos + res_rhos) ## MARD
                         mn = 1.0 * opt_rhos ## MAPD
                         mn2 = np.abs(opt_rhos-res_rhos) / mn
@@ -1365,14 +1385,13 @@ def radcor(ncf, settings = None):
             for ai, am in enumerate(aer_models):
                 print('    Estimating aot550 for model {}'.format(am))
                 lut = [lut for lut in luts if aer_nm[am] in lut][0]
-                #opt = scipy.optimize.minimize_scalar(opt_aot, bounds = (0.001, 5.0), method = 'bounded', tol = setu['radcor_optimise_tolerance']) ## AC 2024-09-13 ## tol is not supported for method = bounded
-                opt = scipy.optimize.minimize_scalar(opt_aot, bounds = (0.001, 5.0), method = 'bounded', options = {"xatol":setu['radcor_optimise_tolerance']}) ## AC 2024-09-13 ##
+                opt = scipy.optimize.minimize_scalar(opt_aot, bounds = (0.001, 5.0), method = 'bounded', options = {"xatol":setu['optimise_tolerance']}) ## AC 2024-09-13 ##
                 model_band_selection[am] = {'aot': opt.x, 'fit': opt_aot(opt.x), 'result': opt_aot(opt.x, return_res = True)}
                 print('    Optimised aot550 for model {}: {:.4f}'.format(am, model_band_selection[am]['aot']))
                 print('    Fit: {:.4f}'.format(model_band_selection[am]['fit']))
 
             ## plot results
-            if setu['radcor_diagnostic_plots']:
+            if setu['optimise_plot']:
                 opt_wave = np.asarray([bands[b]['wavelength'] for b in opt_bands])
                 opt_sort = np.argsort(opt_wave)
 
@@ -1387,6 +1406,8 @@ def radcor(ncf, settings = None):
                 ## plot result per model
                 fig, ax = plt.subplots()
                 plt.plot(opt_wave[opt_sort], opt_rhos[opt_sort], '.-', color='Black', label = 'target')
+                if (setu['optimise_target_rhos_file'] is not None):
+                    plt.plot(wave_data, rhos_data, ':', color='Grey', label = 'target (hyperspectral)')
                 for ai, am in enumerate(aer_models):
                     if am == 'M':
                         col = '#1f77b4'
@@ -1397,18 +1418,17 @@ def radcor(ncf, settings = None):
                     plt.plot(opt_wave[opt_sort], model_band_selection[am]['result'][opt_sort],  '.:', color = col,
                             label = r'MOD{} $\tau_a$={:.3f} {}={:.2e} {}'.format(am,
                                                                               model_band_selection[am]['aot'],
-                                                                              radcor_optimise_aot_cost,
+                                                                              optimise_aot_cost,
                                                                               model_band_selection[am]['fit'],
                                                                               '(*)' if sel_am == am else ''))
                 plt.legend()
-                #plt.title('{} {} \n Cost: {}'.format(gem.gatts['sensor'].replace('_', '/'), gem.gatts['isodate'][0:19], radcor_optimise_aot_cost))
                 plt.title('{} {}'.format(sensor.replace('_', '/'), gem.gatts['isodate'][0:19]))
                 plt.xlabel('Wavelength (nm)')
                 plt.ylabel(r'$\rho_{s}$ (1)')
                 xlim = plt.xlim()
                 plt.plot(xlim, [0,0], '--', color='Grey')
                 plt.xlim(xlim)
-                plt.ylim(setu['radcor_optimise_plot_range'][0], setu['radcor_optimise_plot_range'][1])
+                plt.ylim(setu['optimise_plot_range'][0], setu['optimise_plot_range'][1])
                 fname = 'rhos_optimised'
                 plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                 plt.close()
@@ -1443,7 +1463,8 @@ def radcor(ncf, settings = None):
                     best_fit = 1.0 * model_band_selection[am]['fit']
                     best_idx = ai
                     best_aot = model_band_selection[am]['aot']
-            print('\nOptimised aerosol model: {}'.format(best_mod))
+            best_lut = [lut for lut in luts if aer_nm[best_mod] in lut][0]
+            print('\nOptimised aerosol model: {} ({})'.format(best_mod, best_lut))
             print('Optimised aerosol optical thickness at 550 nm: {:.4f}'.format(best_aot))
 
         else:
@@ -1698,10 +1719,7 @@ def radcor(ncf, settings = None):
     # Create ACOLITE output file:
     #
 
-    if setu['output'] is None:
-        output = os.path.dirname(ncf)
-    else:
-        output = '{}'.format(setu['output'])
+    ## file basename
     bn = os.path.basename(ncf)
 
     ## Write to same directory

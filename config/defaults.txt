@@ -294,6 +294,20 @@ glint_write_rhog_all=False
 adjacency_correction=False
 adjacency_correction_method=None
 
+## optimisation options
+optimise_target_rhos=None
+optimise_target_rhos_file=None
+optimise_target_lon=None
+optimise_target_lat=None
+optimise_target_type=pixel
+optimise_target_size=1
+optimise_target_units=pixel
+optimise_target_mask=False
+optimise_tolerance=0.001
+optimise_aot_cost=rmsd
+optimise_plot=False
+optimise_plot_range=-0.01,0.06
+
 ## radcor options
 radcor_kernel_radius=5.0
 radcor_kernel_complete_method=neighbourhood
@@ -308,18 +322,6 @@ radcor_aot_estimate_centre_extent=None
 radcor_aot_estimate_centre_mask=False
 radcor_aot_selection=lowest_positive_difference
 radcor_skip_pan=False
-
-## radcor optimisation options
-radcor_optimise_target_rhos=None
-radcor_optimise_target_lon=None
-radcor_optimise_target_lat=None
-radcor_optimise_target_type=pixel
-radcor_optimise_target_size=1
-radcor_optimise_target_units=pixel
-radcor_optimise_target_mask=False
-radcor_optimise_tolerance=0.001
-radcor_optimise_aot_cost=rmsd
-radcor_optimise_plot_range=-0.01,0.06
 
 ## radcor output options
 radcor_write_rhot=True
