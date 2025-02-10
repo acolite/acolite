@@ -376,10 +376,18 @@ def radcor(ncf, settings = None):
         for k in settings: setu[k] = settings[k]
     ## end additional run settings
 
-    if setu['output'] is None:
-        output = os.path.dirname(ncf)
-    else:
-        output = '{}'.format(setu['output'])
+    ## Set up output directory
+    output = setu['output']
+    if output is None: output = os.path.dirname(ncf)
+
+    ## File basename
+    bn = os.path.basename(ncf)
+
+    ## Set up oname and ofile
+    oname = bn.replace('L1R', 'L2R').replace('.nc', '')
+    if setu['region_name'] != '':
+        if setu['region_name'] not in oname: oname+='_{}'.format(setu['region_name']) ## QV 2024-03-28
+    ofile = '{}/{}.nc'.format(output, oname)
 
     if setu['rsr_version'] is not None:
         sensor_lut = '{}_{}'.format(sensor, setu['rsr_version'])
@@ -1422,7 +1430,7 @@ def radcor(ncf, settings = None):
                                                                               model_band_selection[am]['fit'],
                                                                               '(*)' if sel_am == am else ''))
                 plt.legend()
-                plt.title('{} {}'.format(sensor.replace('_', '/'), gem.gatts['isodate'][0:19]))
+                plt.title('{} {} RAdCor'.format(sensor.replace('_', '/'), gem.gatts['isodate'][0:19]))
                 plt.xlabel('Wavelength (nm)')
                 plt.ylabel(r'$\rho_{s}$ (1)')
                 xlim = plt.xlim()
@@ -1719,14 +1727,6 @@ def radcor(ncf, settings = None):
     # Create ACOLITE output file:
     #
 
-    ## file basename
-    bn = os.path.basename(ncf)
-
-    ## Write to same directory
-    oname = bn.replace('L1R', 'L2R').replace('.nc', '')
-    if setu['region_name'] != '':
-        if setu['region_name'] not in oname: oname+='_{}'.format(setu['region_name']) ## QV 2024-03-28
-    ofile = '{}/{}.nc'.format(output, oname)
     #if setu['radcor_data_in_memory']: gem.store = True ## not faster in limited tests
 
     ## set up output gem

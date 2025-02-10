@@ -417,7 +417,7 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
                                                                               optimise_aot_cost, model_band_selection[am]['fit'],
                                                                               '(*)' if sel_am == am else ''))
         plt.legend()
-        plt.title('{} {}'.format(sensor.replace('_', '/'), gem.gatts['isodate'][0:19]))
+        plt.title('{} {} DSF'.format(sensor.replace('_', '/'), gem.gatts['isodate'][0:19]))
         plt.xlabel('Wavelength (nm)')
         plt.ylabel(r'$\rho_{s}$ (1)')
         xlim = plt.xlim()
