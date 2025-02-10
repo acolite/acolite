@@ -43,6 +43,9 @@ def acolite_l1r(bundle, input_type=None):
     if input_type == None:
         print('{} not recognized.'.format(bundle[0]))
 
+    ## empty setu
+    setu = {}
+
     ################
     ## ACOLITE
     if input_type == 'ACOLITE':
