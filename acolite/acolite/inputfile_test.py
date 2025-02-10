@@ -57,9 +57,16 @@ def inputfile_test(inputfile):
                         download_source = 'EarthExplorer'
                     elif bn.startswith('EN1_MDSI_MER_'): ## MERIS data from oceandata directdataaccess
                         download_source = 'oceandata'
+                        if not bn.endswith('.ZIP'): bn += '.ZIP'
+                    elif bn.startswith('H2') & ('.L1B_ISS' in bn): ## HICO
+                        download_source = 'oceandata'
+                        if not bn.endswith('.bz2'): bn += '.bz2'
                     else:
                         print('Could not identify download source for scene {}'.format(file))
                         continue
+
+                    ## update local file if bn was updated
+                    local_file = '{}/{}'.format(ddir, bn)
 
                     if ac.config['verbosity'] > 0: print('Attempting download of scene {} from {}.'.format(file, download_source))
                     if ac.config['verbosity'] > 0: print('Target directory {}'.format(ddir))
