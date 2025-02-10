@@ -199,19 +199,17 @@ def l1_convert(inputfile, output = None, settings = None,
             gatts['acolite_file_type'] = 'L1R'
         else:
             gatts['acolite_file_type'] = 'SR'
-
         stime = dateutil.parser.parse(gatts['isodate'])
+
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
         oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if setu['merge_tiles'] else '')
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
-        oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
-        gatts['oname'] = oname
-        ofile = '{}/{}.nc'.format(output, oname)
-
         ## output file information
         if (setu['merge_tiles'] is False) | (ofile is None):
-            ofile = '{}/{}.nc'.format(output, oname)
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         elif (setu['merge_tiles']) & (ofile is None):
-            ofile = '{}/{}.nc'.format(output, oname)
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
         gatts['ofile'] = ofile
 
         ## check if we should merge these tiles

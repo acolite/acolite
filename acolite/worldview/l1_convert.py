@@ -162,10 +162,11 @@ def l1_convert(inputfile, output = None,
         if atmospherically_corrected: gatts['acolite_file_type'] = 'converted'
 
         stime = dateutil.parser.parse(gatts['isodate'])
+
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
-        oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
-        ofile = '{}/{}.nc'.format(output, oname)
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile
 

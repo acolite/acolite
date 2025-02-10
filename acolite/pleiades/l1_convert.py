@@ -126,15 +126,17 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         stime = dateutil.parser.parse(gatts['isodate'])
+
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
         oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
-
         ## output file information
         ofile = '{}/{}.nc'.format(output, oname)
         pofile = '{}/{}_pan.nc'.format(output, oname)
         gatts['oname'] = oname
         gatts['ofile'] = ofile
+        gatts['ofile_pan'] = pofile
 
         ## test scene
         if setu['limit'] is not None:

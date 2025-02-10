@@ -120,10 +120,13 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['sensor'] = '{}_{}'.format(metadata['mission'], metadata['sensor']).upper()
         gatts['doy'] = doy
         gatts['se_distance'] = se_distance
+
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
         oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
-        oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
+        ofile = '{}/{}_{}.nc'.format(output, oname,  gatts['acolite_file_type'])
         gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## compute viewing angles
         ## 2024-02-22 QV
@@ -177,13 +180,6 @@ def l1_convert(inputfile, output = None, settings = None):
                        'wave_name':'{:.0f}'.format(cwave),
                        'width': gatts['band_widths'][bi],
                        'rsr': rsr[b],'f0': f0d[b]}
-
-        if output is None:
-            odir = os.path.dirname(imagefile)
-        else:
-            odir = output
-        if not os.path.exists(odir): os.makedirs(odir)
-        ofile = '{}/{}.nc'.format(odir, oname)
 
         ## set up output file
         gemo = ac.gem.gem(ofile, new = True)
