@@ -142,7 +142,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 if b == 'PAN': continue
                 gain = meta['{}_PHYSICAL_GAIN'.format(b)]
                 bias = meta['{}_PHYSICAL_BIAS'.format(b)]
-                print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['obase']))
+                print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['oname']))
                 print(b, bi, gain, bias)
 
                 ## read data
