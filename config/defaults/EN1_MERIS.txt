@@ -18,9 +18,6 @@ dsf_smooth_aot=True
 dsf_smooth_box=10,10
 dsf_filter_aot=True
 
-## maritime aerosol model
-luts=ACOLITE-LUT-202110-MOD2
-
 ## unity gains
 gains_toa=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 
