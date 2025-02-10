@@ -304,7 +304,9 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
 
     ## load LUTs
     if lutdw is None:
-        lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par, sensor = sensor_lut,)
+        lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par, sensor = sensor_lut,
+                                      rsky_lut = setu['dsf_interface_lut'], base_luts = setu['luts'], pressures = setu['luts_pressures'],
+                                      reduce_dimensions=setu['luts_reduce_dimensions'])
     luts = list(lutdw.keys())
 
     ## Find pixel
@@ -360,8 +362,13 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
     print('    Estimating aot550 for models {}'.format(', '.join(aer_models)))
     model_band_selection = {}
     for ai, am in enumerate(aer_models):
+        lut = [lut for lut in luts if aer_nm[am] in lut]
+        if len(lut) == 0:
+            print('    Model {} not in run luts setting'.format(am))
+            continue
+        else:
+            lut = lut[0]
         print('    Estimating aot550 for model {}'.format(am))
-        lut = [lut for lut in luts if aer_nm[am] in lut][0]
         opt = scipy.optimize.minimize_scalar(opt_aot, bounds = (0.001, 5.0), method = 'bounded', options = {"xatol":setu['optimise_tolerance']})
         model_band_selection[am] = {'aot': opt.x, 'fit': opt_aot(opt.x), 'result': opt_aot(opt.x, return_res = True), 'lut': lut}
         print('    Optimised aot550 for model {}: {:.4f}'.format(am, model_band_selection[am]['aot']))
@@ -369,6 +376,7 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
 
     best_mod = None
     for ai, am in enumerate(aer_models):
+        if am not in model_band_selection: continue
         print('    Model {} fit to rhos: {:.4f}'.format(am, model_band_selection[am]['fit']))
         if best_mod is None:
             best_mod = am
@@ -395,6 +403,7 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         ## sel model for annotating plot
         sel_am = None
         for am in model_band_selection:
+            if am not in model_band_selection: continue
             if sel_am is None:
                 sel_am = am
             elif model_band_selection[am]['fit']<model_band_selection[sel_am]['fit']:
@@ -406,6 +415,7 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         if (setu['optimise_target_rhos_file'] is not None):
             plt.plot(wave_data, rhos_data, ':', color='Grey', label = 'target (hyperspectral)')
         for ai, am in enumerate(aer_models):
+            if am not in model_band_selection: continue
             if am == 'M':
                 col = '#1f77b4'
             if am == 'C':
