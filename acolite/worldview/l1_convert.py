@@ -12,6 +12,7 @@
 ##                2025-02-02 (QV) removed percentiles, switched to ac.shared.interp2d
 ##                2025-02-03 (QV) updated tile merging for projected data and user set region of interest
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use
 
 def l1_convert(inputfile, output = None,
                inputfile_swir = None,
@@ -90,10 +91,6 @@ def l1_convert(inputfile, output = None,
         ## end set sensor specific defaults
 
         verbosity = setu['verbosity']
-        #inputfile_swir = setu['inputfile_swir']
-        limit=setu['limit']
-        output_geolocation=setu['output_geolocation']
-        vname = setu['region_name']
         if output is None: output = setu['output']
 
         ## test if we need to do an atmospheric correction
@@ -166,9 +163,9 @@ def l1_convert(inputfile, output = None,
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
-        if vname != '': oname+='_{}'.format(vname)
-
-        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
+        ofile = '{}/{}.nc'.format(output, oname)
         gatts['oname'] = oname
         gatts['ofile'] = ofile
 
@@ -204,6 +201,27 @@ def l1_convert(inputfile, output = None,
                 dct_vnir = ac.shared.projection_read(file)
             except:
                 dct_vnir = None
+
+            # ## shall we reproject the inputfile?
+            # ## to add swir bundle
+            # reproject = setu['reproject_inputfile_force'] | (setu['reproject_inputfile'] & (dct_vnir == None))
+            # if reproject:
+            #     setu['export_geotiff_match_file'] = None ## OG extent will no longer match
+            #     bn = os.path.basename(file)
+            #     bn, ext = os.path.splitext(bn)
+            #     ifile = '{}'.format(file)
+            #     rfile = '{}/{}_reprojected{}'.format(output, bn, ext)
+            #     print(ifile)
+            #     print(rfile)
+            #     #from osgeo import gdal
+            #     #print('Reprojecting {} to {}'.format(ifile, file))
+            #     #dso = gdal.Warp(file, ifile) ## warp to gdal defaults
+            #     file, (dimxo, dimyo) = ac.shared.warp_inputfile(ifile, target=rfile)
+            #     ## update global dims
+            #     global_dims = dimyo, dimxo
+            #     print(file)
+            #     #dso = None
+            #     dct_vnir = ac.shared.projection_read(file)
 
             ## get projection info
             try:
@@ -249,8 +267,8 @@ def l1_convert(inputfile, output = None,
         ## final scene dimensions
         if dct is not None:
             ## if we have dct and limit we can subset
-            if limit is not None:
-                dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+            if setu['limit'] is not None:
+                dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
                 if dct_sub['out_lon']:
                     if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                     continue
@@ -269,7 +287,7 @@ def l1_convert(inputfile, output = None,
             dct['ydim'] = int(np.round((dct['yrange'][1]-dct['yrange'][0]) / dct['pixel_size'][1]))
 
             ## these should match the global dims from metadata
-            if limit is None:
+            if setu['limit'] is None:
                 if (global_dims[0] != dct['ydim']) |  (global_dims[1] != dct['xdim']):
                     print('Global dims and projection size do not match')
                     print(global_dims[1], dct['xdim'])
@@ -289,7 +307,7 @@ def l1_convert(inputfile, output = None,
         new = False
 
         ## write lat/lon
-        if output_geolocation:
+        if setu['output_geolocation']:
             if verbosity > 1: print('{} - Writing lat/lon'.format(datetime.datetime.now().isoformat()[0:19]))
             if dct is not None: ## compute from projection info
                 print('lat/lon computed from projection info')
@@ -348,6 +366,14 @@ def l1_convert(inputfile, output = None,
                 ## check if the files were named .TIF instead of .TIFF
                 if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
                 if not os.path.exists(file): continue
+
+                # ## to add swir bundle?
+                # if reproject:
+                #     bn = os.path.basename(file)
+                #     bn, ext = os.path.splitext(bn)
+                #     ifile = '{}'.format(file)
+                #     file = '{}/{}_reprojected{}'.format(output, bn, ext)
+                #     print(file)
 
                 ## get tile from wv3 swir bundle if provided
                 swir_file=None
