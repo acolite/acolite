@@ -120,8 +120,9 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['sensor'] = '{}_{}'.format(metadata['mission'], metadata['sensor']).upper()
         gatts['doy'] = doy
         gatts['se_distance'] = se_distance
-        oname  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
 
         ## compute viewing angles
