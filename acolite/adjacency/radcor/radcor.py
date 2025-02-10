@@ -1137,7 +1137,7 @@ def radcor(ncf, settings = None):
                             cax = divider.append_axes("right", size = "5%", pad = 0.05)
                             plt.colorbar(im, cax = cax)
                             fname = 'B{}_MOD{}_{}'.format(b, am, 'rho_toa')
-                            plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                            plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                             plt.close()
 
                             #if (not setu['tsdsf_kernel_rescale']) & (setu['tsdsf_kernel_complete_method'] == "neighbourhood"): ## AC 2024-09-09 ## psf_uni no longer separately used
@@ -1149,7 +1149,7 @@ def radcor(ncf, settings = None):
                             #    cax = divider.append_axes("right", size = "5%", pad = 0.05)
                             #    plt.colorbar(im, cax = cax)
                             #    fname = 'B{}_MOD{}_{}'.format(b, am, 'rho_nbh_toa')
-                            #    plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                            #    plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                             #    plt.close()
 
                             ## plot rho_env_toa_est
@@ -1160,7 +1160,7 @@ def radcor(ncf, settings = None):
                             cax = divider.append_axes("right", size = "5%", pad = 0.05)
                             plt.colorbar(im, cax = cax)
                             fname = 'B{}_MOD{}_{}'.format(b, am, 'rho_env_toa_est')
-                            plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                            plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                             plt.close()
 
                             if (rho_a_opt_mx > rho_a_opt_mn):
@@ -1173,7 +1173,7 @@ def radcor(ncf, settings = None):
                                 plt.colorbar(im, cax = cax)
                                 ax.scatter(minidx[1][0], minidx[0][0], c = 'red', marker = '+')
                                 fname = 'B{}_MOD{}_{}'.format(b, am, 'bratio')
-                                plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                                plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                                 plt.close()
                         ## END DEVELOPMENT BLOCK ##
 
@@ -1410,7 +1410,7 @@ def radcor(ncf, settings = None):
                 plt.xlim(xlim)
                 plt.ylim(setu['radcor_optimise_plot_range'][0], setu['radcor_optimise_plot_range'][1])
                 fname = 'rhos_optimised'
-                plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                 plt.close()
 
             #
@@ -1592,7 +1592,7 @@ def radcor(ncf, settings = None):
                     plt.xlabel('Band index (1)')
                     plt.ylabel(r'$\rho_{path}$ estimated-modeled (1)')
                     fname = 'MOD{}_rho_path_difference'.format(am)
-                    plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                    plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                     plt.close()
 
 
@@ -1615,7 +1615,7 @@ def radcor(ncf, settings = None):
                     plt.xlabel('Band index (1)')
                     plt.ylabel(r'$\rho_{path}$ (1)')
                     fname = 'MOD{}_rho_path_selected'.format(am)
-                    plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                    plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                     plt.close()
 
                 ## plot taua spectra estimated per band
@@ -1632,7 +1632,7 @@ def radcor(ncf, settings = None):
                 plt.xlabel('Band index (1)')
                 plt.ylabel(r'$\tau_{a}$ $550~nm$ (1)')
                 fname = 'taua_bands'
-                plt.savefig('{}/{}_{}.png'.format(output, obase, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
+                plt.savefig('{}/{}_{}.png'.format(output, oname, fname), dpi = 300, bbox_inches = 'tight', facecolor = 'white')
                 plt.close()
 
     #
@@ -1705,10 +1705,10 @@ def radcor(ncf, settings = None):
     bn = os.path.basename(ncf)
 
     ## Write to same directory
-    obase = bn.replace('L1R', 'L2R').replace('.nc', '')
+    oname = bn.replace('L1R', 'L2R').replace('.nc', '')
     if setu['region_name'] != '':
-        if setu['region_name'] not in obase: obase+='_{}'.format(setu['region_name']) ## QV 2024-03-28
-    ofile = '{}/{}.nc'.format(output, obase)
+        if setu['region_name'] not in oname: oname+='_{}'.format(setu['region_name']) ## QV 2024-03-28
+    ofile = '{}/{}.nc'.format(output, oname)
     #if setu['radcor_data_in_memory']: gem.store = True ## not faster in limited tests
 
     ## set up output gem
@@ -1748,7 +1748,7 @@ def radcor(ncf, settings = None):
 
     ## also create separate L1R file for rhotc if radcor_write_rhotc_separate_file
     if setu['radcor_write_rhotc'] & setu['radcor_write_rhotc_separate_file']:
-        ofile_l1rc = '{}/{}.nc'.format(output, obase.replace('L2R', 'L1RC'))
+        ofile_l1rc = '{}/{}.nc'.format(output, oname.replace('L2R', 'L1RC'))
         gemo_l1rc = ac.gem.gem(ofile_l1rc, new = True)
         ## copy gatts
         gemo_l1rc.gatts = {k: gemo.gatts[k] for k in gemo.gatts}
