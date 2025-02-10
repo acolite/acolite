@@ -6,6 +6,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -33,8 +34,6 @@ def l1_convert(inputfile, output = None, settings = None):
 
     verbosity = setu['verbosity']
     if output is None: output = setu['output']
-    vname = setu['region_name']
-    limit = setu['limit']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -50,6 +49,8 @@ def l1_convert(inputfile, output = None, settings = None):
 
     ofiles = []
     for bundle in inputfile:
+        if output is None: output = os.path.dirname(bundle)
+
         #gatts = ac.shared.nc_gatts(bundle)
         f = h5py.File(bundle, mode='r')
 
@@ -145,10 +146,10 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['band_widths'] = fwhm # [bands[w]['width'] for w in bands]
 
         ## output file
-        obase  = '{}_{}_{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), gatts['acolite_file_type'])
-        if not os.path.exists(output): os.makedirs(output)
-        ofile = '{}/{}.nc'.format(output, obase)
-        gatts['obase'] = obase
+        oname  = '{}_{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
         gatts['ofile'] = ofile
 
         ## output file

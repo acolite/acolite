@@ -88,6 +88,7 @@ def l1_convert(inputfile, output = None, settings = None):
         verbosity = setu['verbosity']
         sub = setu['sub']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## get gains from settings
         gains = None
@@ -184,9 +185,10 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         stime = dateutil.parser.parse(gatts['isodate'])
+
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
-
         ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile

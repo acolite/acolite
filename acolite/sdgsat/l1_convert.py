@@ -8,6 +8,7 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import os
@@ -67,11 +68,9 @@ def l1_convert(inputfile, output = None, settings = None):
                 if k not in ac.settings['user']: setu[k] = setd[k]
             ## end set sensor specific defaults
 
-            if output is None:
-                if setu['output'] is None:
-                    output = os.path.dirname(mf)
-                else:
-                    output = setu['output']
+            verbosity = setu['verbosity']
+            if output is None: output = setu['output']
+            if output is None: output = os.path.dirname(mf)
 
             gains = None
             if setu['gains']:
@@ -84,10 +83,6 @@ def l1_convert(inputfile, output = None, settings = None):
                 else:
                     print('Use of gains requested, but provided number of gain ({}) or offset ({}) values does not match number of bands in RSR ({})'.format(len(setu['gains_toa']), len(setu['offsets_toa']), len(rsr_bands)))
                     print('Provide gains in band order: {}'.format(','.join(rsrd['rsr_bands'])))
-
-            verbosity = setu['verbosity']
-
-            limit = setu['limit']
 
             ## geometry
             saa = float(meta['SolarAzimuth'])
@@ -118,6 +113,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 gatts['{}_name'.format(b)] = rsrd['wave_name'][b]
                 gatts['{}_f0'.format(b)] = f0_b[b]
 
+            ## output name
             oname = '{}_{}'.format(gatts['sensor'], dtime.strftime('%Y_%m_%d_%H_%M_%S'))
             if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
             ofile = '{}/{}_L1R.nc'.format(output, oname)
@@ -134,8 +130,8 @@ def l1_convert(inputfile, output = None, settings = None):
                     warp_to = None
 
                     ## check crop
-                    if (sub is None) & (limit is not None):
-                        dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+                    if (sub is None) & (setu['limit'] is not None):
+                        dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
                         if dct_sub['out_lon']:
                             if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                             continue
@@ -148,7 +144,7 @@ def l1_convert(inputfile, output = None, settings = None):
                         dct_prj = {k:dct[k] for k in dct}
                     else:
                         gatts['sub'] = sub
-                        gatts['limit'] = limit
+                        gatts['limit'] = setu['limit']
                         ## get the target NetCDF dimensions and dataset offset
                         if (warp_to is None):
                             if (setu['extend_region']): ## include part of the roi not covered by the scene
@@ -295,7 +291,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 print('Conversion took {:.1f} seconds'.format(time.time()-t0))
                 print('Created {}'.format(ofile))
 
-            if limit is not None: sub = None
+            if setu['limit'] is not None: sub = None
             if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)

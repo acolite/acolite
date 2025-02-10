@@ -6,6 +6,7 @@
 #
 # modifications:  2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -69,10 +70,8 @@ def l1_convert(inputfile, output = None, settings = None):
         rsrd = ac.shared.rsr_dict(sensor)
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd[sensor]['rsr'])
 
+        verbosity = setu['verbosity']
         if output is None: output = setu['output']
-
-        ## get ROI from user settings
-        limit = setu['limit']
 
         sub = None
         geo_group = 'navigation_data'
@@ -96,10 +95,10 @@ def l1_convert(inputfile, output = None, settings = None):
         lat = ac.shared.nc_data(file, 'latitude', group=geo_group)
 
         ## get subset
-        if limit is not None:
-            sub = ac.shared.geolocation_sub(lat, lon, limit)
+        if setu['limit'] is not None:
+            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
 
-        if (limit is not None) & (sub is None):
+        if (setu['limit'] is not None) & (sub is None):
             print('Limit not in scene {}'.format(file))
             continue
 
@@ -109,8 +108,11 @@ def l1_convert(inputfile, output = None, settings = None):
         ## output attributes
         gatts = {'sensor': sensor, 'isodate': time.isoformat()}
         gatts['acolite_file_type'] = acolite_file_type
-        gatts['obase'] = '{}_{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'), gatts['acolite_file_type'])
-        ofile = '{}/{}.nc'.format(output, gatts['obase'])
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## read cropped version
         if sub is not None:

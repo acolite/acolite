@@ -6,6 +6,7 @@
 ##                2024-11-17 (QV) added 6 channel support
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output=None, settings = None):
     import numpy as np
@@ -69,9 +70,7 @@ def l1_convert(inputfile, output=None, settings = None):
 
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
-        output_lt = setu['output_lt']
-        vname = setu['region_name']
-        limit = setu['limit']
+        if output is None: output = os.path.basename(file)
 
         gatts = {}
         time = dateutil.parser.parse(metadata['start_date'])
@@ -87,8 +86,8 @@ def l1_convert(inputfile, output=None, settings = None):
         lon = ac.shared.fillnan(lon)
 
         sub = None
-        if limit is not None:
-            sub = ac.shared.geolocation_sub(lat, lon, limit)
+        if setu['limit'] is not None:
+            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
             if sub is None:
                 print('Limit outside of scene {}'.format(file))
                 continue
@@ -113,21 +112,16 @@ def l1_convert(inputfile, output=None, settings = None):
         mu0 = np.cos(gatts['sza']*(np.pi/180))
         muv = np.cos(gatts['vza']*(np.pi/180))
 
-        if output is None:
-            odir = os.path.dirname(file)
-        else:
-            odir = output
-
         gatts['sensor'] = sensor
         gatts['isodate'] = time.isoformat()
-
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
-        if not os.path.exists(odir): os.makedirs(odir)
-        ofile = '{}/{}.nc'.format(odir, obase)
-
         gatts['acolite_file_type'] = 'L1R'
+
+        ## output file name
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
         gatts['ofile'] = ofile
-        gatts['obase'] = obase
 
         ## set up output file
         gemo = ac.gem.gem(ofile, new=True)

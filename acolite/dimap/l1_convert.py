@@ -7,6 +7,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output=None, settings=None):
     import os, glob
@@ -72,10 +73,8 @@ def l1_convert(inputfile, output=None, settings=None):
         ## end set sensor specific defaults
 
         verbosity = setu['verbosity']
-
-        ## get other settings
-        vname = setu['region_name']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         if setu['smile_correction']:
             print('Smile correction not implemented in DIMAP processing.')
@@ -173,10 +172,8 @@ def l1_convert(inputfile, output=None, settings=None):
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
-        if vname != '': oname+='_{}'.format(vname)
-
-        ofile = '{}/{}_L1R.nc'.format(output, oname)
-        if not os.path.exists(os.path.dirname(ofile)): os.makedirs(os.path.dirname(ofile))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile
 

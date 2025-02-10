@@ -161,6 +161,7 @@ def l1_convert(inputfile, output = None, settings = None,
 
             verbosity = setu['verbosity']
             if output is None: output = setu['output']
+            if output is None: output = os.path.dirname(bundle)
 
             ## check if merging settings make sense
             if (setu['limit'] is None) & (setu['merge_tiles']):

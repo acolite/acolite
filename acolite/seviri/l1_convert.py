@@ -71,7 +71,7 @@ def l1_convert(inputfile, output = None, settings = None):
         for k in setd:
             if k not in ac.settings['user']: setu[k] = setd[k]
         ## end set sensor specific defaults
-        
+
         if output is None: output = setu['output']
 
         ## some assumptions here
@@ -90,10 +90,9 @@ def l1_convert(inputfile, output = None, settings = None):
         ## output name
         oname = '{}_{}'.format(gatts['sensor'], dt.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
-        gatts['oname'] = oname
         ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         ofile_hrv = '{}/{}_{}_HRV.nc'.format(output, oname, gatts['acolite_file_type'])
-
+        gatts['oname'] = oname
         gatts['ofile'] = ofile
         gatts['ofile_hrv'] = ofile_hrv
 

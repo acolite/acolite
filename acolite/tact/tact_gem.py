@@ -10,20 +10,16 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) updated settings parsing
+##                2025-02-10 (QV) cleaned up settings use
 
 def tact_gem(gem, output_file = True,
+             output = None,
              return_data = False,
              target_file = None,
              target_file_append = False,
-             #output = None,
              to_celcius = False,
-             #emissivity = 'water', # 'unity' / 'water' / 'eminet' / 'user'
-             #emissivity_file = None,
              sub = None,
-             #output_atmosphere = False,
-             #output_intermediate = False,
              copy_datasets = ['lon', 'lat'],
-             #source = 'era5',
              settings = None, verbosity=0):
 
     import os, datetime, json
@@ -72,15 +68,7 @@ def tact_gem(gem, output_file = True,
 
     ## get verbosity from run settings
     verbosity = setu['verbosity']
-
     output = setu['output']
-    emissivity = setu['tact_emissivity']
-    emissivity_file = setu['tact_emissivity_file']
-    source = setu['tact_profile_source']
-    output_atmosphere = setu['tact_output_atmosphere']
-    output_intermediate = setu['tact_output_intermediate']
-    reptran = setu['tact_reptran']
-    wave_range = setu['tact_range']
 
     ## detect sensor
     if ('thermal_sensor' not in gem.gatts) or ('thermal_bands' not in gem.gatts):
@@ -110,39 +98,33 @@ def tact_gem(gem, output_file = True,
             if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
             return
 
-    if source == 'era5':
+    if setu['tact_profile_source'] == 'era5':
         max_date = (datetime.datetime.now() - datetime.timedelta(days=92)).isoformat()
         if gem.gatts['isodate'] > max_date:
-            print('File too recent for TACT with {} profiles: after {}'.format(source, max_date))
+            print('File too recent for TACT with {} profiles: after {}'.format(setu['tact_profile_source'], max_date))
             print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
             return
 
     ## load emissivity data
+    emissivity_file = setu['tact_emissivity_file']
     if emissivity_file is not None:
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None
-    if (emissivity_file is None) & (emissivity not in ['ged', 'eminet', 'ndvi']):
-        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', emissivity)
+    if (emissivity_file is None) & (setu['tact_emissivity'] not in ['ged', 'eminet', 'ndvi']):
+        emissivity_file = '{}/{}/emissivity_{}.json'.format(ac.config['data_dir'], 'TACT', setu['tact_emissivity'])
         if not os.path.exists(emissivity_file):
             print('Could not file {}'.format(emissivity_file))
             emissivity_file = None
     if emissivity_file is not None:
         em = json.load(open(emissivity_file, 'r'))
         print('Loaded emissivity file {}'.format(emissivity_file))
-        #print(em)
     else:
         em = None
 
     if verbosity > 0: print('Running tact for {}'.format(gemf))
 
     if target_file is None:
-        #if 'output_name' in gem.gatts:
-        #    output_name = gem.gatts['output_name']
-        #elif 'oname' in gem.gatts:
-        #    output_name = gem.gatts['oname']
-        #else:
-        #    output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L1R', '')
         output_name = output_name.replace(gem.gatts['sensor'], gem.gatts['thermal_sensor'])
@@ -165,12 +147,13 @@ def tact_gem(gem, output_file = True,
     thd, simst, lonc, latc = ac.tact.tact_limit(gem.gatts['isodate'],
                                                 lon = lon, lat = lat,
                                                 satsen=gem.gatts['thermal_sensor'],
-                                                wave_range = wave_range,
-                                                reptran = reptran, source = source)
+                                                wave_range = setu['tact_range'],
+                                                reptran = setu['tact_reptran'],
+                                                source = setu['tact_profile_source'])
     for ds in thd:
         dct['data'][ds] = thd[ds]
         ## output atmosphere parameters
-        if output_atmosphere: output_datasets += [ds]
+        if setu['tact_output_atmosphere']: output_datasets += [ds]
     thd = None
 
 
@@ -186,17 +169,12 @@ def tact_gem(gem, output_file = True,
             emk = 'em{}'.format(b)
             dso = 'st{}'.format(b)
 
-            if output_intermediate: output_datasets += [btk, ltk, lsk, emk]
+            if setu['tact_output_intermediate']: output_datasets += [btk, ltk, lsk, emk]
             output_datasets += [dso]
-
-            #gd['data'][btk] = ac.shared.nc_data(ncf, dsi, sub=sub)
-            #mask = dct['data'][btk].mask
-            #dct['data'][btk] = dct['data'][btk].data
-            #dct['data'][btk][mask] = np.nan
 
             bk = b.split('_')[0]
             e = None
-            if emissivity == 'ged':
+            if setu['tact_emissivity'] == 'ged':
                 if em_ged is None:
                     ## determine bands
                     if gem.gatts['thermal_sensor'] in ['L8_TIRS', 'L9_TIRS']:
@@ -217,7 +195,7 @@ def tact_gem(gem, output_file = True,
                         e = em_ged[:,:,bkeys[b]]
                     else:
                         e = em_ged * 1.0
-            if emissivity == 'eminet':
+            if setu['tact_emissivity'] == 'eminet':
                 if em_eminet is None:
                     em_eminet = ac.tact.tact_eminet(gemf, water_fill = setu['eminet_water_fill'],
                                                        water_threshold = setu['eminet_water_threshold'],
@@ -230,7 +208,7 @@ def tact_gem(gem, output_file = True,
                 else:
                     e = em_eminet[bk]
 
-            if emissivity == 'ndvi':
+            if setu['tact_emissivity'] == 'ndvi':
                 if em_ndvi is None:
                     em_ndvi = ac.tact.ndvi_emissivity(gemf, ndvi_toa = setu['tact_emissivity_ndvi_toa'])
                 if em_ndvi is None:

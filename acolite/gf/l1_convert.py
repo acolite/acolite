@@ -11,6 +11,7 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-28 (QV) switch to LinearNDInterpolator, added meshgrid
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -76,15 +77,8 @@ def l1_convert(inputfile, output = None, settings = None):
         ## end set sensor specific defaults
 
         verbosity = setu['verbosity']
-        ## get other settings
-        limit = setu['limit']
-        output_lt = setu['output_lt']
-        reproject_to_utm = setu['gf_reproject_to_utm']
-        clear_scratch = setu['clear_scratch']
-        vname = setu['region_name']
-        gains = setu['gains']
-        gains_toa = setu['gains_toa']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## get F0 for radiance -> reflectance computation
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
@@ -128,8 +122,7 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['isodate'] = isodate
         gatts['se_distance'] = se_distance
         gatts['doy'] = doy
-
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'))
+        gatts['acolite_file_type'] = 'L1R'
 
         ##
         sensor = gatts['sensor']
@@ -160,14 +153,7 @@ def l1_convert(inputfile, output = None, settings = None):
         bands_sorted = [band_names[i] for i in idx]
 
         ## image crop
-        if limit is None: sub = None
-
-        ## output file
-        if output is None:
-            odir = os.path.dirname(bundle)
-        else:
-            odir = '{}'.format(output)
-        if not os.path.exists(odir): os.makedirs(odir)
+        if setu['limit'] is None: sub = None
 
         ## track tile offsets
         x_off = 0
@@ -184,8 +170,11 @@ def l1_convert(inputfile, output = None, settings = None):
 
             #if ('PMS' in bn) & ('PAN' in bn): continue
             if ctile.upper() == 'PAN': continue
-            gatts['obase'] = obase + '_{}'.format(ctile)
-            ofile = '{}/{}.nc'.format(odir, gatts['obase'])
+            oname  = '{}_{}_{}'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'), ctile)
+            if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+            gatts['oname'] = oname
+            gatts['ofile'] = ofile
 
             ## output file - one per tile
             gemo = ac.gem.gem(ofile, new = True)
@@ -203,7 +192,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
             ## reproject file to UTM if projection not read succesfully
             rpr_file = None
-            if reproject_to_utm:
+            if setu['gf_reproject_to_utm']:
                 if prj is None:
                     rpr_file = '{}/{}'.format(ac.config['scratch_dir'], bn.replace('.tiff', '_reprojected.tif'))
                     if not os.path.exists(rpr_file):
@@ -237,7 +226,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## run through bands
             for bi, b in enumerate(bands_sorted):
                 if b == 'PAN': continue
-                print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['obase']))
+                print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['oname']))
                 print(b, bi, dn_scaling[gatts['satellite']][gatts['sensor'].split('_')[1]][b])
 
                 ## read data
@@ -251,7 +240,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 cdata_radiance = cdata_radiance.astype(np.float32) * dn_scaling[gatts['satellite']][gatts['sensor'].split('_')[1]][b]
                 cdata_radiance += dn_bias
 
-                if output_lt:
+                if setu['output_lt']:
                     ## write toa radiance
                     gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = bands[b])
 
@@ -304,7 +293,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 del X, Y
 
             ## remove reprojected file
-            if (clear_scratch) & (rpr_file is not None):
+            if (setu['clear_scratch']) & (rpr_file is not None):
                 if os.path.exists(rpr_file):
                     os.remove(rpr_file)
 
@@ -316,7 +305,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
     ## remove scratch directory
     if os.path.exists(ac.config['scratch_dir']):
-        if (clear_scratch) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
+        if (setu['clear_scratch']) & (len(os.listdir(ac.config['scratch_dir'])) == 0):
             os.rmdir(ac.config['scratch_dir'])
 
     return(ofiles, setu)

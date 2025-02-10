@@ -8,6 +8,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling, fixed raa writing, fix for new settings handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) added acolite_file_type, improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import h5py
@@ -86,12 +87,8 @@ def l1_convert(inputfile, output = None, settings = None):
                         skip = True
         if skip: continue
 
-        limit = setu['limit']
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
-        output_lt = setu['output_lt']
-        vname = setu['region_name']
-        odir = '{}'.format(output)
 
         ## load rsr
         rsrd = ac.shared.rsr_dict(sensor=sensor)
@@ -147,13 +144,15 @@ def l1_convert(inputfile, output = None, settings = None):
                 gatts = {}
                 gatts['sensor'] = sensor
                 gatts['isodate'] = dtime.isoformat()
-                gatts['obase']  = '{}_{}_{}_L1R'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'), setu['viirs_option'].upper())
                 gatts['viirs_option'] = setu['viirs_option']
                 gatts['viirs_slines'] = slines
                 gatts['acolite_file_type'] = 'L1R'
 
-                if not os.path.exists(odir): os.makedirs(odir)
-                ofile = '{}/{}.nc'.format(odir, gatts['obase'])
+                ## output name
+                oname  = '{}_{}_{}'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'), setu['viirs_option'].upper())
+                if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+                ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+                gatts['oname'] = oname
                 gatts['ofile'] = ofile
 
                 ## new output gem
@@ -163,7 +162,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
                 ## get image subset
                 sub = None
-                if limit is not None:
+                if setu['limit'] is not None:
                     group = 'geolocation_data'
                     with h5py.File(geo, mode='r') as f:
                         lat = f[group]['latitude'][:]
@@ -171,7 +170,7 @@ def l1_convert(inputfile, output = None, settings = None):
                     full_shape = lat.shape
 
                     ## get sub
-                    csub = ac.shared.geolocation_sub(lat, lon, limit)
+                    csub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
                     if csub is None:
                         print('Limit outside of scene {}'.format(bundle))
                         outside = True
@@ -385,7 +384,7 @@ def l1_convert(inputfile, output = None, settings = None):
                         data = None
                         ql = None
 
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if not outside:
             gemo.close()
             if ofile not in ofiles: ofiles.append(ofile)

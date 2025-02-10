@@ -7,6 +7,7 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -68,9 +69,8 @@ def l1_convert(inputfile, output = None, settings = None):
         #    print('Processing of IKONOS2 images with multiple components currently not supported.')
         #    continue
         verbosity = setu['verbosity']
-        output_geolocation=setu['output_geolocation']
-        vname = setu['region_name']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## read rsr
         rsrf = ac.path+'/data/RSR/{}.txt'.format(sensor)
@@ -154,12 +154,12 @@ def l1_convert(inputfile, output = None, settings = None):
             stime = dateutil.parser.parse(gatts['isodate'])
 
             oname = '{}_{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), comp)
-            if vname != '': oname+='_{}'.format(vname)
-
+            if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
             ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             pofile = '{}/{}_{}_pan.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
+            gatts['ofile_pan'] = pofile
 
             new=True
             new_pan = True
@@ -205,7 +205,7 @@ def l1_convert(inputfile, output = None, settings = None):
                     new = False
 
                 ## write lat/lon
-                if (output_geolocation) & (new):
+                if (setu['output_geolocation']) & (new):
                     if verbosity > 1: print('{} - Writing lat/lon'.format(datetime.datetime.now().isoformat()[0:19]))
                     if dct is not None: ## compute from projection info
                         lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)

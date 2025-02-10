@@ -86,6 +86,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## set resolution and band names
         if meta['sensor'] in ['PHR1A', 'PHR1B']:
@@ -131,7 +132,6 @@ def l1_convert(inputfile, output = None, settings = None):
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
         oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
-        ## output file information
         ofile = '{}/{}.nc'.format(output, oname)
         pofile = '{}/{}_pan.nc'.format(output, oname)
         gatts['oname'] = oname

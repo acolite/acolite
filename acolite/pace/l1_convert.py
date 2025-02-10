@@ -11,6 +11,7 @@
 ##                2024-07-22 (QV) include SWIR RSR
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -58,14 +59,12 @@ def l1_convert(inputfile, output = None, settings = None):
         for k in setd:
             if k not in ac.settings['user']: setu[k] = setd[k]
         ## end set sensor specific defaults
-        
-        if output is None: output = setu['output']
 
-        ## get ROI from user settings
-        limit = setu['limit']
+        if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(file)
 
         sub = None
-        if limit is None:
+        if setu['limit'] is None:
             print('Warning processing of PACE/OCI data recommended with small ROI')
             print('Supply limit or polygon for processing!')
 
@@ -86,8 +85,8 @@ def l1_convert(inputfile, output = None, settings = None):
         lat = ac.shared.nc_data(file, 'latitude', group=geo_group)
 
         ## get subset
-        sub = ac.shared.geolocation_sub(lat, lon, limit)
-        if (limit is not None) & (sub is None):
+        sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
+        if (setu['limit'] is not None) & (sub is None):
             print('Limit not in scene {}'.format(file))
             continue
 
@@ -97,8 +96,11 @@ def l1_convert(inputfile, output = None, settings = None):
         ## output attributes
         gatts = {'sensor': sensor, 'isodate': time.isoformat()}
         gatts['acolite_file_type'] = acolite_file_type
-        gatts['obase'] = '{}_{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'), gatts['acolite_file_type'])
-        ofile = '{}/{}.nc'.format(output, gatts['obase'])
+        oname =  '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## read write lat/lon
         if sub is not None: ## read cropped version

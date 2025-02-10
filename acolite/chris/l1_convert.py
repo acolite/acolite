@@ -7,6 +7,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     from pyhdf.SD import SD,SDC
@@ -33,10 +34,6 @@ def l1_convert(inputfile, output = None, settings = None):
     ## end set sensor specific defaults
 
     verbosity = setu['verbosity']
-    interband_calibration = setu['chris_interband_calibration']
-    noise_reduction = setu['chris_noise_reduction']
-    vname = setu['region_name']
-    output_radiance = setu['output_lt']
     if output is None: output = setu['output']
 
     ## parse inputfile
@@ -49,10 +46,12 @@ def l1_convert(inputfile, output = None, settings = None):
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
     ## get CHRIS interband calibration
-    if interband_calibration: ibcal = ac.chris.interband_calibration()
+    if setu['chris_interband_calibration']: ibcal = ac.chris.interband_calibration()
 
     ofiles = []
     for bundle in inputfile:
+        if output is None: output = os.path.dirname(bundle)
+
         ## read gains and get bands
         gains, mode_info = ac.chris.vdata(bundle)
         nbands = len(mode_info)
@@ -129,12 +128,14 @@ def l1_convert(inputfile, output = None, settings = None):
                  'sza': sza, 'vza': vza, 'raa': raa, 'vaa': vaa, 'saa': saa,
                  'lat': tlat, 'lon': tlon, 'FlyByZenith':flyby_za}
 
-        obase  = '{}_{}_{}_FlyByZenith_{}{}'.format(satellite, sensor,
+        oname  = '{}_{}_{}_FlyByZenith_{}{}'.format(satellite, sensor,
                                                  tc.strftime('%Y_%m_%d_%H_%M_%S'),
                                                  '-' if gatts['FlyByZenith'] < 0 else '+',
                                                  '{:.0f}'.format(abs(gatts['FlyByZenith'])).zfill(2))
-        if vname != '': obase+='_{}'.format(vname)
-        ofile = '{}/{}_L1R.nc'.format(output, obase)
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## make RSR
         rsr = ac.shared.rsr_hyper(gatts['band_waves'], gatts['band_widths'])
@@ -186,7 +187,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## select interband calibration
         cal = None
-        if interband_calibration:
+        if setu['chris_interband_calibration']:
             for c in ibcal:
                 if (tc >= ibcal[c]['range'][0]) & (tc <= ibcal[c]['range'][1]):
                     cal = ibcal[c]['data']
@@ -225,7 +226,7 @@ def l1_convert(inputfile, output = None, settings = None):
                       'band_index': b, 'f0': f0_bands[b]}
 
             ## do interband calibration
-            if (interband_calibration) & (cal is not None):
+            if (setu['chris_interband_calibration']) & (cal is not None):
                 btag = 'band_{}'.format(b+1)
                 if btag in cal:
                     bcal = cal[btag]['cal']
@@ -234,7 +235,7 @@ def l1_convert(inputfile, output = None, settings = None):
                     print(wave_f, bcal)
 
             ## output TOA radiance
-            if output_radiance:
+            if setu['output_lt']:
                 ds = 'L_{}'.format(wave)
                 gemo.write(ds, cur_data, ds_att = ds_att)
                 if verbosity > 2: print('Wrote {} to {}'.format(ds, ofile))
@@ -248,7 +249,7 @@ def l1_convert(inputfile, output = None, settings = None):
         gemo.close()
 
         ## apply noise reduction
-        if noise_reduction:
+        if setu['chris_noise_reduction']:
             print('Applying CHRIS Noise Reduction')
             ofile = ac.chris.noise_reduction(ofile)
 

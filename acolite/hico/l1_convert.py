@@ -8,6 +8,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -34,6 +35,7 @@ def l1_convert(inputfile, output = None, settings = None):
     ## end set sensor specific defaults
 
     verbosity = setu['verbosity']
+    if output is None: output = setu['output']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -46,6 +48,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
     ofiles = []
     for file in inputfile:
+        if output is None: output = os.path.dirname(file)
         hatts = ac.hico.attributes(file)
 
         ## get scene mid point time
@@ -57,24 +60,15 @@ def l1_convert(inputfile, output = None, settings = None):
         doy = int(time.strftime('%j'))
         d = ac.shared.distance_se(doy)
 
-        if output is None:
-            odir = os.path.dirname(file)
-        else:
-            odir = output
-
         gatts =  {}
         gatts['sensor'] = sensor
         gatts['isodate'] = time.isoformat()
+        gatts['acolite_file_type'] = 'L1R'
 
-        ## get sensor specific settings
-        vname = setu['region_name']
-        output_lt=setu['output_lt']
-        if output is None: output = setu['output']
-
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
-        if not os.path.exists(odir): os.makedirs(odir)
-        ofile = '{}/{}.nc'.format(odir, obase)
-        gatts['obase'] = obase
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
         gatts['ofile'] = ofile
 
         ## get F0 for radiance -> reflectance computation
@@ -134,7 +128,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## output datasets
             ds_att = {k:bands[b][k] for k in bands[b] if k not in ['rsr']}
 
-            if output_lt:
+            if setu['output_lt']:
                 ## write toa radiance
                 gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
             ## write toa reflectance
