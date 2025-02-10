@@ -1,5 +1,6 @@
 ## read HICO L1B NetCDF data
 ## QV 2021-08-03
+## modifications: 2025-02-10 (QV) added check for Lt DN scaling
 
 def read(file, dataset, band = None):
     import h5py
@@ -27,8 +28,15 @@ def read(file, dataset, band = None):
                     else:
                         data = np.dstack((data, df[:,:,b].astype(np.float32)))
             ## scale DN
-            data *= attributes['scale_factor'][0]
-            data += attributes['add_offset'][0]
+            if ('scale_factor' in attributes) & ('add_offset' in attributes):
+                data *= attributes['scale_factor'][0]
+                data += attributes['add_offset'][0]
+            elif ('slope' in attributes) & ('intercept' in attributes):
+                data *= attributes['slope'][0]
+                data += attributes['intercept'][0]
+            else:
+                print('Could not identify scale and offset from file {}'.format(file))
+                return
         else:
             data = df[:,:].astype(np.float32)
             attributes = {k: df.attrs[k] for k in df.attrs.keys() if k != 'DIMENSION_LIST'}
