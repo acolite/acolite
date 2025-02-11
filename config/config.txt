@@ -108,3 +108,6 @@ hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI,ENMAP_HSI,ISS_EMIT,HY
 
 ## list of thermal sensors (do not edit)
 thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,TERRA_ASTER_TIR,JPSS-1_VIIRS_TIR,JPSS-2_VIIRS_TIR,SUOMI-NPP_VIIRS_TIR
+
+## list of sensors with reverse lut, include RSR version (do not edit)
+reverse_lut_sensors=L5_TM,L7_ETM,L8_OLI,L9_OLI,S2A_MSI,S2B_MSI,S2C_MSI_V4,S3A_OLCI,S3B_OLCI,EN1_MERIS
