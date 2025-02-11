@@ -21,7 +21,7 @@ def identify_bundle(bundle, input_type = None, output = None):
 
         ## test if zip/tar file
         bn, ext = os.path.splitext(bundle)
-        if os.path.isfile(bundle) & (ext.lower() in ['.zip', '.tar', '.gz', '.tgz']):
+        if os.path.isfile(bundle) & (ext.lower() in ['.zip', '.tar', '.gz', '.tgz', '.bz2']):
             targ_bundle, extracted_path = ac.shared.extract_bundle(bundle, output=output, verbosity=2)
             if targ_bundle is not None:
                 print(targ_bundle)
