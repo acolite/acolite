@@ -294,7 +294,7 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
     if lutdw is None:
         lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par, sensor = sensor_lut,
                                       rsky_lut = setu['dsf_interface_lut'], base_luts = setu['luts'], pressures = setu['luts_pressures'],
-                                      reduce_dimensions=setu['luts_reduce_dimensions'])
+                                      reduce_dimensions = False)
     luts = list(lutdw.keys())
 
     ## Find pixel
