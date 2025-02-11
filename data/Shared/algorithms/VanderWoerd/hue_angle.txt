@@ -3,9 +3,18 @@
 ;; tabulated by QV 2018-04-18
 ;;
 ;; updated polynomials for S2A and S2B provided by Hans in April 2018
-;; QV updated 2018-09-12 with nominal wavelengths and adding the 705 after feedback from HVDW
-;; QV updated 2022-03-07 L9_OLI is placeholder with same coeffs as L8_OLI
-;; QV updated 2022-03-15 L9_OLI coefficients received from Hans, same for L8 except polynomial is updated using L9 RSR https://landsat.gsfc.nasa.gov/sites/landsat/files/2021-10/L9_OLI2_Ball_FPM_RSR.v1.0.xlsx
+;; QV 2018-09-12 updated with nominal wavelengths and adding the 705 after feedback from HVDW
+;; QV 2022-03-07 updated L9_OLI is placeholder with same coeffs as L8_OLI
+;; QV 2022-03-15 updated L9_OLI coefficients received from Hans, same for L8 except polynomial is updated using L9 RSR https://landsat.gsfc.nasa.gov/sites/landsat/files/2021-10/L9_OLI2_Ball_FPM_RSR.v1.0.xlsx
+;; QV 2025-02-11 added L7_ETM and MERIS coefficients (and OLCI as copy of MERIS, S2C as copy of S2B)
+;;
+sensor=L7_ETM
+req_waves=483,561,655
+lambda=400,485,565,660,710
+X=7.8195,13.104,53.791,31.304,0.6463
+Y=0.807,24.097,65.801,15.883,0.235
+Z=40.336,63.845,2.142,0.013,0.000
+coef=-84.94,594.17,-1559.86,1852.50,-918.11,151.49
 ;;
 sensor=L8_OLI
 req_waves=443,483,561,655
@@ -38,3 +47,39 @@ X=2.217,11.756,6.423,53.696,32.028,0.529,0.016
 Y=0.082,1.744,22.289,65.702,16.808,0.192,0.006
 Z=10.745,62.696,31.101,1.778,0.015,0.000,0.000
 coef=-70.78,510.49,-1360.3,1608.6,-785.63,121.34
+;;
+;; Note: copy of S2B_MSI
+sensor=S2C_MSI
+req_waves=442,492,559,665,704
+lambda=400,442,492,559,665,704,710
+X=2.217,11.756,6.423,53.696,32.028,0.529,0.016
+Y=0.082,1.744,22.289,65.702,16.808,0.192,0.006
+Z=10.745,62.696,31.101,1.778,0.015,0.000,0.000
+coef=-70.78,510.49,-1360.3,1608.6,-785.63,121.34
+;;
+sensor=EN1_MERIS
+req_waves=413,443,490,510,560,620,665,681,708
+lambda=400,413,443,490,510,560,620,665,681,708,710
+X=0.154,2.957,10.861,3.744,3.750,34.687,41.853,7.619,0.844,0.189,0.006
+Y=0.004,0.112,1.711,5.672,23.263,48.791,23.949,2.944,0.307,0.068,0.002
+Z=0.731,14.354,58.356,28.227,4.022,0.618,0.026,0.000,0.000,0.000,0.000
+coef=-12.05,88.93,-244.70,305.24,-164.70,28.53
+;;
+;; Note: copy of EN1_MERIS
+sensor=S3A_OLCI
+req_waves=413,443,490,510,560,620,665,681,708
+lambda=400,413,443,490,510,560,620,665,681,708,710
+X=0.154,2.957,10.861,3.744,3.750,34.687,41.853,7.619,0.844,0.189,0.006
+Y=0.004,0.112,1.711,5.672,23.263,48.791,23.949,2.944,0.307,0.068,0.002
+Z=0.731,14.354,58.356,28.227,4.022,0.618,0.026,0.000,0.000,0.000,0.000
+coef=-12.05,88.93,-244.70,305.24,-164.70,28.53
+;;
+;; Note: copy of EN1_MERIS
+sensor=S3B_OLCI
+req_waves=413,443,490,510,560,620,665,681,708
+lambda=400,413,443,490,510,560,620,665,681,708,710
+X=0.154,2.957,10.861,3.744,3.750,34.687,41.853,7.619,0.844,0.189,0.006
+Y=0.004,0.112,1.711,5.672,23.263,48.791,23.949,2.944,0.307,0.068,0.002
+Z=0.731,14.354,58.356,28.227,4.022,0.618,0.026,0.000,0.000,0.000,0.000
+coef=-12.05,88.93,-244.70,305.24,-164.70,28.53
+;;
