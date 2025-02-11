@@ -21,6 +21,7 @@
 ##                2025-02-03 (QV) use downward gas transmittance for output_ed
 ##                2025-02-04 (QV) updated settings parsing
 ##                2025-02-10 (QV) added optimisation option
+##                2025-02-11 (QV) switch to settings.merge
 
 def acolite_l2r(gem,
                 output = None,
@@ -47,20 +48,8 @@ def acolite_l2r(gem,
         gem = ac.gem.gem(gem)
     gemf = gem.file
 
-    ## combine default and user defined settings
-    ## get run settings
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
-    ## get sensor specific defaults
-    setd = ac.acolite.settings.parse(gem.gatts['sensor'])
-    ## set sensor default if user has not specified the setting
-    for k in setd:
-        if k not in ac.settings['user']: setu[k] = setd[k]
-    ## end set sensor specific defaults
-    ## additional run settings
-    if settings is not None:
-        settings = ac.acolite.settings.parse(settings)
-        for k in settings: setu[k] = settings[k]
-    ## end additional run settings
+    ## get run/user/sensor settings
+    setu = ac.acolite.settings.merge(sensor = gem.gatts['sensor'], settings = settings)
 
     if 'verbosity' in setu: verbosity = setu['verbosity']
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
