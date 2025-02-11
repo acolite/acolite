@@ -101,24 +101,13 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         if gem.file is not None:
             gem.setup() ## update dataset info
     gemf = gem.file
+    gem.store = True
 
     ## get sensor
     sensor = gem.gatts['sensor']
 
-    ## combine default and user defined settings
-    ## get run settings
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
-    ## get sensor specific defaults
-    setd = ac.acolite.settings.parse(sensor)
-    ## set sensor default if user has not specified the setting
-    for k in setd:
-        if k not in ac.settings['user']: setu[k] = setd[k]
-    ## end set sensor specific defaults
-    ## additional run settings
-    if settings is not None:
-        settings = ac.acolite.settings.parse(settings)
-        for k in settings: setu[k] = settings[k]
-    ## end additional run settings
+    ## get run/user/sensor settings
+    setu = ac.acolite.settings.merge(sensor = sensor, settings = settings )
 
     ## get sensor lut
     if setu['rsr_version'] is not None:
