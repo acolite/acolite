@@ -101,7 +101,6 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         if gem.file is not None:
             gem.setup() ## update dataset info
     gemf = gem.file
-    gem.store = True
 
     ## get sensor
     sensor = gem.gatts['sensor']
