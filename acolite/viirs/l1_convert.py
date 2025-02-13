@@ -49,7 +49,7 @@ def l1_convert(inputfile, output = None, settings = None):
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ofile = None
+    ## list to store output files
     ofiles = []
 
     ## test if we need to merge
