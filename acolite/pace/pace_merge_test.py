@@ -5,9 +5,9 @@
 ## and the crop position for each of the inputs and the output crop position
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-02-13
-## modifications:
+## modifications: 2025-02-13 (QV) flipped data upside down, added Level-2 support
 
-def pace_merge_test(bundles, limit = None, max_time_diff_sec = 1, geo_group = 'geolocation_data'):
+def pace_merge_test(bundles, limit = None, max_time_diff_sec = 1):
     import acolite as ac
     import numpy as np
     import dateutil.parser
@@ -41,27 +41,38 @@ def pace_merge_test(bundles, limit = None, max_time_diff_sec = 1, geo_group = 'g
         print('Bundles: '+', '.join(bundles))
         merge = False
 
+    ## assume ascending orbit, flip to get last scene first
+    sort_bundles = np.flip(sort_bundles)
+
+    geo_group = 'geolocation_data'
+    if 'Level-2' in products[0]: geo_group = 'navigation_data'
+
     ## do merging
     if merge:
         bundles = [bundles[bi] for bi in sort_bundles]
         data_shapes = []
         ## iterate over bundles to construct lat/lon
         for bi, bundle in enumerate(bundles):
-            lon = ac.shared.nc_data(bundle, 'longitude', group=geo_group)
-            lat = ac.shared.nc_data(bundle, 'latitude', group=geo_group)
+            lon = ac.shared.nc_data(bundle, 'longitude', group = geo_group)
+            lat = ac.shared.nc_data(bundle, 'latitude', group = geo_group)
+
+            ## assume ascending orbit, flip upside down
+            lon = np.flipud(lon)
+            lat = np.flipud(lat)
 
             data_shape = lat.shape
             data_shapes.append(data_shape[0])
+            print(bundle, data_shape)
 
             if bi == 0:
                 scene_offsets = [0]
-                scene_index_merged = np.zeros(data_shape, dtype=int)
+                scene_index_merged = np.zeros(data_shape, dtype = int)
                 lat_merged = lat * 1.0
                 lon_merged = lon * 1.0
                 data_shape_merged = [data_shape[0], data_shape[1]]
             else:
                 scene_offsets += [data_shapes[-2]]
-                scene_index_merged = np.vstack((scene_index_merged, np.zeros(data_shape, dtype=int)+bi))
+                scene_index_merged = np.vstack((scene_index_merged, np.zeros(data_shape, dtype = int)+bi))
                 lat_merged = np.vstack((lat_merged, lat))
                 lon_merged = np.vstack((lon_merged, lon))
                 data_shape_merged[0] += data_shape[0]
@@ -90,14 +101,17 @@ def pace_merge_test(bundles, limit = None, max_time_diff_sec = 1, geo_group = 'g
         else:
             sub = None
 
+        #return(lat_merged, lon_merged, scene_index_merged, scene_offsets, data_shapes, sub, sort_bundles)
+
         ## get the subset, and target in the new array for each scene
         crop_in = []
         crop_out = []
-        for bi in sort_bundles:
+        for bi, bundle in enumerate(bundles):
             ## index range in input bundle
             si = np.where(scene_index_merged == bi)
-            print(si[1][0], si[1][-1], si[0][0], si[0][-1])
             cropi = si[1][0], si[1][-1]+1, si[0][0]-scene_offsets[bi], si[0][-1]-scene_offsets[bi]+1 ## for nc_data
+            ## since we have flipped upside down
+            cropi = cropi[0], cropi[1], data_shapes[bi] - cropi[3], data_shapes[bi] - cropi[2]
             crop_in.append(cropi)
 
             ## index range in output region
