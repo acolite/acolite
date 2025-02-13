@@ -89,7 +89,6 @@ def viirs_merge_test(bundles, limit = None, max_time_diff_sec = 1, max_orbit_dif
         ## do subsetting if limit is given
         if limit:
             csub = ac.shared.geolocation_sub(lat_merged, lon_merged, limit)
-            print(csub)
 
             if csub is not None:
 
