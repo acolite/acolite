@@ -9,6 +9,7 @@
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) added acolite_file_type, improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2025-02-13 (QV) changed to settings.merge
 
 def l1_convert(inputfile, output = None, settings = None):
     import h5py
@@ -18,15 +19,8 @@ def l1_convert(inputfile, output = None, settings = None):
     import glob, os
     import acolite as ac
 
-    ## get run settings
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
-
-    ## additional run settings
-    if settings is not None:
-        settings = ac.acolite.settings.parse(settings)
-        for k in settings: setu[k] = settings[k]
-    ## end additional run settings
-
+    ## get run/user/sensor settings
+    setu = ac.acolite.settings.merge(sensor = None, settings = settings)
     verbosity = setu['verbosity']
 
     ## function to optimise BT lut
@@ -60,14 +54,10 @@ def l1_convert(inputfile, output = None, settings = None):
                 break
         l1b_sensor = '{}_{}'.format(l1b_meta['platform'], l1b_meta['instrument']).upper()
         print(l1b_sensor, l1b_meta['title'], l1b_meta['processing_level'])
-        ## parse settings
+
+        ## update settings
         sensor = '{}_{}'.format(l1b_meta['platform'], l1b_meta['instrument']).upper()
-        ## get sensor specific defaults
-        setd = ac.acolite.settings.parse(sensor)
-        ## set sensor default if user has not specified the setting
-        for k in setd:
-            if k not in ac.settings['user']: setu[k] = setd[k]
-        ## end set sensor specific defaults
+        setu = ac.acolite.settings.merge(sensor = sensor, settings = settings)
 
         opts = setu['viirs_option'].lower().split('+')
         ## configure scan lines
