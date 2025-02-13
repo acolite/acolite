@@ -5,7 +5,7 @@
 ## and the crop position for each of the inputs and the output crop position
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-02-07
-## modifications:
+## modifications: 2025-02-13 (QV) scene offsets allow different number of lines between scenes
 
 def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1, max_orbit_diff = 1):
     import acolite as ac
@@ -52,6 +52,7 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
 
     ## do merging
     if merge:
+        data_shapes = []
         ## iterate over bundles to construct lat/lon
         for bi in sort_bundles:
             bundle = bundles[bi]
@@ -71,6 +72,7 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
                 lat = ac.shared.nc_data(file, 'latitude')
                 lon = ac.shared.nc_data(file, 'longitude')
                 data_shape = lat.shape
+            data_shapes.append(data_shape[0])
 
             if bi == 0:
                 scene_offsets = [0]
@@ -79,15 +81,11 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
                 lon_merged = lon * 1.0
                 data_shape_merged = [data_shape[0], data_shape[1]]
             else:
-                scene_offsets += [scene_offsets[-1]+data_shape[0]-1]
+                scene_offsets += [data_shapes[bi-1]]
                 scene_index_merged = np.vstack((scene_index_merged, np.zeros(data_shape, dtype=int)+bi))
                 lat_merged = np.vstack((lat_merged, lat))
                 lon_merged = np.vstack((lon_merged, lon))
                 data_shape_merged[0] += data_shape[0]
-
-            #print(lat_merged.shape)
-            #print(data_shape_merged)
-            #print(scene_offsets)
 
         ## do subsetting if limit is given
         if limit:
@@ -110,8 +108,6 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
                 if sub[0]+sub[2] > data_shape[1]:
                     sub[2] = data_shape_merged[1]-sub[0]
 
-                ## subset scene_index_merged
-                #scene_index_merged_sub = scene_index_merged[sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
                 ## subset in merged scene
                 scene_index_merged_sub = np.zeros(data_shape_merged)*np.nan
                 scene_index_merged_sub[sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]] = scene_index_merged[sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
@@ -138,13 +134,11 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
                 so = np.where(scene_index_merged  == bi)
             else:
                 so = np.where(scene_index_merged[sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]] == bi)
-            #so = so[0][0], so[0][-1], so[1][0], so[1][-1] ## for array subsetting
             so = so[1][0], so[1][-1]+1, so[0][0], so[0][-1]+1,  ## for array subsetting
             crop_out.append(so)
 
         lat_merged = None
         lon_merged = None
-        #return(sub, data_shape_merged, sort_bundles, scene_offsets, scene_index_merged)
         return(sub, data_shape_merged, sort_bundles, crop_in, crop_out)
 
     else:
