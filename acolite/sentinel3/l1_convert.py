@@ -31,7 +31,6 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
 
     ## get run/user/sensor settings
     setu = ac.acolite.settings.merge(sensor = None, settings = settings)
-    verbosity = setu['verbosity']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -44,6 +43,11 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
 
     ## list to store output files
     ofiles = []
+
+    if setu['merge_tiles'] & (nscenes == 1):
+        if setu['verbosity'] > 1: print('One scene provided, and merge_tiles=True. Setting merge_tiles=False.')
+        setu['merge_tiles'] = False
+        ac.settings['run']['merge_tiles'] = False
 
     ## test if we need to merge
     if setu['merge_tiles']:

@@ -30,7 +30,6 @@ def l1_convert(inputfile, output = None, settings = None):
 
     ## get run/user/sensor settings
     setu = ac.acolite.settings.merge(sensor = None, settings = settings)
-    verbosity = setu['verbosity']
 
     ## function to optimise BT lut
     from scipy import optimize
@@ -47,10 +46,15 @@ def l1_convert(inputfile, output = None, settings = None):
         else:
             inputfile = list(inputfile)
     nscenes = len(inputfile)
-    if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+    if setu['verbosity'] > 1: print('Starting conversion of {} scene{}'.format(nscenes, '' if nscenes==1 else 's'))
 
     ## list to store output files
     ofiles = []
+
+    if setu['merge_tiles'] & (nscenes == 1):
+        if setu['verbosity'] > 1: print('One scene provided, and merge_tiles=True. Setting merge_tiles=False.')
+        setu['merge_tiles'] = False
+        ac.settings['run']['merge_tiles'] = False
 
     ## test if we need to merge
     if setu['merge_tiles']:
@@ -341,7 +345,7 @@ def l1_convert(inputfile, output = None, settings = None):
                         if ('rhot_' in ds) & (setu['gains']):
                             ds_att['gain_toa'] = setu['gains_toa'][gi]
                             ds_att['gain_applied'] = 1
-                            if verbosity > 0: print('Applying gain {} to {}'.format(setu['gains_toa'][gi], ds))
+                            if setu['verbosity'] > 0: print('Applying gain {} to {}'.format(setu['gains_toa'][gi], ds))
                             data_read *= setu['gains_toa'][gi]
                             gi+=1
 
@@ -393,18 +397,18 @@ def l1_convert(inputfile, output = None, settings = None):
                 for ds in datasets_:
                     if ds not in data: continue
                     if (setu['output_geolocation']) & (ds in ['lat', 'lon']):
-                        if verbosity > 1: print('Writing geolocation {}'.format(ds))
+                        if setu['verbosity'] > 1: print('Writing geolocation {}'.format(ds))
                     elif (setu['output_geometry']) & (ds in ['sza', 'saa', 'vza', 'vaa', 'raa']):
-                        if verbosity > 1: print('Writing geometry {}'.format(ds))
+                        if setu['verbosity'] > 1: print('Writing geometry {}'.format(ds))
                     else:
-                        if verbosity > 1: print('Writing dataset {}'.format(ds))
+                        if setu['verbosity'] > 1: print('Writing dataset {}'.format(ds))
                     ## scale rhot with mus
                     if ds.startswith('rhot_'): data[ds] /= mus
                     ## rotate dataset
                     if rotate: data[ds] = np.rot90(data[ds], k=2)
                     ## write dataset
                     gemo.write(ds, data[ds])
-                    if verbosity > 1: print('Wrote {} ({})'.format(ds, data[ds].shape))
+                    if setu['verbosity'] > 1: print('Wrote {} ({})'.format(ds, data[ds].shape))
                     del data[ds]
                 data = None
 
