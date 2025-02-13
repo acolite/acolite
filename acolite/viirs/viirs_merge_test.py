@@ -5,7 +5,7 @@
 ## and the crop position for each of the inputs and the output crop position
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-02-13
-## modifications:
+## modifications: 2025-02-13 (QV) changed bundle sorting
 
 def viirs_merge_test(bundles, limit = None, max_time_diff_sec = 1, max_orbit_diff = 1, opt = 'img'):
     import acolite as ac
@@ -60,11 +60,11 @@ def viirs_merge_test(bundles, limit = None, max_time_diff_sec = 1, max_orbit_dif
 
     ## do merging
     if merge:
+        bundles = [bundles[bi] for bi in sort_bundles]
+        bundles_files = [bundles_files[bi] for bi in sort_bundles]
         data_shapes = []
         ## iterate over bundles to construct lat/lon
-        for bi in sort_bundles:
-            bundle = bundles[bi]
-
+        for bi, bundle in enumerate(bundles):
             geo = bundles_files[bi]['geo_{}'.format(opt)]
             group = 'geolocation_data'
             with h5py.File(geo, mode='r') as f:
@@ -80,7 +80,7 @@ def viirs_merge_test(bundles, limit = None, max_time_diff_sec = 1, max_orbit_dif
                 lon_merged = lon * 1.0
                 data_shape_merged = [data_shape[0], data_shape[1]]
             else:
-                scene_offsets += [data_shapes[bi-1]]
+                scene_offsets += [data_shapes[-2]]
                 scene_index_merged = np.vstack((scene_index_merged, np.zeros(data_shape, dtype=int)+bi))
                 lat_merged = np.vstack((lat_merged, lat))
                 lon_merged = np.vstack((lon_merged, lon))
@@ -126,7 +126,7 @@ def viirs_merge_test(bundles, limit = None, max_time_diff_sec = 1, max_orbit_dif
         ## get the subset, and target in the new array for each scene
         crop_in = []
         crop_out = []
-        for bi in sort_bundles:
+        for bi, bundle in enumerate(bundles):
             ## index range in input bundle
             si = np.where(scene_index_merged == bi)
             cropi = si[1][0], si[1][-1]+1, si[0][0]-scene_offsets[bi], si[0][-1]-scene_offsets[bi]+1 ## for nc_data

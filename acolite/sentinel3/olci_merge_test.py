@@ -6,6 +6,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-02-07
 ## modifications: 2025-02-13 (QV) scene offsets allow different number of lines between scenes
+##                                changed bundle sorting
 
 def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1, max_orbit_diff = 1):
     import acolite as ac
@@ -52,11 +53,10 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
 
     ## do merging
     if merge:
+        bundles = [bundles[bi] for bi in sort_bundles]
         data_shapes = []
         ## iterate over bundles to construct lat/lon
-        for bi in sort_bundles:
-            bundle = bundles[bi]
-
+        for bi, bundle in enumerate(bundles):
             if use_tpg:
                 file = '{}/{}.nc'.format(bundle, 'geo_coordinates')
                 lat = ac.shared.nc_data(file, 'latitude')
@@ -81,7 +81,7 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
                 lon_merged = lon * 1.0
                 data_shape_merged = [data_shape[0], data_shape[1]]
             else:
-                scene_offsets += [data_shapes[bi-1]]
+                scene_offsets += [data_shapes[-2]]
                 scene_index_merged = np.vstack((scene_index_merged, np.zeros(data_shape, dtype=int)+bi))
                 lat_merged = np.vstack((lat_merged, lat))
                 lon_merged = np.vstack((lon_merged, lon))
@@ -123,7 +123,7 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
         ## get the subset, and target in the new array for each scene
         crop_in = []
         crop_out = []
-        for bi in sort_bundles:
+        for bi, bundle in enumerate(bundles):
             ## index range in input bundle
             si = np.where(scene_index_merged == bi)
             cropi = si[1][0], si[1][-1]+1, si[0][0]-scene_offsets[bi], si[0][-1]-scene_offsets[bi]+1 ## for nc_data
