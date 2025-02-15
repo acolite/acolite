@@ -6,6 +6,7 @@
 ##                2021-10-24 (QV) added LUT identifiers and pressures, get_remote keyword
 ##                2022-04-12 (QV) add par parameter to import_luts
 ##                2025-02-11 (QV) add sensor settings parsing and reverse_lut_sensors list
+##                2025-02-15 (QV) fix for rsr_version
 
 def acolite_luts(sensor = None, hyper = False,
                  get_remote = True, compute_reverse = True,
@@ -38,7 +39,9 @@ def acolite_luts(sensor = None, hyper = False,
             ## get sensor settings
             setd = ac.acolite.settings.parse(s)
             lut_sensor = '{}'.format(s)
-            if setd['rsr_version'] is not None: lut_sensor = '{}_{}'.format(s, setd['rsr_version'])
+            if 'rsr_version' in setd:
+                if setd['rsr_version'] is not None:
+                    lut_sensor = '{}_{}'.format(s, setd['rsr_version'])
 
             rd = ac.shared.rsr_dict(sensor=lut_sensor)
             if len(rd) == 0:
