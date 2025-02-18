@@ -11,7 +11,7 @@
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          pace_oci_version = 'v3.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
+          pace_oci_nrt = False, pace_oci_version = 'v3.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os, json
@@ -48,11 +48,16 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
                 datacenter = 'OB_CLOUD'
                 collection_id = pace_oci_collection_id[pace_oci_version]['L1C']
             elif pace_oci_level == 'L2':
-                dataset = 'PACE_OCI_L2_{}_NRT'.format(level2_type)
-                if 'L2_{}'.format(level2_type) in pace_oci_collection_id[pace_oci_version]:
+                dataset = 'PACE_OCI_L2_{}'.format(level2_type)
+                if pace_oci_nrt: dataset += '_NRT'
+
+                if (not pace_oci_nrt) & ('L2_{}'.format(level2_type) in pace_oci_collection_id[pace_oci_version]):
                     collection_id = pace_oci_collection_id[pace_oci_version]['L2_{}'.format(level2_type)]
+                elif (pace_oci_nrt) & ('L2_{}_NRT'.format(level2_type) in pace_oci_collection_id[pace_oci_version]):
+                    collection_id = pace_oci_collection_id[pace_oci_version]['L2_{}_NRT'.format(level2_type)]
                 else:
                     print('L2 type level2_type={} not recognised.'.format(level2_type))
+                    print('For setting pace_oci_nrt={}.'.format(pace_oci_nrt))
                     return
 
         elif sensoru in ['ECOSTRESS', 'ISS_ECOSTRESS']:
