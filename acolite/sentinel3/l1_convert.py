@@ -17,6 +17,8 @@
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-07 (QV) added tile merging
+##                2025-02-08 (QV) fixed for full tile merging
 
 def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, write_l2_err = False):
 
@@ -27,16 +29,8 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
     import scipy.interpolate
     import acolite as ac
 
-    ## get run settings
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
-
-    ## additional run settings
-    if settings is not None:
-        settings = ac.acolite.settings.parse(settings)
-        for k in settings: setu[k] = settings[k]
-    ## end additional run settings
-
-    verbosity = setu['verbosity']
+    ## get run/user/sensor settings
+    setu = ac.acolite.settings.merge(sensor = None, settings = settings)
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -45,12 +39,30 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         else:
             inputfile = list(inputfile)
     nscenes = len(inputfile)
-    if verbosity > 1: print('Starting conversion of {} scene{}'.format(nscenes, 's' if nscenes==1 else ''))
+    if setu['verbosity'] > 1: print('Starting conversion of {} scene{}'.format(nscenes, '' if nscenes==1 else 's'))
+
+    ## list to store output files
+    ofiles = []
+
+    if setu['merge_tiles'] & (nscenes == 1):
+        if setu['verbosity'] > 1: print('One scene provided, and merge_tiles=True. Setting merge_tiles=False.')
+        setu['merge_tiles'] = False
+        ac.settings['run']['merge_tiles'] = False
+
+    ## test if we need to merge
+    if setu['merge_tiles']:
+        if setu['verbosity'] > 1: print('Testing whether {} scene{} can be merged'.format(nscenes, '' if nscenes==1 else 's'))
+        ret = ac.sentinel3.olci_merge_test(inputfile, limit = setu['limit'], use_tpg = setu['use_tpg'])
+        if ret is None: ## return with no result
+            return(ofiles, setu)
+        else: ## unpack returns
+            sub_merged, data_shape_merged, sort_bundles, crop_in, crop_out = ret
+            inputfile = [inputfile[bi] for bi in sort_bundles]
 
     ## start conversion
-    ofile = None
-    ofiles = []
-    for bundle in inputfile:
+    new = True
+    for bi, bundle in enumerate(inputfile):
+        print(bi, bundle)
         nbundle = glob.glob('{}/*.SEN3'.format(bundle))
         if len(nbundle) == 1:
             print('Found nested SEN3 bundle {}'.format(nbundle[0]))
@@ -91,44 +103,38 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         rsrd = ac.shared.rsr_dict(sensor)
         rsr_bands = rsrd[sensor]['rsr_bands']
 
-        ## get sensor specific defaults
-        setd = ac.acolite.settings.parse(sensor)
-        ## set sensor default if user has not specified the setting
-        for k in setd:
-            if k not in ac.settings['user']: setu[k] = setd[k]
-        ## end set sensor specific defaults
+        ## update settings
+        setu = ac.acolite.settings.merge(sensor = sensor, settings = settings)
 
-        verbosity = setu['verbosity']
+        if output is None: output = setu['output']
 
-        ## extract sensor specific settings
-        smile_correction = setu['smile_correction']
-        use_tpg = setu['use_tpg']
-        use_gains = setu['gains']
-        gains = setu['gains_toa']
+        ## if not merging tiles, create a new file
+        if not setu['merge_tiles']:
+            new = True
+            sub = None
+            data_shape = None
+            if setu['limit'] is not None:
+                sub, data_shape = ac.sentinel3.olci_sub(bundle, setu['limit'], use_tpg = setu['use_tpg'])
+                if sub is None:
+                    if setu['verbosity'] > 1: print('Limit {} out of scene {}'.format(setu['limit'], bundle))
+                    continue
+            ## user defined sub if limit or polygon are not set
+            if (sub is None) & (setu['sub'] is not None): sub = setu['sub']
+        else:
+            ## sub in current bundle
+            if setu['limit'] is None:
+                sub = None
+                data_shape = data_shape_merged[0],  data_shape_merged[1]
+            else:
+                sub = crop_in[bi][0], crop_in[bi][2], crop_in[bi][1]-crop_in[bi][0], crop_in[bi][3]-crop_in[bi][2]
+                data_shape = sub_merged[3], sub_merged[2]
 
-        ## get other settings
-        limit = setu['limit']
-        output_geolocation = setu['output_geolocation']
-        output_geometry = setu['output_geometry']
-        vname = setu['region_name']
-        output = setu['output']
-
-        sub = None
-        data_shape = None
-        if limit is not None:
-            sub, data_shape = ac.sentinel3.olci_sub(bundle, limit, use_tpg=use_tpg)
-            if sub is None:
-                if verbosity > 1: print('Limit {} out of scene {}'.format(limit, bundle))
-                continue
-
-        ## user defined sub if limit or polygon are not set
-        if sub is None:
-            if 'sub' in setu: sub = setu['sub']
+        ## new empty datasets
+        if new:
+            lfiles = {}
+            data, meta = {}, {}
 
         ## read data
-        dshape = None
-        lfiles = {}
-        data, meta = {}, {}
         for f in dfiles:
             fname = os.path.splitext(f)[0]
             file = '{}/{}'.format(bundle, f)
@@ -140,34 +146,60 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
             ## tie point grids
             if ('tie' in fname) or (fname in ['removed_pixels',
                          'instrument_data', 'time_coordinates']):
-                meta[fname]={}
+                if fname not in meta: meta[fname]={}
                 for ds in gem.datasets:
-                    meta[fname][ds] = gem.data(ds)
-                    if ds == 'detector_index':
-                        meta[ds] = gem.data(ds, sub = sub)
+                    tmp = gem.data(ds)
+                    if not setu['merge_tiles']:
+                        meta[fname][ds] = gem.data(ds)
+                    else:
+                        ## stack the data if merging tiles
+                        if ds not in meta[fname]:
+                            meta[fname][ds] = gem.data(ds)
+                        else:
+                            if len(meta[fname][ds].shape) == 1:
+                                ## use hstack if one dimension, in case the number of along track pixels differs
+                                meta[fname][ds] = np.hstack((meta[fname][ds], gem.data(ds)))
+                            else:
+                                meta[fname][ds] = np.vstack((meta[fname][ds], gem.data(ds)))
+
             ## or full size data
             else:
                 for ds in gem.datasets:
                     if ds[-9:] == '_radiance':
-                        data[ds] = gem.data(ds, sub=sub)
-                        if verbosity > 2: print(ds, data[ds].shape)
-                        if use_gains:
+                        if not setu['merge_tiles']:
+                            data[ds] = gem.data(ds, sub=sub)
+                        else:
+                            if ds not in data: data[ds] = np.zeros(data_shape) + np.nan
+                            data[ds][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = gem.data(ds, sub=sub)
+                        if setu['verbosity'] > 2: print(ds, data[ds].shape)
+
+                        ## apply gains (if last tile)
+                        if (setu['gains']) & ((not setu['merge_tiles']) | (bi == nscenes-1)):
                             cg = 1.0
-                            if len(gains) == len_gains:
+                            if len(setu['gains_toa']) == len_gains:
                                 gi = int(re.findall(r'\d+', ds)[0])-1
-                                cg = float(gains[gi])
-                            if verbosity > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
+                                cg = float(setu['gains_toa'][gi])
+                            if setu['verbosity'] > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
                             data[ds]*=cg
-                    elif output_geolocation:
+
+                    elif setu['output_geolocation']:
                         data_ = gem.data(ds, sub=sub)
-                        if dshape is None: dshape = data_.shape
                         if data_shape is None: data_shape = data_.shape
                         ## save latitude and longitude already
-                        if ds in ['latitude', 'longitude']:
-                            data[ds[0:3]] = data_
+                        dk = ds
+                        if ds in ['latitude', 'longitude']: dk = ds[0:3]
+                        if not setu['merge_tiles']:
+                            data[dk] = data_
                         else:
-                            data[ds] = data_
+                            if dk not in data: data[dk] = np.zeros(data_shape) + np.nan
+                            data[dk][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = data_
+
         ## end read data
+
+        ## if not final tile set new to False and continue
+        if (setu['merge_tiles']) & (bi < len(inputfile)-1):
+            new = False
+            continue
 
         ## determine product level
         product_level = 'level1'
@@ -187,16 +219,20 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         isodate = dtime.isoformat()
 
         ## create full scene tpgs
-        full_scene = False
-        if sub is None:
-            full_scene = True
-            ## added half a pixel offset - correspond to centre (and SNAP)
-            subx = np.arange(0,data_shape[1])+0.5
-            suby = np.arange(0,data_shape[0])+0.5
+        ## added half a pixel offset - correspond to centre (and SNAP)
+        if (setu['merge_tiles']):
+            if (setu['limit'] is not None):
+                subx = np.arange(sub_merged[0],sub_merged[0]+sub_merged[2]) + 0.5
+                suby = np.arange(sub_merged[1],sub_merged[1]+sub_merged[3]) + 0.5
+            else:
+                subx = np.arange(0,data_shape_merged[1]) + 0.5
+                suby = np.arange(0,data_shape_merged[0]) + 0.5
+        elif (sub is None):
+            subx = np.arange(0,data_shape[1]) + 0.5
+            suby = np.arange(0,data_shape[0]) + 0.5
         else:
-            ## added half a pixel offset - correspond to centre (and SNAP)
-            subx = np.arange(sub[0],sub[0]+sub[2])+0.5
-            suby = np.arange(sub[1],sub[1]+sub[3])+0.5
+            subx = np.arange(sub[0],sub[0]+sub[2]) + 0.5
+            suby = np.arange(sub[1],sub[1]+sub[3]) + 0.5
 
         ## interpolate tie point grids
         x_sub = gatts['ac_subsampling_factor']
@@ -251,7 +287,7 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         else:
             if setu['ancillary_data']:
                 print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(isodate, clon, clat))
-                anc = ac.ac.ancillary.get(dtime, clon, clat, verbosity=verbosity)
+                anc = ac.ac.ancillary.get(dtime, clon, clat, verbosity=setu['verbosity'])
                 ## overwrite the defaults
                 if ('uoz' in anc): setu['uoz_default'] = anc['uoz']
                 if ('uwv' in anc): setu['uwv_default'] = anc['uwv']
@@ -267,17 +303,22 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
 
         ## get per pixel detector index
-        if sub is None:
+        if (setu['merge_tiles']):
+            if (setu['limit'] is not None):
+                di = meta['instrument_data']['detector_index'][sub_merged[1]:sub_merged[1]+sub_merged[3], sub_merged[0]:sub_merged[0]+sub_merged[2]]
+            else:
+                di = meta['instrument_data']['detector_index']
+        elif (sub is None):
             di = meta['instrument_data']['detector_index']
         else:
             di = meta['instrument_data']['detector_index'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
-
+        print(di.shape)
         ## smile correction - from l2gen smile.c
-        if (smile_correction) & (product_level == 'level1'):
-            if verbosity > 1: print('Running smile correction')
+        if (setu['smile_correction']) & (product_level == 'level1'):
+            if setu['verbosity'] > 1: print('Running smile correction')
             ## gas_correction
             if setu['smile_correction_tgas']:
-                if verbosity > 2: print('{} - Gas correction before smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
+                if setu['verbosity'] > 2: print('{} - Gas correction before smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
                 for band in bands_data: data['{}_radiance'.format(band)]/=ttg['tt_gas'][band]
 
             smile = {}
@@ -286,7 +327,7 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                 dname = '{}_radiance'.format(band)
                 ## band index
                 b_i = bands_data[band]['band']-1
-                if verbosity > 2: print('{} - Smile correction for band {} {} nm'.format(datetime.datetime.now().isoformat()[0:19], band, bands_data[band]['wavelength'] ), end='\n')
+                if setu['verbosity'] > 2: print('{} - Smile correction for band {} {} nm'.format(datetime.datetime.now().isoformat()[0:19], band, bands_data[band]['wavelength'] ), end='\n')
 
                 ## bounding bands
                 b1_i = bands_data[band]['lower_water']-1
@@ -307,7 +348,7 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                 ## do additional correction based on two bounding bands
                 ## currently applying water everywhere
                 if bands_data[band]['switch_water'] > 0:
-                    if verbosity > 2: print('{} - Smile correction - bounding bands {}/{}'.format(datetime.datetime.now().isoformat()[0:19], band1, band2), end='\n')
+                    if setu['verbosity'] > 2: print('{} - Smile correction - bounding bands {}/{}'.format(datetime.datetime.now().isoformat()[0:19], band1, band2), end='\n')
 
                     ## compute per pixel reflectance difference for bounding bands
                     r21_diff = (data['{}_radiance'.format(band2)]) / meta['instrument_data']['solar_flux'][b2_i][di]-\
@@ -326,7 +367,7 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
             del smile
             ## add back in gas transmittance
             if setu['smile_correction_tgas']:
-                if verbosity > 2: print('{} - Gas correction restored after smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
+                if setu['verbosity'] > 2: print('{} - Gas correction restored after smile correction'.format(datetime.datetime.now().isoformat()[0:19]), end='\n')
                 for band in bands_data: data['{}_radiance'.format(band)]*=ttg['tt_gas'][band]
         ## end smile correction
 
@@ -350,12 +391,13 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         gatts['uoz'] = uoz
         gatts['uwv'] = uwv
 
-        if limit is not None: gatts['limit'] = limit
+        if setu['limit'] is not None: gatts['limit'] = setu['limit']
         if sub is not None: gatts['sub'] = sub
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
-        if vname != '': oname+='_{}'.format(vname)
+        if setu['merge_tiles']: oname+='_merged'
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
 
         ofile = '{}/{}_{}.nc'.format(output, oname, acolite_file_type)
         if not os.path.exists(os.path.dirname(ofile)): os.makedirs(os.path.dirname(ofile))
@@ -364,7 +406,7 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         gatts['acolite_file_type'] = acolite_file_type
 
         ## add band info to gatts
-        for bi, b in enumerate(rsr_bands):
+        for bbi, b in enumerate(rsr_bands):
             gatts['{}_wave'.format(b)] = waves_mu[b]*1000
             gatts['{}_name'.format(b)] = waves_names[b]
             gatts['{}_f0'.format(b)] = f0_b[b]
@@ -374,13 +416,13 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         gemo.gatts = {k: gatts[k] for k in gatts}
 
         ## output lat/lon
-        if output_geolocation:
-            if verbosity > 1: print('Writing geolocation')
+        if setu['output_geolocation']:
+            if setu['verbosity'] > 1: print('Writing geolocation')
             for ds in ['lon', 'lat']: gemo.write( ds, data[ds])
 
         ## output geometry
-        if output_geometry:
-            if verbosity > 1: print('Writing geometry')
+        if setu['output_geometry']:
+            if setu['verbosity'] > 1: print('Writing geometry')
             for k in tpg:
                 if k in ['SZA', 'OZA', 'RAA', 'SAA', 'OAA']:
                     if k == 'OZA':
@@ -403,11 +445,11 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
 
         ## read TOA
         if (product_level == 'level1'):
-            if verbosity > 1: print('Writing TOA reflectance')
+            if setu['verbosity'] > 1: print('Writing TOA reflectance')
             for iw, band in enumerate(rsr_bands):
                 wave = waves_names[band]
                 ds = 'rhot_{}'.format(wave)
-                if verbosity > 2: print('{} - Reading TOA data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
+                if setu['verbosity'] > 2: print('{} - Reading TOA data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
 
                 # per pixel wavelength
                 l = meta['instrument_data']['lambda0'][iw][di]
@@ -427,36 +469,37 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                 ## write toa radiance
                 if setu['output_lt']:
                     gemo.write('Lt_{}'.format(wave), data[dname], ds_att = ds_att)
-                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
+                    if setu['verbosity'] > 2: print('Converting bands: Wrote {} ({})'.format('Lt_{}'.format(wave), data[dname].shape))
 
                 ## convert to reflectance
+                print(mu.shape)
                 d = (np.pi * data[dname] * se2) / (f0*mu)
                 ## write dataset
                 gemo.write(ds, d, ds_att = ds_att)
-                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
+                if setu['verbosity'] > 2: print('Converting bands: Wrote {} ({})'.format(ds, d.shape))
                 d = None
 
         if (product_level == 'level2'):
-            if verbosity > 1: print('Writing water reflectance')
+            if setu['verbosity'] > 1: print('Writing water reflectance')
             for iw, band in enumerate(rsr_bands):
                 wave = waves_names[band]
                 ds = 'rhow_{}'.format(wave)
                 dname = dnames[iw].replace('radiance', 'reflectance')
                 print(dname)
                 if dname not in data: continue
-                if verbosity > 2: print('{} - Reading data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
+                if setu['verbosity'] > 2: print('{} - Reading data for {} nm'.format(datetime.datetime.now().isoformat()[0:19], wave), end='\n')
                 ds_att  = {'wavelength':float(wave)}
 
                 ## write data
                 gemo.write(ds, data[dname], ds_att = ds_att)
-                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
+                if setu['verbosity'] > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
                 ## write error dataset
                 if write_l2_err:
                     ds = '{}_err'.format(ds)
                     dname = '{}_err'.format(dname)
                     gemo.write(ds, data[dname], ds_att = ds_att)
-                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
+                    if setu['verbosity'] > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
             ## write other datasets
             for dname in data:
@@ -464,12 +507,12 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                 if '_reflectance' in dname: continue
                 ds = '{}'.format(dname)
                 ds_att = None
-                if verbosity > 2: print('{} - Reading dataset {}'.format(datetime.datetime.now().isoformat()[0:19], ds), end='\n')
+                if setu['verbosity'] > 2: print('{} - Reading dataset {}'.format(datetime.datetime.now().isoformat()[0:19], ds), end='\n')
                 if data[dname].dtype not in (np.float32, np.float64): continue
 
                 ## write data
                 gemo.write(ds, data[dname], ds_att = ds_att)
-                if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
+                if setu['verbosity'] > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
                 ## write error dataset
                 if write_l2_err:
@@ -477,17 +520,17 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
                     dname = '{}_err'.format(dname)
                     if data[dname].dtype not in (np.float32, np.float64): continue
                     gemo.write(ds, data[dname], ds_att = ds_att)
-                    if verbosity > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
+                    if setu['verbosity'] > 2: print('Converting bands: Wrote {} ({})'.format(ds, data[dname].shape))
 
         ## clear data
         data = None
         gemo.close()
         gemo = None
 
-        if verbosity > 1:
+        if setu['verbosity'] > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
 
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
     return(ofiles, setu)

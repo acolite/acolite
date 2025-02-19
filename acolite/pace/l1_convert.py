@@ -11,6 +11,8 @@
 ##                2024-07-22 (QV) include SWIR RSR
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2025-02-13 (QV) added tile merging, flip data
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -18,16 +20,8 @@ def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
     import acolite as ac
 
-    ## get run settings
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
-
-    ## additional run settings
-    if settings is not None:
-        settings = ac.acolite.settings.parse(settings)
-        for k in settings: setu[k] = settings[k]
-    ## end additional run settings
-
-    verbosity = setu['verbosity']
+    ## get run/user/sensor settings
+    setu = ac.acolite.settings.merge(sensor = None, settings = settings)
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -36,11 +30,31 @@ def l1_convert(inputfile, output = None, settings = None):
         else:
             inputfile = list(inputfile)
     nscenes = len(inputfile)
-    if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
+    if setu['verbosity'] > 1: print('Starting conversion of {} scene{}'.format(nscenes, '' if nscenes==1 else 's'))
 
-    ## run through inputfiles
+    ## list to store output files
     ofiles = []
-    for fi, file in enumerate(inputfile):
+
+    if setu['merge_tiles'] & (nscenes == 1):
+        if setu['verbosity'] > 1: print('One scene provided, and merge_tiles=True. Setting merge_tiles=False.')
+        setu['merge_tiles'] = False
+        ac.settings['run']['merge_tiles'] = False
+
+    ## test if we need to merge
+    if setu['merge_tiles']:
+        if setu['verbosity'] > 1: print('Testing whether {} scene{} can be merged'.format(nscenes, '' if nscenes==1 else 's'))
+        ret = ac.pace.pace_merge_test(inputfile, limit = setu['limit'])
+        if ret is None: ## return with no result
+            return(ofiles, setu)
+        else: ## unpack returns and sort inputfiles by time
+            sub_merged, data_shape_merged, sort_bundles, crop_in, crop_out = ret
+            inputfile = [inputfile[bi] for bi in sort_bundles]
+
+    new = True
+    ## run through inputfiles
+    for bi, file in enumerate(inputfile):
+        ## create new file if not merging
+        if not setu['merge_tiles']: new = True
 
         ## read attributes
         igatts = ac.shared.nc_gatts(file)
@@ -52,20 +66,13 @@ def l1_convert(inputfile, output = None, settings = None):
         instrument = igatts['instrument']
         sensor = '{}_{}'.format(platform, instrument)
 
-        ## get sensor specific defaults
-        setd = ac.acolite.settings.parse(sensor)
-        ## set sensor default if user has not specified the setting
-        for k in setd:
-            if k not in ac.settings['user']: setu[k] = setd[k]
-        ## end set sensor specific defaults
-        
+        ## update settings
+        setu = ac.acolite.settings.merge(sensor = sensor, settings = settings)
+
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(file)
 
-        ## get ROI from user settings
-        limit = setu['limit']
-
-        sub = None
-        if limit is None:
+        if setu['limit'] is None:
             print('Warning processing of PACE/OCI data recommended with small ROI')
             print('Supply limit or polygon for processing!')
 
@@ -81,61 +88,80 @@ def l1_convert(inputfile, output = None, settings = None):
             print('Format of {} not supported'.format(file))
             continue
 
-        ## read lat and lon
-        lon = ac.shared.nc_data(file, 'longitude', group=geo_group)
-        lat = ac.shared.nc_data(file, 'latitude', group=geo_group)
+        if not setu['merge_tiles']:
+            sub = None
+            ## read lat and lon
+            lon = ac.shared.nc_data(file, 'longitude', group=geo_group)
+            lat = ac.shared.nc_data(file, 'latitude', group=geo_group)
 
-        ## get subset
-        sub = ac.shared.geolocation_sub(lat, lon, limit)
-        if (limit is not None) & (sub is None):
-            print('Limit not in scene {}'.format(file))
-            continue
+            ## get subset
+            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
+            if (setu['limit'] is not None) & (sub is None):
+                print('Limit not in scene {}'.format(file))
+                continue
+        else:
+            if setu['limit'] is None:
+                sub = None
+                data_shape = data_shape_merged[0],  data_shape_merged[1]
+            else:
+                sub = crop_in[bi][0], crop_in[bi][2], crop_in[bi][1]-crop_in[bi][0], crop_in[bi][3]-crop_in[bi][2]
+                data_shape = sub_merged[3], sub_merged[2]
 
-        isodate = igatts['time_coverage_start']
-        time = dateutil.parser.parse(isodate)
+        ## make new output file
+        if new:
+            isodate = igatts['time_coverage_start']
+            time = dateutil.parser.parse(isodate)
 
-        ## output attributes
-        gatts = {'sensor': sensor, 'isodate': time.isoformat()}
-        gatts['acolite_file_type'] = acolite_file_type
-        gatts['obase'] = '{}_{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'), gatts['acolite_file_type'])
-        ofile = '{}/{}.nc'.format(output, gatts['obase'])
+            ## output attributes
+            gatts = {'sensor': sensor, 'isodate': time.isoformat()}
+            gatts['acolite_file_type'] = acolite_file_type
+            oname =  '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+            if setu['merge_tiles']: oname+='_merged'
+            if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+            gatts['oname'] = oname
+            gatts['ofile'] = ofile
 
-        ## read write lat/lon
-        if sub is not None: ## read cropped version
-            lat = ac.shared.nc_data(file, 'latitude', group=geo_group, sub=sub)
+            ## create output file
+            gemo = ac.gem.gem(ofile, new = True)
+            gemo.verbosity = setu['verbosity']
+            new = False
 
-        ## output gem
-        gemo = ac.gem.gem(ofile, new = True)
-        gemo.write('lat', lat)
-        lat = None
+        ## read write lat
+        if setu['merge_tiles']: ## update merged version
+            if 'lat' not in gemo.data_mem: gemo.data_mem['lat'] = np.zeros(data_shape) + np.nan
+            gemo.data_mem['lat'][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = \
+                 np.flipud(ac.shared.nc_data(file, 'latitude', group = geo_group, sub = sub))
+        elif sub is not None: ## read cropped version
+            gemo.data_mem['lat'] = np.flipud(ac.shared.nc_data(file, 'latitude', group = geo_group, sub = sub))
+        else: ## store full version
+            gemo.data_mem['lat'] = np.flipud(lat)
+            lat = None
 
-        if sub is not None: ## read cropped version
-            lon = ac.shared.nc_data(file, 'longitude', group=geo_group, sub=sub)
-        gemo.write('lon', lon)
-        lon = None
+        ## read write lon
+        if setu['merge_tiles']: ## update merged version
+            if 'lon' not in gemo.data_mem: gemo.data_mem['lon'] = np.zeros(data_shape) + np.nan
+            gemo.data_mem['lon'][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = \
+                np.flipud(ac.shared.nc_data(file, 'longitude', group = geo_group, sub = sub))
+        elif sub is not None: ## read cropped version
+            gemo.data_mem['lon'] = np.flipud(ac.shared.nc_data(file, 'longitude', group = geo_group, sub = sub))
+        else: ## store full version
+            gemo.data_mem['lon'] = np.flipud(lon)
+            lon = None
+        ## end write lat/lon
 
         ## level1 data
         if level1:
             ## read write geometry
-            sza = ac.shared.nc_data(file, 'solar_zenith', group=geo_group, sub=sub)
-            gemo.write('sza', sza)
-            sza = None
-            vza = ac.shared.nc_data(file, 'sensor_zenith', group=geo_group, sub=sub)
-            gemo.write('vza', vza)
-            vza = None
-
-            saa = ac.shared.nc_data(file, 'solar_azimuth', group=geo_group, sub=sub)
-            vaa = ac.shared.nc_data(file, 'sensor_azimuth', group=geo_group, sub=sub)
-
-            raa = np.abs(saa - vaa)
-            tmp = np.where(raa>180)
-            raa[tmp]=np.abs(360 - raa[tmp])
-            gemo.write('saa', saa)
-            gemo.write('vaa', vaa)
-            saa, vaa = None, None
-
-            gemo.write('raa', raa)
-            raa = None
+            geo_datasets = {'sza': 'solar_zenith','saa': 'solar_azimuth',
+                            'vza': 'sensor_zenith', 'vaa': 'sensor_azimuth'}
+            for ko in geo_datasets:
+                if setu['merge_tiles']:
+                    if ko not in gemo.data_mem: gemo.data_mem[ko] = np.zeros(data_shape) + np.nan
+                    gemo.data_mem[ko][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = \
+                        np.flipud(ac.shared.nc_data(file, geo_datasets[ko], group = geo_group, sub = sub))
+                else:
+                    gemo.data_mem[ko] = np.flipud(ac.shared.nc_data(file, geo_datasets[ko], group = geo_group, sub = sub))
 
             ## read SWIR RSR
             rsrd_swir = ac.shared.rsr_dict('PACE_OCI_SWIR')
@@ -162,10 +188,10 @@ def l1_convert(inputfile, output = None, settings = None):
                                                    group = 'observation_data', attributes = True, sub = sub)
                 print(det, rhot.shape, len(wv_det))
 
-                for bi, wave in enumerate(wv_det):
+                for wi, wave in enumerate(wv_det):
                     if not np.isfinite(wave): continue
 
-                    att = {'f0': f0_det[bi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave), 'width': bp_det[bi]}
+                    att = {'f0': f0_det[wi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave), 'width': bp_det[wi]}
 
                     ## SWIR instrument gain and update band name
                     ## presumed same order as PACE_OCI_L1B_LUT_RSR_baseline_1.1.1.nc
@@ -179,11 +205,11 @@ def l1_convert(inputfile, output = None, settings = None):
                     ## 7 - 2130.5923
                     ## 8 - 2258.43
                     if (det == 'SWIR'):
-                        if (bi in [3, 6]):
+                        if (wi in [3, 6]):
                             att['instrument_gain'] = 'high'
                         else:
                             att['instrument_gain'] = 'standard'
-                        swir_b = rsrd_swir['PACE_OCI_SWIR']['rsr_bands'][bi]
+                        swir_b = rsrd_swir['PACE_OCI_SWIR']['rsr_bands'][wi]
                         att['wave_name'] = rsrd_swir['PACE_OCI_SWIR']['wave_name'][swir_b]
                     ## end SWIR gain and band name
 
@@ -192,14 +218,28 @@ def l1_convert(inputfile, output = None, settings = None):
                     band_irradiance.append(att['f0'])
 
                     ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
-                    gemo.write(ds_name, rhot[bi, :,:], ds_att = att)
-                    print('Wrote {}'.format(ds_name))
+                    if setu['merge_tiles']:
+                        if ds_name not in gemo.data_mem:
+                            gemo.data_mem[ds_name] = np.zeros(data_shape) + np.nan
+                            gemo.data_att[ds_name] = {k: att[k] for k in att}
+                        gemo.data_mem[ds_name][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = np.flipud(rhot[wi, :,:])
+                    else:
+                        gemo.data_mem[ds_name] = np.flipud(rhot[wi, :,:])
+                        gemo.data_att[ds_name] = att
                 rhot = None
 
             ## update attributes
             gatts['band_waves'] = band_waves
             gatts['band_widths'] = band_widths
             gatts['band_irradiance'] = band_irradiance
+
+            ## compute relative azimuth
+            if (not setu['merge_tiles']) | (bi == len(inputfile)-1):
+                raa = np.abs(gemo.data('saa') - gemo.data('vaa'))
+                tmp = np.where(raa>180)
+                raa[tmp]=np.abs(360 - raa[tmp])
+                gemo.data_mem['raa'] = raa
+                raa = None
         ## end level1 data
 
         ## level2 data
@@ -221,21 +261,38 @@ def l1_convert(inputfile, output = None, settings = None):
                     d[d.mask] = np.nan
                 if ds_name in ['Rrs']:
                     print(d.shape)
-                    for bi in range(d.shape[2]):
-
+                    for wi in range(d.shape[2]):
                         ds_att = {k: att[k] for k in att}
-                        for k in band_atts: ds_att[k] = band_atts[k][bi]
+                        for k in band_atts: ds_att[k] = band_atts[k][wi]
                         ds_out = '{}_{}'.format(ds_name, ds_att['wavelength_3d'])
-                        gemo.write(ds_out, d[:,:, bi], ds_att = ds_att)
-                        print('Wrote {}'.format(ds_out))
+                        if setu['merge_tiles']:
+                            if ds_out not in gemo.data_mem:
+                                gemo.data_mem[ds_out] = np.zeros(data_shape) + np.nan
+                                gemo.data_att[ds_out] = ds_att
+                            gemo.data_mem[ds_out][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = np.flipud(d[:,:, wi])
+                        else:
+                            gemo.data_mem[ds_out] = np.flipud(d[:,:, wi])
+                            gemo.data_att[ds_out] = ds_att
                 else:
-                    gemo.write(ds_name, d, ds_att = att)
-                    print('Wrote {}'.format(ds_name))
+                    if setu['merge_tiles']:
+                        if ds_name not in gemo.data_mem:
+                            gemo.data_mem[ds_name] = np.zeros(data_shape) + np.nan
+                            gemo.data_att[ds_name] = att
+                        gemo.data_mem[ds_name][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = np.flipud(d)
+                    else:
+                        gemo.data_mem[ds_name] = np.flipud(d)
+                        gemo.data_att[ds_name] = att
         ## end level2 data
 
-        gemo.gatts = {k: gatts[k] for k in gatts}
-        gemo.gatts_update()
-        gemo.close()
-        ofiles.append(ofile)
+        ## write data if not merging, or if last image in merging
+        if (not setu['merge_tiles']) | (bi == len(inputfile)-1):
+            write_ds = list(gemo.data_mem.keys())
+            for ds in write_ds: gemo.write_ds(ds, clear = True)
+            ## update attributes
+            gemo.gatts = {k: gatts[k] for k in gatts}
+            gemo.gatts_update()
+            ## close file
+            gemo.close()
+            ofiles.append(ofile)
 
     return(ofiles, setu)

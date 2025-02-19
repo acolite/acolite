@@ -5,6 +5,7 @@
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) check for rad/obs files, cleaned up settings use, output naming
 
 def l1_convert(inputfile, output=None, settings = None):
     import netCDF4, os
@@ -31,8 +32,6 @@ def l1_convert(inputfile, output=None, settings = None):
     ## end set sensor specific defaults
 
     verbosity = setu['verbosity']
-
-    ## parse settings
     if output is None: output = setu['output']
 
     ## get F0 for radiance -> reflectance computation
@@ -42,14 +41,24 @@ def l1_convert(inputfile, output=None, settings = None):
 
     ofiles = []
     for bundle in inputfile:
+        if output is None: output = os.path.dirname(bundle)
+
         ## find obs data for geometry
         bd = os.path.dirname(bundle)
         bn = os.path.basename(bundle)
-        obs_file = '{}/{}'.format(bd, bn.replace('EMIT_L1B_RAD', 'EMIT_L1B_OBS'))
+        if 'EMIT_L1B_OBS' in bn:
+            obs_file = '{}/{}'.format(bd, bn)
+            rad_file = '{}/{}'.format(bd, bn.replace('EMIT_L1B_OBS', 'EMIT_L1B_RAD'))
+        if 'EMIT_L1B_RAD' in bn:
+            obs_file = '{}/{}'.format(bd, bn.replace('EMIT_L1B_RAD', 'EMIT_L1B_OBS'))
+            rad_file = '{}/{}'.format(bd, bn)
+        if verbosity > 1:
+            print('Selected RAD file: {}'.format(rad_file))
+            print('Selected OBS file: {}'.format(obs_file))
+
         if os.path.exists(obs_file):
             ds = netCDF4.Dataset(obs_file)
             obs_datasets = ds['sensor_band_parameters']['observation_bands'][:]
-            print(obs_datasets)
             geom = {}
             geom['vaa'] = ds['obs'][:,:, 1]
             geom['vza'] = ds['obs'][:,:, 2]
@@ -60,12 +69,15 @@ def l1_convert(inputfile, output=None, settings = None):
         else:
             print('OBS file missing: {}'.format(obs_file))
             continue
+        if not os.path.exists(rad_file):
+            print('RAD file missing: {}'.format(rad_file))
+            continue
 
         ## open metadata
-        meta = ac.shared.nc_gatts(bundle)
+        meta = ac.shared.nc_gatts(rad_file)
 
         ## open here since location and band data is stored in NetCDF groups
-        ds = netCDF4.Dataset(bundle)
+        ds = netCDF4.Dataset(rad_file)
         ## get location data
         dsl = ds['/location/']
         loc = {k:dsl[k][:].data for k in dsl.variables.keys() if k not in ['elev', 'glt_x', 'glt_y']}
@@ -130,10 +142,11 @@ def l1_convert(inputfile, output=None, settings = None):
         gatts['band_widths'] = [bands[w]['width'] for w in bands]
 
         ## output file
-        obase  = '{}_{}_{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'), gatts['acolite_file_type'])
-        if not os.path.exists(output): os.makedirs(output)
-        ofile = '{}/{}.nc'.format(output, obase)
-        gatts['obase'] = obase
+        oname  = '{}_{}'.format(gatts['sensor'],  dt.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## outputfile
         gemo = ac.gem.gem(ofile, new = True)
@@ -155,7 +168,7 @@ def l1_convert(inputfile, output=None, settings = None):
 
         ## read radiance data
         if verbosity > 1: print('Reading radiance cube')
-        data, att = ac.shared.nc_data(bundle, 'radiance', attributes=True)
+        data, att = ac.shared.nc_data(rad_file, 'radiance', attributes=True)
 
         ## run through bands and store rhot
         for bi, b in enumerate(bands):

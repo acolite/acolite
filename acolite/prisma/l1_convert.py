@@ -11,6 +11,7 @@
 ##                2024-05-11 (QV) update for L1G2 data
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output=None, settings = None):
     import numpy as np
@@ -37,9 +38,6 @@ def l1_convert(inputfile, output=None, settings = None):
 
     verbosity = setu['verbosity']
     if output is None: output = setu['output']
-    output_lt = setu['output_lt']
-    vname = setu['region_name']
-    limit = setu['limit']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -55,6 +53,8 @@ def l1_convert(inputfile, output=None, settings = None):
 
     ofiles = []
     for file in inputfile:
+        if output is None: output = os.path.dirname(file)
+
         #f = h5py.File(file, mode='r')
         h5_gatts = ac.prisma.attributes(file)
 
@@ -151,8 +151,8 @@ def l1_convert(inputfile, output=None, settings = None):
             lat[lat>=mask_value] = np.nan
             lon[lon>=mask_value] = np.nan
         sub = None
-        if limit is not None:
-            sub = ac.shared.geolocation_sub(lat, lon, limit)
+        if setu['limit'] is not None:
+            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
             if sub is None:
                 print('Limit outside of scene {}'.format(file))
                 continue
@@ -259,23 +259,18 @@ def l1_convert(inputfile, output=None, settings = None):
         mu0 = np.cos(gatts['sza']*(np.pi/180))
         muv = np.cos(gatts['vza']*(np.pi/180))
 
-        if output is None:
-            odir = os.path.dirname(file)
-        else:
-            odir = output
-
         gatts['sensor'] = sensor
         gatts['isodate'] = time.isoformat()
-
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
-        if not os.path.exists(odir): os.makedirs(odir)
-        ofile = '{}/{}.nc'.format(odir, obase)
-
         gatts['acolite_file_type'] = 'L1R'
-        gatts['ofile'] = ofile
-        gatts['obase'] = obase
         gatts['band_waves'] = [bands[w]['wave'] for w in bands]
         gatts['band_widths'] = [bands[w]['width'] for w in bands]
+
+        ## output file name
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## set up output file
         gemo = ac.gem.gem(ofile, new=True)
@@ -319,12 +314,13 @@ def l1_convert(inputfile, output=None, settings = None):
         ## store l2c data
         if setu['prisma_store_l2c'] & read_cube:
             if setu['prisma_store_l2c_separate_file']:
-                obase_l2c  = '{}_{}_converted_L2C'.format('PRISMA',  time.strftime('%Y_%m_%d_%H_%M_%S'))
-                ofile_l2c = '{}/{}.nc'.format(odir, obase_l2c)
+                oname_l2c  = '{}_{}'.format('PRISMA',  time.strftime('%Y_%m_%d_%H_%M_%S'))
+                if setu['region_name'] != '': oname_l2c+='_{}'.format(setu['region_name'])
+                ofile_l2c = '{}/{}_L2C.nc'.format(output, oname_l2c)
                 gemo_l2c = ac.gem.gem(ofile_l2c, new=True)
                 gemo_l2c.gatts = {k: gatts[k] for k in gatts}
+                gemo_l2c.gatts['oname'] = oname_l2c
                 gemo_l2c.gatts['ofile'] = ofile_l2c
-                gemo_l2c.gatts['obase'] = obase_l2c
                 gemo_l2c.gatts['acolite_file_type'] = 'L2C'
                 gemo_l2c.write('lon', np.flip(np.rot90(lon)))
                 gemo_l2c.write('lat', np.flip(np.rot90(lat)))
@@ -385,7 +381,7 @@ def l1_convert(inputfile, output=None, settings = None):
 
             ds_att = {k:bands[b][k] for k in bands[b] if k not in ['rsr']}
 
-            if output_lt:
+            if setu['output_lt']:
                 ## write toa radiance
                 gemo.write('Lt_{}'.format(bands[b]['wave_name']),
                                     np.flip(np.rot90(cdata_radiance)),ds_att = ds_att)
@@ -435,7 +431,7 @@ def l1_convert(inputfile, output=None, settings = None):
             pan = h5_gatts['Offset_Pan'] + pan / h5_gatts['ScaleFactor_Pan']
 
             ## output netcdf
-            ofile_pan = '{}/{}_pan.nc'.format(odir, obase)
+            ofile_pan = '{}/{}_pan.nc'.format(output, oname)
             gemo_pan = ac.gem.gem(ofile_pan, new=True)
             gemo_pan.write('lon', np.flip(np.rot90(plon)))
             plon = None

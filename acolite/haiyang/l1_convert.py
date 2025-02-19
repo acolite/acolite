@@ -7,6 +7,7 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) removed percentiles, improved settings handling
+##                2025-02-10 (QV) cleaned up settings use
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -85,10 +86,9 @@ def l1_convert(inputfile, output = None, settings = None):
         ## end set sensor specific defaults
 
         verbosity = setu['verbosity']
-        limit = setu['limit']
         sub = setu['sub']
-        vname = setu['region_name']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## get gains from settings
         gains = None
@@ -113,8 +113,8 @@ def l1_convert(inputfile, output = None, settings = None):
             dct = ac.shared.projection_read(image)
 
             ## check crop
-            if (sub is None) & (limit is not None):
-                dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+            if (sub is None) & (setu['limit'] is not None):
+                dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
                 if dct_sub['out_lon']:
                     if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                     continue
@@ -136,10 +136,10 @@ def l1_convert(inputfile, output = None, settings = None):
             lat = f['Navigation Data']['Latitude'][:]/10000.
             lon = f['Navigation Data']['Longitude'][:]/10000.
             ## make subset
-            if (sub is None) & (limit is not None):
-                sub = ac.shared.geolocation_sub(lat, lon, limit)
+            if (sub is None) & (setu['limit'] is not None):
+                sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
                 if sub is None:
-                    print('Limit {} outside of image {}'.format(limit, image))
+                    print('Limit {} outside of image {}'.format(setu['limit'], image))
                     continue
 
             if sub is not None:
@@ -185,9 +185,10 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
-        if vname != '': oname+='_{}'.format(vname)
 
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
+        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
         ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile
@@ -198,7 +199,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 dct_prj = {k:dct[k] for k in dct}
             else:
                 gatts['sub'] = sub
-                gatts['limit'] = limit
+                gatts['limit'] = setu['limit']
                 ## get the target NetCDF dimensions and dataset offset
                 if (warp_to is None):
                     if (setu['extend_region']): ## include part of the roi not covered by the scene
@@ -346,7 +347,7 @@ def l1_convert(inputfile, output = None, settings = None):
             print('Created {}'.format(ofile))
         gemo.close()
 
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
         f = None
 

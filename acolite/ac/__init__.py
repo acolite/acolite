@@ -11,3 +11,5 @@ from .pressure_elevation import *
 from .irradiance import *
 
 from . import ancillary
+
+from .optimise_aot_homogeneous import *

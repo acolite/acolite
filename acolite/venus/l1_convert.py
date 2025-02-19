@@ -10,6 +10,7 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -27,7 +28,8 @@ def l1_convert(inputfile, output = None, settings = None):
         settings = ac.acolite.settings.parse(settings)
         for k in settings: setu[k] = settings[k]
     ## end additional run settings
-
+    verbosity = setu['verbosity']
+    
     ## parse inputfile
     if type(inputfile) != list:
         if type(inputfile) == str:
@@ -66,18 +68,8 @@ def l1_convert(inputfile, output = None, settings = None):
         ## end set sensor specific defaults
 
         verbosity = setu['verbosity']
-
-        ## get other settings
-        limit = setu['limit']
-        extend_region = setu['extend_region']
-        output_geolocation = setu['output_geolocation']
-        output_xy = setu['output_xy']
-        netcdf_projection = setu['netcdf_projection']
-
-        vname = setu['region_name']
-        gains = setu['gains']
-        gains_toa = setu['gains_toa']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## read rsr
         rsrf = ac.path+'/data/RSR/{}.txt'.format(meta['sensor'])
@@ -96,13 +88,12 @@ def l1_convert(inputfile, output = None, settings = None):
                      'sza':meta['sza'], 'vza':meta['vza'], 'raa':meta['raa'],
                      'se_distance': se_distance,
                      'mus': np.cos(meta['sza']*(np.pi/180.)), 'acolite_file_type': 'L1R'}
-
-
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
-        if vname != '': oname+='_{}'.format(vname)
-        ofile = '{}/{}_L1R.nc'.format(output, oname)
 
+        ## output name
+        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile
 
@@ -123,12 +114,12 @@ def l1_convert(inputfile, output = None, settings = None):
         btag = 'B{}'.format(1)
         image_file = meta['bands'][btag]['path']
         dct = ac.shared.projection_read(image_file)
-        if limit is not None:
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if setu['limit'] is not None:
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
 
         ## check crop
-        if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if (sub is None) & (setu['limit'] is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 #continue
@@ -142,10 +133,10 @@ def l1_convert(inputfile, output = None, settings = None):
             dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
-            gatts['limit'] = limit
+            gatts['limit'] = setu['limit']
             ## get the target NetCDF dimensions and dataset offset
             if (warp_to is None):
-                if (extend_region): ## include part of the roi not covered by the scene
+                if (setu['extend_region']): ## include part of the roi not covered by the scene
                     dct_prj = {k:dct_sub['region'][k] for k in dct_sub['region']}
                 else: ## just include roi that is covered by the scene
                     dct_prj = {k:dct_sub[k] for k in dct_sub}
@@ -189,7 +180,7 @@ def l1_convert(inputfile, output = None, settings = None):
             datasets = []
 
         ## write lat/lon
-        if (output_geolocation):
+        if (setu['output_geolocation']):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
@@ -203,7 +194,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 if verbosity > 1: print('Wrote lat')
 
         ## write x/y
-        if (output_xy):
+        if (setu['output_xy']):
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
@@ -293,7 +284,7 @@ def l1_convert(inputfile, output = None, settings = None):
             print('Created {}'.format(ofile))
 
         gemo.close()
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)

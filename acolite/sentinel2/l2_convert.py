@@ -6,6 +6,7 @@
 ##                2024-10-16 (QV) added RSR versioning support
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
     import numpy as np
@@ -82,19 +83,12 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
 
-        s2_target_res=setu['s2_target_res']
-        netcdf_projection = setu['netcdf_projection']
-        output_geolocation=setu['output_geolocation']
-        vname = setu['region_name']
-
-        limit=setu['limit']
-
         ## output metadata
         dtime = dateutil.parser.parse(grmeta['SENSING_TIME'])
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
-        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(s2_target_res))
+        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(setu['s2_target_res']))
         global_dims = dct['dimensions']
         mgrs_tile = grmeta['TILE_ID'].split('_')[-2]
 
@@ -116,7 +110,7 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
 
         ## output filename
         oname = '{}_{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), gatts['tile_code'])
-        if vname != '': oname+='_{}'.format(vname)
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
         ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
         gatts['oname'] = oname
         gatts['ofile'] = ofile
@@ -127,7 +121,7 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
             gatts['{}_name'.format(b)] = waves_names[b]
 
         ## get scene projection and extent
-        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(s2_target_res))
+        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(setu['s2_target_res']))
 
         ## full scene
         gatts['scene_xrange'] = dct['xrange']
@@ -138,8 +132,8 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
         if 'zone' in dct: gatts['scene_zone'] = dct['zone']
 
         ## check crop
-        if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if (sub is None) & (setu['limit'] is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 continue
@@ -151,11 +145,11 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
              dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
-            gatts['limit'] = limit
+            gatts['limit'] = setu['limit']
             dct_prj = {k:dct_sub[k] for k in dct_sub}
 
         ## get projection info for netcdf
-        if netcdf_projection:
+        if setu['netcdf_projection']:
             nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=True)
         else:
             nc_projection = None
@@ -194,7 +188,7 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
             new = False
 
         ## write lat/lon
-        if (output_geolocation):
+        if (setu['output_geolocation']):
             if verbosity > 1: print('Writing geolocation lon/lat')
             lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
             gemo.write('lon', lon)
@@ -245,7 +239,7 @@ def l2_convert(inputfile, output = None, settings = None, skip_bands = ['9']):
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
 
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)

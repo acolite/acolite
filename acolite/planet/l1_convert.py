@@ -17,6 +17,7 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-09 (QV) cleaned up settings use
 
 def l1_convert(inputfile, output = None, settings = None,
 
@@ -159,33 +160,18 @@ def l1_convert(inputfile, output = None, settings = None,
             ## end set sensor specific defaults
 
             verbosity = setu['verbosity']
-
-            ## get other settings
-            limit = setu['limit']
-            output_geolocation = setu['output_geolocation']
-            output_geometry = setu['output_geometry']
-            output_xy = setu['output_xy']
-            netcdf_projection = setu['netcdf_projection']
-
-            vname = setu['region_name']
-            gains = setu['gains']
-            gains_toa = setu['gains_toa']
             if output is None: output = setu['output']
-
-            merge_tiles = setu['merge_tiles']
-            extend_region = setu['extend_region']
+            if output is None: output = os.path.dirname(bundle)
 
             ## check if merging settings make sense
-            merge_tiles = setu['merge_tiles']
-            extend_region = setu['extend_region']
-            if (limit is None) & (merge_tiles):
+            if (setu['limit'] is None) & (setu['merge_tiles']):
                 if not setu['merge_full_tiles']:
                     if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
+                    if verbosity > 0: print("Set merge_full_tiles=True to merge to all tiles extent")
                 else:
                     if verbosity > 0: print("Merging tiles without ROI limit, merging to all tiles extent")
+                    if verbosity > 0: print("Set merge_full_tiles=False to merge to first tile extent")
                     dct_tiles = ac.planet.multi_tile_extent(ifiles, dct = None)
-            if merge_tiles:
-                extend_region = True
         sub = None
 
         ## read rsr
@@ -201,9 +187,9 @@ def l1_convert(inputfile, output = None, settings = None,
 
         ## gains
         gains_dict = None
-        if gains & (gains_toa is not None):
+        if setu['gains'] & (setu['gains_toa'] is not None):
             if len(gains_toa) == len(rsr_bands):
-                gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
+                gains_dict = {b: float(setu['gains_toa'][ib]) for ib, b in enumerate(rsr_bands)}
 
         gatts = {'sensor':meta['sensor'], 'satellite_sensor':meta['satellite_sensor'],
                  'isodate':isodate, #'global_dims':global_dims,
@@ -214,23 +200,21 @@ def l1_convert(inputfile, output = None, settings = None,
             gatts['acolite_file_type'] = 'L1R'
         else:
             gatts['acolite_file_type'] = 'SR'
-
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
-        if vname != '': oname+='_{}'.format(vname)
 
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
+        oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if setu['merge_tiles'] else '')
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
         ## output file information
-        if (merge_tiles is False) | (ofile is None):
+        if (setu['merge_tiles'] is False) | (ofile is None):
             ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
-            gatts['oname'] = oname
-            gatts['ofile'] = ofile
-        elif (merge_tiles) & (ofile is None):
+        elif (setu['merge_tiles']) & (ofile is None):
             ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
-            gatts['oname'] = oname
-            gatts['ofile'] = ofile
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## check if we should merge these tiles
-        if (merge_tiles) & (not new) & (os.path.exists(ofile)):
+        if (setu['merge_tiles']) & (not new) & (os.path.exists(ofile)):
                 fgatts = ac.shared.nc_gatts(ofile)
                 if (check_sensor) & (fgatts['satellite_sensor'] != gatts['satellite_sensor']):
                     print('Sensors do not match, skipping {}'.format(bundle))
@@ -260,7 +244,7 @@ def l1_convert(inputfile, output = None, settings = None,
             ## to be improved using RPC info
             print('Cannot determine image projection of {}, reprojecting.'.format(image_file))
             ret = ac.shared.warp_and_merge(image_file_original, output = output,
-                                     limit = limit, resolution = setu['default_projection_resolution'])
+                                     limit = setu['limit'], resolution = setu['default_projection_resolution'])
             if len(ret) == 3:
                 image_file = ret[0]
                 dct = ret[1]
@@ -277,8 +261,8 @@ def l1_convert(inputfile, output = None, settings = None,
         if 'zone' in dct: gatts['scene_zone'] = dct['zone']
 
         ## check crop
-        if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if (sub is None) & (setu['limit'] is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 continue
@@ -287,12 +271,11 @@ def l1_convert(inputfile, output = None, settings = None,
                 continue
             sub = dct_sub['sub']
         else:
-            if extend_region:
+            if setu['extend_region']:
                 print("Can't extend region if no ROI limits given")
-                extend_region = False
 
         ## remove warp_to from previous run if merge_tiles is not set
-        if (merge_tiles is False): warp_to = None
+        if (setu['merge_tiles'] is False): warp_to = None
         if sub is None:
             ## determine warping target
             if (warp_to is None):
@@ -302,17 +285,17 @@ def l1_convert(inputfile, output = None, settings = None,
                     dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
-            gatts['limit'] = limit
+            gatts['limit'] = setu['limit']
             ## get the target NetCDF dimensions and dataset offset
             if (warp_to is None):
-                if (extend_region): ## include part of the roi not covered by the scene
+                if (sub is not None) & (setu['extend_region']): ## include part of the roi not covered by the scene
                     dct_prj = {k:dct_sub['region'][k] for k in dct_sub['region']}
                 else: ## just include roi that is covered by the scene
                     dct_prj = {k:dct_sub[k] for k in dct_sub}
         ## end cropped
 
         ## get projection info for netcdf
-        if netcdf_projection:
+        if setu['netcdf_projection']:
             nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=True)
         else:
             nc_projection = None
@@ -338,9 +321,7 @@ def l1_convert(inputfile, output = None, settings = None,
         gatts['global_dims'] = dct_prj['dimensions']
 
         ## new file for every bundle if not merging
-        if (merge_tiles is False):
-            new = True
-            new_pan = True
+        if (setu['merge_tiles'] is False): new = True
 
         ## if we are clipping to a given polygon get the clip_mask here
         if setu['polygon_clip']:
@@ -361,7 +342,7 @@ def l1_convert(inputfile, output = None, settings = None,
             datasets = []
 
         ## write lat/lon
-        if (output_geolocation):
+        if (setu['output_geolocation']):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
@@ -373,7 +354,7 @@ def l1_convert(inputfile, output = None, settings = None,
                 lat = None
 
         ## write x/y
-        if (output_xy):
+        if (setu['output_xy']):
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
@@ -423,7 +404,6 @@ def l1_convert(inputfile, output = None, settings = None,
                 else:
                     data = data.astype(float) * float(meta['{}-{}'.format(b,'to_reflectance')])
             data[nodata] = np.nan
-            print(data.shape)
 
             ## clip to poly
             if (setu['polygon_clip']): data[clip_mask] = np.nan
@@ -431,7 +411,7 @@ def l1_convert(inputfile, output = None, settings = None,
             ds = 'rhot_{}'.format(waves_names[b])
             ds_att = {'wavelength':waves_mu[b]*1000}
 
-            if gains & (gains_dict is not None):
+            if setu['gains'] & (gains_dict is not None):
                 ds_att['toa_gain'] = gains_dict[b]
                 data *= ds_att['toa_gain']
                 if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
@@ -480,7 +460,7 @@ def l1_convert(inputfile, output = None, settings = None,
             print('Created {}'.format(ofile))
 
         gemo.close()
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
         ## remove the extracted bundle

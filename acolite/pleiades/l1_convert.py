@@ -12,6 +12,8 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-07 (QV) added pleiades_force_metadata_geolocation
+##                2025-02-10 (QV) cleaned up settings use
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -84,8 +86,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
-        limit = setu['limit']
-        vname = setu['region_name']
+        if output is None: output = os.path.dirname(bundle)
 
         ## set resolution and band names
         if meta['sensor'] in ['PHR1A', 'PHR1B']:
@@ -126,29 +127,50 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
-        if vname != '': oname+='_{}'.format(vname)
 
-        ## output file information
-        ofile = '{}/{}_L1R.nc'.format(output, oname)
-        pofile = '{}/{}_L1R_pan.nc'.format(output, oname)
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
+        oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        oname = '{}_{}'.format(oname, gatts['acolite_file_type'])
+        ofile = '{}/{}.nc'.format(output, oname)
+        pofile = '{}/{}_pan.nc'.format(output, oname)
         gatts['oname'] = oname
         gatts['ofile'] = ofile
+        gatts['ofile_pan'] = pofile
 
         ## test scene
-        if limit is not None:
-            out_scene = ac.pleiades.geo.test_coverage(meta, limit, verbose=verbosity>2)
+        if setu['limit'] is not None:
+            out_scene = ac.pleiades.geo.test_coverage(meta, setu['limit'], verbose=verbosity>2)
             if out_scene:
-                print('Provided limit {} not covered by scene'.format(limit))
+                print('Provided limit {} not covered by scene'.format(setu['limit']))
                 continue
 
-        ## find projection info based on first file
         dct = None
-        ifile = ifiles[0]
-        try:
-            dct = ac.shared.projection_read(ifile)
-        except:
-            print('Could not determine projection from {}'.format(ifile))
+        ## find projection info based on first file
+        ## of pleiades_force_metadata_geolocation is set the "old method" will be used
+        if not setu['pleiades_force_metadata_geolocation']:
+            ifile = ifiles[0]
+            try:
+                print('Reading projection from {}'.format(ifile))
+                dct = ac.shared.projection_read(ifile)
+            except:
+                print('Could not determine projection from {}'.format(ifile))
+
+            ## if we can read the projection, read other tiles and update dct
+            if dct is not None:
+                for ifile in ifiles[1:]:
+                    ## read projection
+                    print('Reading projection from {}'.format(ifile))
+                    dct_tile = ac.shared.projection_read(ifile)
+                    ## compute new ranges
+                    dct['xrange'] = min(dct['xrange'][0], dct_tile['xrange'][0]),\
+                                        max(dct['xrange'][1], dct_tile['xrange'][1])
+                    dct['yrange'] = max(dct['yrange'][0], dct_tile['yrange'][0]),\
+                                        min(dct['yrange'][1], dct_tile['yrange'][1])
+                ## update dimensions
+                dct['xdim'] = np.round((dct['xrange'][1] - dct['xrange'][0]) / dct['pixel_size'][0]).astype(int)
+                dct['ydim'] = np.round((dct['yrange'][1] - dct['yrange'][0]) / dct['pixel_size'][1]).astype(int)
+                dct['dimensions'] = (dct['xdim'], dct['ydim'])
 
         new_method, reproject = False, False
         ## set up reprojection
@@ -158,11 +180,11 @@ def l1_convert(inputfile, output = None, settings = None):
             vlats = [meta['VERTICES'][v]['LAT'] for v in meta['VERTICES']]
 
             ## set up ms projection
-            if limit is None:
+            if setu['limit'] is None:
                 vlimit = [np.nanmin(vlats), np.nanmin(vlons), np.nanmax(vlats), np.nanmax(vlons)]
                 dct, nc_projection, warp_to = ac.shared.projection_setup(vlimit, ms_resolution)
             else:
-                dct, nc_projection, warp_to = ac.shared.projection_setup(limit, ms_resolution)
+                dct, nc_projection, warp_to = ac.shared.projection_setup(setu['limit'], ms_resolution)
             reproject = True
             ## update gatts
 #             gatts['scene_xrange'] = dct['xrange']
@@ -176,8 +198,8 @@ def l1_convert(inputfile, output = None, settings = None):
             new_method = True
             res_method = 'average'
             ## check limit
-            if (limit is not None) & (reproject is False):
-                dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+            if (setu['limit'] is not None) & (reproject is False):
+                dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
                 if dct_sub['out_lon']:
                     if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                     continue
@@ -216,13 +238,13 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['scene_dims'] = int(meta['NROWS']), int(meta['NCOLS'])
 
             ## check if we need to find crop position
-            if limit is not None:
-                if len(limit) == 4:
+            if setu['limit'] is not None:
+                if len(setu['limit']) == 4:
                     ncols = int(meta['NCOLS'])
                     nrows = int(meta['NROWS'])
-                    sub = ac.pleiades.geo.crop(meta, limit)
+                    sub = ac.pleiades.geo.crop(meta, setu['limit'])
                     if pmeta is not None:
-                        pansub = ac.pleiades.geo.crop(pmeta, limit)
+                        pansub = ac.pleiades.geo.crop(pmeta, setu['limit'])
                         ## QV 2022-11-09
                         ## force pan sub dimensions to match ms data
                         ## to be improved!

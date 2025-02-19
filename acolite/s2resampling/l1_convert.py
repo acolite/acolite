@@ -7,6 +7,7 @@
 ##                2024-04-23 (MB) read ancillary data of resampled input if requested
 ##                2024-05-22 (QV) update gem dataset atts
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -49,25 +50,25 @@ def l1_convert(inputfile, output = None, settings = None):
             if k not in ac.settings['user']: setu[k] = setd[k]
         ## end set sensor specific defaults
 
-        output = setu['output']
-        if output is None:
-            odir = os.path.dirname(bundle)
-        else:
-            odir = output
-        s2_auxiliary_default = setu['s2_auxiliary_default']
+        verbosity = setu['verbosity']
+        if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## datetime
         dt = dateutil.parser.parse(gatts['start_date'])
-        ## output file name
-        obase = '{}_{}_S2R_L1R.nc'.format(sensor, dt.strftime('%Y_%m_%d_%H_%M_%S'))
-        ofile = '{}/{}'.format(odir, obase)
 
         ## global attributes
         gatts = {}
         gatts['sensor'] = sensor
         gatts['isodate'] = dt.isoformat()
-        gatts['acolite_file_type'] = 'L1R'
-        gatts['obase'] = obase
+        gatts['acolite_file_type'] = 'S2R_L1R'
+
+        ## output file name
+        oname = '{}_{}'.format(sensor, dt.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## rename datasets to acolite L1R
         dsets = {'lat': 'lat', 'lon': 'lon',
@@ -134,7 +135,7 @@ def l1_convert(inputfile, output = None, settings = None):
         gemo.close()
 
         ## auxiliary data from S2Resampling or msiresampling
-        if s2_auxiliary_default:
+        if setu['s2_auxiliary_default']:
             try:
                 datasets = ac.shared.nc_datasets(bundle)
                 # hrocresampling interpolates ancillary to each pixel

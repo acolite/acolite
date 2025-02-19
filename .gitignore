@@ -10,7 +10,8 @@ data/MET/
 # Simulations for TACT
 data/TACT/grid
 
-# External datasets, software and scratch data
+# Downloads, external datasets, software and scratch data
+downloads/
 external/
 scratch/
 

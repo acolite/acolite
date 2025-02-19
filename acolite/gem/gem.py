@@ -175,7 +175,10 @@ class gem(object):
                 ac.output.nc_write(self.nc, ds, data, dataset_attributes = ds_att, replace_nan = replace_nan,
                                             update_projection = update_projection, nc_projection=self.nc_projection)
 
-            if self.verbosity > 0: print('Wrote {}'.format(ds))
+            if self.verbosity > 0: print('Wrote {} {}'.format(ds, data.shape))
+
+            ## update datasets after writing
+            self.datasets_read()
 
         ## write dataset from data_mem
         def write_ds(self, ds, clear = False):

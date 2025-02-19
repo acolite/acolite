@@ -15,6 +15,7 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None,
                 check_sensor = True,
@@ -108,34 +109,10 @@ def l1_convert(inputfile, output = None, settings = None,
             verbosity = setu['verbosity']
             if output is None: output = setu['output']
 
-            gains = setu['gains']
-            gains_toa = setu['gains_toa']
-            offsets = setu['offsets']
-            offsets_toa = setu['offsets_toa']
-
-            s2_target_res=setu['s2_target_res']
-
-            geometry_type=setu['geometry_type']
-            geometry_res=setu['geometry_res']
-            geometry_override=setu['geometry_override']
-
-            netcdf_projection = setu['netcdf_projection']
-
-            dilate = setu['s2_dilate_blackfill']
-            dilate_iterations = setu['s2_dilate_blackfill_iterations']
-
-            output_geolocation=setu['output_geolocation']
-            output_xy=setu['output_xy']
-            output_geometry=setu['output_geometry']
-            vname = setu['region_name']
-
-            limit=setu['limit']
-
             ## check if merging settings make sense
-            merge_tiles = setu['merge_tiles']
             extend_region = setu['extend_region']
-            if merge_tiles:
-                if (limit is None):
+            if setu['merge_tiles']:
+                if (setu['limit'] is None):
                     if not setu['merge_full_tiles']:
                         if verbosity > 0: print("Merging tiles without ROI limit, merging to first tile extent")
                     else:
@@ -151,7 +128,7 @@ def l1_convert(inputfile, output = None, settings = None,
         doy = dtime.strftime('%j')
         se_distance = ac.shared.distance_se(doy)
         isodate = dtime.isoformat()
-        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(s2_target_res))
+        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(setu['s2_target_res']))
         global_dims = dct['dimensions']
 
         #mgrs_tile = meta['PRODUCT_URI'].split('_')[-2]
@@ -177,15 +154,15 @@ def l1_convert(inputfile, output = None, settings = None,
 
         ## gains
         gains_dict = None
-        if gains & (gains_toa is not None):
-            if len(gains_toa) == len(rsr_bands):
-                gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
+        if setu['gains'] & (setu['gains_toa'] is not None):
+            if len(setu['gains_toa']) == len(rsr_bands):
+                gains_dict = {b: float(setu['gains_toa'][ib]) for ib, b in enumerate(rsr_bands)}
 
         ## offsets
         offsets_dict = None
-        if offsets & (offsets_toa is not None):
-            if len(offsets_toa) == len(rsr_bands):
-                offsets_dict = {b: float(offsets_toa[ib]) for ib, b in enumerate(rsr_bands)}
+        if setu['offsets'] & (setu['offsets_toa'] is not None):
+            if len(setu['offsets_toa']) == len(rsr_bands):
+                offsets_dict = {b: float(setu['offsets_toa'][ib]) for ib, b in enumerate(rsr_bands)}
 
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
@@ -196,27 +173,26 @@ def l1_convert(inputfile, output = None, settings = None,
                  'sza':sza, 'vza':vza, 'raa':raa, 'vaa': vaa, 'saa': saa, 'se_distance': se_distance,
                  'mus': np.cos(sza*(np.pi/180.)), 'granule': granule, 'mgrs_tile': mgrs_tile,
                  'acolite_file_type': 'L1R'}
-        if merge_tiles:
+        if setu['merge_tiles']:
             gatts['tile_code'] = 'merged'
         else:
             gatts['tile_code'] = '{}'.format(gatts['mgrs_tile'])
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), gatts['tile_code'])
-        if vname != '': oname+='_{}'.format(vname)
-
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
         ## output file information
-        if (merge_tiles is False) | (ofile is None):
-            ofile = '{}/{}_L1R.nc'.format(output, oname)
+        if (setu['merge_tiles'] is False) | (ofile is None):
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
-        elif (merge_tiles) & (ofile is None):
-            ofile = '{}/{}_L1R.nc'.format(output, oname)
+        elif (setu['merge_tiles']) & (ofile is None):
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
 
         ## check if we should merge these tiles
-        if (merge_tiles) & (not new) & (os.path.exists(ofile)):
+        if (setu['merge_tiles']) & (not new) & (os.path.exists(ofile)):
                 fgatts = ac.shared.nc_gatts(ofile)
                 if (check_sensor) & (fgatts['sensor'] != gatts['sensor']):
                     print('Sensors do not match, skipping {}'.format(bundle))
@@ -238,7 +214,7 @@ def l1_convert(inputfile, output = None, settings = None,
             #    fmeta[b]['se_distance'] = gatts['se_distance']
 
         ## get scene projection and extent
-        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(s2_target_res))
+        dct = ac.sentinel2.projection(grmeta, s2_target_res=int(setu['s2_target_res']))
 
         ## full scene
         gatts['scene_xrange'] = dct['xrange']
@@ -249,8 +225,8 @@ def l1_convert(inputfile, output = None, settings = None,
         if 'zone' in dct: gatts['scene_zone'] = dct['zone']
 
         ## check crop
-        if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if (sub is None) & (setu['limit'] is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 continue
@@ -264,7 +240,7 @@ def l1_convert(inputfile, output = None, settings = None,
                 extend_region = False
 
         ## remove warp_to from previous run if merge_tiles is not set
-        if (merge_tiles is False): warp_to = None
+        if (setu['merge_tiles'] is False): warp_to = None
         if sub is None: ## full tile processing
             ## determine warping target
             if (warp_to is None):
@@ -274,7 +250,7 @@ def l1_convert(inputfile, output = None, settings = None,
                     dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
-            gatts['limit'] = limit
+            gatts['limit'] = setu['limit']
 
             ## get the target NetCDF dimensions and dataset offset
             if (warp_to is None):
@@ -285,7 +261,7 @@ def l1_convert(inputfile, output = None, settings = None,
         ## end cropped
 
         ## get projection info for netcdf
-        if netcdf_projection:
+        if setu['netcdf_projection']:
             nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=True)
         else:
             nc_projection = None
@@ -311,7 +287,7 @@ def l1_convert(inputfile, output = None, settings = None,
         gatts['global_dims'] = dct_prj['dimensions']
 
         ## new file for every bundle if not merging
-        if (merge_tiles is False):
+        if (setu['merge_tiles'] is False):
             new = True
             ofile_aux_new = True
 
@@ -331,21 +307,21 @@ def l1_convert(inputfile, output = None, settings = None,
 
         ## start the conversion
         ## write geometry
-        if (output_geometry):
+        if (setu['output_geometry']):
             if verbosity > 1: print('Reading per pixel geometry')
-            if (geometry_type == 'grids') | (geometry_type == 'grids_footprint'):
+            if (setu['geometry_type'] == 'grids') | (setu['geometry_type'] == 'grids_footprint'):
                 dfoo = None
 
                 ## just use 60m band for geometry, it will be interpolated later
-                if geometry_res == 10:
+                if setu['geometry_res'] == 10:
                     target_file = safe_files[granule]['B2']['path']
-                elif geometry_res == 20:
+                elif setu['geometry_res'] == 20:
                     target_file = safe_files[granule]['B11']['path']
-                elif geometry_res == 60:
+                elif setu['geometry_res'] == 60:
                     target_file = safe_files[granule]['B1']['path']
 
                 ## get proj dct for geometry
-                dct_geom = ac.sentinel2.projection(grmeta, s2_target_res=geometry_res)
+                dct_geom = ac.sentinel2.projection(grmeta, s2_target_res=setu['geometry_res'])
                 ## with subsetting fix the offsets should not be required 2021-10-28
                 xyr_geom = [min(dct_geom['xrange']),
                             min(dct_geom['yrange']),
@@ -367,14 +343,14 @@ def l1_convert(inputfile, output = None, settings = None,
                 saa = ac.shared.tiles_interp(grmeta['SUN']['Azimuth'], xnew, ynew, smooth=False, method='linear')
 
                 ## default s2 5x5 km grids
-                if geometry_type == 'grids':
+                if setu['geometry_type'] == 'grids':
                     #xnew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[1]-1, int(global_dims[1]))
                     #ynew = np.linspace(0, grmeta['VIEW']['Average_View_Zenith'].shape[0]-1, int(global_dims[0]))
                     vza = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Zenith'], xnew, ynew, smooth=False, method='nearest')
                     vaa = ac.shared.tiles_interp(grmeta['VIEW']['Average_View_Azimuth'], xnew, ynew, smooth=False, method='nearest')
 
                 ## use s2 5x5 km grids with detector footprint interpolation
-                if geometry_type == 'grids_footprint':
+                if setu['geometry_type'] == 'grids_footprint':
                     ## compute vza and saa
                     gml_files = glob.glob('{}/GRANULE/{}/QI_DATA/*MSK_DETFOO*.gml'.format(bundle, granule))
                     gml_files.sort()
@@ -526,10 +502,10 @@ def l1_convert(inputfile, output = None, settings = None,
                                                                           target_mask = det_mask, target_mask_full=False, method='linear')
                             vaa_all[:,:, bi] = vaa_tmp
 
-            elif geometry_type == 'gpt': ## use snap gpt to get nicer angles
+            elif setu['geometry_type'] == 'gpt': ## use snap gpt to get nicer angles
                 geometry_parameters = ['view_zenith_mean','view_azimuth_mean','sun_zenith','sun_azimuth']
-                geometry_files = ac.sentinel2.gpt_geometry(bundle, output=output, target_res=geometry_res,
-                                                           verbosity=verbosity, override=geometry_override)
+                geometry_files = ac.sentinel2.gpt_geometry(bundle, output=output, target_res=setu['geometry_res'],
+                                                           verbosity=verbosity, override=setu['geometry_override'])
                 if geometry_format == 'GeoTIFF':
                     szai = [i for i, f in enumerate(geometry_files) if 'sun_zenith' in f][0]
                     saai = [i for i, f in enumerate(geometry_files) if 'sun_azimuth' in f][0]
@@ -581,7 +557,7 @@ def l1_convert(inputfile, output = None, settings = None,
             vza = None
 
             ## write per band geometry
-            if (setu['geometry_per_band']) & ((geometry_type == 'grids') | (geometry_type == 'grids_footprint')):
+            if (setu['geometry_per_band']) & ((setu['geometry_type'] == 'grids') | (setu['geometry_type'] == 'grids_footprint')):
                 for bi, b in enumerate(rsr_bands):
                     Bn = 'B{}'.format(b)
                     print('Writing view geometry for {} {} nm'.format(Bn, waves_names[b]))
@@ -616,7 +592,7 @@ def l1_convert(inputfile, output = None, settings = None,
             datasets = []
 
         ## write lat/lon
-        if (output_geolocation):
+        if (setu['output_geolocation']):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
@@ -628,7 +604,7 @@ def l1_convert(inputfile, output = None, settings = None,
                 lat = None
 
         ## write x/y
-        if (output_xy):
+        if (setu['output_xy']):
             if ('xm' not in datasets) or ('ym' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
@@ -701,7 +677,7 @@ def l1_convert(inputfile, output = None, settings = None,
                 if b in waves_names:
                     data = ac.shared.read_band(safe_files[granule][Bn]['path'], sub=sub, warp_to=warp_to)
                     data_mask = data == nodata
-                    if dilate: data_mask = scipy.ndimage.binary_dilation(data_mask, iterations=dilate_iterations)
+                    if setu['s2_dilate_blackfill']: data_mask = scipy.ndimage.binary_dilation(data_mask, iterations=setu['s2_dilate_blackfill_iterations'])
                     data = data.astype(np.float32)
                     if 'RADIO_ADD_OFFSET' in band_data: data += band_data['RADIO_ADD_OFFSET'][Bn]
                     data /= quant
@@ -710,11 +686,11 @@ def l1_convert(inputfile, output = None, settings = None,
                     ds = 'rhot_{}'.format(waves_names[b])
                     ds_att = {'wavelength':waves_mu[b]*1000}
 
-                    if gains & (gains_dict is not None):
+                    if setu['gains'] & (gains_dict is not None):
                         ds_att['toa_gain'] = gains_dict[b]
                         data *= ds_att['toa_gain']
                         if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
-                    if offsets & (offsets_dict is not None):
+                    if setu['offsets'] & (offsets_dict is not None):
                         ds_att['toa_offset'] = offsets_dict[b]
                         data *= ds_att['toa_offset']
                         if verbosity > 1: print('Converting bands: Applied TOA offset {} to {}'.format(ds_att['toa_gain'], ds))
@@ -744,7 +720,7 @@ def l1_convert(inputfile, output = None, settings = None,
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
 
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)

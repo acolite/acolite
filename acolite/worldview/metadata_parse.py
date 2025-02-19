@@ -8,6 +8,7 @@
 ##                2021-02-24 (QV) reformatted and simplified for acg
 ##                2022-02-24 (QV) added GeoEye1
 ##                2022-02-27 (QV) change band_index according to band tags present in metadata
+##                2025-02-14 (QV) added Legion
 
 def metadata_parse(metafile):
     import os, sys, fnmatch, dateutil.parser
@@ -89,6 +90,15 @@ def metadata_parse(metafile):
             band_names=['Blue','Green','Red','NIR']
             band_indices=[1,2,3,4]
             band_tag_names = ["BAND_B","BAND_G","BAND_R","BAND_N"]
+
+        ## Legion
+        if metadata['SATID'].startswith('LG'):
+            metadata['satellite'] = '{}'.format(metadata['SATID'])
+            metadata['sensor'] = 'WV_{}'.format(metadata['SATID'])
+            metadata["isotime"]=metadata["FIRSTLINETIME"]
+            band_names = ['Coastal', 'Blue',  'Green', 'Yellow', 'Red', 'RedEdge1', 'RedEdge2', 'NIR1', 'Pan', ]
+            band_indices=[1,2,3,4,5,6,7,8,1]
+            band_tag_names = ["BAND_C","BAND_B","BAND_G","BAND_Y","BAND_R","BAND_RE1","BAND_RE2", "BAND_N", "BAND_P"]
 
     ## band tags to try and extract from metadata
     band_tags = ["ULLON","ULLAT","ULHAE",

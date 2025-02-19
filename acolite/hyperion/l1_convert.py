@@ -8,6 +8,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -89,10 +90,8 @@ def l1_convert(inputfile, output = None, settings = None):
             continue
 
         verbosity = setu['verbosity']
-        limit = setu['limit']
-        vname = setu['region_name']
-        output_lt=setu['output_lt']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(file)
 
         gatts['sza'] = 90-float(metadata["PRODUCT_PARAMETERS"]['SUN_ELEVATION'])
         gatts['vza'] = np.abs(float(metadata["PRODUCT_PARAMETERS"]['SENSOR_LOOK_ANGLE']))
@@ -112,15 +111,11 @@ def l1_convert(inputfile, output = None, settings = None):
         scaling_swir = float(metadata['RADIANCE_SCALING']['SCALING_FACTOR_SWIR']) ## bands 71-242 (W/(m^2 sr um)
         scaling_vnir = float(metadata['RADIANCE_SCALING']['SCALING_FACTOR_VNIR']) ## bands 1-70 (W/(m^2 sr um)
 
-        if output is None:
-            odir = os.path.dirname(file)
-        else:
-            odir = output
-
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
-        if not os.path.exists(odir): os.makedirs(odir)
-        ofile = '{}/{}.nc'.format(odir, obase)
-        gatts['obase'] = obase
+        gatts['acolite_file_type'] = 'L1R'
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
         gatts['ofile'] = ofile
 
         ## add band info
@@ -152,8 +147,8 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## find region of interest
         sub = None
-        if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if (sub is None) & (setu['limit'] is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(file))
                 continue
@@ -193,7 +188,7 @@ def l1_convert(inputfile, output = None, settings = None):
             cdata_radiance[cdata_radiance == 0] = np.nan
 
             ## write toa radiance
-            if output_lt:
+            if setu['output_lt']:
                 gemo.write('Lt_{}'.format(ds_att['wave_name']), cdata_radiance, ds_att = ds_att)
 
             ## compute toa reflectance

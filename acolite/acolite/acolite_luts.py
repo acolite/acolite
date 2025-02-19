@@ -5,6 +5,8 @@
 ## modifications:
 ##                2021-10-24 (QV) added LUT identifiers and pressures, get_remote keyword
 ##                2022-04-12 (QV) add par parameter to import_luts
+##                2025-02-11 (QV) add sensor settings parsing and reverse_lut_sensors list
+##                2025-02-15 (QV) fix for rsr_version
 
 def acolite_luts(sensor = None, hyper = False,
                  get_remote = True, compute_reverse = True,
@@ -34,11 +36,18 @@ def acolite_luts(sensor = None, hyper = False,
                 hyper = True
                 continue
 
-            rd = ac.shared.rsr_dict(sensor=s)
+            ## get sensor settings
+            setd = ac.acolite.settings.parse(s)
+            lut_sensor = '{}'.format(s)
+            if 'rsr_version' in setd:
+                if setd['rsr_version'] is not None:
+                    lut_sensor = '{}_{}'.format(s, setd['rsr_version'])
+
+            rd = ac.shared.rsr_dict(sensor=lut_sensor)
             if len(rd) == 0:
-                print('Sensor {} not recognised.'.format(s))
+                print('Sensor {} ({}) not recognised.'.format(s, lut_sensor))
                 continue
-            rsrd[s] = rd[s]
+            rsrd[lut_sensor] = rd[lut_sensor]
 
     sensors = list(rsrd.keys())
     sensors.sort()
@@ -64,8 +73,7 @@ def acolite_luts(sensor = None, hyper = False,
                                     base_luts = base_luts, rsky_lut = rsky_lut)
 
         ## get reverse LUT
-        if (compute_reverse) & (s is not None) & (s in ['L5_TM', 'L7_ETM', 'L8_OLI', 'L9_OLI', 'S2A_MSI', 'S2B_MSI',
-                                                        'S3A_OLCI', 'S3B_OLCI', 'EN1_MERIS']):
+        if (compute_reverse) & (s is not None) & (s in ac.config['reverse_lut_sensors']):
             for par in pars:
                 revl = ac.aerlut.reverse_lut(s, get_remote = get_remote, par=par, pressures = pressures,
                                             base_luts = base_luts, rsky_lut = rsky_lut)

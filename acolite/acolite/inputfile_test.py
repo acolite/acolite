@@ -10,6 +10,7 @@
 ##                2024-04-27 (QV) moved APIs
 ##                2025-01-23 (QV) test if scene exists in download directory, added S2C
 ##                2025-02-05 (QV) add oceandata directdataaccess for MERIS
+##                2025-02-09 (QV) added config download directory
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -33,11 +34,15 @@ def inputfile_test(inputfile):
             if ac.config['verbosity'] > 0: print('Path {} does not exist.'.format(file))
             ## try and download from CDSE or EarthExplorer
             if ac.settings['run']['scene_download']:
-                ddir = ac.settings['run']['scene_download_directory']
-                if ddir is None: ddir = ac.settings['run']['output']
+                if ac.settings['run']['scene_download_directory'] is not None:
+                    ddir = ac.settings['run']['scene_download_directory']
+                elif ac.config['scene_download_directory'] is not None:
+                    ddir = ac.config['scene_download_directory']
+                else:
+                    ddir = ac.settings['run']['output']
                 ## find out data source to use
-                bn = os.path.basename(inputfile)
-                local_file = '{}/{}'.format(ddir, os.path.basename(file))
+                bn = os.path.basename(file)
+                local_file = '{}/{}'.format(ddir, bn)
                 ## test if file exists in download dir
                 if os.path.exists(local_file):
                     file = '{}'.format(local_file)
@@ -52,11 +57,19 @@ def inputfile_test(inputfile):
                         download_source = 'EarthExplorer'
                     elif bn.startswith('EN1_MDSI_MER_'): ## MERIS data from oceandata directdataaccess
                         download_source = 'oceandata'
+                        if not bn.endswith('.ZIP'): bn += '.ZIP'
+                    elif bn.startswith('H2') & ('.L1B_ISS' in bn): ## HICO
+                        download_source = 'oceandata'
+                        if not bn.endswith('.bz2'): bn += '.bz2'
                     else:
                         print('Could not identify download source for scene {}'.format(file))
                         continue
 
+                    ## update local file if bn was updated
+                    local_file = '{}/{}'.format(ddir, bn)
+
                     if ac.config['verbosity'] > 0: print('Attempting download of scene {} from {}.'.format(file, download_source))
+                    if ac.config['verbosity'] > 0: print('Target directory {}'.format(ddir))
                     if ac.config['verbosity'] > 0: print('Querying {}'.format(download_source))
 
                     ## Copernicus Data Space Ecosystem

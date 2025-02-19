@@ -21,7 +21,7 @@ def identify_bundle(bundle, input_type = None, output = None):
 
         ## test if zip/tar file
         bn, ext = os.path.splitext(bundle)
-        if os.path.isfile(bundle) & (ext.lower() in ['.zip', '.tar', '.gz', '.tgz']):
+        if os.path.isfile(bundle) & (ext.lower() in ['.zip', '.tar', '.gz', '.tgz', '.bz2']):
             targ_bundle, extracted_path = ac.shared.extract_bundle(bundle, output=output, verbosity=2)
             if targ_bundle is not None:
                 print(targ_bundle)
@@ -95,6 +95,11 @@ def identify_bundle(bundle, input_type = None, output = None):
             elif 'MERIS Level 1b Product' in gatts['title']:
                 input_type = 'Sentinel-3'
                 break ## exit loop
+            elif 'S3 SLSTR L1' in gatts['title']:
+                input_type = 'SLSTR'
+                input_type = 'Sentinel-3'
+
+                break ## exit loop
             else:
                 print(gatts['title'])
         except:
@@ -165,7 +170,8 @@ def identify_bundle(bundle, input_type = None, output = None):
                             break
                 metafile = metafiles[idx]
                 meta = ac.worldview.metadata_parse(metafile)
-                if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2', 'GeoEye1']:
+                if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2', 'GeoEye1',\
+                                         'LG01', 'LG02', 'LG03', 'LG04', 'LG05', 'LG06', ]:
                     input_type = 'WorldView'
                     break ## exit loop
         except:
@@ -371,6 +377,24 @@ def identify_bundle(bundle, input_type = None, output = None):
             pass ## continue to next sensor
         ## end IKONOS2
         ################
+
+
+        ################
+        ## DEIMOS2
+        try:
+            files_dict = ac.deimos.bundle_test(bundle)
+            if 'MS' in files_dict:
+                metadata = ac.deimos.metadata(files_dict['MS']['metadata'])
+            elif 'PAN' in images:
+                metadata = ac.deimos.metadata(files_dict['PAN']['metadata'])
+            if metadata['MISSION'] == 'Deimos 2':
+                    input_type = 'DEIMOS'
+                    break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end DEIMOS2
+        ################
+
 
         ################
         ## ECOSTRESS

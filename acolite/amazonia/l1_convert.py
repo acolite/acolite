@@ -11,6 +11,7 @@
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-02 (QV) removed percentiles
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, zipfile, shutil
@@ -76,30 +77,17 @@ def l1_convert(inputfile, output = None, settings = None):
             for k in setd:
                 if k not in ac.settings['user']: setu[k] = setd[k]
             ## end set sensor specific defaults
-            
+
             verbosity = setu['verbosity']
-
-            ## get other settings
-            limit = setu['limit']
-            output_geolocation = setu['output_geolocation']
-            output_geometry = setu['output_geometry']
-            output_xy = setu['output_xy']
-            netcdf_projection = setu['netcdf_projection']
-
-            vname = setu['region_name']
-            gains = setu['gains']
-            gains_toa = setu['gains_toa']
             if output is None: output = setu['output']
+            if output is None: output = os.path.dirname(bundle)
 
-            merge_tiles = setu['merge_tiles']
             extend_region = setu['extend_region']
-
             ## check if merging settings make sense
-            if (limit is None) & (merge_tiles):
+            if (setu['limit'] is None) & (setu['merge_tiles']):
                 if verbosity > 0: print("Merging tiles not supported without ROI limit")
-                merge_tiles = False
-            if merge_tiles:
-                extend_region = True
+                setu['merge_tiles'] = False
+            if setu['merge_tiles']: extend_region = True
 
         sub = None
 
@@ -116,9 +104,9 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## gains
         gains_dict = None
-        if (gains) & (gains_toa is not None):
-            if len(gains_toa) == len(rsr_bands):
-                gains_dict = {b: float(gains_toa[ib]) for ib, b in enumerate(rsr_bands)}
+        if (setu['gains']) & (setu['gains_toa'] is not None):
+            if len(setu['gains_toa']) == len(rsr_bands):
+                gains_dict = {b: float(setu['gains_toa'][ib]) for ib, b in enumerate(rsr_bands)}
 
         saa = []
         for band in bands:
@@ -160,16 +148,16 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['raa'] = raa_ave
 
         stime = dateutil.parser.parse(gatts['isodate'])
-        oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if merge_tiles else '')
-        if vname != '': oname+='_{}'.format(vname)
+        oname = '{}_{}{}'.format(gatts['satellite_sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'), '_merged' if setu['merge_tiles'] else '')
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
 
         ## output file information
-        if (merge_tiles is False) | (ofile is None):
-            ofile = '{}/{}_L1R.nc'.format(output, oname)
+        if (setu['merge_tiles'] is False) | (ofile is None):
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
-        elif (merge_tiles) & (ofile is None):
-            ofile = '{}/{}_L1R.nc'.format(output, oname)
+        elif (setu['merge_tiles']) & (ofile is None):
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
             gatts['oname'] = oname
             gatts['ofile'] = ofile
 
@@ -188,8 +176,8 @@ def l1_convert(inputfile, output = None, settings = None):
         if 'zone' in dct: gatts['scene_zone'] = dct['zone']
 
         ## check crop
-        if (sub is None) & (limit is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit, four_corners=True)
+        if (sub is None) & (setu['limit'] is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 continue
@@ -207,7 +195,7 @@ def l1_convert(inputfile, output = None, settings = None):
             dct_prj = {k:dct[k] for k in dct}
         else:
             gatts['sub'] = sub
-            gatts['limit'] = limit
+            gatts['limit'] = setu['limit']
             ## get the target NetCDF dimensions and dataset offset
             if (warp_to is None):
                 if (extend_region): ## include part of the roi not covered by the scene
@@ -217,7 +205,7 @@ def l1_convert(inputfile, output = None, settings = None):
         ## end cropped
 
         ## get projection info for netcdf
-        if netcdf_projection:
+        if setu['netcdf_projection']:
             nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=True)
         else:
             nc_projection = None
@@ -260,7 +248,7 @@ def l1_convert(inputfile, output = None, settings = None):
             datasets = []
 
         ## write lat/lon
-        if (output_geolocation):
+        if (setu['output_geolocation']):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=True)
@@ -272,7 +260,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 if verbosity > 1: print('Wrote lat')
 
         ## write x/y
-        if (output_xy):
+        if (setu['output_xy']):
             if ('x' not in datasets) or ('y' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
                 x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=True)
@@ -330,7 +318,7 @@ def l1_convert(inputfile, output = None, settings = None):
             b_vaa.append(ds_att['Azimuth'])
             b_vza.append(ds_att['Zenith'])
 
-            if gains & (gains_dict is not None):
+            if setu['gains'] & (gains_dict is not None):
                 ds_att['toa_gain'] = gains_dict[b]
                 data *= ds_att['toa_gain']
                 if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
@@ -354,7 +342,7 @@ def l1_convert(inputfile, output = None, settings = None):
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
             print('Created {}'.format(ofile))
 
-        if limit is not None: sub = None
+        if setu['limit'] is not None: sub = None
         if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)

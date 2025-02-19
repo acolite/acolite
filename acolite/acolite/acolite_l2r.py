@@ -20,6 +20,8 @@
 ##                2025-01-31 (QV) check if lat/lon are present for dem
 ##                2025-02-03 (QV) use downward gas transmittance for output_ed
 ##                2025-02-04 (QV) updated settings parsing
+##                2025-02-10 (QV) added optimisation option
+##                2025-02-11 (QV) switch to settings.merge
 
 def acolite_l2r(gem,
                 output = None,
@@ -46,20 +48,8 @@ def acolite_l2r(gem,
         gem = ac.gem.gem(gem)
     gemf = gem.file
 
-    ## combine default and user defined settings
-    ## get run settings
-    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
-    ## get sensor specific defaults
-    setd = ac.acolite.settings.parse(gem.gatts['sensor'])
-    ## set sensor default if user has not specified the setting
-    for k in setd:
-        if k not in ac.settings['user']: setu[k] = setd[k]
-    ## end set sensor specific defaults
-    ## additional run settings
-    if settings is not None:
-        settings = ac.acolite.settings.parse(settings)
-        for k in settings: setu[k] = settings[k]
-    ## end additional run settings
+    ## get run/user/sensor settings
+    setu = ac.acolite.settings.merge(sensor = gem.gatts['sensor'], settings = settings)
 
     if 'verbosity' in setu: verbosity = setu['verbosity']
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
@@ -90,6 +80,19 @@ def acolite_l2r(gem,
             return()
 
     if verbosity > 0: print('Running acolite for {}'.format(gemf))
+
+    ## optimised aot
+    if setu['dsf_aot_estimate'] == 'optimise':
+        ret = ac.ac.optimise_aot_homogeneous(gem, settings = setu)
+        if ret is None:
+            print('Error in aot optimisation.')
+            return
+        else:
+            opt_lut, opt_aot = ret
+        print('Setting dsf_fixed_aot={:.5f} and dsf_fixed_lut={} to optimisation results'.format(opt_aot, opt_lut))
+        setu['dsf_fixed_aot'] = opt_aot
+        setu['dsf_fixed_lut'] = opt_lut
+    ## end optimised aot
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
 

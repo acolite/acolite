@@ -5,6 +5,9 @@
 ## settings you want to change from the ones in this defaults file.
 ##
 
+## for subsetting using tpg seems to give poor results
+use_tpg=False
+
 ## apply TOA gains
 gains=True
 ## unity gains

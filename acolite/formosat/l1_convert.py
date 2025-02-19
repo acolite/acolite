@@ -5,6 +5,7 @@
 ## modifications: 2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -47,15 +48,8 @@ def l1_convert(inputfile, output = None, settings = None):
         ## end set sensor specific defaults
 
         verbosity = setu['verbosity']
-        ## get other settings
-        limit = setu['limit']
-        output_lt = setu['output_lt']
-        reproject_to_utm = setu['gf_reproject_to_utm']
-        clear_scratch = setu['clear_scratch']
-        vname = setu['region_name']
-        gains = setu['gains']
-        gains_toa = setu['gains_toa']
         if output is None: output = setu['output']
+        if output is None: output = os.path.dirname(bundle)
 
         ## get F0 for radiance -> reflectance computation
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
@@ -85,8 +79,7 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['isodate'] = isodate
         gatts['se_distance'] = se_distance
         gatts['doy'] = doy
-
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'))
+        gatts['acolite_file_type'] = 'L1R'
 
         ##
         sensor = gatts['sensor']
@@ -108,20 +101,16 @@ def l1_convert(inputfile, output = None, settings = None):
             bands[b]['index'] = band_indices[b]
 
         ## image crop
-        if limit is None: sub = None
-
-        ## output file
-        if output is None:
-            odir = os.path.dirname(bundle)
-        else:
-            odir = '{}'.format(output)
-        if not os.path.exists(odir): os.makedirs(odir)
+        if setu['limit'] is None: sub = None
 
         ## run through tiles
         for ti, image_file in enumerate(tiles):
-            gatts['obase'] = obase
-            ofile = '{}/{}.nc'.format(odir, gatts['obase'])
+            oname  = '{}_{}'.format(gatts['sensor'],  dtime.strftime('%Y_%m_%d_%H_%M_%S'))
+            if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+            ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+            gatts['oname'] = oname
             gatts['ofile'] = ofile
+
             gemo = ac.gem.gem(ofile, new = True)
             gemo.gatts = {k: gatts[k] for k in gatts}
 
@@ -153,7 +142,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 if b == 'PAN': continue
                 gain = meta['{}_PHYSICAL_GAIN'.format(b)]
                 bias = meta['{}_PHYSICAL_BIAS'.format(b)]
-                print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['obase']))
+                print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['oname']))
                 print(b, bi, gain, bias)
 
                 ## read data
@@ -164,7 +153,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 cdata_radiance = cdata_radiance.astype(np.float32) * gain
                 cdata_radiance += bias
 
-                if output_lt:
+                if setu['output_lt']:
                     ## write toa radiance
                     gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = bands[b])
 

@@ -7,6 +7,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use, output naming
 
 def l1_convert(inputfile, output=None, settings = None):
     import os, h5py, json
@@ -33,16 +34,12 @@ def l1_convert(inputfile, output=None, settings = None):
     ## end set sensor specific defaults
 
     verbosity = setu['verbosity']
+    if output is None: output = setu['output']
 
     ## read rsr
     rsrd = ac.shared.rsr_dict(sensor, wave_range=[7,14], wave_step=0.05)[sensor]
 
-    ## parse input
-    if output is None: output = setu['output']
-
-    limit, sub = None, None
-    if 'limit' in setu: limit = setu['limit']
-
+    sub = None
     ## parse inputfile
     if type(inputfile) != list:
         if type(inputfile) == str:
@@ -54,14 +51,10 @@ def l1_convert(inputfile, output=None, settings = None):
 
     ofiles = []
     for bundle in inputfile:
+        if output is None: output = os.path.dirname(bundle)
+
         dn = os.path.dirname(bundle)
         bn, ext = os.path.splitext(os.path.basename(bundle))
-
-        if output is None:
-            odir = '{}'.format(dn)
-        else:
-            odir = output
-
         ## read metadata
         meta = ac.ecostress.attributes(bundle)
 
@@ -82,6 +75,7 @@ def l1_convert(inputfile, output=None, settings = None):
 
         ## set up global attributes
         gatts = {'sensor': sensor, 'isodate': isodate,
+                 'acolite_file_type': 'L1R',
                  'thermal_sensor': sensor, 'thermal_bands': ['1', '2', '3', '4', '5']}
         for bk in coeffs['thermal_coefficients']:
             for k in coeffs['thermal_coefficients'][bk]:
@@ -89,6 +83,10 @@ def l1_convert(inputfile, output=None, settings = None):
 
         ## output file name
         oname = '{}_{}'.format(gatts['sensor'], dt.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         f = h5py.File(bundle, mode='r')
 
@@ -122,20 +120,19 @@ def l1_convert(inputfile, output=None, settings = None):
                    }
 
         ## find crop
-        if limit is not None:
+        if setu['limit'] is not None:
             lat = fg[geo_key]['latitude'][()]
             lon = fg[geo_key]['longitude'][()]
 
-            sub = ac.shared.geolocation_sub(lat, lon, limit)
+            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
             lat = None
             lon = None
             if sub is None:
-                print('Image {} does not cover {}'.format(bundle, limit))
+                print('Image {} does not cover {}'.format(bundle, setu['limit']))
                 continue
 
         ## output file
-        ncfo = '{}/{}_L1R.nc'.format(odir, oname)
-        gemo = ac.gem.gem(ncfo, new = True)
+        gemo = ac.gem.gem(ofile, new = True)
         gemo.gatts = gatts
 
         for ds in datasets:
@@ -145,7 +142,7 @@ def l1_convert(inputfile, output=None, settings = None):
                 data = fg[geo_key][ds][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
             if len(np.where(np.isfinite(data))[0]) == 0:
-                print('Limit {} in blackfill of {}'.format(limit, bundle))
+                print('Limit {} in blackfill of {}'.format(setu['limit'], bundle))
                 continue
 
             ds_att = {'name': ds}
@@ -201,8 +198,8 @@ def l1_convert(inputfile, output=None, settings = None):
             gemo.write('bt{}'.format(b), bt, ds_att = ds_att)
             bt = None
         f, fg = None, None
-        if limit is not None: sub = None
-        if ncfo not in ofiles: ofiles.append(ncfo)
+        if setu['limit'] is not None: sub = None
+        if ofile not in ofiles: ofiles.append(ofile)
         gemo.close()
 
     return(ofiles, setu)

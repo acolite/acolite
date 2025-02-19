@@ -1,0 +1,32 @@
+## ACOLITE default settings for WV_LG02
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=400,900
+
+## gains
+gains=False
+gains_parameter=radiance
+
+## band order COASTAL,BLUE,GREEN,YELLOW,RED,REDEDGE1,REDEDGE2,NIR
+## unity gains
+gains_toa=1,1,1,1,1,1,1,1
+offsets_toa=0,0,0,0,0,0,0,0
+
+l2w_mask_wave=800
+l2w_mask_threshold=0.1
+dsf_intercept_pixels=1000
+dsf_tile_dimensions=2000,2000
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+dsf_residual_glint_correction=False
+dsf_residual_glint_correction_method=alternative
+dsf_residual_glint_wave_range=800,900
+glint_mask_rhos_wave=800
+glint_mask_rhos_threshold=0.1

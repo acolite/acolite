@@ -9,6 +9,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-02-10 (QV) cleaned up settings use
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -35,11 +36,7 @@ def l1_convert(inputfile, output = None, settings = None):
     ## end set sensor specific defaults
 
     verbosity = setu['verbosity']
-
-    vname = setu['region_name']
-    output_lt = setu['output_lt']
     if output is None: output = setu['output']
-    limit = setu['limit']
 
     ## parse inputfile
     if type(inputfile) != list:
@@ -79,8 +76,8 @@ def l1_convert(inputfile, output = None, settings = None):
             dct = None
 
         ## find crop
-        if (limit is not None) and (dct is not None):
-            dct_sub = ac.shared.projection_sub(dct, limit)
+        if (setu['limit'] is not None) and (dct is not None):
+            dct_sub = ac.shared.projection_sub(dct, setu['limit'])
             if dct_sub['out_lon']:
                 if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                 continue
@@ -123,8 +120,13 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['sensor'] = '{}_{}'.format(metadata['mission'], metadata['sensor']).upper()
         gatts['doy'] = doy
         gatts['se_distance'] = se_distance
-        obase  = '{}_{}_L1R'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
-        gatts['obase'] = obase
+
+        ## set up oname (without directory or file type) and ofile (with directory and file type)
+        oname  = '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
+        if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
+        ofile = '{}/{}_{}.nc'.format(output, oname,  gatts['acolite_file_type'])
+        gatts['oname'] = oname
+        gatts['ofile'] = ofile
 
         ## compute viewing angles
         ## 2024-02-22 QV
@@ -179,13 +181,6 @@ def l1_convert(inputfile, output = None, settings = None):
                        'width': gatts['band_widths'][bi],
                        'rsr': rsr[b],'f0': f0d[b]}
 
-        if output is None:
-            odir = os.path.dirname(imagefile)
-        else:
-            odir = output
-        if not os.path.exists(odir): os.makedirs(odir)
-        ofile = '{}/{}.nc'.format(odir, obase)
-
         ## set up output file
         gemo = ac.gem.gem(ofile, new = True)
         gemo.gatts = {k: gatts[k] for k in gatts}
@@ -218,7 +213,7 @@ def l1_convert(inputfile, output = None, settings = None):
         ## write TOA data
         for bi, b in enumerate(bands):
             bname = '{}'.format(bi+1)
-            print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['obase']))
+            print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['oname']))
             ds_att = {k: bands[b][k] for k in bands[b] if k not in ['rsr']}
 
             ## read data
@@ -241,7 +236,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
             if (setu['polygon_clip']): cdata_radiance[clip_mask] = np.nan
 
-            if output_lt:
+            if setu['output_lt']:
                 ## write toa radiance
                 gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
 
