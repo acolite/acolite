@@ -14,6 +14,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                                removed some keywords
 ##                2024-04-16 (QV) use gem NetCDF handling
+##                2025-02-19 (QV) use settings.merge
 
 def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True):
     import acolite as ac
@@ -22,8 +23,7 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
     from osgeo import osr, gdal
 
     ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(None, settings = settings)
-    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
+    setu = ac.acolite.settings.merge(sensor = None, settings = settings)
 
     ## get settings from ac.settings
     match_file = setu['export_geotiff_match_file']
