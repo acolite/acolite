@@ -9,6 +9,7 @@
 ##                2022-02-24 (QV) added GeoEye1
 ##                2022-02-27 (QV) change band_index according to band tags present in metadata
 ##                2025-02-14 (QV) added Legion
+##                2025-03-01 (QV) added PGC and PGC stretch identification
 
 def metadata_parse(metafile):
     import os, sys, fnmatch, dateutil.parser
@@ -25,6 +26,15 @@ def metadata_parse(metafile):
         sys.exit()
 
     metadata = {}
+
+    ## check if PGC image
+    metadata['PGC'] = False
+    node = xmldoc.getElementsByTagName('PGC_IMD')
+    if len(node) > 0:
+        metadata['PGC'] = True
+        node = xmldoc.getElementsByTagName('STRETCH')
+        metadata['PGC_STRETCH'] = node[0].firstChild.nodeValue
+
     ## get image information
     metadata_tags = ['SATID', 'FIRSTLINETIME', 'NUMROWS','NUMCOLUMNS','PRODUCTLEVEL'
                     "MININTRACKVIEWANGLE", "MAXINTRACKVIEWANGLE", "MEANINTRACKVIEWANGLE",

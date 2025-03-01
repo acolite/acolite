@@ -160,20 +160,12 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
         ## WorldView
         try:
-            metafiles = glob.glob('{}/{}'.format(bundle,'*.XML'))
-            metafiles.sort()
-            if len(metafiles)>0:
-                idx = 0
-                if len(metafiles) >= 1:
-                    for idx, mf in enumerate(metafiles):
-                        if ('.aux.' not in mf) & ('README' not in mf) & ('(1)' not in mf):
-                            break
-                metafile = metafiles[idx]
-                meta = ac.worldview.metadata_parse(metafile)
-                if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2', 'GeoEye1',\
-                                         'LG01', 'LG02', 'LG03', 'LG04', 'LG05', 'LG06', ]:
-                    input_type = 'WorldView'
-                    break ## exit loop
+            metafile = ac.worldview.bundle_test(bundle)
+            meta = ac.worldview.metadata_parse(metafile)
+            if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2', 'GeoEye1',\
+                                     'LG01', 'LG02', 'LG03', 'LG04', 'LG05', 'LG06', ]:
+                input_type = 'WorldView'
+                break ## exit loop
         except:
             pass ## continue to next sensor
         ## end WorldView
