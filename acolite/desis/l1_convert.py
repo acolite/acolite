@@ -13,6 +13,7 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2025-03-03 (QV) added hyper_read_cube as setting
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -195,8 +196,7 @@ def l1_convert(inputfile, output = None, settings = None):
             new = False
 
         ## read data cube (faster)
-        read_cube = True
-        if read_cube:
+        if setu['hyper_read_cube']:
             print('Reading DESIS image cube')
             cube = ac.shared.read_band(imagefile, sub = sub, warp_to = warp_to).astype(np.float32)
             cube[cube == header['data ignore value']] = np.nan
@@ -213,7 +213,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ds_att = {k: bands[b][k] for k in bands[b] if k not in ['rsr']}
 
             ## read data
-            if read_cube:
+            if setu['hyper_read_cube']:
                 cdata_radiance = 1.0 * cube[bi, :, :]
             else:
                 cdata_radiance = ac.shared.read_band(imagefile, bi+1, sub=sub, warp_to = warp_to).astype(np.float32)

@@ -118,6 +118,9 @@ chris_noise_reduction=True
 ## DESIS
 desis_mask_ql=True
 
+## some hyperspectral sensors
+hyper_read_cube=True
+
 ## GF settings
 clear_scratch=True
 gf_reproject_to_utm=False
