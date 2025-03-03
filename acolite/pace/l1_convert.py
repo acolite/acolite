@@ -13,6 +13,7 @@
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
 ##                2025-02-13 (QV) added tile merging, flip data
+##                2025-03-03 (QV) added support for gains
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -166,6 +167,10 @@ def l1_convert(inputfile, output = None, settings = None):
             ## read SWIR RSR
             rsrd_swir = ac.shared.rsr_dict('PACE_OCI_SWIR')
 
+            ## track gain
+            band_gains = []
+            gain_index = 0
+
             ## read band data
             band_waves = []
             band_widths = []
@@ -192,6 +197,13 @@ def l1_convert(inputfile, output = None, settings = None):
                     if not np.isfinite(wave): continue
 
                     att = {'f0': f0_det[wi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave), 'width': bp_det[wi]}
+
+                    ## track gains
+                    if setu['gains']:
+                        att['gain'] = setu['gains_toa'][gain_index]
+                        band_gains.append(att['gain'])
+                        gain_index +=1
+                        #print(wave, gain_index, att['gain'])
 
                     ## SWIR instrument gain and update band name
                     ## presumed same order as PACE_OCI_L1B_LUT_RSR_baseline_1.1.1.nc
@@ -232,6 +244,7 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['band_waves'] = band_waves
             gatts['band_widths'] = band_widths
             gatts['band_irradiance'] = band_irradiance
+            if setu['gains']: gatts['band_gains'] = band_gains
 
             ## compute relative azimuth
             if (not setu['merge_tiles']) | (bi == len(inputfile)-1):
@@ -287,7 +300,12 @@ def l1_convert(inputfile, output = None, settings = None):
         ## write data if not merging, or if last image in merging
         if (not setu['merge_tiles']) | (bi == len(inputfile)-1):
             write_ds = list(gemo.data_mem.keys())
-            for ds in write_ds: gemo.write_ds(ds, clear = True)
+            for ds in write_ds:
+                if 'rhot_' in ds:
+                    if 'gain' in gemo.data_att[ds]:
+                        gemo.data_mem[ds_name] *= gemo.data_att[ds]['gain']
+                        print('Applied gain {} to {}'.format(gemo.data_att[ds]['gain'], ds))
+                gemo.write_ds(ds, clear = True)
             ## update attributes
             gemo.gatts = {k: gatts[k] for k in gatts}
             gemo.gatts_update()
