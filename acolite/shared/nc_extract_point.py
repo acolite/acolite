@@ -6,6 +6,7 @@
 ##                2024-03-25 (QV) optional external mask, added output of image subset position
 ##                2024-04-25 (QV) use gem for file reading
 ##                2024-06-05 (QV) added lat and lon parameter names as keyword
+##                2025-03-03 (QV) check for finite lat/lon
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
@@ -76,6 +77,11 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     ## read lat lon
     lon = gem.data(lon_par) # ac.shared.nc_data(ncf, 'lon')
     lat = gem.data(lat_par) # ac.shared.nc_data(ncf, 'lat')
+
+    if not (any(np.isfinite(lon)) & any(np.isfinite(lat).data)):
+        print('No finite lat/lon in scene {}'.format(ncf))
+        gem.close()
+        return
 
     ## is requested point in this scene?
     latrange = np.nanpercentile(lat, (0,100))
