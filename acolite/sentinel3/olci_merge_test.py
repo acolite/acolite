@@ -7,6 +7,7 @@
 ## 2025-02-07
 ## modifications: 2025-02-13 (QV) scene offsets allow different number of lines between scenes
 ##                                changed bundle sorting
+##                2025-03-03 (QV) check if scene is covered by limit
 
 def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1, max_orbit_diff = 1):
     import acolite as ac
@@ -123,9 +124,13 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
         ## get the subset, and target in the new array for each scene
         crop_in = []
         crop_out = []
+        sort_bundles_out = []
         for bi, bundle in enumerate(bundles):
             ## index range in input bundle
             si = np.where(scene_index_merged == bi)
+            if len(si[0]) == 0: continue ## if bundle does not cover limit
+            sort_bundles_out.append(sort_bundles[bi])
+
             cropi = si[1][0], si[1][-1]+1, si[0][0]-scene_offsets[bi], si[0][-1]-scene_offsets[bi]+1 ## for nc_data
             crop_in.append(cropi)
 
@@ -139,7 +144,7 @@ def olci_merge_test(bundles, limit = None, use_tpg = True, max_time_diff_sec = 1
 
         lat_merged = None
         lon_merged = None
-        return(sub, data_shape_merged, sort_bundles, crop_in, crop_out)
+        return(sub, data_shape_merged, sort_bundles_out, crop_in, crop_out)
 
     else:
         return
