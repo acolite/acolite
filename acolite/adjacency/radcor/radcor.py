@@ -455,6 +455,9 @@ def radcor(ncf, settings = None):
         elif sensor in ['WorldView2', 'WorldView3']:
             resolution = 2
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
+        elif sensor in ['WV_LG01', 'WV_LG01']:
+            resolution = 1.36
+            print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         else:
             print('RAdCor processing not implemented for {}'.format(sensor))
             print('Not running RAdCor on scene {}'.format(ncf))
