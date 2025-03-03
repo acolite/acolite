@@ -78,7 +78,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     lon = gem.data(lon_par) # ac.shared.nc_data(ncf, 'lon')
     lat = gem.data(lat_par) # ac.shared.nc_data(ncf, 'lat')
 
-    if not (any(np.isfinite(lon)) & any(np.isfinite(lat).data)):
+    if not (np.isfinite(lon).any() & np.isfinite(lat).any()):
         print('No finite lat/lon in scene {}'.format(ncf))
         gem.close()
         return
