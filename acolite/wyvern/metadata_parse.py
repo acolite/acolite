@@ -8,7 +8,7 @@ def metadata_parse(metafile):
     import json
     import acolite as ac
     import numpy as np
-    
+
     ## read meta file
     with open(metafile, 'r', encoding='utf-8') as f:
         meta = json.load(f)
@@ -18,7 +18,7 @@ def metadata_parse(metafile):
     gatts['isodate'] = meta['properties']['datetime']
     gatts['resolution'] = meta['properties']['gsd']
 
-    gatts['sza'] = meta['properties']['view:sun_elevation']
+    gatts['sza'] = 90 - meta['properties']['view:sun_elevation']
     gatts['saa'] = meta['properties']['view:sun_azimuth']
     gatts['vza'] = meta['properties']['view:incidence_angle']
     gatts['vaa'] = meta['properties']['view:azimuth']
