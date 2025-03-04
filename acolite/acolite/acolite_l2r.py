@@ -22,6 +22,7 @@
 ##                2025-02-04 (QV) updated settings parsing
 ##                2025-02-10 (QV) added optimisation option
 ##                2025-02-11 (QV) switch to settings.merge
+##                2025-03-04 (QV) update to hyperspectral RSR
 
 def acolite_l2r(gem,
                 output = None,
@@ -105,10 +106,15 @@ def acolite_l2r(gem,
     sensor_version = None
     sensor_lut = None
 
-    ## hyperspectral
-    if gem.gatts['sensor'] in ac.config['hyper_sensors']:
-        hyper = True
-        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'], step=0.1)
+    ## determine if sensor in hyperspectral sensors
+    ## this determines whether the generic LUT is loaded or a sensor specific one
+    if gem.gatts['sensor'] in ac.config['hyper_sensors']: hyper = True
+
+    ## create or load RSR
+    if (hyper) & ('band_waves' in gem.gatts) & ('band_widths' in gem.gatts):
+        ## make hyperspectral RSR
+        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'],
+                                  gem.gatts['band_widths'], step=0.1)
         ## update PACE OCI response with known RSR
         if gem.gatts['sensor'] == 'PACE_OCI':
             ## SWIR
