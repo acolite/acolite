@@ -7,7 +7,8 @@
 def metadata_parse(metafile):
     import json
     import acolite as ac
-
+    import numpy as np
+    
     ## read meta file
     with open(metafile, 'r', encoding='utf-8') as f:
         meta = json.load(f)
