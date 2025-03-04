@@ -259,6 +259,13 @@ def acolite_l1r(bundle, input_type=None):
     ## end HYPSO
     ################
 
+    ################
+    ## Wyvern
+    if input_type == 'Wyvern':
+        l1r_files, setu = ac.wyvern.l1_convert(bundle)
+    ## end Wyvern
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:

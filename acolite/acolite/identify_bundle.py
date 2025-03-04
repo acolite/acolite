@@ -478,6 +478,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## Wyvern
+        try:
+            file, jf = ac.wyvern.bundle_test(bundle)
+            meta, gatts = ac.wyvern.metadata_parse(jf)
+            if gatts['sensor'].startswith('Wyvern'):
+                input_type = 'Wyvern'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Wyvern
+        ################
+
+        ################
         ## Haiyang
         try:
             ret = ac.haiyang.bundle_test(bundle)
