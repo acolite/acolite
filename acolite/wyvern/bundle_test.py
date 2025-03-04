@@ -16,7 +16,7 @@ def bundle_test(bundle):
     file = bundle[0:-5] + '.tiff'
 
     ## download json file
-    if not os.path.exists(jf):
+    if (not os.path.exists(jf)) & False:
         base_url = 'https://wyvern-prod-public-open-data-program.s3.ca-central-1.amazonaws.com/product-type'
         if 'dragonette-001' in bn:
             product_type = 'standard'
