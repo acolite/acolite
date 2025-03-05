@@ -72,7 +72,7 @@ def l1_convert(inputfile, output = None, settings = None):
         ## merge sensor specific settings
         if new:
             ## get sensor specific defaults
-            setd = ac.acolite.settings.parse(sensor)
+            setd = ac.acolite.settings.parse(meta['sensor'])
             ## set sensor default if user has not specified the setting
             for k in setd:
                 if k not in ac.settings['user']: setu[k] = setd[k]
@@ -312,7 +312,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
             ## get angles from tiff metadata
             for k in ['Elevation', 'Azimuth', 'Gain', 'Integration Time']:
-                match = re.search('{} (\d+(?:\.\d+)?)'.format(k), md['TIFFTAG_IMAGEDESCRIPTION'])
+                match = re.search(r'{} (\d+(?:\.\d+)?)'.format(k), md['TIFFTAG_IMAGEDESCRIPTION'])
                 if match: ds_att[k] = float(match.group(1))
             ds_att['Zenith'] = 90 - ds_att['Elevation']
             b_vaa.append(ds_att['Azimuth'])
