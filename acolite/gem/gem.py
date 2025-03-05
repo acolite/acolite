@@ -14,6 +14,7 @@
 ##                2024-05-21 (QV) added write_ds
 ##                2024-05-22 (QV) added use_stored to data, added file = None option
 ##                2025-01-23 (QV) fix for wrong dataset attributes
+##                2025-03-05 (QV) increased verbosity for opening/appending datasets
 
 import acolite as ac
 import os, sys, json
@@ -68,12 +69,12 @@ class gem(object):
 
             ## close file if open in wrong mode
             if (self.nc is not None) & (self.nc_mode != mode):
-                if self.verbosity > 5: print('File {} already open in mode {}'.format(self.file, self.nc_mode))
+                if self.verbosity > 7: print('File {} already open in mode {}'.format(self.file, self.nc_mode))
                 self.close()
 
             ## open in requested mode
             if (self.nc is None):
-                if self.verbosity > 5: print('Opening {} in mode {}'.format(self.file, mode))
+                if self.verbosity > 6: print('Opening {} in mode {}'.format(self.file, mode))
                 self.nc = Dataset(self.file, mode)
                 self.nc_mode = mode
 
@@ -83,7 +84,7 @@ class gem(object):
                 self.nc.close()
                 self.nc = None
                 self.nc_mode = None
-                if self.verbosity > 5: print('Closed {}'.format(self.file))
+                if self.verbosity > 6: print('Closed {}'.format(self.file))
 
         ## read attributes
         def gatts_read(self):
