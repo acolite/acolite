@@ -2,7 +2,7 @@
 ## finds xml file in WV bundle
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-03-01
-## modifications:
+## modifications: 2025-03-05 (QV) commented printout
 
 def bundle_test(bundle):
     import glob, os
@@ -29,5 +29,5 @@ def bundle_test(bundle):
         metafile = metafiles[idx]
         return(metafile)
     else:
-        print('No metadata found for {}'.format(bundle))
+        #print('No metadata found for {}'.format(bundle))
         return
