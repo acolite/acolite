@@ -3,6 +3,8 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-03-04
 ## modifications: 2025-03-04 (QV) functionised from development code
+##                2025-03-05 (QV) fixed issue with out of scene limit
+##                                added wyvern_use_provided_f0 and wyvern_use_rsr_file
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -42,8 +44,10 @@ def l1_convert(inputfile, output = None, settings = None):
         if output is None: output = setu['output']
         if output is None: output = os.path.dirname(file)
 
-        ## get band info from gdal.Info
-        if False:
+        ## get band info
+        if setu['wyvern_use_rsr_file']: ## get RSR from file
+            rsrd = ac.shared.rsr_dict(sensor = gatts['sensor'])
+        else: ## get band info from gdal.Info
             info = gdal.Info(file).split('\n')
             band_data = {}
             new_band = False
@@ -59,32 +63,31 @@ def l1_convert(inputfile, output = None, settings = None):
                     sp = line.split('=')
                     if len(sp) == 2:
                         band_data[cur_band][sp[0]] = sp[1]
-
             ## add band info
             gatts['band_waves'] = [float(band_data[band]['wavelength']) for band in band_data]
             gatts['band_widths'] = [float(band_data[band]['FWHM']) for band in band_data]
-
             ## make rsr and bands dataset
             rsr = ac.shared.rsr_hyper(gatts['band_waves'], gatts['band_widths'], step=0.1)
             rsrd = ac.shared.rsr_dict(rsrd={gatts['sensor']:{'rsr':rsr}})
-        else:
-            rsrd = ac.shared.rsr_dict(sensor = gatts['sensor'])
-        band_rsr = rsrd[gatts['sensor']]['rsr']
 
         ## read F0
-        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-        f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
+        if setu['wyvern_use_provided_f0']:
+            if setu['verbosity'] > 2: print('Using provided F0')
+            f0d = {'{}'.format(bi+1): b['solar_illumination'] for bi, b in enumerate(meta['assets']['Cloud optimized GeoTiff']['eo:bands'])}
+        else:
+            if setu['verbosity'] > 2: print('Using F0 from solar_irradiance_reference={}'.format(setu['solar_irradiance_reference']))
+            f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+            f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd[gatts['sensor']]['rsr'])
 
         ## make bands dataset
         bands = {}
-        for bi, b in enumerate(band_rsr):
+        for bi, b in enumerate(rsrd[gatts['sensor']]['rsr']):
             cwave = rsrd[gatts['sensor']]['wave_nm'][b]
             swave = '{:.0f}'.format(cwave)
             bands[b]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
                        'wave_name':'{:.0f}'.format(cwave),
-                       'rsr': band_rsr[b],'f0': f0d[b]}
+                       'rsr': rsrd[gatts['sensor']]['rsr'][b],'f0': f0d[b]}
             if 'band_widths' in gatts: bands[b]['width'] = gatts['band_widths'][bi]
-
 
         ## parse date
         time = dateutil.parser.parse(gatts['isodate'])
@@ -109,18 +112,18 @@ def l1_convert(inputfile, output = None, settings = None):
             ## get projection from image
             dct = ac.shared.projection_read(file)
         except:
-            print('Could not determine image projection')
+            if setu['verbosity'] > 1: print('Could not determine image projection')
             dct = None
 
         ## find crop
         if (setu['limit'] is not None) and (dct is not None):
             dct_sub = ac.shared.projection_sub(dct, setu['limit'])
             if dct_sub['out_lon']:
-                if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
-                #continue
+                if setu['verbosity'] > 1: print('Longitude limits outside {}'.format(bundle))
+                continue
             if dct_sub['out_lat']:
-                if verbosity > 1: print('Latitude limits outside {}'.format(bundle))
-                #continue
+                if setu['verbosity'] > 1: print('Latitude limits outside {}'.format(bundle))
+                continue
             sub = dct_sub['sub']
 
         if dct is not None:
@@ -146,7 +149,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## output geolocation
         if dct_prj is not None:
-            print('Computing and writing lat/lon')
+            if setu['verbosity'] > 1: print('Computing and writing lat/lon')
             ## offset half pixels to compute center pixel lat/lon
             dct_prj['xrange'] = dct_prj['xrange'][0]+dct_prj['pixel_size'][0]/2, dct_prj['xrange'][1]-dct_prj['pixel_size'][0]/2
             dct_prj['yrange'] = dct_prj['yrange'][0]+dct_prj['pixel_size'][1]/2, dct_prj['yrange'][1]-dct_prj['pixel_size'][1]/2
@@ -160,13 +163,13 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## read data
         if setu['hyper_read_cube']:
-            print('Reading Wyvern image cube')
+            if setu['verbosity'] > 1: print('Reading Wyvern image cube')
             cube = ac.shared.read_band(file, sub = sub, warp_to = warp_to).astype(np.float32)
             print(cube.shape)
 
         ## run through bands
         for bi, b in enumerate(bands):
-            print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['oname']))
+            if setu['verbosity'] > 2: print('Computing rhot_{} for {}'.format(bands[b]['wave_name'], gatts['oname']))
             ds_att = {k: bands[b][k] for k in bands[b] if k not in ['rsr']}
 
             wave = bands[b]['wavelength'] # gatts['band_waves'][bi]
@@ -183,7 +186,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 gemo.write('Lt_{}'.format(bands[b]['wave_name']), cdata_radiance, ds_att = ds_att)
 
             ## compute reflectance
-            cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0']* mus)
+            cdata = cdata_radiance * (np.pi * gatts['se_distance'] * gatts['se_distance']) / (bands[b]['f0'] * mus)
             cdata_radiance = None
             gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
             cdata = None

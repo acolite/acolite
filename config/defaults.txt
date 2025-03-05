@@ -147,6 +147,10 @@ viirs_mask_immixed_maxdif=0.002
 ## SEVIRI settings
 seviri_hrv=False
 
+## Wyvern settings
+wyvern_use_provided_f0=True
+wyvern_use_rsr_file=True
+
 ## TACT settings
 tact_run=False
 tact_profile_source=era5
