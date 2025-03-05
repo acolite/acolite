@@ -23,6 +23,7 @@
 ##                2025-02-10 (QV) added optimisation option
 ##                2025-02-11 (QV) switch to settings.merge
 ##                2025-03-04 (QV) update to hyperspectral RSR
+##                2025-03-05 (QV) added optional printouts for bands skipped in DSF
 
 def acolite_l2r(gem,
                 output = None,
@@ -605,18 +606,33 @@ def acolite_l2r(gem,
             aot_dict = {}
             dsf_rhod = {}
             for bi, b in enumerate(gem.bands):
-                if (b in setu['dsf_exclude_bands']): continue
-                if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]): continue
-                if gem.bands[b]['rhot_ds'] not in gem.datasets: continue
-
-                ## skip band for aot computation
-                if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']: continue
-
+                ## test if band can or should be used in DSF
+                ## skip band if listed in dsf_exlude_bands
+                if (str(b) in setu['dsf_exclude_bands']):
+                    if setu['verbosity'] > 5: print('Skipping band {} ({}) as it is in dsf_exclude_bands: {}'.format(b, gem.bands[b]['rhot_ds'], setu['dsf_exclude_bands']))
+                    continue
                 ## skip bands according to configuration
-                if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]): continue
-                if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]): continue
+                if (gem.bands[b]['wave_nm'] < setu['dsf_wave_range'][0]):
+                    if setu['verbosity'] > 5: print('Skipping band {} ({}) as wavelength < dsf_wave_range[0]: {:.1f} < {}'.format(b, gem.bands[b]['rhot_ds'], gem.bands[b]['wave_nm'], setu['dsf_wave_range'][0]))
+                    continue
+                if (gem.bands[b]['wave_nm'] > setu['dsf_wave_range'][1]):
+                    if setu['verbosity'] > 5: print('Skipping band {} ({}) as wavelength > dsf_wave_range[1]: {:.1f} > {}'.format(b, gem.bands[b]['rhot_ds'], gem.bands[b]['wave_nm'], setu['dsf_wave_range'][1]))
+                    continue
+                ## skip band for aot computation
+                if gem.bands[b]['tt_gas'] < setu['min_tgas_aot']:
+                    if setu['verbosity'] > 5: print('Skipping band {} ({}) as tt_gas < min_tgas_aot: {:.3f} < {:.3f}'.format(b, gem.bands[b]['rhot_ds'], gem.bands[b]['tt_gas'],setu['min_tgas_aot']))
+                    continue
+                ## skip band if either rhot_ds or tt_gas are missing from attributes
+                if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]):
+                    if setu['verbosity'] > 5: print('Skipping band {} ({}) as rhot_ds or tt_gas is missing from attributes'.format(b, gem.bands[b]['rhot_ds']))
+                    continue
+                ## skip band if rhot data not in datasets
+                if gem.bands[b]['rhot_ds'] not in gem.datasets:
+                    if setu['verbosity'] > 5: print('Skipping band {} ({}) as {} not in datasets: {}'.format(b, gem.bands[b]['rhot_ds'], gem.bands[b]['rhot_ds'], gem.datasets))
+                    continue
+                ## end test if band can or should be used in DSF
 
-                if verbosity > 1: print(b, gem.bands[b]['rhot_ds'])
+                if setu['verbosity'] > 1: print('Running AOT estimation for band {} ({})'.format(b, gem.bands[b]['rhot_ds']))
 
                 band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
                 band_shape = band_data.shape
