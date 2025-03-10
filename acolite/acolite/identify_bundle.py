@@ -469,7 +469,7 @@ def identify_bundle(bundle, input_type = None, output = None):
         try:
             gatts = ac.shared.nc_gatts(bundle)
             datasets = ac.shared.nc_datasets(bundle)
-            if (gatts['instrument'] == 'HYPSO-1 Hyperspectral Imager'):
+            if gatts['instrument'].startswith('HYPSO-'):
                 input_type = 'HYPSO'
                 break ## exit loop
         except:

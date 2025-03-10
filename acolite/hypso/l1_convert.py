@@ -7,6 +7,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2025-03-10 (QV) added HYPSO-2 support
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -23,15 +24,6 @@ def l1_convert(inputfile, output = None, settings = None):
         for k in settings: setu[k] = settings[k]
     ## end additional run settings
 
-    sensor = 'HYPSO1'
-
-    ## get sensor specific defaults
-    setd = ac.acolite.settings.parse(sensor)
-    ## set sensor default if user has not specified the setting
-    for k in setd:
-        if k not in ac.settings['user']: setu[k] = setd[k]
-    ## end set sensor specific defaults
-
     verbosity = setu['verbosity']
     if output is None: output = setu['output']
 
@@ -44,36 +36,57 @@ def l1_convert(inputfile, output = None, settings = None):
     nscenes = len(inputfile)
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    ## get F0 for radiance -> reflectance computation
-    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-
     ofiles = []
     for bundle in inputfile:
         if output is None: output = os.path.dirname(bundle)
 
-        #gatts = ac.shared.nc_gatts(bundle)
+        gatts = ac.shared.nc_gatts(bundle)
+        if gatts['instrument'] == 'HYPSO-1 Hyperspectral Imager':
+            sensor = 'HYPSO1'
+        elif gatts['instrument'] == 'HYPSO-2 Hyperspectral Imager':
+            sensor = 'HYPSO2'
+        else:
+            print('HYPSO processing of sensor {} not configured'.format(gatts['instrument']))
+            continue
+
+        ## get sensor specific defaults
+        setd = ac.acolite.settings.parse(sensor)
+        ## set sensor default if user has not specified the setting
+        for k in setd:
+            if k not in ac.settings['user']: setu[k] = setd[k]
+        ## end set sensor specific defaults
+
+        ## get F0 for radiance -> reflectance computation
+        f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+
         f = h5py.File(bundle, mode='r')
 
         ## get band information
-        attributes = {k: f['/products']['Lt'].attrs[k] for k in f['/products']['Lt'].attrs.keys() if k != 'DIMENSION_LIST'}
-        waves = attributes['wavelengths']
-        fwhm = attributes['fwhm']
+        if 'Lt' in f['/products']:
+            lt_pars = 'Lt'
+            attributes = {k: f['/products']['Lt'].attrs[k] for k in f['/products']['Lt'].attrs.keys() if k != 'DIMENSION_LIST'}
+            waves = attributes['wavelengths']
+            fwhm = attributes['fwhm']
+        else:
+            lt_pars = []
+            waves = []
+            fwhm = []
+            for ds in f['/products']:
+                if ds.startswith('Lt_'):
+                    lt_pars.append(ds)
+                    att = {k: f['/products'][ds].attrs[k] for k in f['/products'][ds].attrs.keys() if k != 'DIMENSION_LIST'}
+                    waves.append(att['wavelength'][0])
+                    fwhm.append(att['fwhm'][0])
 
         rsr = ac.shared.rsr_hyper(waves, fwhm, step=0.1)
         rsrd = ac.shared.rsr_dict(rsrd={sensor:{'rsr':rsr}})
 
         ## create band dataset
         band_names = ['{}'.format(b) for b in range(0, len(waves))]
-        #rsr = {'{}'.format(b): ac.shared.gauss_response(waves[bi], fwhm[bi], step=0.1) \
-        #       for bi, b in enumerate(band_names)}
-        #band_rsr= {b: {'wave': rsr[b][0]/1000, 'response': rsr[b][1]} for b in rsr}
-        #f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], band_rsr)
         f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsr)
         bands = {}
 
         for bi, b in enumerate(band_names):
-            #cwave = waves[bi]
-            #swave = '{:.0f}'.format(cwave)
             cwave = rsrd[sensor]['wave_nm'][bi]
             swave = rsrd[sensor]['wave_name'][bi]
             bands[swave]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
@@ -81,7 +94,13 @@ def l1_convert(inputfile, output = None, settings = None):
                            'rsr': rsr[bi],'f0': f0d[bi]}
 
         ## time
-        utime = f['/navigation/']['unixtime'][:]
+        if 'unixtime' in f['/navigation/']:
+            utime = f['/navigation/']['unixtime'][:]
+            start_time = datetime.datetime.utcfromtimestamp(utime[0])
+            stop_time = datetime.datetime.utcfromtimestamp(utime[-1])
+            dt = start_time + (stop_time-start_time)
+        else:
+            dt = dateutil.parser.parse(gatts['timestamp_acquired'].strip('Z')) ## timestamp format is wrong, has both +00:00 and Z
 
         ## geometry
         vza = f['/navigation/']['sensor_zenith'][:]
@@ -100,14 +119,7 @@ def l1_convert(inputfile, output = None, settings = None):
         lat = f['/navigation/']['latitude'][:]
         lon = f['/navigation/']['longitude'][:]
 
-        ## metadata
-        start_time = datetime.datetime.utcfromtimestamp(utime[0])
-        stop_time = datetime.datetime.utcfromtimestamp(utime[-1])
-        #start_time = dateutil.parser.parse(t0)
-        #stop_time = dateutil.parser.parse(t1)
-
         ## date time
-        dt = start_time + (stop_time-start_time)
         isodate = dt.isoformat()
 
         ## compute scene center sun position
@@ -189,14 +201,10 @@ def l1_convert(inputfile, output = None, settings = None):
         sza = None
 
         ## read data cube
-        data = f['/products']['Lt'][:]
-
-        ## close file
-        f.close()
-        f = None
-
-        nbands = data.shape[2]
-        data_dimensions = data.shape[0], data.shape[1]
+        if (lt_pars == 'Lt') & (setu['hyper_read_cube']):
+            data = f['/products']['Lt'][:]
+            nbands = data.shape[2]
+            data_dimensions = data.shape[0], data.shape[1]
 
         ## run through bands and store rhot
         for bi, b in enumerate(bands):
@@ -204,7 +212,13 @@ def l1_convert(inputfile, output = None, settings = None):
             ds_att = {k:bands[b][k] for k in bands[b] if k not in ['rsr']}
 
             ## copy radiance
-            cdata_radiance = data[:,:,bi]
+            if (lt_pars == 'Lt'):
+                if (setu['hyper_read_cube']):
+                    cdata_radiance = data[:,:,bi]
+                else:
+                    cdata_radiance = f['/products']['Lt'][:, :, bi]
+            else:
+                cdata_radiance = f['/products'][lt_pars[bi]][:]
 
             if setu['output_lt']:
                 ## write toa radiance
@@ -220,6 +234,12 @@ def l1_convert(inputfile, output = None, settings = None):
             cdata = None
             print('Wrote rhot_{}'.format(bands[b]['wave_name']))
         data = None
+
+        ## close file
+        if f is not None:
+            f.close()
+            f = None
+
         gemo.close()
         ofiles.append(ofile)
     return(ofiles, setu)

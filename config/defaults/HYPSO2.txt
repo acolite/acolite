@@ -1,0 +1,22 @@
+## ACOLITE default settings for HYPSO-2
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=tiled
+l2w_mask_wave=750
+l2w_mask_threshold=0.2
+
+dsf_wave_range=450,750
+l2w_mask_negative_wave_range=450,750
+
+dsf_interface_reflectance=False
+resolved_geometry=False
+dsf_spectrum_option=percentile
+dsf_percentile=5
+
+output_geometry=True
+dsf_tile_dimensions=100,100
