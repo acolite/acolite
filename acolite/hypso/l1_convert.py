@@ -7,7 +7,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
-##                2025-03-10 (QV) added HYPSO-2 support
+##                2025-03-10 (QV) added HYPSO-2 support, added subsetting
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -102,12 +102,30 @@ def l1_convert(inputfile, output = None, settings = None):
         else:
             dt = dateutil.parser.parse(gatts['timestamp_acquired'].strip('Z')) ## timestamp format is wrong, has both +00:00 and Z
 
-        ## geometry
-        vza = f['/navigation/']['sensor_zenith'][:]
-        vaa = f['/navigation/']['sensor_azimuth'][:]
+        ## read lat and lon
+        lat = f['/navigation/']['latitude'][:]
+        lon = f['/navigation/']['longitude'][:]
 
-        sza = f['/navigation/']['solar_zenith'][:]
-        saa = f['/navigation/']['solar_azimuth'][:]
+        sub = None
+        if setu['limit'] is not None:
+            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
+            if sub is None:
+                print('Limit outside of scene {}'.format(bundle))
+                continue
+            lat = lat[sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
+            lon = lon[sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
+
+        ## geometry
+        if sub is None:
+            vza = f['/navigation/']['sensor_zenith'][:]
+            vaa = f['/navigation/']['sensor_azimuth'][:]
+            sza = f['/navigation/']['solar_zenith'][:]
+            saa = f['/navigation/']['solar_azimuth'][:]
+        else:
+            vza = f['/navigation/']['sensor_zenith'][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
+            vaa = f['/navigation/']['sensor_azimuth'][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
+            sza = f['/navigation/']['solar_zenith'][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
+            saa = f['/navigation/']['solar_azimuth'][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
 
         ## compute relative azimuth angle
         raa = np.abs(saa-vaa)
@@ -115,9 +133,6 @@ def l1_convert(inputfile, output = None, settings = None):
         tmp = np.where(raa>180)
         raa[tmp]=np.abs(raa[tmp] - 360)
 
-        ## read lat and lon
-        lat = f['/navigation/']['latitude'][:]
-        lon = f['/navigation/']['longitude'][:]
 
         ## date time
         isodate = dt.isoformat()
@@ -202,7 +217,10 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## read data cube
         if (lt_pars == 'Lt') & (setu['hyper_read_cube']):
-            data = f['/products']['Lt'][:]
+            if sub is None:
+                data = f['/products']['Lt'][:]
+            else:
+                data= f['/products']['Lt'][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2], :]
             nbands = data.shape[2]
             data_dimensions = data.shape[0], data.shape[1]
 
@@ -216,9 +234,15 @@ def l1_convert(inputfile, output = None, settings = None):
                 if (setu['hyper_read_cube']):
                     cdata_radiance = data[:,:,bi]
                 else:
-                    cdata_radiance = f['/products']['Lt'][:, :, bi]
+                    if sub is None:
+                        cdata_radiance = f['/products']['Lt'][:, :, bi]
+                    else:
+                        cdata_radiance = f['/products']['Lt'][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2], bi]
             else:
-                cdata_radiance = f['/products'][lt_pars[bi]][:]
+                if sub is None:
+                    cdata_radiance = f['/products'][lt_pars[bi]][:]
+                else:
+                    cdata_radiance = f['/products'][lt_pars[bi]][sub[1]:sub[1]+sub[3],sub[0]:sub[0]+sub[2]]
 
             if setu['output_lt']:
                 ## write toa radiance
