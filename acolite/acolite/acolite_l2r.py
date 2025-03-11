@@ -24,6 +24,7 @@
 ##                2025-02-11 (QV) switch to settings.merge
 ##                2025-03-04 (QV) update to hyperspectral RSR
 ##                2025-03-05 (QV) added optional printouts for bands skipped in DSF
+##                2025-03-10 (QV) fix hyperspectral model selection, use setu['verbosity']
 
 def acolite_l2r(gem,
                 output = None,
@@ -33,9 +34,7 @@ def acolite_l2r(gem,
                 output_file = True,
                 target_file = None,
 
-                return_gem = False,
-
-                verbosity=0):
+                return_gem = False):
 
     import os, time, datetime
     import numpy as np
@@ -53,7 +52,6 @@ def acolite_l2r(gem,
     ## get run/user/sensor settings
     setu = ac.acolite.settings.merge(sensor = gem.gatts['sensor'], settings = settings)
 
-    if 'verbosity' in setu: verbosity = setu['verbosity']
     if 'runid' not in setu: setu['runid'] = time_start.strftime('%Y%m%d_%H%M%S')
 
     ## convert exclude bands to list
@@ -78,10 +76,10 @@ def acolite_l2r(gem,
         nbf = npx - len(np.where(np.isfinite(band_data)*(band_data>0))[0])
         del band_data
         if (nbf/npx) >= float(setu['blackfill_max']):
-            if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
+            if setu['verbosity']>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
             return()
 
-    if verbosity > 0: print('Running acolite for {}'.format(gemf))
+    if setu['verbosity'] > 0: print('Running acolite for {}'.format(gemf))
 
     ## optimised aot
     if setu['dsf_aot_estimate'] == 'optimise':
@@ -163,7 +161,7 @@ def acolite_l2r(gem,
             clon = gem.gatts['lon']
             clat = gem.gatts['lat']
         print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(gem.gatts['isodate'], clon, clat))
-        anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat, verbosity=verbosity)
+        anc = ac.ac.ancillary.get(gem.gatts['isodate'], clon, clat, verbosity=setu['verbosity'])
         for k in ['uoz', 'uwv', 'wind', 'pressure']:
             if (k == 'pressure'):
                 if (setu['pressure'] != setu['pressure_default']): continue
@@ -234,7 +232,7 @@ def acolite_l2r(gem,
 
     ## dem pressure
     if (setu['dem_pressure']) & ((('lat' in gem.datasets) & ('lon' in gem.datasets)) | (('lat' in gem.gatts) & ('lon' in gem.gatts))):
-        if verbosity > 1: print('Extracting {} DEM data'.format(setu['dem_source']))
+        if setu['verbosity'] > 1: print('Extracting {} DEM data'.format(setu['dem_source']))
         if ('lat' in gem.datasets) & ('lon' in gem.datasets):
             dem = ac.dem.dem_lonlat(gem.data('lon'), gem.data('lat'), source = setu['dem_source'])
         else:
@@ -255,7 +253,7 @@ def acolite_l2r(gem,
                 gem.data_mem['dem'] = dem.astype(np.float32)
                 gem.data_mem['dem_pressure'] = dem_pressure
         else:
-            if verbosity > 1: print('Could not determine elevation from {} DEM data'.format(setu['dem_source']))
+            if setu['verbosity'] > 1: print('Could not determine elevation from {} DEM data'.format(setu['dem_source']))
 
         dem = None
         dem_pressure = None
@@ -401,11 +399,11 @@ def acolite_l2r(gem,
         ni = np.ceil(gem.gatts['data_dimensions'][0]/setu['dsf_tile_dimensions'][0]).astype(int)
         nj = np.ceil(gem.gatts['data_dimensions'][1]/setu['dsf_tile_dimensions'][1]).astype(int)
         if (ni <= 1) | (nj <= 1):
-            if verbosity > 1: print('Scene too small for tiling ({}x{} tiles of {}x{} pixels), using fixed processing'.format(ni,nj,setu['dsf_tile_dimensions'][0], setu['dsf_tile_dimensions'][1]))
+            if setu['verbosity'] > 1: print('Scene too small for tiling ({}x{} tiles of {}x{} pixels), using fixed processing'.format(ni,nj,setu['dsf_tile_dimensions'][0], setu['dsf_tile_dimensions'][1]))
             setu['dsf_aot_estimate'] = 'fixed'
         else:
             ntiles = ni*nj
-            if verbosity > 1: print('Processing with {} tiles ({}x{} tiles of {}x{} pixels)'.format(ntiles, ni, nj, setu['dsf_tile_dimensions'][0], setu['dsf_tile_dimensions'][1]))
+            if setu['verbosity'] > 1: print('Processing with {} tiles ({}x{} tiles of {}x{} pixels)'.format(ntiles, ni, nj, setu['dsf_tile_dimensions'][0], setu['dsf_tile_dimensions'][1]))
 
             ## compute tile dimensions
             for ti in range(ni):
@@ -543,9 +541,9 @@ def acolite_l2r(gem,
             ## copy datasets to L2R
             for ds in copy_datasets:
                 if (ds not in gem.datasets):
-                    if verbosity > 2: print('{} not found in {}'.format(ds, gemf))
+                    if setu['verbosity'] > 2: print('{} not found in {}'.format(ds, gemf))
                     continue
-                if verbosity > 1: print('Writing {}'.format(ds))
+                if setu['verbosity'] > 1: print('Writing {}'.format(ds))
                 cdata, catts = gem.data(ds, attributes=True)
                 gemo.write(ds, cdata, ds_att=catts)
                 del cdata, catts
@@ -640,7 +638,7 @@ def acolite_l2r(gem,
 
                 ## apply TOA filter
                 if setu['dsf_filter_rhot']:
-                    if verbosity > 1: print('Filtered {} using {}th percentile in {}x{} pixel box'.format(gem.bands[b]['rhot_ds'],
+                    if setu['verbosity'] > 1: print('Filtered {} using {}th percentile in {}x{} pixel box'.format(gem.bands[b]['rhot_ds'],
                                                     setu['dsf_filter_percentile'], setu['dsf_filter_box'][0], setu['dsf_filter_box'][1]))
                     band_data[mask] = np.nanmedian(band_data) ## fill mask with median
                     #band_data = scipy.ndimage.median_filter(band_data, size=setu['dsf_filter_box'])
@@ -667,13 +665,13 @@ def acolite_l2r(gem,
                     if len(dark_pixel_location[0]) != 0:
                         dark_pixel_location_x = dark_pixel_location[0][0]
                         dark_pixel_location_y = dark_pixel_location[1][0]
-                        print(dark_pixel_location_x, dark_pixel_location_y)
-                        print(band_data)
+                    #    print(dark_pixel_location_x, dark_pixel_location_y)
+                    #    print(band_data)
                     #if not use_revlut:
                     #    gk='_mean'
                     #else:
                     #    band_data = np.tile(band_data, band_shape)
-                    if verbosity > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(float(band_data[0,0])))
+                    if setu['verbosity'] > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(float(band_data[0,0])))
 
                 ## tiled path reflectance
                 elif setu['dsf_aot_estimate'] == 'tiled':
@@ -712,7 +710,7 @@ def acolite_l2r(gem,
                     if setu['dsf_spectrum_option'] == 'intercept':
                         band_data = np.array([ac.shared.intercept(band_data[segment_data[segment]['sub']], setu['dsf_intercept_pixels'])  for segment in segment_data])
                     band_data.shape+=(1,1) ## make 2 dimensions
-                    #if verbosity > 2: print(b, setu['dsf_spectrum_option'], ['{:.3f}'.format(float(v)) for v in band_data])
+
                 ## resolved per pixel dsf
                 elif setu['dsf_aot_estimate'] == 'resolved':
                     if not setu['resolved_geometry']: gk = '_mean'
@@ -793,7 +791,7 @@ def acolite_l2r(gem,
                                                                   gem.data_mem['wind'+gk].flatten()[pi], aot))
                                         ## store current result
                                         rhot_aot[ai,:,pi] = tmp.flatten()
-                                if verbosity > 4: print('Shape of modeled rhot: {}'.format(rhot_aot.shape))
+                                if setu['verbosity'] > 4: print('Shape of modeled rhot: {}'.format(rhot_aot.shape))
                             ## resample modeled results to current band
                             tmp = ac.shared.rsr_convolute_nd(rhot_aot, lutdw[lut]['meta']['wave'], rsrd['rsr'][b]['response'], rsrd['rsr'][b]['wave'], axis=1)
 
@@ -802,7 +800,8 @@ def acolite_l2r(gem,
                             ## interpolate to observed rhot
                             for ri, crho in enumerate(band_data.flatten()):
                                 aotret[ri] = np.interp(crho, tmp[:,ri], lutdw[lut]['meta']['tau'], left=left, right=right)
-                            if verbosity > 4: print('Shape of computed aot: {}'.format(aotret.shape))
+                            if setu['verbosity'] > 4: print('Shape of computed aot: {}'.format(aotret.shape))
+                            if setu['verbosity'] > 5: print('Computed aot: {}'.format(aotret))
                             aot_band[lut][band_sub] = aotret.reshape(aot_band[lut][band_sub].shape)
                         else:
                             if len(gem.data_mem['pressure'+gk]) > 1:
@@ -833,7 +832,7 @@ def acolite_l2r(gem,
                         aot_band[lut][aot_band[lut]>setu['dsf_max_tile_aot']]=np.nan
 
                     tel = time.time()-t0
-                    if verbosity > 1: print('{}/B{} {} took {:.3f}s ({})'.format(sensor_lut, b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
+                    if setu['verbosity'] > 1: print('{}/B{} {} took {:.3f}s ({})'.format(sensor_lut, b, lut, tel, 'RevLUT' if use_revlut else 'StdLUT'))
 
                 ## store current band results
                 aot_dict[b] = aot_band
@@ -915,13 +914,13 @@ def acolite_l2r(gem,
                 ## remove sorted indices
                 tmp = None
             ## select model based on min rmsd for 2 bands
-            if verbosity > 1: print('Choosing best fitting model: {} ({} bands)'.format(setu['dsf_model_selection'], setu['dsf_nbands']))
+            if setu['verbosity'] > 1: print('Choosing best fitting model: {} ({} bands)'.format(setu['dsf_model_selection'], setu['dsf_nbands']))
 
             ## run through model results, get rhod and rhop for n lowest bands
             for li, lut in enumerate(luts):
                 ## select model based on minimum rmsd between n best fitting bands
                 if setu['dsf_model_selection'] == 'min_drmsd':
-                    if verbosity > 1: print('Computing RMSD for model {}'.format(lut))
+                    if setu['verbosity'] > 1: print('Computing RMSD for model {}'.format(lut))
                     rhop_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],setu['dsf_nbands_fit']), dtype=np.float32) + np.nan
                     rhod_f = np.zeros((aot_stack[lut]['b1'].shape[0],aot_stack[lut]['b1'].shape[1],setu['dsf_nbands_fit']), dtype=np.float32) + np.nan
                     for bi, b in enumerate(aot_bands):
@@ -991,7 +990,7 @@ def acolite_l2r(gem,
                                                                                 xi[1], xi[2], xi[3], xi[4], aot_stack[lut]['aot'][aot_sub]))
                     ## rmsd for current bands
                     cur_sel_par = np.sqrt(np.nanmean(np.square((rhod_f-rhop_f)), axis=2))
-                    if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1): print('Computing RMSD for model {}: {:.4e}'.format(lut, cur_sel_par[0][0]))
+                    if (setu['dsf_aot_estimate'] == 'fixed') & (setu['verbosity'] > 1): print('Computing RMSD for model {}: {:.4e}'.format(lut, cur_sel_par[0][0]))
                 ## end select with min RMSD
 
                 ## select model based on minimum delta tau between two lowest aot bands
@@ -1020,7 +1019,7 @@ def acolite_l2r(gem,
 
             rhod_f = None
             rhod_p = None
-        if (setu['dsf_aot_estimate'] == 'fixed') & (verbosity > 1) & (aot_sel_par is not None):
+        if (setu['dsf_aot_estimate'] == 'fixed') & (setu['verbosity'] > 1) & (aot_sel_par is not None):
             print('Selected model {}: aot {:.3f}, RMSD {:.2e}'.format(aot_sel_lut, aot_sel[0][0], aot_sel_par[0][0]))
 
         ## check variable aot, use most common LUT
@@ -1265,7 +1264,7 @@ def acolite_l2r(gem,
     if (use_revlut) & (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] != 'tiled'):
         for ds in geom_ds:
             if len(np.atleast_1d(gem.data(ds)))!=1: continue
-            if verbosity > 2: print('Reshaping {} to {}x{}'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
+            if setu['verbosity'] > 2: print('Reshaping {} to {}x{}'.format(ds, gem.gatts['data_dimensions'][0], gem.gatts['data_dimensions'][1]))
             gem.data_mem[ds] = np.repeat(gem.data_mem[ds], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
 
     ## figure out cirrus bands
@@ -1320,15 +1319,15 @@ def acolite_l2r(gem,
     ## compute surface reflectances
     for bi, b in enumerate(gem.bands):
         if ('rhot_ds' not in gem.bands[b]) or ('tt_gas' not in gem.bands[b]):
-            if verbosity > 2: print('Band {} at {} nm not in bands dataset'.format(b, gem.bands[b]['wave_name']))
+            if setu['verbosity'] > 2: print('Band {} at {} nm not in bands dataset'.format(b, gem.bands[b]['wave_name']))
             continue
         if gem.bands[b]['rhot_ds'] not in gem.datasets:
-            if verbosity > 2: print('Band {} at {} nm not in available rhot datasets'.format(b, gem.bands[b]['wave_name']))
+            if setu['verbosity'] > 2: print('Band {} at {} nm not in available rhot datasets'.format(b, gem.bands[b]['wave_name']))
             continue ## skip if we don't have rhot for a band that is in the RSR file
 
         ## temporary fix
         if (gem.bands[b]['wave_mu'] < 0.345) & (lutdw[luts[0]]['meta']['wave'][0] >= 0.34):
-            if verbosity > 2: print('Band {} at {} nm wavelength < 345 nm'.format(b, gem.bands[b]['wave_name']))
+            if setu['verbosity'] > 2: print('Band {} at {} nm wavelength < 345 nm'.format(b, gem.bands[b]['wave_name']))
             continue ## skip if below LUT range
 
         dsi = gem.bands[b]['rhot_ds']
@@ -1340,7 +1339,7 @@ def acolite_l2r(gem,
             gemo.write(dsi, cur_data, ds_att = cur_att)
 
         if gem.bands[b]['tt_gas'] < setu['min_tgas_rho']:
-            if verbosity > 2: print('Band {} at {} nm has tgas < min_tgas_rho ({:.2f} < {:.2f})'.format(b, gem.bands[b]['wave_name'], gem.bands[b]['tt_gas'], setu['min_tgas_rho']))
+            if setu['verbosity'] > 2: print('Band {} at {} nm has tgas < min_tgas_rho ({:.2f} < {:.2f})'.format(b, gem.bands[b]['wave_name'], gem.bands[b]['tt_gas'], setu['min_tgas_rho']))
             continue
 
         ## apply cirrus correction
@@ -1350,7 +1349,7 @@ def acolite_l2r(gem,
             cur_data -= (rho_cirrus * g)
 
         t0 = time.time()
-        if verbosity > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
+        if setu['verbosity'] > 1: print('Computing surface reflectance', b, gem.bands[b]['wave_name'], '{:.3f}'.format(gem.bands[b]['tt_gas']))
 
         ds_att = gem.bands[b]
         ds_att['wavelength']=ds_att['wave_nm']
@@ -1450,7 +1449,7 @@ def acolite_l2r(gem,
 
             ## interpolate tiled processing to full scene
             if setu['dsf_aot_estimate'] == 'tiled':
-                if verbosity > 1: print('Interpolating tiles')
+                if setu['verbosity'] > 1: print('Interpolating tiles')
                 romix = ac.shared.tiles_interp(romix, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                 target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 astot = ac.shared.tiles_interp(astot, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
@@ -1572,7 +1571,7 @@ def acolite_l2r(gem,
 
             ## create full scene parameters for tiled processing
             if (setu['dsf_aot_estimate'] == 'tiled') & (use_revlut):
-                if verbosity > 1: print('Interpolating tiles for rhorc')
+                if setu['verbosity'] > 1: print('Interpolating tiles for rhorc')
                 rorayl_cur = ac.shared.tiles_interp(rorayl_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
                             target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
                 dutotr_cur = ac.shared.tiles_interp(dutotr_cur, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
@@ -1607,7 +1606,7 @@ def acolite_l2r(gem,
             gemo.write(dso.replace('rhos_', 'Ed_'), Ed, ds_att = ds_att)
             del Ed
 
-        if verbosity > 1: print('{}/B{} took {:.1f}s ({})'.format(sensor_lut, b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
+        if setu['verbosity'] > 1: print('{}/B{} took {:.1f}s ({})'.format(sensor_lut, b, time.time()-t0, 'RevLUT' if use_revlut else 'StdLUT'))
 
     ## update outputfile dataset info
     gemo.datasets_read()
@@ -2008,7 +2007,7 @@ def acolite_l2r(gem,
         gemo.gatts_update()
         gemo.close()
 
-    if verbosity>0: print('Wrote {}'.format(ofile))
+    if setu['verbosity']>0: print('Wrote {}'.format(ofile))
 
     if return_gem:
         return(gemo, setu)
