@@ -600,7 +600,6 @@ def acolite_l2r(gem,
                 print('dsf_spectrum_option {} not configured, falling back to darkest'.format(setu['dsf_spectrum_option']))
                 setu['dsf_spectrum_option'] = 'darkest'
 
-            rhot_aot = None
             ## run through bands to get aot
             aot_bands = []
             aot_dict = {}
@@ -745,6 +744,7 @@ def acolite_l2r(gem,
                 ## compute aot
                 aot_band = {}
                 for li, lut in enumerate(luts):
+                    rhot_aot = None ## set rhot_aot to None for next LUT
                     aot_band[lut] = np.zeros(band_data.shape, dtype=np.float32)+np.nan
                     t0 = time.time()
 
