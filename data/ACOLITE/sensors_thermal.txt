@@ -1,0 +1,12 @@
+## list of sensors with thermal bands
+## thermal bands will be saved as Brightness Temperature datasets
+## for processing with TACT (although maybe less appropriate for non-nadir viewing)
+L5_TM
+L7_ETM
+L8_TIRS
+L9_TIRS
+ISS_ECOSTRESS
+TERRA_ASTER_TIR
+JPSS-1_VIIRS_TIR
+JPSS-2_VIIRS_TIR
+SUOMI-NPP_VIIRS_TIR

@@ -149,6 +149,14 @@ for t in config:
     if (os.path.exists(config[t])):
         config[t] = os.path.abspath(config[t])
 
+## set attributes to skip
+config['skip_attributes'] = acolite.settings.read_list(config['data_dir']+'/ACOLITE/attributes_skip.txt')
+
+## set sensor lists
+config['hyper_sensors'] = acolite.settings.read_list(config['data_dir']+'/ACOLITE/sensors_hyper.txt')
+config['thermal_sensors'] = acolite.settings.read_list(config['data_dir']+'/ACOLITE/sensors_thermal.txt')
+config['reverse_lut_sensors'] = acolite.settings.read_list(config['data_dir']+'/ACOLITE/sensors_reverse_lut.txt')
+
 if 'verbosity' not in config: config['verbosity'] = 5
 
 ## read parameter scaling and settings

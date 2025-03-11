@@ -65,13 +65,8 @@ lut_url=https://raw.githubusercontent.com/acolite/acolite_luts/main
 #lut_url=https://raw.gitmirror.com/acolite/acolite_luts/main
 
 ## location of credentials file
+## it is recommended to use .netrc for credentials, but they can be added to this file
 credentials_file=$ACDIR/config/credentials.txt
-
-## EarthData credentials (will be set to environment variables by acolite)
-## alternatively use .netrc for machine earthdata
-## credentials are now by default stored in config/credentials.txt
-#EARTHDATA_u=
-#EARTHDATA_p=
 
 ## URLs to use EarthData credentials for
 EARTHDATA_urls=gsfc.nasa.gov,earthdatacloud.nasa.gov,cr.usgs.gov,ladsweb.modaps.eosdis.nasa.gov,oceandata.sci.gsfc.nasa.gov
@@ -84,30 +79,6 @@ EARTHEXPLORER_api=https://m2m.cr.usgs.gov/api/api/json/stable
 EARTHEXPLORER_download=https://earthexplorer.usgs.gov/download
 EARTHEXPLORER_ers=https://ers.cr.usgs.gov
 
-## EarthExplorer credentials
-## alternatively use .netrc for machine earthexplorer
-## credentials are now by default stored in config/credentials.txt
-#EARTHEXPLORER_u=
-#EARTHEXPLORER_p=
-
 ## CDSE urls
 CDSE_odata=https://catalogue.dataspace.copernicus.eu/odata/v1
 CDSE_auth=https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
-
-## CDSE credentials
-## alternatively use .netrc for machine cdse
-## credentials are now by default stored in config/credentials.txt
-#CDSE_u=
-#CDSE_p=
-
-## attributes not to write in output files
-skip_attributes=EARTHDATA_u,EARTHDATA_p,EARTHEXPLORER_u,EARTHEXPLORER_p,CDSE_u,CDSE_p
-
-## list of hyperspectral sensors (do not edit)
-hyper_sensors=CHRIS,PRISMA,ISS_HICO,EO1_HYPERION,DESIS_HSI,ENMAP_HSI,ISS_EMIT,HYPSO1,HYPSO2,PACE_OCI,Wyvern_Dragonette-001,Wyvern_Dragonette-002,Wyvern_Dragonette-003
-
-## list of thermal sensors (do not edit)
-thermal_sensors=L5_TM,L7_ETM,L8_TIRS,L9_TIRS,ISS_ECOSTRESS,TERRA_ASTER_TIR,JPSS-1_VIIRS_TIR,JPSS-2_VIIRS_TIR,SUOMI-NPP_VIIRS_TIR
-
-## list of sensors with reverse lut, include RSR version (do not edit)
-reverse_lut_sensors=L5_TM,L7_ETM,L8_OLI,L9_OLI,S2A_MSI,S2B_MSI,S2C_MSI_V4,S3A_OLCI,S3B_OLCI,EN1_MERIS

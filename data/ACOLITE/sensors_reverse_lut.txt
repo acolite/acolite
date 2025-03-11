@@ -1,0 +1,13 @@
+## list of sensors to create/download a reverse LUT
+## i.e. for pixel-per-pixel determination of aersol optical depth
+## note that RSR version needs to be specified, e.g. S2C_MSI_V4
+L5_TM
+L7_ETM
+L8_OLI
+L9_OLI
+S2A_MSI
+S2B_MSI
+S2C_MSI_V4
+S3A_OLCI
+S3B_OLCI
+EN1_MERIS
