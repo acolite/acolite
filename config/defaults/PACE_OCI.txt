@@ -11,7 +11,8 @@ default_projection_resolution=1200,1200
 output_projection_radius=10
 
 ## dark spectrum fitting options
-dsf_aot_estimate=fixed
+dsf_aot_estimate=tiled
+dsf_write_aot_550=True
 dsf_wave_range=1200,2300
 dsf_tile_dimensions=6,6
 dsf_tile_smoothing=False
