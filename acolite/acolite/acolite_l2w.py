@@ -10,6 +10,7 @@
 ##                2025-01-16 (QV) added rrs and lowercase to parameter loop
 ##                2025-02-04 (QV) added additional S2C_MSI outputs
 ##                                updated settings handling, added rsr_version, fixed rhos_ds selection
+##                2025-03-12 (QV) added wildcards for copy_datasets in separate file
 
 def acolite_l2w(gem, output = None, settings = None,
                 target_file = None, load_data = True, new = True, ):
@@ -153,6 +154,9 @@ def acolite_l2w(gem, output = None, settings = None,
     ## compute flags
     l2_flags = ac.acolite.acolite_flags(gem)
 
+    ## read parameters that are copied from L2R -> L2W
+    copied_parameters = ac.acolite.settings.read_list(ac.config['data_dir']+'/ACOLITE/l2w_parameters_copy.txt')
+
     ## set up output file gem
     gemo = ac.gem.gem(ofile, new = new)
     gemo.gatts = {k: gem.gatts[k] for k in gem.gatts}
@@ -182,19 +186,18 @@ def acolite_l2w(gem, output = None, settings = None,
                 new_par = cur_par.replace('rhos_', 'rrs_')
                 if new_par not in copy_datasets: copy_datasets.append(new_par)
 
-        ## add existing par or evaluate wildcards
+        ## copy parameter if listed in l2w_parameters
         if (cur_par in setu['l2w_parameters']):
             copy_datasets.append(cur_par)
-        elif (('rhot_*' in setu['l2w_parameters']) & (cur_par.startswith('rhot_'))):
-            copy_datasets.append(cur_par)
-        elif (('rhos_*' in setu['l2w_parameters']) & (cur_par.startswith('rhos_'))):
-            copy_datasets.append(cur_par)
-        elif (('rhorc_*' in setu['l2w_parameters']) & (cur_par.startswith('rhorc_'))):
-            copy_datasets.append(cur_par)
-        elif (('bt*' in setu['l2w_parameters']) & (cur_par.lower().startswith('bt'))):
-            copy_datasets.append(cur_par)
-        elif (('Ed_*' in setu['l2w_parameters']) & (cur_par.lower().startswith('ed'))):
-            copy_datasets.append(cur_par)
+        ## evaluate wildcards, now stored in separate file
+        else:
+            for copy_par in copied_parameters:
+                if (copy_par in setu['l2w_parameters']):
+                    base_par = copy_par.replace('*','')
+                    if (cur_par.startswith(base_par)) |\
+                       (cur_par.lower().startswith(base_par)):
+                        copy_datasets.append(cur_par)
+    ## end list datasets to copy over from L2R
 
     ## copy datasets
     for ci, cur_par in enumerate(copy_datasets):
@@ -253,7 +256,8 @@ def acolite_l2w(gem, output = None, settings = None,
     ## parameter loop
     ## compute other parameters
     for cur_par in setu['l2w_parameters']:
-        if cur_par.lower() in ['rhot_*', 'rhos_*', 'rrs_*', 'rhow_*', 'rhorc_*', 'ed_*', '', ' ']: continue ## we have copied these above
+        if cur_par in copied_parameters: continue
+        if cur_par.lower() in copied_parameters + ['rrs_*', 'rhow_*', '', ' ']: continue ## we have copied these above
         if cur_par.lower() in [ds.lower() for ds in ac.shared.nc_datasets(ofile)]: continue ## parameter already in output dataset (would not work if we are appending subsets to the ncdf)
         if cur_par.lower().startswith('bt'): continue
         cur_par = cur_par.lower() ## workaround for parameters provided with upper case

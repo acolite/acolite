@@ -1,0 +1,9 @@
+## list of parameters that should be copied from L2R to L2W if listed in l2w_parameters
+## parameters are appended with _* to check if in l2w_parameters
+rhot_*
+rhos_*
+rhosu_*
+rhoe_*
+rhorc_*
+bt*
+Ed_*
