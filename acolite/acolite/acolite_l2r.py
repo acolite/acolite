@@ -1506,9 +1506,9 @@ def acolite_l2r(gem,
             if setu['output_ed']:
                 cos_sza = np.cos(np.radians(gem.data('sza')))
                 se_distance = ac.shared.sun_position(gem.gatts['isodate'], 0, 0)['distance']
-                Ed = (gem.bands[b]['F0']) * se_distance**2 * cos_sza * gem.bands[b]['td_gas'] * dtott
+                Ed = 1 / (1 - cur_data * astot)
+                Ed *= (gem.bands[b]['F0']) * se_distance**2 * cos_sza * gem.bands[b]['td_gas'] * dtott
                 del cos_sza
-                Ed /=  (1 - cur_data * astot)
             del astot, dutott, rhot_noatm
 
         ## exponential
