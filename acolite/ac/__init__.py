@@ -13,3 +13,4 @@ from .irradiance import *
 from . import ancillary
 
 from .optimise_aot_homogeneous import *
+from .optimise_read import *
