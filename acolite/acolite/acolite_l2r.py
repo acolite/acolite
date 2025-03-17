@@ -82,7 +82,8 @@ def acolite_l2r(gem,
     if setu['verbosity'] > 0: print('Running acolite for {}'.format(gemf))
 
     ## optimised aot
-    if setu['dsf_aot_estimate'] == 'optimise':
+    if setu['dsf_aot_estimate'].startswith('optim'):
+        print('Running AOT optimisation to target spectrum for L2R processing')
         ret = ac.ac.optimise_aot_homogeneous(gem, settings = setu)
         if ret is None:
             print('Error in aot optimisation.')
