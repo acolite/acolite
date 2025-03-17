@@ -36,6 +36,7 @@
 ##                2025-02-03 (QV) use downward gas transmittance for output_ed
 ##                2025-02-04 (QV) updated settings parsing
 ##                2025-02-10 (QV) renamed radcor_optimise_* settings to optimise_* settings, added optimise_target_rhos_file
+##                2025-03-17 (QV) use separate function for reading optim target
 
 def radcor(ncf, settings = None):
     import os, json
@@ -678,26 +679,13 @@ def radcor(ncf, settings = None):
 
         ## if optimise_target_rhos_file is given, read the data, and resample to the sensor RSR
         if (setu['optimise_target_rhos_file'] is not None):
-            print('Reading target rhos from file: {}'.format(setu['optimise_target_rhos_file']))
-            data_import = np.loadtxt(setu['optimise_target_rhos_file'], delimiter = ',', dtype = np.float32)
-            if len(data_import.shape) != 2:
-                print('Wrong shape of data in {}'.format())
-                print(data_import.shape)
+            ## read file for optimisation
+            ret = ac.ac.optimise_read(setu)
+            if ret is None:
                 gem = None
                 return
-
-            ## check dimensions of data
-            if data_import.shape[0] == 2:
-                wave_data = data_import[0,:]
-                rhos_data = data_import[1,:]
-            elif data_import.shape[1] == 2:
-                wave_data = data_import[:,0]
-                rhos_data = data_import[:,1]
             else:
-                print('Wrong shape of data in {}'.format())
-                print(data_import.shape)
-                gem = None
-                return
+                wave_data, rhos_data = ret
 
             ## convolute to sensor bands
             rhos_bands = ac.shared.rsr_convolute_dict(wave_data/1000, rhos_data,  rsrd[sensor_lut]['rsr'], fill_value = np.nan)
