@@ -3,9 +3,10 @@
 ## returns selected lut and aot e.g. for acolite_l2r "DSF" processing
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-02-10
-## modifications:
+## modifications: 2025-03-17 (QV) moved target reading to file, compute average geometry, check if target lon and lat are given,
+##                                fix for interface reflectance, added sensor/detector name, added support for hyper sensors
 
-def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'romix', lutdw = None):
+def optimise_aot_homogeneous(gem, quiet = True, settings = None, lutdw = None):
     import numpy as np
     import scipy.optimize
     import acolite as ac
@@ -20,14 +21,29 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         rho_toa_mask = np.isnan(rho_toa)
 
         ## Get atmospheric parameters
-        if add_rsky:
-            rho_a     = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd'][romix_par], raa, vza, sza, wind, aot))
-            rho_a_sph = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['astot'], raa, vza, sza, wind, aot))
-            T_du_tot   = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['dutott'], raa, vza, sza, wind, aot))
+        if not hyper:
+            if add_rsky:
+                rho_a     = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd'][romix_par], raa, vza, sza, wind, aot))
+                rho_a_sph = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['astot'], raa, vza, sza, wind, aot))
+                T_du_tot   = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['dutott'], raa, vza, sza, wind, aot))
+            else:
+                rho_a     = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['romix'], raa, vza, sza, aot))
+                rho_a_sph = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['astot'], raa, vza, sza, aot))
+                T_du_tot   = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['dutott'], raa, vza, sza, aot))
         else:
-            rho_a     = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['romix'], raa, vza, sza, aot))
-            rho_a_sph = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['astot'], raa, vza, sza, aot))
-            T_du_tot   = lutdw[lut]['rgi'][b]((pressure, lutdw[lut]['ipd']['dutott'], raa, vza, sza, aot))
+            if add_rsky:
+                rho_a     = lutdw[lut]['rgi']((pressure, lutdw[lut]['ipd'][romix_par], lutdw[lut]['meta']['wave'], raa, vza, sza, wind, aot))
+                rho_a_sph = lutdw[lut]['rgi']((pressure, lutdw[lut]['ipd']['astot'], lutdw[lut]['meta']['wave'],raa, vza, sza, wind, aot))
+                T_du_tot   = lutdw[lut]['rgi']((pressure, lutdw[lut]['ipd']['dutott'], lutdw[lut]['meta']['wave'],raa, vza, sza, wind, aot))
+            else:
+                rho_a     = lutdw[lut]['rgi']((pressure, lutdw[lut]['ipd']['romix'], lutdw[lut]['meta']['wave'],raa, vza, sza, aot))
+                rho_a_sph = lutdw[lut]['rgi']((pressure, lutdw[lut]['ipd']['astot'], lutdw[lut]['meta']['wave'],raa, vza, sza, aot))
+                T_du_tot   = lutdw[lut]['rgi']((pressure, lutdw[lut]['ipd']['dutott'], lutdw[lut]['meta']['wave'],raa, vza, sza, aot))
+
+            ## resample
+            rho_a = ac.shared.rsr_convolute_nd(rho_a, lutdw[lut]['meta']['wave'], rsrd[sensor_lut]['rsr'][b]['response'], rsrd[sensor_lut]['rsr'][b]['wave'], axis = 0)
+            rho_a_sph = ac.shared.rsr_convolute_nd(rho_a_sph, lutdw[lut]['meta']['wave'], rsrd[sensor_lut]['rsr'][b]['response'], rsrd[sensor_lut]['rsr'][b]['wave'], axis = 0)
+            T_du_tot = ac.shared.rsr_convolute_nd(T_du_tot, lutdw[lut]['meta']['wave'], rsrd[sensor_lut]['rsr'][b]['response'], rsrd[sensor_lut]['rsr'][b]['wave'], axis = 0)
 
         ## Gas transmittance correction
         rho_toa /= bands[b]['tt_gas']
@@ -89,9 +105,6 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
                 return(np.nansum(mn2) / len(opt_bands))
         ## end aot optimisation function
 
-    ## determine which LUT to load
-    add_rsky = romix_par != 'romix'
-
     ## determine which dataset was passed
     opened = False
     if type(gem) is str:
@@ -106,7 +119,27 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
     sensor = gem.gatts['sensor']
 
     ## get run/user/sensor settings
-    setu = ac.acolite.settings.merge(sensor = sensor, settings = settings )
+    setu = ac.acolite.settings.merge(sensor = gem.gatts['sensor'], settings = settings)
+
+    if (setu['optimise_target_lon'] is None):
+        print('Please provide optimise_target_lon for optimisation.')
+        if opened: gem = None
+        return
+
+    if (setu['optimise_target_lat'] is None):
+        print('Please provide optimise_target_lat for optimisation.')
+        if opened: gem = None
+        return
+
+    ## determine which LUT to load
+    if (setu['dsf_interface_reflectance']):
+        if (setu['dsf_interface_option'] == 'default'):
+            romix_par = 'romix+rsky_t'
+        elif (setu['dsf_interface_option']  == '6sv'):
+            romix_par = 'romix+rsurf'
+    else:
+        romix_par = 'romix'
+    add_rsky = romix_par != 'romix'
 
     ## get sensor lut
     if setu['rsr_version'] is not None:
@@ -115,7 +148,9 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         sensor_lut = '{}'.format(sensor)
 
     ## Load RSR dict
-    if sensor in ac.config['hyper_sensors']:
+    hyper = False
+    if sensor in ac.config['hyper_sensors']: ## to add PACE/OCI SWIR RSR
+        hyper = True
         rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'], step=0.1)
         rsrd = ac.shared.rsr_dict(rsrd = {sensor_lut : {'rsr' : rsr}})
     else:
@@ -177,7 +212,12 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
           ', '.join(['{:.2f}'.format(v) for v in [uoz, uwv, pressure, wind]]))
 
     ## get average geometry
-    sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
+    sza = gem.gatts['sza'] if 'sza' in gem.gatts else np.nanmean(gem.data('sza'))
+    vza = gem.gatts['vza'] if 'vza' in gem.gatts else np.nanmean(gem.data('vza'))
+    raa = gem.gatts['raa'] if 'raa' in gem.gatts else np.nanmean(gem.data('raa'))
+
+    ## available rhot datasets
+    rhot_datasets = [ds for ds in gem.datasets if ds.startswith('rhot_')]
 
     ## extract point
     ## ext = ac.shared.nc_extract_point(ncf, setu['optimise_target_lon'],  setu['optimise_target_lat'], box_size = setu['optimise_target_size'])
@@ -192,14 +232,22 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
     bands = {}
     for bi, b in enumerate(rsrd[sensor_lut]['rsr_bands']):
         if b not in bands:
-            rhot_ds = 'rhot_{}'.format(rsrd[sensor_lut]['wave_name'][b])
-            if rhot_ds not in gem.datasets:
-                print('{} dataset for band {} not in inputfile.'.format(rhot_ds, b))
-                continue
-
             bands[b] = {k:rsrd[sensor_lut][k][b] for k in ['wave_mu', 'wave_nm', 'wave_name'] if b in rsrd[sensor_lut][k]}
             bands[b]['rhot_ds'] = 'rhot_{}'.format(bands[b]['wave_name'])
             bands[b]['rhos_ds'] = 'rhos_{}'.format(bands[b]['wave_name'])
+
+            if setu['add_band_name']:
+                bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(b, bands[b]['wave_name'])
+                bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(b, bands[b]['wave_name'])
+            if setu['add_detector_name']:
+                dsname = rhot_datasets[bi][5:]
+                bands[b]['rhot_ds'] = 'rhot_{}'.format(dsname)
+                bands[b]['rhos_ds'] = 'rhos_{}'.format(dsname)
+
+            if bands[b]['rhot_ds'] not in gem.datasets:
+                print('{} dataset for band {} not in inputfile.'.format(bands[b]['rhot_ds'], b))
+                continue
+
             for k in tg_dict:
                 if k not in ['wave']: bands[b][k] = tg_dict[k][b]
             bands[b]['wavelength'] = bands[b]['wave_nm']
@@ -215,30 +263,17 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
         if opened: gem = None
         return
     else:
-        print('Band list for sensor {}: {}'.format(sensor, ', '.join(bands_)))
+        print('Band list for sensor {}: {}'.format(sensor, ', '.join([str(b) for b in bands_])))
 
     ## if optimise_target_rhos_file is given, read the data, and resample to the sensor RSR
     if (setu['optimise_target_rhos_file'] is not None):
-        print('Reading target rhos from file: {}'.format(setu['optimise_target_rhos_file']))
-        data_import = np.loadtxt(setu['optimise_target_rhos_file'], delimiter = ',', dtype = np.float32)
-        if len(data_import.shape) != 2:
-            print('Wrong shape of data in {}'.format())
-            print(data_import.shape)
+        ## read file for optimisation
+        ret = ac.ac.optimise_read(setu)
+        if ret is None:
             if opened: gem = None
             return
-
-        ## check dimensions of data
-        if data_import.shape[0] == 2:
-            wave_data = data_import[0,:]
-            rhos_data = data_import[1,:]
-        elif data_import.shape[1] == 2:
-            wave_data = data_import[:,0]
-            rhos_data = data_import[:,1]
         else:
-            print('Wrong shape of data in {}'.format())
-            print(data_import.shape)
-            if opened: gem = None
-            return
+            wave_data, rhos_data = ret
 
         ## convolute to sensor bands
         rhos_bands = ac.shared.rsr_convolute_dict(wave_data/1000, rhos_data,  rsrd[sensor_lut]['rsr'], fill_value = np.nan)
@@ -292,7 +327,8 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, romix_par = 'ro
 
     ## load LUTs
     if lutdw is None:
-        lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par, sensor = sensor_lut,
+        lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par,
+                                      sensor = sensor_lut if not hyper else None,
                                       rsky_lut = setu['dsf_interface_lut'], base_luts = setu['luts'], pressures = setu['luts_pressures'],
                                       reduce_dimensions = False)
     luts = list(lutdw.keys())

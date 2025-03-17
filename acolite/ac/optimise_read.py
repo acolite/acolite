@@ -18,8 +18,18 @@ def optimise_read(setu):
             if len(data_import.shape) != 2:
                 print('Wrong shape of data in {}'.format(setu['optimise_target_rhos_file']))
                 print(data_import.shape)
-            else:
+            ## check dimensions of data
+            if data_import.shape[0] == 2:
+                wave_data = data_import[0,:]
+                rhos_data = data_import[1,:]
                 target_data_read = True
+            elif data_import.shape[1] == 2:
+                wave_data = data_import[:,0]
+                rhos_data = data_import[:,1]
+                target_data_read = True
+            else:
+                print('Wrong shape of data in {}'.format())
+                print(data_import.shape)
         elif (setu['optimise_target_rhos_file_type'].lower() in ['nc', 'netcdf']):
             tg, td, ta = ac.shared.nc_read_all(setu['optimise_target_rhos_file'])
             if (setu['optimise_target_rhos_file_wavelength'] not in td):
@@ -27,9 +37,8 @@ def optimise_read(setu):
             elif (setu['optimise_target_rhos_file_reflectance'] not in td):
                 print('Data type optimise_target_rhos_file_reflectance={} not in {}'.format(setu['optimise_target_rhos_file_reflectance'], setu['optimise_target_rhos_file']))
             else:
-                data_import = np.stack((td[setu['optimise_target_rhos_file_wavelength']].flatten(),\
-                                        td[setu['optimise_target_rhos_file_reflectance']].flatten()))
-                print(data_import.shape)
+                wave_data = td[setu['optimise_target_rhos_file_wavelength']].flatten()
+                rhos_data = td[setu['optimise_target_rhos_file_reflectance']].flatten()
                 target_data_read = True
                 del tg, td, ta
         else:
@@ -39,4 +48,4 @@ def optimise_read(setu):
     if not target_data_read:
         return
     else:
-        return(data_import)
+        return(wave_data, rhos_data)
