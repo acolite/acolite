@@ -15,6 +15,21 @@ def nc_read(file, dataset, group = None):
         out_array = nc.variables[dataset][:]
     return (out_array, gatts)
 
+## read global attributes, and all datasets from NetCDF (with/without group)
+def nc_read_all(ncf, group = None):
+    from netCDF4 import Dataset
+    with Dataset(ncf) as nc:
+        gatts = {attr : getattr(nc,attr) for attr in nc.ncattrs()}
+        if group is not None:
+            if group in nc.groups: nc = nc.groups[group]
+        datasets = nc.variables.keys()
+        data = {}
+        atts = {}
+        for ds in datasets:
+            data[ds] = nc.variables[ds][:]
+            atts[ds] = {a : getattr(nc.variables[ds],a) for a in nc.variables[ds].ncattrs()}
+    return(gatts, data, atts)
+
 # read dataset from netcdf
 # Last updates: 2016-12-19 (QV) added crop (x0,x1,y0,y1)
 ##              2017-03-16 (QV) added sub keyword (xoff, yoff, xcount, ycount)
