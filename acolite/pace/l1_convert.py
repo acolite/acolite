@@ -14,6 +14,7 @@
 ##                2025-02-10 (QV) cleaned up settings use, output naming
 ##                2025-02-13 (QV) added tile merging, flip data
 ##                2025-03-03 (QV) added support for gains
+##                2025-03-17 (QV) fixed application of gains
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -303,7 +304,7 @@ def l1_convert(inputfile, output = None, settings = None):
             for ds in write_ds:
                 if 'rhot_' in ds:
                     if 'gain' in gemo.data_att[ds]:
-                        gemo.data_mem[ds_name] *= gemo.data_att[ds]['gain']
+                        gemo.data_mem[ds] *= gemo.data_att[ds]['gain']
                         print('Applied gain {} to {}'.format(gemo.data_att[ds]['gain'], ds))
                 gemo.write_ds(ds, clear = True)
             ## update attributes
