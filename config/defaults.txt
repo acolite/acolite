@@ -305,6 +305,9 @@ adjacency_correction_method=None
 ## optimisation options
 optimise_target_rhos=None
 optimise_target_rhos_file=None
+optimise_target_rhos_file_type=csv
+optimise_target_rhos_file_wavelength=wavelength
+optimise_target_rhos_file_reflectance=reflectance
 optimise_target_lon=None
 optimise_target_lat=None
 optimise_target_type=pixel
