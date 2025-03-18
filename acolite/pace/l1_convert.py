@@ -15,6 +15,7 @@
 ##                2025-02-13 (QV) added tile merging, flip data
 ##                2025-03-03 (QV) added support for gains
 ##                2025-03-17 (QV) fixed application of gains
+##                2025-03-18 (QV) fix for when no limit or sub is supplied
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -97,7 +98,10 @@ def l1_convert(inputfile, output = None, settings = None):
             lat = ac.shared.nc_data(file, 'latitude', group=geo_group)
 
             ## get subset
-            sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
+            if setu['sub'] is not None:
+                sub = setu['sub']
+            elif setu['limit'] is not None:
+                sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
             if (setu['limit'] is not None) & (sub is None):
                 print('Limit not in scene {}'.format(file))
                 continue
