@@ -19,7 +19,7 @@ dsf_tile_smoothing=False
 
 dsf_spectrum_option=percentile
 dsf_percentile=1
-dsf_interface_reflectance=False
+dsf_interface_reflectance=True
 resolved_geometry=False
 
 ## masking settings
