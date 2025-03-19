@@ -19,7 +19,7 @@
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-07 (QV) added tile merging
 ##                2025-02-08 (QV) fixed for full tile merging
-##                2025-03-19 (QV) added s3_product_type
+##                2025-03-19 (QV) added s3_product_type, added s3_product_type to oname
 
 def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, write_l2_err = False):
 
@@ -409,6 +409,7 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
 
         stime = dateutil.parser.parse(gatts['isodate'])
         oname = '{}_{}'.format(gatts['sensor'], stime.strftime('%Y_%m_%d_%H_%M_%S'))
+        oname += '_{}'.format(gatts['s3_product_type'])
         if setu['merge_tiles']: oname+='_merged'
         if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
 
