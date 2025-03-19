@@ -19,6 +19,7 @@
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-07 (QV) added tile merging
 ##                2025-02-08 (QV) fixed for full tile merging
+##                2025-03-19 (QV) added s3_product_type
 
 def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, write_l2_err = False):
 
@@ -98,6 +99,16 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         else:
             print('Sensor {} from file {} not configured.'.format(sensor, bundle))
             continue
+
+        ## track if RR or FR
+        s3_product_type = None
+        for k in ['sentinel3:productType','envisat:productType']:
+            if k in smeta:
+                if 'FR' in smeta[k]:
+                    s3_product_type = 'FR'
+                elif 'RR' in smeta[k]:
+                    s3_product_type = 'RR'
+                break
 
         ## load rsrd
         rsrd = ac.shared.rsr_dict(sensor)
@@ -386,7 +397,9 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
 
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
                      'isodate':isodate, 'global_dims':data_shape,
-                     'se_distance': se_distance, 'acolite_file_type': 'L1R'}
+                     'se_distance': se_distance, 'acolite_file_type': 'L1R',
+                     's3_product_type': s3_product_type}
+
         gatts['pressure'] = pressure
         gatts['uoz'] = uoz
         gatts['uwv'] = uwv

@@ -37,6 +37,7 @@
 ##                2025-02-04 (QV) updated settings parsing
 ##                2025-02-10 (QV) renamed radcor_optimise_* settings to optimise_* settings, added optimise_target_rhos_file
 ##                2025-03-17 (QV) use separate function for reading optim target
+##                2025-03-19 (QV) added s3_product_type for MERIS/OLCI
 
 def radcor(ncf, settings = None):
     import os, json
@@ -446,7 +447,12 @@ def radcor(ncf, settings = None):
         elif sensor in ['L8_OLI', 'L9_OLI']:
             resolution = 30 # 'PRISMA'
         elif sensor in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']:
-            resolution = 300
+            if 's3_product_type' in gem.gatts:
+                resolution = {'FR': 300, 'RR': 1200}[gem.gatts['s3_product_type']]
+                print('Using resolution {} m based on s3_product_type={}'.format(resolution, gem.gatts['s3_product_type']))
+            else:
+                resolution = 300
+                print('Using default resolution {} m'.format(resolution))
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         elif 'PlanetScope' in sensor:
             resolution = 3
