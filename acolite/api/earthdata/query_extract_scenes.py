@@ -41,7 +41,8 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
             scene = e['producer_granule_id']
             for link in e['links']:
                 if 'href' not in link: continue
-                if (link['href'][0:4] == 'http') &  (link['href'][-3:] in ['.nc', '.h5']):
+                if (link['href'][0:4] == 'http') &\
+                   ((link['href'][-3:] in ['.nc', '.h5']) | (link['href'].lower().endswith('.zip'))):
                     urls.append('{}'.format(link['href']))
                     files.append('{}'.format(scene))
     elif type == 'soup':
@@ -70,7 +71,9 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
                 if link_base is not None:
                     if link_base in l['href']: url = '{}'.format(l['href'])
                 else:
-                    if (l['href'][0:4] == 'http') & (l['href'][-3:] in ['.nc', '.h5']): url = '{}'.format(l['href'])
+                    if (l['href'][0:4] == 'http') &\
+                       ((l['href'][-3:] in ['.nc', '.h5']) | (link['href'].lower().endswith('.zip'))):
+                        url = '{}'.format(l['href'])
 
             ## try without x-netcdf requirement
             if url is None:
@@ -79,7 +82,9 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
                     if link_base is not None:
                         if link_base in l['href']: url = '{}'.format(l['href'])
                     else:
-                        if (l['href'][0:4] == 'http') & (l['href'][-3:] in ['.nc', '.h5']): url = '{}'.format(l['href'])
+                        if (l['href'][0:4] == 'http') &\
+                           ((l['href'][-3:] in ['.nc', '.h5']) | (link['href'].lower().endswith('.zip'))):
+                            url = '{}'.format(l['href'])
             if url is None: continue
 
             urls.append('{}'.format(l['href']))

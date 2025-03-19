@@ -7,11 +7,13 @@
 ##                2024-05-04 (QV) added level2_type options AOP/BGC/IOP/PAR
 ##                2024-07-02 (QV) updated to version 2.0 datasets
 ##                2024-10-16 (QV) added SeaHawk1
+##                2025-03-19 (QV) added MERIS RR FRS
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
           pace_oci_nrt = False, pace_oci_version = 'v3.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
+          envisat_meris_resolution = 'FRS', envisat_meris_version = 'v4.0',
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
     import os, json
@@ -59,6 +61,31 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
                     print('L2 type level2_type={} not recognised.'.format(level2_type))
                     print('For setting pace_oci_nrt={}.'.format(pace_oci_nrt))
                     return
+
+        ## ENVISAT MERIS (L1 data only at the moment)
+        envisat_meris_rr_aliases = ['MERIS_RR', 'MER_RR', 'MER_RR__1P']
+        envisat_meris_fr_aliases = ['MERIS_FRS', 'MER_FRS', 'MER_FRS_1P']
+        if sensoru in ['MERIS', 'ENVISAT_MERIS'] + envisat_meris_rr_aliases + envisat_meris_fr_aliases:
+            ## read collection ids
+            with open('{}/API/envisat_meris_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
+                envisat_meris_collection_id = json.load(f)
+
+            ## set resolution
+            if sensoru in envisat_meris_fr_aliases: envisat_meris_resolution = 'FRS'
+            if sensoru in envisat_meris_rr_aliases: envisat_meris_resolution = 'RR'
+
+            api = 'json'
+            if (envisat_meris_resolution == 'FRS'):
+                dataset = 'MER_FRS_1P'
+                datacenter = 'OB_DAAC'
+            elif (envisat_meris_resolution == 'RR'):
+                dataset = 'MER_RR__1P'
+                datacenter = 'OB_DAAC'
+            else:
+                 print('ENVISAT_MERIS resolution not set, specify envisat_meris_resolution=FRS or RR')
+                 return
+
+            collection_id = envisat_meris_collection_id[envisat_meris_version][dataset]
 
         elif sensoru in ['ECOSTRESS', 'ISS_ECOSTRESS']:
             collection_id = []
