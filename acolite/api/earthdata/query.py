@@ -28,6 +28,10 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
         print('API {} not configured, use one of: {}'.format(api, ', '.join(apis)))
         return
 
+    ## ENVISAT aliases
+    envisat_meris_rr_aliases = ['MERIS_RR', 'MER_RR', 'MER_RR__1P']
+    envisat_meris_fr_aliases = ['MERIS_FRS', 'MER_FRS', 'MER_FRS_1P']
+
     sensoru = sensor.upper()
     ## user can provide dataset and collection or use preconfigured sensor
     if (dataset is None) & (datacenter is None) & (collection_id is None):
@@ -63,9 +67,7 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
                     return
 
         ## ENVISAT MERIS (L1 data only at the moment)
-        envisat_meris_rr_aliases = ['MERIS_RR', 'MER_RR', 'MER_RR__1P']
-        envisat_meris_fr_aliases = ['MERIS_FRS', 'MER_FRS', 'MER_FRS_1P']
-        if sensoru in ['MERIS', 'ENVISAT_MERIS'] + envisat_meris_rr_aliases + envisat_meris_fr_aliases:
+        elif sensoru in ['MERIS', 'ENVISAT_MERIS'] + envisat_meris_rr_aliases + envisat_meris_fr_aliases:
             ## read collection ids
             with open('{}/API/envisat_meris_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
                 envisat_meris_collection_id = json.load(f)
