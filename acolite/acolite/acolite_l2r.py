@@ -843,6 +843,9 @@ def acolite_l2r(gem,
             ## test if valid data could be extracted
             if len(aot_bands) == 0:
                 print('No valid data found for aot retrieval with current settings.')
+                gemo.close()
+                print('Deleting {}.'.format(ofile))
+                os.remove(ofile)
                 return()
 
             ## get min aot per pixel
