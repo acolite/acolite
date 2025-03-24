@@ -849,10 +849,9 @@ def acolite_l2r(gem,
                     if b not in aot_dict: continue
                     aot_band_list.append(b)
                     if lut not in aot_stack:
-                        aot_stack[lut] = {'all':  aot_dict[b][lut]*1.0}
+                        aot_stack[lut] = {'all': np.atleast_3d(aot_dict[b][lut])}
                     else:
-                        aot_stack[lut]['all'] = np.dstack((aot_stack[lut]['all'],
-                                                           aot_dict[b][lut]))
+                        aot_stack[lut]['all'] = np.dstack((aot_stack[lut]['all'], aot_dict[b][lut]))
                 aot_stack[lut]['band_list'] = aot_band_list
 
                 ## sort aot per pixel
