@@ -840,6 +840,11 @@ def acolite_l2r(gem,
                 aot_bands.append(b)
                 del band_data, band_sub, aot_band
 
+            ## test if valid data could be extracted
+            if len(aot_bands) == 0:
+                print('No valid data found for aot retrieval with current settings.')
+                return()
+
             ## get min aot per pixel
             aot_stack = {}
             for li, lut in enumerate(luts):
@@ -913,6 +918,7 @@ def acolite_l2r(gem,
                                                     aot_stack[lut]['all'][aid[0,:],aid[1,:],tmp[:,:,1]])
                 ## remove sorted indices
                 tmp = None
+
             ## select model based on min rmsd for 2 bands
             if setu['verbosity'] > 1: print('Choosing best fitting model: {} ({} bands)'.format(setu['dsf_model_selection'], setu['dsf_nbands']))
 
