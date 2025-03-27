@@ -8,6 +8,7 @@
 ##                2024-07-02 (QV) updated to version 2.0 datasets
 ##                2024-10-16 (QV) added SeaHawk1
 ##                2025-03-19 (QV) added MERIS RR FRS
+##                2025-03-27 (QV) added EMIT
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
@@ -95,9 +96,17 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
             collection_id.append('C1534584923-LPDAAC_ECS') ## ECO1BGEO
             api = 'json'
             if scene is not None:
-                 api = 'json'
                  print('Scene retrieval for ECOSTRESS not yet implemented')
                  return
+
+        elif sensoru in ['EMIT', 'ISS_EMIT']:
+            collection_id = []
+            collection_id.append('C2408009906-LPCLOUD') ## L1B OBS and RAD (in same collection)
+            api = 'json'
+            if scene is not None:
+                 print('Scene retrieval for EMIT not yet implemented')
+                 return
+
         elif ('VIIRS' in sensoru) | (sensoru in ['VNP', 'VJ1', 'VJ2']):
             ## track which resolution files to get
             mod, img = True, True

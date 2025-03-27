@@ -4,9 +4,10 @@
 ## 2023-10-26
 ## modifications: 2024-04-15 (QV) added JSON options
 ##                2024-04-28 (QV) added as acolite function
+##                2025-03-27 (QV) scene naming based on url if producer_granule_id is not present
 
 def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/'):
-    import requests, time, json
+    import requests, time, json, os
     from bs4 import BeautifulSoup
 
     urls = []
@@ -38,13 +39,18 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
     elif type == 'json':
         if verbosity > 0:  print('Found {} entries'.format(len(dct['feed']['entry'])))
         for e in dct['feed']['entry']:
-            scene = e['producer_granule_id']
+            scene = None
+            if 'producer_granule_id' in e: scene = e['producer_granule_id']
             for link in e['links']:
                 if 'href' not in link: continue
                 if (link['href'][0:4] == 'http') &\
                    ((link['href'][-3:] in ['.nc', '.h5']) | (link['href'].lower().endswith('.zip'))):
                     urls.append('{}'.format(link['href']))
-                    files.append('{}'.format(scene))
+                    ## append basename if scene is not set
+                    if scene is not None:
+                        files.append('{}'.format(scene))
+                    else:
+                        files.append(os.path.basename(link['href']))
     elif type == 'soup':
 
         ## find reference links - really only next is important
