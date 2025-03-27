@@ -11,6 +11,7 @@
 ##                2025-02-04 (QV) added additional S2C_MSI outputs
 ##                                updated settings handling, added rsr_version, fixed rhos_ds selection
 ##                2025-03-12 (QV) added wildcards for copy_datasets in separate file
+##                2025-03-27 (QV) update to RSR reading
 
 def acolite_l2w(gem, output = None, settings = None,
                 target_file = None, load_data = True, new = True, ):
@@ -86,16 +87,43 @@ def acolite_l2w(gem, output = None, settings = None,
         return(None)
 
     ## read rsr
-    hyper = False
+    hyper = gem.gatts['sensor'] in ac.config['hyper_sensors']
     lut_sensor = '{}'.format(gem.gatts['sensor'])
     if setu['rsr_version'] is not None: lut_sensor = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
-    ## hyperspectral
-    if gem.gatts['sensor'] in ac.config['hyper_sensors']:
-        hyper = True
-        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'], gem.gatts['band_widths'])
-        rsrd = ac.shared.rsr_dict(rsrd={lut_sensor:{'rsr':rsr}})
+
+    ## create or load RSR copied from L2R - maybe to split off in a function
+    if (hyper) & ('band_waves' in gem.gatts) & ('band_widths' in gem.gatts):
+        ## make hyperspectral RSR
+        rsr = ac.shared.rsr_hyper(gem.gatts['band_waves'],
+                                  gem.gatts['band_widths'], step=0.1)
+        ## update PACE OCI response with known RSR
+        if gem.gatts['sensor'] == 'PACE_OCI':
+            ## SWIR
+            swir_bands = [282, 283, 284, 285, 286, 287, 288, 289, 290]
+            rsrd_swir = ac.shared.rsr_dict('PACE_OCI_SWIR')
+            for bi, b in enumerate(swir_bands):
+                swir_b = rsrd_swir['PACE_OCI_SWIR']['rsr_bands'][bi]
+                rsr[b]['wave'] = np.asarray(rsrd_swir['PACE_OCI_SWIR']['rsr'][swir_b]['wave'])
+                rsr[b]['response'] = np.asarray(rsrd_swir['PACE_OCI_SWIR']['rsr'][swir_b]['response'])
+            del rsrd_swir
+        ## end update PACE OCI response
+        rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
+        del rsr
     else:
-        rsrd = ac.shared.rsr_dict(sensor=lut_sensor)
+        if setu['rsr_version'] is None:
+            rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
+        else: ## use versioned RSR
+            sensor_version = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
+            rsrd = ac.shared.rsr_dict(sensor_version)
+
+    if gem.gatts['sensor'] in rsrd:
+        lut_sensor = '{}'.format(gem.gatts['sensor'])
+    elif (sensor_version is not None) & (sensor_version in rsrd):
+        print('Using RSR {} for sensor {}'.format(sensor_version, gem.gatts['sensor']))
+        lut_sensor = '{}'.format(sensor_version)
+    else:
+        print('Could not find {} RSR'.format(gem.gatts['sensor']))
+        return()
 
     ## spectral turbidity/spm
     nechad_range = setu['nechad_range']
