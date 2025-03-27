@@ -6,6 +6,7 @@
 ##                2024-04-16 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) check for rad/obs files, cleaned up settings use, output naming
+##                2025-03-27 (QV) added subsetting support
 
 def l1_convert(inputfile, output=None, settings = None):
     import netCDF4, os
@@ -31,7 +32,6 @@ def l1_convert(inputfile, output=None, settings = None):
         if k not in ac.settings['user']: setu[k] = setd[k]
     ## end set sensor specific defaults
 
-    verbosity = setu['verbosity']
     if output is None: output = setu['output']
 
     ## get F0 for radiance -> reflectance computation
@@ -52,21 +52,11 @@ def l1_convert(inputfile, output=None, settings = None):
         if 'EMIT_L1B_RAD' in bn:
             obs_file = '{}/{}'.format(bd, bn.replace('EMIT_L1B_RAD', 'EMIT_L1B_OBS'))
             rad_file = '{}/{}'.format(bd, bn)
-        if verbosity > 1:
+        if setu['verbosity'] > 1:
             print('Selected RAD file: {}'.format(rad_file))
             print('Selected OBS file: {}'.format(obs_file))
 
-        if os.path.exists(obs_file):
-            ds = netCDF4.Dataset(obs_file)
-            obs_datasets = ds['sensor_band_parameters']['observation_bands'][:]
-            geom = {}
-            geom['vaa'] = ds['obs'][:,:, 1]
-            geom['vza'] = ds['obs'][:,:, 2]
-            geom['saa'] = ds['obs'][:,:, 3]
-            geom['sza'] = ds['obs'][:,:, 4]
-            ds.close()
-            ds = None
-        else:
+        if not os.path.exists(obs_file):
             print('OBS file missing: {}'.format(obs_file))
             continue
         if not os.path.exists(rad_file):
@@ -76,16 +66,43 @@ def l1_convert(inputfile, output=None, settings = None):
         ## open metadata
         meta = ac.shared.nc_gatts(rad_file)
 
-        ## open here since location and band data is stored in NetCDF groups
-        ds = netCDF4.Dataset(rad_file)
-        ## get location data
-        dsl = ds['/location/']
-        loc = {k:dsl[k][:].data for k in dsl.variables.keys() if k not in ['elev', 'glt_x', 'glt_y']}
-        ## get band data
-        dsb = ds['/sensor_band_parameters/']
-        band_data = {k:dsb[k][:].data for k in dsb.variables.keys()}
-        ds.close()
-        ds = None
+        ## read location and band data
+        sub = None
+        with netCDF4.Dataset(rad_file) as ds:
+            ## get band data
+            dsb = ds['/sensor_band_parameters/']
+            band_data = {k:dsb[k][:].data for k in dsb.variables.keys()}
+
+            ## get location data
+            dsl = ds['/location/']
+            loc = {k:dsl[k][:].data for k in dsl.variables.keys() if k not in ['elev', 'glt_x', 'glt_y']}
+
+            ## determine subset
+            if setu['limit'] is not None:
+                sub = ac.shared.geolocation_sub(loc['lat'], loc['lon'], setu['limit'])
+                if sub is None:
+                    print('Limit outside of scene {}'.format(file))
+                    continue
+                ## crop to sub
+                for k in loc:
+                    loc[k] = loc[k][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    print(k, loc[k].shape)
+            #band_data = {k:dsb[k][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]].data for k in dsb.variables.keys()}
+
+        ## read geometry
+        with netCDF4.Dataset(obs_file) as ds:
+            obs_datasets = ds['sensor_band_parameters']['observation_bands'][:]
+            geom = {}
+            if sub is None:
+                geom['vaa'] = ds['obs'][:,:, 1]
+                geom['vza'] = ds['obs'][:,:, 2]
+                geom['saa'] = ds['obs'][:,:, 3]
+                geom['sza'] = ds['obs'][:,:, 4]
+            else:
+                geom['vaa'] = ds['obs'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2], 1]
+                geom['vza'] = ds['obs'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2], 2]
+                geom['saa'] = ds['obs'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2], 3]
+                geom['sza'] = ds['obs'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2], 4]
 
         ## use centre date/time
         dt0 = dateutil.parser.parse(meta['time_coverage_start'])
@@ -154,21 +171,24 @@ def l1_convert(inputfile, output=None, settings = None):
 
         ## write lat/lon
         if (setu['output_geolocation']):
-            if verbosity > 1: print('Writing geolocation lon/lat')
+            if setu['verbosity']  > 1: print('Writing geolocation lon/lat')
             gemo.write('lon', loc['lon'])
-            if verbosity > 1: print('Wrote lon ({})'.format(loc['lon'].shape))
+            if setu['verbosity']  > 1: print('Wrote lon ({})'.format(loc['lon'].shape))
             gemo.write('lat', loc['lat'])
-            if verbosity > 1: print('Wrote lat ({})'.format(loc['lat'].shape))
+            if setu['verbosity']  > 1: print('Wrote lat ({})'.format(loc['lat'].shape))
 
         if setu['output_geometry']:
-            if verbosity > 1: print('Writing geometry')
+            if setu['verbosity'] > 1: print('Writing geometry')
             for k in geom:
                 gemo.write(k, geom[k])
-                if verbosity > 1: print('Wrote {} ({})'.format(k, geom[k].shape))
+                if setu['verbosity'] > 1: print('Wrote {} ({})'.format(k, geom[k].shape))
 
         ## read radiance data
-        if verbosity > 1: print('Reading radiance cube')
-        data, att = ac.shared.nc_data(rad_file, 'radiance', attributes=True)
+        setu['hyper_read_cube'] = True
+        if setu['hyper_read_cube']:
+            if setu['verbosity'] > 1: print('Reading radiance cube')
+            data, att = ac.shared.nc_data(rad_file, 'radiance', sub = sub, axis_3d = 2, attributes = True)
+            print(data.shape)
 
         ## run through bands and store rhot
         for bi, b in enumerate(bands):
@@ -176,7 +196,8 @@ def l1_convert(inputfile, output=None, settings = None):
             ds_att = {k:bands[b][k] for k in bands[b] if k not in ['rsr']}
 
             ## copy radiance
-            cdata_radiance = data[:,:,bi]
+            if setu['hyper_read_cube']:
+                cdata_radiance = data[:,:,bi]
 
             if setu['output_lt']:
                 ## write toa radiance
