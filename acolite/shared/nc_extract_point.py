@@ -7,23 +7,40 @@
 ##                2024-04-25 (QV) use gem for file reading
 ##                2024-06-05 (QV) added lat and lon parameter names as keyword
 ##                2025-03-03 (QV) check for finite lat/lon
+##                2025-03-28 (QV) test if file/attributes/datasets extist
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
                      lat_par = 'lat', lon_par = 'lon',
                      extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p',
                      external_mask = None):
+    import os
     import acolite as ac
     import numpy as np
 
+    if not os.path.exists(ncf):
+        print('File does not exist: {}'.format(ncf))
+        return
+
     ## read netcdf attributes and datasets
     gem = ac.gem.gem(ncf)
-    gatts = gem.gatts # ac.shared.nc_gatts(ncf)
-    datasets = gem.datasets # ac.shared.nc_datasets(ncf)
+
+    if gem.gatts is None:
+        print('Could not read attributes from file {}'.format(ncf))
+        gem = None
+        return
+
+    datasets = gem.datasets
     for ds in ['transverse_mercator', 'x', 'y']:
         if ds in datasets:
             datasets.remove(ds)
 
+    if len(datasets) == 0:
+        print('No datasets in file {}'.format(ncf))
+        gem = None
+        return
+
+    gatts = gem.gatts
     ## get image resolution
     if 'scene_pixel_size' in gatts:
         resolution = gatts['scene_pixel_size'][0]
