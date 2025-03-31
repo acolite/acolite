@@ -8,6 +8,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-02
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
+##                2025-03-31 (QV) added encoding
 
 def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosity = 5,
                url_base = None, geo_step = 0.25):
@@ -143,7 +144,7 @@ def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosit
                                   }
 
                             if (not os.path.exists(ofile)) or (override):
-                                with open(ofile, 'w') as f:
+                                with open(ofile, 'w', encoding = 'utf-8') as f:
                                     f.write(json.dumps(res))
 
     ## read & reformat profiles

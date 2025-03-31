@@ -8,6 +8,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-02-02
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
+##                2025-03-31 (QV) added encoding
 
 def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosity = 5, url_base = None):
     print(isotime, limit)
@@ -165,7 +166,7 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
 
                         res = {'time':float(ti),'levels':cur_levels,'lat':la, 'lon':lo, 'data':cur_data}
                         if (not os.path.exists(ofile)) or (override):
-                            with open(ofile, 'w') as f:
+                            with open(ofile, 'w', encoding = 'utf-8') as f:
                                 f.write(json.dumps(res))
 
     ## read & reformat profiles
@@ -188,7 +189,7 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
                     for par in ('RH', 'T'):
                         ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, ti, la, lo, par]]))
                         if os.path.exists(ofile):
-                            prof[par] = json.load(open(ofile, 'r'))
+                            prof[par] = json.load(open(ofile, 'r', encoding = 'utf-8'))
 
                             ## invert profile
                             prof[par]['data'].reverse()
@@ -197,7 +198,7 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
                     ## we have the profiles
                     if len(prof)==2:
                         if verbosity > 1: print('Reformatting profiles {}'.format(tmp_profile))
-                        with open(tmp_profile, 'w') as f:
+                        with open(tmp_profile, 'w', encoding = 'utf-8') as f:
                             f.write('{}\n'.format('# converted from MERRA2 profile'))
                             f.write('{}\n'.format('#   p(hPa)  T(K)  h2o(relative humidity)'))
 

@@ -4,6 +4,7 @@
 ## 2024-10-16
 ## modifications: 2024-10-16 (QV) adapted from viirs_l1a_to_l1b, currently HawkEye and MODIS
 ##                2024-10-17 (QV) added bzip2 extraction for MODIS
+##                2025-03-31 (QV) added encoding
 
 def ocssw_l1a_to_l1b(inputfile, local = None, override_download = False, override_conversion = False,
                      url_base = 'https://oceandata.sci.gsfc.nasa.gov/ob/getfile/'):
@@ -92,7 +93,7 @@ def ocssw_l1a_to_l1b(inputfile, local = None, override_download = False, overrid
         #if (make_geo) & (stype == 'MODIS'): lines.append(proc_att)
         if make_geo: lines.append(proc_geo)
         if make_l1b: lines.append(proc_l1b)
-        with open('ocssw_run.sh', 'w') as f:
+        with open('ocssw_run.sh', 'w', encoding = 'utf-8') as f:
             for line in lines:
                 f.write(line)
                 #print(line)

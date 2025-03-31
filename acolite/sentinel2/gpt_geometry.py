@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-02-17
 ## modifications: 2021-02-23 (QV) added quotation marks to gpt command to support spaces in path names
+##                2025-03-31 (QV) added encoding
 
 def gpt_geometry(bundle, output=None, target_res=60, override=True, verbosity=0, format='GeoTIFF'):
     import os
@@ -48,7 +49,7 @@ def gpt_geometry(bundle, output=None, target_res=60, override=True, verbosity=0,
             ## create gpt graph
             ifile = '{}/S2/gpt_geometry_graph.xml'.format(ac.config['data_dir'])
             if verbosity > 0: print('Writing gpt graph to {}'.format(gptfile, res))
-            with open(ifile, 'r') as fi, open(gptfile, 'w') as fo:
+            with open(ifile, 'r', encoding = 'utf-8') as fi, open(gptfile, 'w', encoding = 'utf-8') as fo:
                 for line in fi.readlines():
                     if '$bundle' in line:
                         line = line.replace('$bundle', bundle)

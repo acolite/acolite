@@ -10,7 +10,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-08-03
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
-##
+##                2025-03-31 (QV) added encoding
 
 def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity = 5,
               source = 'ncep.reanalysis2', url_base = None, geo_step = 2.5, time_step = 6):
@@ -148,7 +148,7 @@ def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity
                             res['data'].reverse()
 
                         if (not os.path.exists(ofile)) or (override):
-                            with open(ofile, 'w') as f:
+                            with open(ofile, 'w', encoding = 'utf-8') as f:
                                 f.write(json.dumps(res))
 
     ## read & reformat profiles
@@ -175,12 +175,12 @@ def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity
                     for par in ('r', 't'):
                         ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, cur_hour, la, lo, par]]))
                         if os.path.exists(ofile):
-                            prof[par] = json.load(open(ofile, 'r'))
+                            prof[par] = json.load(open(ofile, 'r', encoding = 'utf-8'))
 
                     ## we have the profiles
                     if len(prof)==2:
                         if verbosity > 1: print('Reformatting profiles {}'.format(tmp_profile))
-                        with open(tmp_profile, 'w') as f:
+                        with open(tmp_profile, 'w', encoding = 'utf-8') as f:
                             f.write('{}\n'.format('# converted from NCEP reanalysis profile'))
                             f.write('{}\n'.format('#   p(hPa)  T(K)  h2o(relative humidity)'))
 

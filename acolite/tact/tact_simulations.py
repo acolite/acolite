@@ -2,6 +2,7 @@
 ##         2019-12-17 renamed, integrated in tact
 ##         2021-02-27 (QV) integrated in acolite renamed from run_thermal_sim
 ##         2022-08-11 (QV) extended wave_range for resampling, added reptran if available
+##         2025-03-31 (QV) added encoding
 
 def tact_simulations(sonde, atmosphere="../data/atmmod/afglss.dat", obase=None,
                     reptran = 'medium',
@@ -100,7 +101,7 @@ def tact_simulations(sonde, atmosphere="../data/atmmod/afglss.dat", obase=None,
         Lu[np.isnan(Lu)] = 0
 
         ## write output
-        with open(ofile, 'w') as f:
+        with open(ofile, 'w', encoding = 'utf-8') as f:
             f.write('{}\n'.format('# LibRadtran results {}'.format(sim)))
             f.write('{}\n'.format('# {}'.format(datetime.datetime.now().isoformat())))
             f.write('{}\n'.format('# contact: Quinten Vanhellemont, RBINS'))

@@ -12,6 +12,7 @@
 ##                2023-01-29 (QV) added iteration in case NetCDF I/O error occurs
 ##                2023-01-30 (QV) added grib option
 ##                2023-08-07 (QV) moved url_base to ACOLITE config file
+##                2025-03-31 (QV) added encoding
 
 def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = False,
               url_base = None, geo_step = 0.25):
@@ -161,7 +162,7 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
                                #'data':[float(s) for s in list(prof[k, :, i, j].data)]
                                'data':[float(s) for s in list(prof[k, :, len(lat_cells)-1-i, j].data)]}
                         if (not os.path.exists(ofile)) or (override):
-                            with open(ofile, 'w') as f:
+                            with open(ofile, 'w', encoding = 'utf-8') as f:
                                 f.write(json.dumps(res))
 
     ## read & reformat profiles
@@ -184,12 +185,12 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
                     for par in ('r', 't'):
                         ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, ti, la, lo, par]]))
                         if os.path.exists(ofile):
-                            prof[par] = json.load(open(ofile, 'r'))
+                            prof[par] = json.load(open(ofile, 'r', encoding = 'utf-8'))
 
                     ## we have the profiles
                     if len(prof)==2:
                         if verbosity > 1: print('Reformatting profiles {}'.format(tmp_profile))
-                        with open(tmp_profile, 'w') as f:
+                        with open(tmp_profile, 'w', encoding = 'utf-8') as f:
                             f.write('{}\n'.format('# converted from ERA5 profile'))
                             f.write('{}\n'.format('#   p(hPa)  T(K)  h2o(relative humidity)'))
 

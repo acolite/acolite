@@ -3,7 +3,8 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2021-03-02
 ## modifications:  2022-04-13 (QV) added return limit option
-##
+##                 2025-03-31 (QV) added encoding
+
 
 def region_box(site, site_lon, site_lat, box_size = 3, return_limit = False,
                 add_box_name = True, sub_dir = None, override=True):
@@ -38,5 +39,5 @@ def region_box(site, site_lon, site_lat, box_size = 3, return_limit = False,
             data = {"type":"FeatureCollection",
                     "features":[{"type":"Feature","properties":{},
                                  "geometry":{"type":"Polygon","coordinates":coordinates}}]}
-            with open(jsonf, 'w') as f: json.dump(data, f)
+            with open(jsonf, 'w', encoding = 'utf-8') as f: json.dump(data, f)
         return(jsonf)

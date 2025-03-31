@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-04-01
 ## modifications: 2023-04-02 (QV) functionised
+##                2025-03-31 (QV) added encoding
 
 def viirs_l1a_to_l1b(scene, local = None, override_download = False, override_conversion = False,
                      url_base = 'https://oceandata.sci.gsfc.nasa.gov/ob/getfile/'):
@@ -57,7 +58,7 @@ def viirs_l1a_to_l1b(scene, local = None, override_download = False, override_co
         ## add processing lines
         if make_geo: lines.append(proc_geo)
         if make_l1b: lines.append(proc_l1b)
-        with open('viirs_run.sh', 'w') as f:
+        with open('viirs_run.sh', 'w', encoding = 'utf-8') as f:
             for line in lines:
                 f.write(line)
                 #print(line)

@@ -2,6 +2,7 @@
 ##         2019-12-17 renamed, integrated in tact
 ##         2021-02-27 (QV) integrated in acolite renamed from cfg_create
 ##         2022-08-11 (QV) extended wavelength range, added option to use reptran if available
+##         2025-03-31 (QV) added encoding
 
 def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
                ths=0.0, phi=0.0, phi0=0.0, atmosphere=None, wavelength = [7000, 14000],
@@ -41,6 +42,6 @@ def libradtran_cfg(thv=0.0, albedo=0.0, look_down=True,
             config += ['radiosonde {} H2O RH'.format(radiosonde)]
 
         if runfile is not None:
-            with open(runfile, 'w') as file:
+            with open(runfile, 'w', encoding = 'utf-8') as file:
                 for line in config: file.write(line+'\n')
         return(config)

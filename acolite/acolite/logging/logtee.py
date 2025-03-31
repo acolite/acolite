@@ -1,5 +1,6 @@
 import os, sys, datetime
 ## object for logging stdout to log file when processing
+## modifications: 2025-03-31 (QV) added encoding
 class LogTee(object):
 
         def __init__(self, name):
@@ -11,7 +12,7 @@ class LogTee(object):
                 except:
                     print('Error: could not create directory: {}'.format(os.path.dirname(self.name)))
                     exit(1)
-            self.file = open(self.name, 'w')
+            self.file = open(self.name, 'w', encoding = 'utf-8')
             self.file.close()
             self.mode='a'
             self.stdout = sys.stdout
@@ -25,7 +26,7 @@ class LogTee(object):
             self.stdout.write(data)
             data = data.strip()
             if len(data) > 0:
-                with open(self.name, self.mode) as self.file:
+                with open(self.name, self.mode, encoding = 'utf-8') as self.file:
                     self.file.write('{}: {}\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),data))
         def flush(self):
             pass

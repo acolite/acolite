@@ -2,7 +2,7 @@
 ## gets DEM file lists from PRISM server
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
-## modifications:
+## modifications: 2025-03-31 (QV) added encoding
 
 def copernicus_dem_filelist(publicDemURLs = 'https://prism-dem-open.copernicus.eu/pd-desk-open-access/publicDemURLs'):
 
@@ -32,7 +32,7 @@ def copernicus_dem_filelist(publicDemURLs = 'https://prism-dem-open.copernicus.e
             tiles.sort()
 
             ## write tilelist
-            with open(tilelist, 'w') as f:
+            with open(tilelist, 'w', encoding = 'utf-8') as f:
                 for tile in tiles:
                     f.write(tile)
                     f.write('\n')
