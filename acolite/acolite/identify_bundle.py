@@ -162,7 +162,7 @@ def identify_bundle(bundle, input_type = None, output = None):
         try:
             metafile = ac.worldview.bundle_test(bundle)
             meta = ac.worldview.metadata_parse(metafile)
-            if meta['satellite'] in ['WorldView2', 'WorldView3', 'QuickBird2', 'GeoEye1',\
+            if meta['satellite'] in ['WorldView2', 'WorldView3', 'WorldView4', 'QuickBird2', 'GeoEye1',\
                                      'LG01', 'LG02', 'LG03', 'LG04', 'LG05', 'LG06', ]:
                 input_type = 'WorldView'
                 break ## exit loop

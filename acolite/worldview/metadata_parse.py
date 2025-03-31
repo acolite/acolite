@@ -10,6 +10,7 @@
 ##                2022-02-27 (QV) change band_index according to band tags present in metadata
 ##                2025-02-14 (QV) added Legion
 ##                2025-03-01 (QV) added PGC and PGC stretch identification
+##                2025-03-31 (QV) added WV4 support
 
 def metadata_parse(metafile):
     import os, sys, fnmatch, dateutil.parser
@@ -52,10 +53,18 @@ def metadata_parse(metafile):
         if len(node) > 0: metadata[tag] = node[0].firstChild.nodeValue
 
     if 'SATID' in metadata:
+        if metadata['SATID'] == 'WV04':
+            metadata['satellite'] = 'WorldView4'
+            metadata['sensor'] = 'WorldView4'
+            metadata["isotime"] = metadata["FIRSTLINETIME"]
+            band_names=['BLUE', 'GREEN', 'RED', 'NIR']
+            band_indices=[1,2,3,4]
+            band_tag_names = ["BAND_B", "BAND_G", "BAND_R", "BAND_N"]
+
         if metadata['SATID'] == 'WV03':
             metadata['satellite'] = 'WorldView3'
             metadata['sensor'] = 'WorldView3'
-            metadata["isotime"]=metadata["FIRSTLINETIME"]
+            metadata["isotime"] = metadata["FIRSTLINETIME"]
             band_names=['COASTAL','BLUE','GREEN','YELLOW','RED','REDEDGE','NIR1','NIR2',
                         'SWIR1','SWIR2','SWIR3','SWIR4','SWIR5','SWIR6','SWIR7','SWIR8']
             band_indices=[1,2,3,4,5,6,7,8,
