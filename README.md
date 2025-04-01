@@ -116,17 +116,3 @@ To add optical properties of clouds and aerosols (not currently used), similarly
             wget "http://www.meteo.physik.uni-muenchen.de/~libradtran/lib/exe/fetch.php?media=download:optprop_v2.1.tar.gz" -O optprop_v2.1.tar.gz
             tar -xvf optprop_v2.1.tar.gz
             rm optprop_v2.1.tar.gz
-
-## TACT configuration
-**2021-11-22 QV I believe this next section is no longer required**
-
-TACT needs the user to have an account at the Research Data Archive (RDA) at the University Corporation for Atmospheric Research (UCAR) to retrieve atmospheric profile data: https://rda.ucar.edu/
-
-* Edit your .netrc file to add your RDA UCAR credentials: `nano $HOME/.netrc`, with $l and $p your login and password respectively for the RDA:
-
-            machine rda.ucar.edu
-            login $l
-            password $p
-
-* Edit your .dodsrc file to point to your .netrc file: `nano $HOME/.dodsrc`. Write the full path explicitly:
-            HTTP.NETRC=/path/to/.netrc
