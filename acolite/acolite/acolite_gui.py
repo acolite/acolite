@@ -399,7 +399,7 @@ def acolite_gui(*args, version=None):
                 #self.acolite_settings['adjacency_correction_method'] = 'radcor'
                 self.acolite_settings['atmospheric_correction'] = True
                 self.acolite_settings['atmospheric_correction_method'] = 'radcor'
-            if ac_tact != 0:
+            if ac_tact == 1:
                 self.acolite_settings['tact_run'] = True
             else:
                 self.acolite_settings['tact_run'] = False
@@ -501,14 +501,10 @@ def acolite_gui(*args, version=None):
                         if self.acolite_settings[tag] == 'exponential': v = 0
                         if self.acolite_settings[tag] == 'dark_spectrum': v = 1
                         if self.acolite_settings[tag] == 'radcor': v = 2
-                    #if ('adjacency_correction' in self.acolite_settings) &\
-                    #   ('adjacency_correction_method' in self.acolite_settings):
-                    #    if (self.acolite_settings['adjacency_correction']) & \
-                    #       (self.acolite_settings['adjacency_correction_method'] == 'radcor'):
-                    #       v = 2
                     self.ac_alg.set(v)
+                    
                     ## set tact
-                    v = 1
+                    v = 0
                     tag = 'tact_run'
                     if tag in self.acolite_settings: v = 1 if self.acolite_settings[tag] else 0
                     self.tact_run.set(v)
