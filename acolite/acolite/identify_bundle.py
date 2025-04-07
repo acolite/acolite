@@ -92,7 +92,16 @@ def identify_bundle(bundle, input_type = None, output = None):
             if 'OLCI Level 1b Product' in gatts['title']:
                 input_type = 'Sentinel-3'
                 break ## exit loop
+            elif 'OLCI Level 2 WATER Product' in gatts['title']:
+                input_type = 'Sentinel-3'
+                break ## exit loop
             elif 'MERIS Level 1b Product' in gatts['title']:
+                input_type = 'Sentinel-3'
+                break ## exit loop
+            elif 'MERIS Level 2 CLOUD Product' in gatts['title']:
+                input_type = 'Sentinel-3'
+                break ## exit loop
+            elif 'MERIS Level 2 WATER Product' in gatts['title']:
                 input_type = 'Sentinel-3'
                 break ## exit loop
             elif 'S3 SLSTR L1' in gatts['title']:
