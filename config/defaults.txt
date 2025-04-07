@@ -44,6 +44,7 @@ output_xy=False
 output_geometry=True
 output_rhorc=False
 output_ed=False
+convert_l2=False
 
 ## add band names to datasets
 ## not supported for all sensors

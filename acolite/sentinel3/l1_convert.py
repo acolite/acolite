@@ -21,7 +21,7 @@
 ##                2025-02-08 (QV) fixed for full tile merging
 ##                2025-03-19 (QV) added s3_product_type, added s3_product_type to oname
 
-def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, write_l2_err = False):
+def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
 
     import os, glob, datetime, time, re
     import dateutil.parser
@@ -218,7 +218,16 @@ def l1_convert(inputfile, output = None, settings = None, convert_l2 = False, wr
         if 'OLCI Level 2 WATER Product' in gatts['title']:
             product_level = 'level2'
             acolite_file_type = 'L2S'
-        if (convert_l2 is False) & (product_level != 'level1'):
+        elif 'MERIS Level 2 WATER Product' in gatts['title']:
+            product_level = 'level2'
+            acolite_file_type = 'L2S'
+        elif 'MERIS Level 2 CLOUD Product' in gatts['title']:
+            product_level = 'level2'
+            acolite_file_type = 'L2S'
+        else:
+            print(gatts['title'])
+
+        if (setu['convert_l2'] is False) & (product_level != 'level1'):
             print('File type = {}'.format(gatts['title']))
             print('Not converting to ACOLITE type, set convert_l2 = True.')
             continue
