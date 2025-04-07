@@ -1616,9 +1616,6 @@ def acolite_l2w(gem, output = None, settings = None,
                     X += tmp_data[iw] * hac['X'][idx]
                     Y += tmp_data[iw] * hac['Y'][idx]
                     Z += tmp_data[iw] * hac['Z'][idx]
-                X[np.where(mask)] = np.nan
-                Y[np.where(mask)] = np.nan
-                Z[np.where(mask)] = np.nan
                 den = (X+Y+Z)
                 x = X/den
                 y = Y/den
