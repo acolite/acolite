@@ -21,3 +21,5 @@ rgb_blue_wl=505
 
 dsf_spectrum_option=percentile
 dsf_percentile=1
+pans_scale_factor=4
+pans_bgr=480,560,650

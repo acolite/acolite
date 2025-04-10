@@ -494,7 +494,7 @@ pans_bgr=480,560,655
 pans_rgb_rhot=True
 pans_rgb_rhos=True
 pans_export_geotiff_rgb=False
-pans_sensors=L7_ETM,L8_OLI,L9_OLI,PRISMA,MSG1_SEVIRI,MSG2_SEVIRI,MSG3_SEVIRI,MSG4_SEVIRI
+pans_sensors=L7_ETM,L8_OLI,L9_OLI,PRISMA,MSG1_SEVIRI,MSG2_SEVIRI,MSG3_SEVIRI,MSG4_SEVIRI,PHR1A,PHR1B
 pans_scale_factor=None
 
 # more mapping options - under development
