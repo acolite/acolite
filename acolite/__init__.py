@@ -50,6 +50,7 @@ from acolite import parameters
 
 from acolite import api
 from acolite import rtm
+from acolite import custom
 
 ## ignore numpy errors
 import numpy as np
