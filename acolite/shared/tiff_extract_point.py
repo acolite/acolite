@@ -3,7 +3,7 @@
 ## useable but work in progress
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-03-31
-## modifications:
+## modifications: 2025-04-09 (QV) added rhor
 
 def tiff_extract_point(file, st_lon, st_lat, box_size = 1, shift_edge = False):
     import os, re
@@ -102,9 +102,13 @@ def tiff_extract_point(file, st_lon, st_lat, box_size = 1, shift_edge = False):
     dct['std'] = {ds: np.nanstd(dct['data'][ds]) for ds in dct['datasets']}
 
     dct['rhow_datasets'] = [ds for ds in dct['datasets'] if 'rhow' in ds]
-    dct['rhow_wave'] = [int(re.findall(r'\b\d+\b', ds)[0]) for ds in dct['rhow_datasets']]
+    #dct['rhow_wave'] = [int(re.findall(r'\b\d+\b', ds)[0]) for ds in dct['rhow_datasets']]
+    dct['rhow_wave'] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['rhow_datasets']]
+
+    dct['rhor_datasets'] = [ds for ds in dct['datasets'] if 'rhor' in ds]
+    dct['rhor_wave'] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['rhor_datasets']]
 
     dct['band_datasets'] = [ds for ds in dct['datasets'] if 'band_' in ds]
-    dct['band_idx'] = [int(re.findall(r'\b\d+\b', ds)[0]) for ds in dct['band_datasets']]
+    dct['band_idx'] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['band_datasets']]
 
     return(dct)
