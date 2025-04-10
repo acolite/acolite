@@ -15,6 +15,7 @@
 ##                2025-02-10 (QV) cleaned up settings use
 ##                2025-03-01 (QV) added bundle_test to get metafile, added PGC identification
 ##                                replaced convert_atmospherically_corrected by worldview_convert_l2 setting
+##                2025-04-07 (QV) change worldview_convert_l2 to convert_l2
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
@@ -92,7 +93,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 print('Image {} is already corrected by supplier.'.format(bundle))
                 print('RADIOMETRICLEVEL: {} RADIOMETRICENHANCEMENT: {}'.format(meta['RADIOMETRICLEVEL'], meta['RADIOMETRICENHANCEMENT']))
                 atmospherically_corrected = True
-                if not setu['worldview_convert_l2']: continue
+                if not setu['convert_l2']: continue
 
         ## test if we have PGC bundle
         pgc_bundle = False
@@ -102,7 +103,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 print('Image {} is already corrected by supplier.'.format(bundle))
                 print('PGC_STRETCH: {}'.format(meta['PGC_STRETCH']))
                 atmospherically_corrected = True
-                if not setu['worldview_convert_l2']: continue
+                if not setu['convert_l2']: continue
 
         ## parse the metadata
         if swir_bundle is not None:
