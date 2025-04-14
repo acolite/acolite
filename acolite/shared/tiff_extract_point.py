@@ -108,6 +108,9 @@ def tiff_extract_point(file, st_lon, st_lat, box_size = 1, shift_edge = False):
     dct['rhor_datasets'] = [ds for ds in dct['datasets'] if 'rhor' in ds]
     dct['rhor_wave'] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['rhor_datasets']]
 
+    dct['rhot_datasets'] = [ds for ds in dct['datasets'] if 'rhot' in ds]
+    dct['rhot_wave'] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['rhot_datasets']]
+
     dct['band_datasets'] = [ds for ds in dct['datasets'] if 'band_' in ds]
     dct['band_idx'] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['band_datasets']]
 
