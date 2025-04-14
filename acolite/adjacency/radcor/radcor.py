@@ -38,6 +38,7 @@
 ##                2025-02-10 (QV) renamed radcor_optimise_* settings to optimise_* settings, added optimise_target_rhos_file
 ##                2025-03-17 (QV) use separate function for reading optim target
 ##                2025-03-19 (QV) added s3_product_type for MERIS/OLCI
+##                2025-04-14 (QV) add back gas transmittance for rhot outputs
 
 def radcor(ncf, settings = None):
     import os, json
@@ -286,7 +287,10 @@ def radcor(ncf, settings = None):
             if setu['radcor_write_rhot']:
                 if setu['radcor_crop_centre']: ## crop to centre are
                     rho_toa = rho_toa[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
+                ## add back gas transmittance
+                rho_toa *= bands[b]['tt_gas']
                 gemo.write(bands[b]['rhot_ds'], rho_toa, ds_att = att)
+                del rho_toa
 
             ## write toa corrected for adjacency
             ## i.e. rhos transfered back to toa for homogeneous surface
@@ -302,6 +306,7 @@ def radcor(ncf, settings = None):
                 ## write also as rhot to L1RC file
                 if setu['radcor_write_rhotc_separate_file']:
                     gemo_l1rc.write(bands[b]['rhot_ds'], rhotc, ds_att = att)
+                del rhotc
 
             ## write Ed
             if setu['output_ed']:
@@ -337,13 +342,14 @@ def radcor(ncf, settings = None):
             if setu['radcor_crop_centre']: ## crop to centre area
                 rho_s_est = rho_s_est[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
             gemo.write(bands[b]['rhos_ds'], rho_s_est, ds_att = att)
+            del rho_s_est
 
             ## write rho_s_homo
             if setu['radcor_write_rhosu']:
                 if setu['radcor_crop_centre']: ## crop to centre area
                     rho_s_homo = rho_s_homo[cen_offset_0:x_a_dim[0] - cen_offset_0, cen_offset_1:x_a_dim[1] - cen_offset_1]
                 gemo.write(bands[b]['rhos_ds'].replace('rhos_', 'rhosu_'), rho_s_homo, ds_att = att)
-
+                del rho_s_homo
     ### end of inner correct_band function
 
 
