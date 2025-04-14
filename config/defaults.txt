@@ -463,6 +463,7 @@ map_scalebar_position_vu=0.85
 map_scalebar_position_vl=0.10
 map_scalebar_position_hr=0.95
 map_scalebar_position_hl=0.05
+map_scalebar_straight=True
 map_points=None
 map_polygons=None
 

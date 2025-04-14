@@ -22,7 +22,7 @@
 ##                2025-01-16 (QV) removed transformation to lower case for parameter names
 ##                                added user parameter scaling file
 ##                2025-02-04 (QV) improved settings handling, changed parameter label identification
-##                2025-04-14 (QV) added map_polygons
+##                2025-04-14 (QV) added map_polygons, map_scalebar_straight
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -608,6 +608,10 @@ def acolite_map(ncf, output = None,
         if setu['map_cartopy'] & setu['map_projected']:
             xsb, ysb = crs_proj(xsb, ysb)
             xsbl, ysbl = crs_proj(xsbl, ysbl)
+
+        ## plot the scale bar straight on the map and not aligned with projection
+        if setu['map_scalebar_straight']:
+            ysb = [np.nanmean(ysb)] * 2
     ## end prepare scale bar
 
     ## make plots
