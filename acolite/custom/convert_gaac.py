@@ -2,6 +2,7 @@
 ## converts GAAC output bundle to netcdf file
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-04-10
+## modifications: 2025-04-14 (QV) add half pixel for lat lon computation
 
 def convert_gaac(file, output = None, use_gaac_name = True):
     import acolite as ac
@@ -42,7 +43,7 @@ def convert_gaac(file, output = None, use_gaac_name = True):
             ## read file projection and determine lat/lon
             if sf.endswith('rhor.tif'):
                 dct = ac.shared.projection_read(sf)
-                lon, lat = ac.shared.projection_geo(dct, add_half_pixel = False)
+                lon, lat = ac.shared.projection_geo(dct, add_half_pixel = True)
                 data['lon'] = lon
                 data['lat'] = lat
 
