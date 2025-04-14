@@ -26,6 +26,7 @@ from .nc_projection_dct import *
 from .nc_projection_read import *
 from .nc_extract_point import *
 from .tiff_extract_point import *
+from .nc_extract_transect import *
 
 from .read_band import *
 from .read_gdal_meta import *
