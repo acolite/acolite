@@ -22,6 +22,7 @@
 ##                2025-01-16 (QV) removed transformation to lower case for parameter names
 ##                                added user parameter scaling file
 ##                2025-02-04 (QV) improved settings handling, changed parameter label identification
+##                2025-04-14 (QV) added map_polygons
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -235,6 +236,30 @@ def acolite_map(ncf, output = None,
                                  verticalalignment=points[pname]['va'], horizontalalignment=points[pname]['ha'])
             ## end add point markers
 
+            ## add polygons
+            if polygons is not None:
+                for pname in polygons:
+                    if 'px' not in polygons[pname]: continue
+                    p = polygons[pname]
+                    ## polygon colours and style
+                    mfc, mec, lw, ls = None, None, None, None
+                    if 'facecolor' in p: mfc = p['facecolor']
+                    if 'edgecolor' in p: mec = p['edgecolor']
+                    if 'linewidth' in p: lw = p['linewidth']
+                    if 'linestyle' in p: ls = p['linestyle']
+                    ## fill polygon
+                    fill = False
+                    if 'fill' in p: fill = p['fill']
+                    if (fill) & (mfc is None) & (mec is not None): mfc = mec
+                    ## create polygon and add patch
+                    poly_ = [(p['px'][i], p['py'][i]) for i in range(len(p['px']))]
+                    poly = mpl.patches.Polygon(poly_,
+                                               facecolor = mfc, edgecolor = mec,
+                                               linewidth = lw, linestyle = ls,
+                                               zorder = 10, fill = fill)
+                    ax.add_patch(poly)
+            ## end add polgons
+
             ## add the scalebar
             if setu['map_scalebar']:
                 plt.plot(xsb, ysb, '-', linewidth = 2, color=setu['map_scalebar_color'], zorder=10)
@@ -396,7 +421,7 @@ def acolite_map(ncf, output = None,
     if len(plot_parameters) == 0: return
 
     ## load lat and lon
-    if setu['map_pcolormesh'] | (setu['map_points'] is not None) | (setu['map_scalebar']):
+    if setu['map_pcolormesh'] | (setu['map_points'] is not None) | (setu['map_polygons'] is not None) | (setu['map_scalebar']):
         lon = gem.data('lon')
         lat = gem.data('lat')
         ## find region mid point
@@ -412,10 +437,9 @@ def acolite_map(ncf, output = None,
         lrat = lond/latd
 
     ## check if we need to add points to the map
-    if 'map_points' in setu:
-        if setu['map_points'] is None:
-            points = None
-        elif type(setu['map_points']) is dict:
+    points = None
+    if setu['map_points'] is not None:
+        if type(setu['map_points']) is dict:
             points = {p: setu['map_points'][p] for p in setu['map_points']}
         else:
             points = ac.shared.read_points(setu['map_points'])
@@ -476,6 +500,49 @@ def acolite_map(ncf, output = None,
         else:
             points = None
     ## end points
+
+    ## check if we need to add points to the map
+    polygons = None
+    if setu['map_polygons'] is not None:
+        if type(setu['map_polygons']) is dict:
+            polygons = {p: setu['map_polygons'][p] for p in setu['map_polygons']}
+        else:
+            polygons = ac.shared.read_points(setu['map_polygons'])
+
+        if type(polygons) is dict:
+            ## find vertex positions
+            for pname in polygons:
+                p = polygons[pname]
+                plons_ = np.atleast_1d(p['lon']).astype(np.float32)
+                plats_ = np.atleast_1d(p['lat']).astype(np.float32)
+                if len(plons_) == len(plats_):
+                    plons, plats = [], []
+                    xs, ys = [], []
+                    for pi in range(len(plons_)):
+                        plon = plons_[pi]
+                        plat = plats_[pi]
+                        if plon > np.nanmax(lon): continue
+                        if plon < np.nanmin(lon): continue
+                        if plat > np.nanmax(lat): continue
+                        if plat < np.nanmin(lat): continue
+
+                        if setu['map_pcolormesh'] & setu['map_projected']:
+                            px, py = plon, plat
+                        elif setu['map_cartopy'] & setu['map_projected']:
+                            px, py = crs_proj(plon, plat)
+                        else:
+                            tmp = ((lon - plon)**2 + (lat - plat)**2)**0.5
+                            i, j = np.where(tmp == np.nanmin(tmp))
+                            py, px = i[0], j[0]
+
+                        plons.append(plon)
+                        plats.append(plats)
+                        xs.append(px)
+                        ys.append(py)
+                ## track x and y
+                polygons[pname]['px'] = xs
+                polygons[pname]['py'] = ys
+    ## end map polygons
 
     ## prepare scale bar
     ## approximate distance in one degree of longitude

@@ -9,7 +9,7 @@
 #label_side=right
 ## written by Quinten Vanhellemont
 ## 2018-03-29
-## modifications:
+## modifications: 2025-04-14 (QV) support for comma separated values
 
 
 def read_points(file):
@@ -25,6 +25,9 @@ def read_points(file):
                 cur_label = sp[1]
                 if cur_label not in points:
                     points[cur_label] = {}
+
+            if ',' in sp[1]:
+                sp[1] = [s.strip() for s in sp[1].split(',')]
 
             if sp[1] == 'True': sp[1] = True
             if sp[1] == 'False': sp[1] = False
