@@ -19,7 +19,7 @@ luts=ACOLITE-LUT-202110-MOD2
 
 dsf_filter_aot=True
 dsf_filter_percentile=0
-dsf_filter_box=3
+dsf_filter_box=3,3
 dsf_write_aot_550=True
 
 dsf_smooth_aot=True
