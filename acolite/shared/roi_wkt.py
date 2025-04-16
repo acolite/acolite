@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-20
 ## modifications: 2024-04-08 (QV) added geojson
+##                2025-04-16 (QV) check tuples as well
 
 def roi_wkt(roi):
     import os
@@ -39,9 +40,9 @@ def roi_wkt(roi):
         if wkt is None:
             if len(roi.split(',')) == 4: limit = [float(r.strip()) for r in roi.split(',')]
 
-    ## try if roi is limit list
+    ## try if roi is limit list or tuple
     if wkt is None:
-        if type(roi) is list:
+        if type(roi) in [list, tuple]:
             if len(roi) == 4: limit = [r for r in roi]
         if limit is not None:
             try:
