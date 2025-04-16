@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-04-10
 ## modifications: 2025-04-14 (QV) add half pixel for lat lon computation
+##                2025-04-15 (QV) fix for wrong T in GAAC file name, wavelength as float
 
 def convert_gaac(file, output = None, use_gaac_name = True):
     import acolite as ac
@@ -85,6 +86,10 @@ def convert_gaac(file, output = None, use_gaac_name = True):
                 gaac_name = sp[-1].strip()
                 for v in gaac_name.split('_'):
                     if (len(v) >= 13) & ('T' in v):
+                        ## T is placed in wrong position in GAAC git clone
+                        ## should be fixed by PR 2025-04-15
+                        if v.find('T') == 10: v = v[0:8] + 'T' + v[8:10] + v[11:]
+                        ## end T fix
                         dt = dateutil.parser.parse(v+'+00:00')
                         gatts['isodate'] = dt.isoformat()
                 if use_gaac_name: oname = os.path.basename(gaac_name)
@@ -126,7 +131,7 @@ def convert_gaac(file, output = None, use_gaac_name = True):
     for ds in data:
         gemo.data_mem[ds] = data[ds]
         ## add wavelength for spectrum viewer
-        if 'rho' in ds: gemo.data_att[ds] = {'wavelength': ds.split('_')[1]}
+        if 'rho' in ds: gemo.data_att[ds] = {'wavelength': float(ds.split('_')[1])}
         gemo.write_ds(ds, clear = True)
 
     ## update attributes
