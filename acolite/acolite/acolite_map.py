@@ -548,7 +548,7 @@ def acolite_map(ncf, output = None,
     ## approximate distance in one degree of longitude
     if setu['map_scalebar']:
         if setu['map_scalebar_position'] not in ['UR','UL','LL','LR']:
-            print('Map scalebar position {} not recognised.')
+            print('Map scalebar position {} not recognised.'.format(setu['map_scalebar_position']))
             print('Using default map_scalebar_position=UL.')
             setu['map_scalebar_position'] = 'UL'
         posv = {'U': 0.85, 'L': 0.10}
