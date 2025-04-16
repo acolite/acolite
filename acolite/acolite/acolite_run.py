@@ -169,10 +169,10 @@ def acolite_run(settings, inputfile=None, output=None):
                 ## compute limit buffer
                 limit_buffer = ac.settings['run']['limit_buffer'] * limit_factor[0], \
                                ac.settings['run']['limit_buffer'] * limit_factor[1]
-                ac.settings['run']['limit'] = ac.settings['run']['limit_old'][0] - limit_buffer[0], \
-                                              ac.settings['run']['limit_old'][1] - limit_buffer[1], \
-                                              ac.settings['run']['limit_old'][2] + limit_buffer[0], \
-                                              ac.settings['run']['limit_old'][3] + limit_buffer[1]
+                ac.settings['run']['limit'] = [ac.settings['run']['limit_old'][0] - limit_buffer[0], \
+                                               ac.settings['run']['limit_old'][1] - limit_buffer[1], \
+                                               ac.settings['run']['limit_old'][2] + limit_buffer[0], \
+                                               ac.settings['run']['limit_old'][3] + limit_buffer[1]]
                 if ac.settings['run']['verbosity'] > 1:
                     print('Old limit: {}'.format(ac.settings['run']['limit_old']))
                     print('New limit: {}'.format(ac.settings['run']['limit']))
