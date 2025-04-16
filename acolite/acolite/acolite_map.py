@@ -124,6 +124,11 @@ def acolite_map(ncf, output = None,
 
         ## title and outputfile
         title = '{}\n{}'.format(title_base, part)
+
+        ## add region name tot title
+        if setu['map_title_region_name']:
+            if setu['region_name'] is not None:
+                title += '\n{}'.format(setu['region_name'])
         ofile = '{}/{}_{}.{}'.format(odir, fn, par, setu['map_ext'])
 
         ## raster 1:1 pixel outputs

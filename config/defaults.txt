@@ -446,6 +446,7 @@ l2w_rgb_keys=rhow
 # mapping options
 map_title=True
 map_title_rgb_wavelengths=False
+map_title_region_name=False
 map_fontname=sans-serif
 map_fontsize=12
 map_usetex=False
