@@ -39,6 +39,7 @@
 ##                2025-03-17 (QV) use separate function for reading optim target
 ##                2025-03-19 (QV) added s3_product_type for MERIS/OLCI
 ##                2025-04-14 (QV) add back gas transmittance for rhot outputs
+##                2025-04-17 (QV) track settings in output gatts
 
 def radcor(ncf, settings = None):
     import os, json
@@ -1753,6 +1754,16 @@ def radcor(ncf, settings = None):
             gemo.nc_projection['x']['data'] = gemo.nc_projection['x']['data'][cen_offset_1:x_a_dim[1] - cen_offset_1]
             gemo.nc_projection['y']['data'] = gemo.nc_projection['y']['data'][cen_offset_0:x_a_dim[0] - cen_offset_0]
     gemo.bands = bands
+
+    ## add processing settings
+    for k in setu:
+        if k not in gemo.gatts:
+            #if not k.startswith('radcor'): continue
+            if k in gem.gatts: continue
+            if setu[k] in [True, False]:
+                gemo.gatts[k] = str(setu[k])
+            else:
+                gemo.gatts[k] = setu[k]
 
     ## add selected model and aot
     gemo.gatts['ac_model'] = best_mod
