@@ -2,9 +2,10 @@
 ## extracts transect from an ACOLITE NetCDF file for a line between given lon1, lat1 and lon2, lat2
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-04-14
-## modifications:
+## modifications: 2025-04-20 (QV) added datasets keyword
 
 def nc_extract_transect(file, st_lon1, st_lat1, st_lon2, st_lat2,
+                        datasets = None,
                         transect_length = None, pixel_coordinates = False,
                         lat_par = 'lat', lon_par = 'lon', verbosity = 0):
     import os
@@ -23,10 +24,17 @@ def nc_extract_transect(file, st_lon1, st_lat1, st_lon2, st_lat2,
         return
 
     ## test datasets
-    datasets = gem.datasets
+    if datasets is None:
+        datasets = gem.datasets
+    else:
+        for ds in datasets:
+            if ds not in gem.datasets:
+                datasets.remove(ds)
+
     for ds in ['transverse_mercator', 'x', 'y']:
         if ds in datasets:
             datasets.remove(ds)
+
     if len(datasets) == 0:
         print('No datasets in file {}'.format(file))
         gem.close()
