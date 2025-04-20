@@ -8,13 +8,14 @@
 ##                2024-06-05 (QV) added lat and lon parameter names as keyword
 ##                2025-03-03 (QV) check for finite lat/lon
 ##                2025-03-28 (QV) test if file/attributes/datasets extist
+##                2025-04-20 (QV) changed wavelength extraction
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
                      lat_par = 'lat', lon_par = 'lon',
                      extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p',
                      external_mask = None):
-    import os
+    import os, re
     import acolite as ac
     import numpy as np
 
@@ -214,20 +215,10 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
 
     ## store common spectral datasets and centre wavelengths
     dct['datasets'] = list(dct['data'].keys())
-    dct['rhot_datasets'] = [ds for ds in dct['datasets'] if 'rhot_' in ds]
-    dct['rhot_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhot_datasets']]
-    dct['rhotc_datasets'] = [ds for ds in dct['datasets'] if 'rhotc_' in ds]
-    dct['rhotc_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhotc_datasets']]
-    dct['rhos_datasets'] = [ds for ds in dct['datasets'] if 'rhos_' in ds]
-    dct['rhos_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhos_datasets']]
-    dct['rhosu_datasets'] = [ds for ds in dct['datasets'] if 'rhosu_' in ds]
-    dct['rhosu_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhosu_datasets']]
-    dct['rhoe_datasets'] = [ds for ds in dct['datasets'] if 'rhoe_' in ds]
-    dct['rhoe_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhoe_datasets']]
-    dct['rhow_datasets'] = [ds for ds in dct['datasets'] if 'rhow_' in ds]
-    dct['rhow_wave'] = [int(ds.split('_')[-1]) for ds in dct['rhow_datasets']]
-    dct['Rrs_datasets'] = [ds for ds in dct['datasets'] if 'Rrs_' in ds]
-    dct['Rrs_wave'] = [int(ds.split('_')[-1]) for ds in dct['Rrs_datasets']]
+    for base_key in ['rhot_', 'rhotc_', 'rhos_', 'rhosu_', 'rhoe_', 'rhow_', 'Rrs_']:
+        dct['{}datasets'.format(base_key)] = [ds for ds in dct['datasets'] if base_key in ds]
+        #dct['{}wave'.format(base_key)] = [int(ds.split('_')[-1]) for ds in dct['{}datasets'.format(base_key)]]
+        dct['{}wave'.format(base_key)] = [int(re.findall(r'\d+', ds)[0]) for ds in dct['{}datasets'.format(base_key)]]
 
     ## compute means when more than 1x1 pixel is extracted
     if gsub[2:] != [1,1]:
