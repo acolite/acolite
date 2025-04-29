@@ -1,5 +1,8 @@
+## def qaa_compute
 ## function to compute Lee's QAA with DVDZ merging
-## QV 2021-02-15
+## written by Quinten Vanhellemont, RBINS
+## 2021-02-15 adapted from 2018-03-08 acolite_l2w_qaa function
+## modifications: 2025-04-29 (QV) fix for rhow v6 computation
 
 def qaa_compute(qaa_in, sza = 0, satellite = None,
                 qaa_wave = [443, 490, 560, 665],qaa_coef = None,
@@ -41,7 +44,9 @@ def qaa_compute(qaa_in, sza = 0, satellite = None,
     qaa_data['v5_a_560'] = qaa_coef['aw'][2]+np.power(10.,(qaa_coef['h'][2]+(qaa_coef['h'][1]*rhow_v5)+qaa_coef['h'][0]*np.power(rhow_v5,2.)))
 
     ## get rhow and a665 according to QAA6
-    rhow_v6=qaa_data['rrs_665']/(qaa_data['rrs_443']+qaa_data['rrs_490'])
+    #rhow_v6=qaa_data['rrs_665']/(qaa_data['rrs_443']+qaa_data['rrs_490'])
+    ## QV 2025-04-29 fix to use Rrs instead of rrs
+    rhow_v6=qaa_in[665]/(qaa_in[443]+qaa_in[490])
     qaa_data['v6_a_665']= qaa_coef['aw'][3]+qaa_coef['k'][0]*np.power(rhow_v6,qaa_coef['k'][1])
 
     ## step 3
