@@ -75,6 +75,8 @@ station_lon
 station_lat
 station_box_size
 pans_scale_factor
+sensor_noise_bias_correction_sigma_factor
+sensor_noise
 
 ## GEE
 st_lon

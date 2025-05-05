@@ -86,6 +86,12 @@ geometry_per_band=False
 geometry_fixed_footprint=False
 geometry_override=False
 
+## sensor noise bias correction
+sensor_noise_bias_correction=False
+sensor_noise_bias_correction_sigma_factor=3
+sensor_noise_bias_correction_sun_zenith=True
+sensor_noise=None
+
 ## Sentinel-3 options
 smile_correction=True
 smile_correction_tgas=True

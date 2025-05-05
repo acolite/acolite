@@ -25,6 +25,7 @@
 ##                2025-03-04 (QV) update to hyperspectral RSR
 ##                2025-03-05 (QV) added optional printouts for bands skipped in DSF
 ##                2025-03-10 (QV) fix hyperspectral model selection, use setu['verbosity']
+##                2025-04-30 (QV) added sensor noise bias correction
 
 def acolite_l2r(gem,
                 output = None,
@@ -38,7 +39,7 @@ def acolite_l2r(gem,
 
     import os, time, datetime
     import numpy as np
-    import scipy.ndimage, scipy.interpolate
+    import scipy.ndimage, scipy.interpolate, scipy.stats
     import acolite as ac
     import skimage.measure
 
@@ -353,6 +354,11 @@ def acolite_l2r(gem,
                     gem.bands[b][k] = tg_dict[k][b]
                     if setu['gas_transmittance'] is False: gem.bands[b][k] = 1.0
             gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
+
+            ## add sensor noise to band attributes
+            if (setu['sensor_noise_bias_correction']) & (setu['sensor_noise'] is not None):
+                if len(setu['sensor_noise']) == len(rsrd['rsr_bands']):
+                    gem.bands[b]['sensor_noise'] = setu['sensor_noise'][bi]
     ## end bands dataset
     del rhot_ds, tg_dict
 
@@ -720,13 +726,36 @@ def acolite_l2r(gem,
                     continue
                 del band_sub
 
-                ## do gas correction
                 band_sub = np.where(np.isfinite(band_data))
-                if len(band_sub[0])>0:
-                    band_data[band_sub] /= gem.bands[b]['tt_gas']
-                else:
+                if len(band_sub[0]) == 0:
                     print('No valid TOA data for band {}'.format(b))
                     continue
+
+                ## do noise bias correction
+                if (setu['sensor_noise_bias_correction']) & ('sensor_noise' in gem.bands[b]):
+                    if gem.bands[b]['sensor_noise'] > 0:
+                        if setu['sensor_noise_bias_correction_sigma_factor'] is not None:
+                            print('Performing sensor noise bias correction for band {} with {} x {}'.format(b, setu['sensor_noise_bias_correction_sigma_factor'], gem.bands[b]['sensor_noise']))
+                            noise_offset = gem.bands[b]['sensor_noise'] * setu['sensor_noise_bias_correction_sigma_factor']
+                        else:
+                            if setu['dsf_spectrum_option'] == 'percentile':
+                                zf = scipy.stats.norm.ppf(1-(setu['dsf_percentile'])/100)
+                                print('Using sigma factor of {:.3f} based on dsf_percentile = {}'.format(zf, setu['dsf_percentile']))
+                            else:
+                                zf = 2
+                                print('Warning: Use of sensor_noise_bias_correction without sigma factor is recommended for dsf_spectrum_option=percentile')
+                                print('Warning: Using default sigma factor = {:.3f}'.format(zf))
+                            print('Performing sensor noise bias correction for band {} with {} x {}'.format(b, zf, gem.bands[b]['sensor_noise']))
+                            noise_offset = gem.bands[b]['sensor_noise'] * zf
+                        if setu['sensor_noise_bias_correction_sun_zenith']:
+                            print('Performing sensor noise bias correction with sun zenith angle factor applied')
+                            band_data += noise_offset / np.cos(np.radians(gem.data_mem['sza'+gk][band_sub]))
+                        else:
+                            band_data += noise_offset
+                ## end noise bias correction
+
+                ## do gas correction
+                band_data[band_sub] /= gem.bands[b]['tt_gas']
 
                 ## store rhod
                 if setu['dsf_aot_estimate'] in ['fixed', 'tiled', 'segmented']:
