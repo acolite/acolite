@@ -9,25 +9,26 @@
 ##                2025-03-03 (QV) check for finite lat/lon
 ##                2025-03-28 (QV) test if file/attributes/datasets extist
 ##                2025-04-20 (QV) changed wavelength extraction
+##                2025-05-05 (QV) added quiet keyword
 
 def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
                      box_size = 1, box_size_units = 'p', shift_edge = False,
                      lat_par = 'lat', lon_par = 'lon',
                      extract_circle = False, extract_circle_radius = 1, extract_cicle_units = 'p',
-                     external_mask = None):
+                     external_mask = None, quiet = True):
     import os, re
     import acolite as ac
     import numpy as np
 
     if not os.path.exists(ncf):
-        print('File does not exist: {}'.format(ncf))
+        if not quiet: print('File does not exist: {}'.format(ncf))
         return
 
     ## read netcdf attributes and datasets
     gem = ac.gem.gem(ncf)
 
     if gem.gatts is None:
-        print('Could not read attributes from file {}'.format(ncf))
+        if not quiet: print('Could not read attributes from file {}'.format(ncf))
         gem = None
         return
 
@@ -37,7 +38,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             datasets.remove(ds)
 
     if len(datasets) == 0:
-        print('No datasets in file {}'.format(ncf))
+        if not quiet: print('No datasets in file {}'.format(ncf))
         gem = None
         return
 
@@ -46,7 +47,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     if 'scene_pixel_size' in gatts:
         resolution = gatts['scene_pixel_size'][0]
     else:
-        print('Could not determine resolution from file attributes')
+        if not quiet: print('Could not determine resolution from file attributes')
 
     ## if extracting circle determine radius in pixels
     if extract_circle:
@@ -56,7 +57,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             radius_pix = 1 * extract_circle_radius
 
         if (radius_pix <= 1):
-            print('Radius size in pixels has to > 1')
+            if not quiet: print('Radius size in pixels has to > 1')
             gem.close()
             return
     ## else determine box size in pixels
@@ -67,7 +68,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             box_size_pix = 1 * box_size
         box_size_pix = np.round(box_size_pix).astype(int)
         if (box_size_pix & 1) == 0:
-            print('Box size in pixels has to be odd.')
+            if not quiet: print('Box size in pixels has to be odd.')
             gem.close()
             return
 
@@ -97,7 +98,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     lat = gem.data(lat_par) # ac.shared.nc_data(ncf, 'lat')
 
     if not (np.isfinite(lon).any() & np.isfinite(lat).any()):
-        print('No finite lat/lon in scene {}'.format(ncf))
+        if not quiet: print('No finite lat/lon in scene {}'.format(ncf))
         gem.close()
         return
 
@@ -105,7 +106,7 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     latrange = np.nanpercentile(lat, (0,100))
     lonrange = np.nanpercentile(lon, (0,100))
     if (st_lat < latrange[0]) | (st_lat > latrange[1]) | (st_lon < lonrange[0]) | (st_lon > lonrange[1]):
-        print('Point {}N {}E not in scene {}'.format(st_lat, st_lon, ncf))
+        if not quiet: print('Point {}N {}E not in scene {}'.format(st_lat, st_lon, ncf))
         gem.close()
         return
 
@@ -140,18 +141,18 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             if i0 < 0:
                 if shift_edge:
                     i0 = 0
-                    print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
+                    if not quiet: print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
                 else:
-                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    if not quiet: print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
                     gem.close()
                     return
 
             if (i0 + box_size_pix) > lat.shape[0]-1:
                 if shift_edge:
                     i0 = lat.shape[0]-1 - box_size_pix
-                    print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
+                    if not quiet: print('Point at the edge of scene, setting i0 to {} for extracting box'.format(i0))
                 else:
-                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    if not quiet: print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
                     gem.close()
                     return
 
@@ -159,18 +160,18 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
             if j0 < 0:
                 if shift_edge:
                     j0 = 0
-                    print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
+                    if not quiet: print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
                 else:
-                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    if not quiet: print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
                     gem.close()
                     return
 
             if (j0 + box_size_pix) > lat.shape[1]-1:
                 if shift_edge:
                     j0 = lat.shape[1]-1 - box_size_pix
-                    print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
+                    if not quiet: print('Point at the edge of scene, setting j0 to {} for extracting box'.format(j0))
                 else:
-                    print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
+                    if not quiet: print('Point at the edge of scene, cannot extract {}x{} box'.format(box_size_pix, box_size_pix))
                     gem.close()
                     return
 
@@ -194,8 +195,8 @@ def nc_extract_point(ncf, st_lon, st_lat, extract_datasets = None,
     external_mask_sub = None
     if external_mask is not None:
         if external_mask.shape != lon.shape:
-            print('Provided external_mask is the wrong shape.')
-            print('Image: {},  external_mask: {}'.format(lon.shape, external_mask.shape))
+            if not quiet: print('Provided external_mask is the wrong shape.')
+            if not quiet: print('Image: {},  external_mask: {}'.format(lon.shape, external_mask.shape))
             return
         else:
             ## subset to crop position
