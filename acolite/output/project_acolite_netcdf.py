@@ -79,7 +79,7 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     if (setu['output_projection_limit'] is None):
         ## read lat/lon
         lat = gem.data('lat') #ac.shared.nc_data(ncf, 'lat')
-        lon = gem.data('lat') #ac.shared.nc_data(ncf, 'lon')
+        lon = gem.data('lon') #ac.shared.nc_data(ncf, 'lon')
         setu['output_projection_limit'] = [np.nanmin(lat), np.nanmin(lon), np.nanmax(lat), np.nanmax(lon)]
         print('Output limit from lat/lon', setu['output_projection_limit'])
 
