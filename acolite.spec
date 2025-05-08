@@ -22,6 +22,7 @@ hiddenimports+=['cftime']
 hiddenimports+=['pywt._extensions._cwt']
 hiddenimports+=['scipy.spatial.transform._rotation_groups', 'cmath']
 hiddenimports+=['pyhdf.six']
+hiddenimports+=['pyresample']
 
 a = Analysis(['launch_acolite.py'],
              binaries=[],
