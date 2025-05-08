@@ -745,11 +745,13 @@ def acolite_l2r(gem,
                                 zf = 2
                                 print('Warning: Use of sensor_noise_bias_correction without sigma factor is recommended for dsf_spectrum_option=percentile')
                                 print('Warning: Using default sigma factor = {:.3f}'.format(zf))
-                            print('Performing sensor noise bias correction for band {} with {} x {}'.format(b, zf, gem.bands[b]['sensor_noise']))
+                            print('Performing sensor noise bias correction for band {} with {:.3f} x {}'.format(b, zf, gem.bands[b]['sensor_noise']))
                             noise_offset = gem.bands[b]['sensor_noise'] * zf
                         if setu['sensor_noise_bias_correction_sun_zenith']:
-                            print('Performing sensor noise bias correction with sun zenith angle factor applied')
-                            band_data += noise_offset / np.cos(np.radians(gem.data_mem['sza'+gk][band_sub]))
+                            szaf = np.cos(np.radians(gem.data_mem['sza'+gk][band_sub]))
+                            print('Performing sensor noise bias correction with sun zenith angle factor applied (mean = {:.3f})'.format(1/np.nanmean(szaf)))
+                            band_data += noise_offset / szaf
+                            del szaf
                         else:
                             band_data += noise_offset
                 ## end noise bias correction
