@@ -40,6 +40,7 @@
 ##                2025-03-19 (QV) added s3_product_type for MERIS/OLCI
 ##                2025-04-14 (QV) add back gas transmittance for rhot outputs
 ##                2025-04-17 (QV) track settings in output gatts
+##                2025-05-08 (QV) changed LUT handling
 
 def radcor(ncf, settings = None):
     import os, json
@@ -492,15 +493,26 @@ def radcor(ncf, settings = None):
         return
 
     ## aerosol models and names
-    aer_nm = {'C': 'MOD1', 'M': 'MOD2'}
-    aer_models = ["C", "M"]
-#    aer_nm = {'C': 'MOD1', 'M': 'MOD2', 'U': 'MOD3'} # ALEX 2024-08-27
-#    aer_models = ["C", "M", "U"] # ALEX 20240827
+    aer_nm = {'C': 'MOD1', 'M': 'MOD2', 'U': 'MOD3'}
+    aer_md = {'MOD1': 'C', 'MOD2': 'M', 'MOD3': 'U'}
+    aer_luts = [lut for lut in setu['luts']]
+
     if setu['radcor_force_model'] is not None: ## do only forced model
         aer_models = [setu['radcor_force_model'].upper()]
         if aer_models[0] not in aer_nm:
             print('Model radcor_force_model={} not configured'.format(aer_models[0]))
             return
+    else:
+        ## set up aerosol models
+        aer_models = []
+        for lut in aer_luts:
+            if lut.endswith('MOD1'): aer_models.append('C')
+            if lut.endswith('MOD2'): aer_models.append('M')
+            if lut.endswith('MOD3'): aer_models.append('U')
+
+    if len(aer_models) == 0:
+        print('No LUTs configured')
+        return
 
     ## Get scene average geometry
     sza, vza, raa = gem.gatts['sza'], gem.gatts['vza'], gem.gatts['raa']
@@ -760,11 +772,10 @@ def radcor(ncf, settings = None):
 
     lutdw = ac.aerlut.import_luts(add_rsky = add_rsky, par = romix_par, sensor = sensor_lut,
         lut_par = ['utott', 'dtott', 'astot', 'romix', 'tray', 'taer', 'ttot', 'dutott', 'utotr', 'utota', 'asray', 'asaer'], ## AC 2024-09-09 ## Added asray and asaer for SAF calculation
-#        base_luts = ['ACOLITE-LUT-202110-MOD1', 'ACOLITE-LUT-202110-MOD2', 'ACOLITE-LUT-202110-MOD3'], # ALEX 2024-08-27
-        #return_lut_array = True)
-        return_lut_array = False)
+        base_luts = aer_luts, return_lut_array = False)
 
     luts = list(lutdw.keys())
+    print('Using LUTs {} for RAdCor'.format(', '.join('{} ({})'.format(v, w) for v,w in zip(luts, aer_models))))
 
     #
     # End Import LUTs
