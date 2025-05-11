@@ -78,8 +78,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
 
     if (setu['output_projection_limit'] is None):
         ## read lat/lon
-        lat = gem.data('lat') #ac.shared.nc_data(ncf, 'lat')
-        lon = gem.data('lat') #ac.shared.nc_data(ncf, 'lon')
+        lat = gem.data('lat')
+        lon = gem.data('lon')
         setu['output_projection_limit'] = [np.nanmin(lat), np.nanmin(lon), np.nanmax(lat), np.nanmax(lon)]
         print('Output limit from lat/lon', setu['output_projection_limit'])
 
@@ -196,8 +196,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
                                           projection, nx, ny, [xrange[0],yrange[1],xrange[1],yrange[0]])
 
     ## read lat/lon
-    if lat is None: lat = gem.data('lat') # ac.shared.nc_data(ncf, 'lat')
-    if lon is None: lon = gem.data('lon') # ac.shared.nc_data(ncf, 'lon')
+    if lat is None: lat = gem.data('lat')
+    if lon is None: lon = gem.data('lon')
 
     ## make new output attributes
     gatts_out = {k:gatts[k] for k in gatts}
