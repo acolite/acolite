@@ -27,6 +27,7 @@ def acolite_pans(ncf, output = None, settings = None):
 
     if not os.path.exists(ncfp):
         print('No L1R_pan.nc file available for {}'.format(ncf))
+        print('L1R pan file expected at {}'.format(ncfp))
         return
 
     ## Open gem
