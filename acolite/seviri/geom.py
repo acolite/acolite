@@ -4,9 +4,9 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-04-18
-## modifications:
+## modifications: 2025-05-12 (QV) added sensor and ssd keywords, FCI support
 
-def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True):
+def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True, sensor = 'SEVIRI', ssd = 0.5):
     import os
     import numpy as np
     import acolite as ac
@@ -14,13 +14,17 @@ def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True):
     if (not geolocation) & (not geometry): return
 
     ## geolocation and geometry datasets
-    geol = ac.config['data_dir'] + '/GEO/SEVIRI/lonlat_{}.nc'.format(lon_0)
-    geom = ac.config['data_dir'] + '/GEO/SEVIRI/vaavza_{}.nc'.format(lon_0)
+    if sensor == 'SEVIRI':
+        geol = ac.config['data_dir'] + '/GEO/{}/lonlat_{}.nc'.format(sensor, lon_0)
+        geom = ac.config['data_dir'] + '/GEO/{}/vaavza_{}.nc'.format(sensor, lon_0)
+    else:
+        geol = ac.config['data_dir'] + '/GEO/{}/lonlat_{}_{}km.nc'.format(sensor, lon_0, ssd)
+        geom = ac.config['data_dir'] + '/GEO/{}/vaavza_{}_{}km.nc'.format(sensor, lon_0, ssd)
 
     ## compute geolocation
     if (geolocation) & (not os.path.exists(geol)):
-        print('Computing SEVIRI geolocation for sub centre point {}'.format(lon_0))
-        lon, lat = ac.seviri.lonlat(lon_0 = lon_0)
+        print('Computing {} geolocation for sub centre point {}'.format(sensor, lon_0))
+        lon, lat = ac.seviri.lonlat(lon_0 = lon_0, ssd = ssd, sensor = sensor)
         print('Saving geolocation to {}'.format(geol))
         gemo = ac.gem.gem(geol, new = True)
         gemo.write('lon', lon)
@@ -33,13 +37,13 @@ def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True):
     ## compute geometry
     if (geometry) & (not os.path.exists(geom)):
         ## read geolocation
-        print('Reading SEVIRI geolocation from {}'.format(geol))
+        print('Reading {} geolocation from {}'.format(sensor, geol))
         gem = ac.gem.gem(geol)
         lon = gem.data('lon')
         lat = gem.data('lat')
         gem.close()
         gem = None
-        print('Computing SEVIRI geometry for sub centre point {}'.format(lon_0))
+        print('Computing {} geometry for sub centre point {}'.format(sensor, lon_0))
         vaa, vza = ac.seviri.vaavza(lon, lat, lon_0 = lon_0)
         print('Saving geometry to {}'.format(geom))
         gemo = ac.gem.gem(geom, new = True)
@@ -52,7 +56,7 @@ def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True):
 
     ## read geolocation dataset
     if geolocation:
-        print('Reading SEVIRI geolocation from {}'.format(geol))
+        print('Reading {} geolocation from {}'.format(sensor, geol))
         gem = ac.gem.gem(geol)
         lon = gem.data('lon', sub = sub)
         lat = gem.data('lat', sub = sub)
@@ -62,7 +66,7 @@ def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True):
 
     ## read geometry dataset
     if geometry:
-        print('Reading SEVIRI geometry from {}'.format(geom))
+        print('Reading {} geometry from {}'.format(sensor, geom))
         gem = ac.gem.gem(geom)
         vaa = gem.data('vaa', sub = sub)
         vza = gem.data('vza', sub = sub)
