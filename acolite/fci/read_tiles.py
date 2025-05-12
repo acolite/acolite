@@ -40,6 +40,7 @@ def read_tiles(fci_files, dtp, dataset, flip = True, column_range = None, row_ra
         if len(row_range) != 2:
             print('Provide two elements for row range')
             return
+            
         ## compute row range in upside down image
         upside_down_row_range = full_dimensions[0]-row_range[1]-1, full_dimensions[0]-row_range[0]-1
 
@@ -50,8 +51,6 @@ def read_tiles(fci_files, dtp, dataset, flip = True, column_range = None, row_ra
     for t in fci_files[dtp]:
         file, gatts = t
         if '-TRAIL-' in file: continue
-
-        #print(os.path.basename(file)[81:95], os.path.basename(file)[-8:], gatts['count_in_repeat_cycle'])
 
         ## read data
         tmp = None
@@ -64,8 +63,6 @@ def read_tiles(fci_files, dtp, dataset, flip = True, column_range = None, row_ra
 
                 ## subset current strip
                 if row_range is not None:
-                    #if full_row_shape < upside_down_row_range[0]: continue
-                    #if full_row_shape > upside_down_row_range[1]: continue
                     if cur_row_range[1] < upside_down_row_range[0]: continue
                     if cur_row_range[0] > upside_down_row_range[1]: continue
 
@@ -90,7 +87,6 @@ def read_tiles(fci_files, dtp, dataset, flip = True, column_range = None, row_ra
                 ## read irradiance
                 if irr is None:
                     irr = nc.groups['data'].groups[dataset].groups['measured']['channel_effective_solar_irradiance'][:]
-                    #if np.isfinite(irr): tmp /= irr
                 else:
                     if irr != nc.groups['data'].groups[dataset].groups['measured']['channel_effective_solar_irradiance'][:]:
                         print('Irradiance does not match')
@@ -112,9 +108,5 @@ def read_tiles(fci_files, dtp, dataset, flip = True, column_range = None, row_ra
 
     ## flip disk North side up
     if (flip) & (data is not None): data = np.flipud(data)
-
-    ## subset is now done above
-    #if column_range is not None: data = data[column_range[0]:column_range[1], :]
-    #if row_range is not None: data = data[:, row_range[0]:row_range[1]]
 
     return(data, irr)
