@@ -42,8 +42,9 @@ data/Solar/Coddington*native*
 data/ECOSTRESS/EcostressBrightnessTemperatureV01.h5
 data/ECOSTRESS/index/*
 
-# SEVIRI geometry
+# SEVIRI and FCI geometry
 data/GEO/SEVIRI/*.nc
+data/GEO/FCI/*.nc
 
 #--------------------------------------------------------------------
 # Specific to Python
