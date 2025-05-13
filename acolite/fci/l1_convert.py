@@ -88,7 +88,12 @@ def l1_convert(inputfile, output = None, settings = None):
             dt = dateutil.parser.parse(gatts['date_time_position'])
 
             ## get sensor type and position
-            lon_0 = gatts['nominalLongitude']
+            if 'nominalLongitude' in gatts:
+                lon_0 = gatts['nominalLongitude']
+            else:
+                lon_0 = setu['lon_0_default']
+                print('Assuming default sub satellite longitude {} '.format(lon_0))
+
             platform, instrument = gatts['platform'], gatts['data_source']
             if platform in ['MTI1']:
                 sensor = '{}_{}'.format('MTG-I{}'.format(platform[-1]), instrument)
