@@ -22,6 +22,7 @@ from acolite import pace
 from acolite import wyvern
 
 from acolite import seviri
+from acolite import fci
 
 from acolite import gf
 from acolite import amazonia

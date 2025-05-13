@@ -448,6 +448,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## FCI
+        try:
+            test = ac.fci.bundle_test(bundle)
+            if (test is not None):
+                input_type = 'FCI'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end FCI
+        ################
+
+        ################
         ## DIMAP
         try:
             dimfile, datfile = ac.dimap.bundle_test(bundle)

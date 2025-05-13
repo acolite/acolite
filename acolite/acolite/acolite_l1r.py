@@ -246,6 +246,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## FCI
+    if input_type == 'FCI':
+        l1r_files, setu = ac.fci.l1_convert(bundle)
+    ## end FCI
+    ################
+
+    ################
     ## Haiyang
     if input_type == 'HAIYANG':
         l1r_files, setu = ac.haiyang.l1_convert(bundle)
