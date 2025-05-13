@@ -6,11 +6,16 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-04-18
 ## modifications: 2024-07-24 (QV) added FCI, added sensor and ssd (spatial sampling distance) keywords
+##                2024-10-20 (QV) changed dtype to float32
+##                2024-10-21 (QV) added column and line start and end
+##                2025-05-13 (QV) renamed sensor keyword to instrument
 
-def lonlat(lon_0 = 0.0, sensor = 'SEVIRI', ssd = 0.5):
+def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
+            column_start = 0, column_end = None, line_start = 0, line_end = None):
+
     import numpy as np
 
-    if sensor.upper() == 'SEVIRI':
+    if instrument.upper() == 'SEVIRI':
         ## earth dimensions and satellite distance
         earth_radius_equator = 6378.169
         earth_radius_pole = 6356.5838
@@ -24,7 +29,7 @@ def lonlat(lon_0 = 0.0, sensor = 'SEVIRI', ssd = 0.5):
         ## projection parameters
         p1 = 1.006803
         p2 = 1737121856
-    elif sensor.upper() == 'FCI':
+    elif instrument.upper() == 'FCI':
         ## earth dimensions and satellite distance (FCI)
         earth_radius_equator = 6378.137
         earth_flattening = 1. / 298.257223563
@@ -56,22 +61,29 @@ def lonlat(lon_0 = 0.0, sensor = 'SEVIRI', ssd = 0.5):
         ## p2 == S5 from PUG
         p2 = np.round((satellite_distance**2) - (earth_radius_equator**2)).astype(int)
     else:
-        print('Sensor = {} not configured, use SEVIRI (MSG) or FCI (MTG)')
+        print('Instrument = {} not configured, use SEVIRI (MSG) or FCI (MTG)'.format(instrument))
         return
 
     ## set up pixel dimensions
-    column_range = np.arange(0, nc)
-    line_range = np.arange(0, nl)
+    if column_end is None:
+        column_range = np.arange(column_start, nc)
+    else:
+        column_range = np.arange(column_start, column_end)
+    if line_end is None:
+        line_range = np.arange(line_start, nl)
+    else:
+        line_range = np.arange(line_start, line_end)
     c, l = np.meshgrid(column_range, line_range)
 
     ## compute scanning angle
-    x = 2**16 * (c - coff) / cfac
-    y = 2**16 * (l - loff) / lfac
+    x = (2**16 * (c - coff) / cfac).astype(np.float32)
+    y = (2**16 * (l - loff) / lfac).astype(np.float32)
 
     cosx = np.cos(x)
     cosy = np.cos(y)
     sinx = np.sin(x)
     siny = np.sin(y)
+    del x, y
 
     sd = np.sqrt((satellite_distance*cosx*cosy)**2 - (cosy**2 + p1*siny**2)*p2)
     sn = (satellite_distance*cosx*cosy - sd) / (cosy**2 + p1*siny**2)
@@ -80,7 +92,12 @@ def lonlat(lon_0 = 0.0, sensor = 'SEVIRI', ssd = 0.5):
     s3 = -sn*siny
     sxy = np.sqrt(s1**2 + s2**2)
 
-    lon = np.degrees(np.arctan(s2/s1)) + lon_0
-    lat = np.degrees(np.arctan(p1*s3/sxy))
+    del cosx, cosy, sinx, siny
+
+    lon = (np.degrees(np.arctan(s2/s1, dtype=np.float32)) + lon_0)
+    del s1, s2
+
+    lat = (np.degrees(np.arctan(p1*s3/sxy, dtype=np.float32)))
+    del p1, s3, sxy
 
     return(lon, lat)
