@@ -11,6 +11,7 @@
 ##                2025-01-23 (QV) test if scene exists in download directory, added S2C
 ##                2025-02-05 (QV) add oceandata directdataaccess for MERIS
 ##                2025-02-09 (QV) added config download directory
+##                2025-05-13 (QV) test if inputfile exists, then spit on semicolon, then on comma
 
 def inputfile_test(inputfile):
     import os, mimetypes
@@ -18,7 +19,12 @@ def inputfile_test(inputfile):
 
     ## check if a list of files is given
     if type(inputfile) == str:
-        tmp_files = inputfile.split(',')
+        if os.path.exists(inputfile):
+            tmp_files = [inputfile]
+        elif ';' in inputfile:
+            tmp_files = inputfile.split(';')
+        else:
+            tmp_files = inputfile.split(',')
     elif type(inputfile) == list:
         tmp_files = inputfile
     else:
