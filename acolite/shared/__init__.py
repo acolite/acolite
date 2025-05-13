@@ -73,6 +73,7 @@ from .square_response import *
 from .sun_position import *
 from .rsr_hyper import *
 from .interp2d import *
+from .derivative import *
 
 from .polylakes import *
 
