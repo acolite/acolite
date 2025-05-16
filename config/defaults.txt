@@ -88,8 +88,9 @@ geometry_override=False
 
 ## sensor noise bias correction
 sensor_noise_bias_correction=False
-sensor_noise_bias_correction_sigma_factor=3
+sensor_noise_bias_correction_sigma_factor=None
 sensor_noise_bias_correction_sun_zenith=True
+sensor_noise_bias_correction_resampling=None
 sensor_noise=None
 
 ## Sentinel-3 options

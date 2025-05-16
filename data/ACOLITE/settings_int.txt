@@ -52,6 +52,7 @@ output_projection_filldistance
 dem_shadow_mask_filter_kernel
 dem_shadow_mask_erode_its
 dem_shadow_mask_dilate_its
+sensor_noise_bias_correction_resampling
 
 ## GEE
 percentiles

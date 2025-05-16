@@ -26,6 +26,7 @@
 ##                2025-03-05 (QV) added optional printouts for bands skipped in DSF
 ##                2025-03-10 (QV) fix hyperspectral model selection, use setu['verbosity']
 ##                2025-04-30 (QV) added sensor noise bias correction
+##                2025-05-16 (QV) added filtering for sensor noise bias correction
 
 def acolite_l2r(gem,
                 output = None,
@@ -638,8 +639,45 @@ def acolite_l2r(gem,
 
                 if setu['verbosity'] > 1: print('Running AOT estimation for band {} ({})'.format(b, gem.bands[b]['rhot_ds']))
 
+                ## extract data
                 band_data = gem.data(gem.bands[b]['rhot_ds'])*1.0
                 band_shape = band_data.shape
+
+                ## resample to reduce staircase effect
+                ## apply filter for SNBC
+                if (setu['sensor_noise_bias_correction']) & ('sensor_noise' in gem.bands[b]):
+                    if 'sensor_noise_bias_correction_resampling' in setu:
+                        if setu['sensor_noise_bias_correction_resampling'] is None:
+                            n_noise = 1
+                        else:
+                            n_noise = int(setu['sensor_noise_bias_correction_resampling'])
+                            if n_noise < 1:
+                                n_noise = 1
+                                print('Setting sensor_noise_bias_correction_resampling={}'.format(n_noise))
+                            else:
+                                print('Using sensor_noise_bias_correction_resampling={}'.format(n_noise))
+                    else:
+                        n_noise = 1
+
+                    ## do resampling if n_noise > 1
+                    if n_noise > 1:
+                        d_ = band_data * 1.0
+                        ## subset to number of pixels divisible by n_noise
+                        m1 = d_.shape[0] - (d_.shape[0] % n_noise)
+                        m2 = d_.shape[1] - (d_.shape[1] % n_noise)
+                        d_ = d_[0:m1, 0:m2]
+
+                        ## resampled size
+                        n1 = int(d_.shape[0] / n_noise)
+                        n2 = int(d_.shape[1] / n_noise)
+                        d_2 = d_.reshape(n_noise, n_noise, n1, n2)
+
+                        ## compute average over nxn pixels
+                        d_mean = d_2.mean(axis = (0,1))
+                        band_data = d_mean * 1.0
+                ## end apply filter for SNBC
+
+                ## compute mask
                 valid = np.isfinite(band_data)*(band_data>0)
                 mask = valid == False
 
@@ -747,6 +785,11 @@ def acolite_l2r(gem,
                                 print('Warning: Using default sigma factor = {:.3f}'.format(zf))
                             print('Performing sensor noise bias correction for band {} with {:.3f} x {}'.format(b, zf, gem.bands[b]['sensor_noise']))
                             noise_offset = gem.bands[b]['sensor_noise'] * zf
+
+                        ## reduce noise offset by 1/n
+                        noise_offset *= 1/n_noise
+                        print('Performing sensor noise bias correction with noise reduction of 1/{}'.format(n_noise))
+
                         if setu['sensor_noise_bias_correction_sun_zenith']:
                             szaf = np.cos(np.radians(gem.data_mem['sza'+gk][band_sub]))
                             print('Performing sensor noise bias correction with sun zenith angle factor applied (mean = {:.3f})'.format(1/np.nanmean(szaf)))
