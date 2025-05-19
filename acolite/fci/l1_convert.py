@@ -91,7 +91,7 @@ def l1_convert(inputfile, output = None, settings = None):
             if 'nominalLongitude' in gatts:
                 lon_0 = gatts['nominalLongitude']
             else:
-                lon_0 = setu['lon_0_default']
+                lon_0 = setu['fci_lon_0_default']
                 print('Assuming default sub satellite longitude {} '.format(lon_0))
 
             platform, instrument = gatts['platform'], gatts['data_source']

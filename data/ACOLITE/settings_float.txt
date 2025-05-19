@@ -77,7 +77,7 @@ station_box_size
 pans_scale_factor
 sensor_noise_bias_correction_sigma_factor
 sensor_noise
-lon_0_default
+fci_lon_0_default
 
 ## GEE
 st_lon

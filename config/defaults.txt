@@ -153,7 +153,10 @@ viirs_mask_immixed_maxdif=0.002
 
 ## SEVIRI settings
 seviri_hrv=False
-lon_0_default=0.0
+
+## FCI settings
+fci_lon_0_default=0.0
+
 
 ## Wyvern settings
 wyvern_use_provided_f0=True
