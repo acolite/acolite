@@ -11,6 +11,7 @@
 ## 2022-08-03
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
+##                2025-05-19 (QV) convert lat/lon to float
 
 def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity = 5,
               source = 'ncep.reanalysis2', url_base = None, geo_step = 2.5, time_step = 6):
@@ -141,7 +142,7 @@ def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity
 
                         res = {'time':float(cur_hour),
                                'levels':[float(s) for s in list(levels.data)],
-                               'lat':la, 'lon':lo,
+                               'lat':float(la), 'lon':float(lo),
                                'data':[float(s) for s in list(prof[k, :, len(lat_cells)-1-i, j].data)]}
                         if res['levels'][0] > res['levels'][-1]:
                             res['levels'].reverse()

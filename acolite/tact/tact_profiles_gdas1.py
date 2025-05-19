@@ -9,6 +9,7 @@
 ## 2022-08-02
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
+##                2025-05-19 (QV) convert lat/lon to float
 
 def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosity = 5,
                url_base = None, geo_step = 0.25):
@@ -138,7 +139,7 @@ def tact_profiles_gdas1(isotime, limit, obase = None, override = False, verbosit
 
                             res = {'time':float(ti),
                                    'levels':[float(s)/100 for s in prof[par]['levels']],
-                                   'lat':la, 'lon':lo,
+                                   'lat':float(la), 'lon':float(lo),
                                    #'data':[float(s) for s in list(prof[par]['data'][:, i, j].data)]
                                    'data':[float(s) for s in list(prof[par]['data'][:, len(lat_cells)-1-i, j].data)]
                                   }

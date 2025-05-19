@@ -13,6 +13,7 @@
 ##                2023-01-30 (QV) added grib option
 ##                2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
+##                2025-05-19 (QV) convert lat/lon to float
 
 def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = False,
               url_base = None, geo_step = 0.25):
@@ -158,7 +159,7 @@ def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity
                         if not os.path.exists(odir): os.makedirs(odir)
                         ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, ti, la, lo, par]]))
 
-                        res = {'time':float(ti),'levels':[float(l) for l in levels],'lat':la, 'lon':lo,
+                        res = {'time':float(ti),'levels':[float(l) for l in levels],'lat':float(la), 'lon':float(lo),
                                #'data':[float(s) for s in list(prof[k, :, i, j].data)]
                                'data':[float(s) for s in list(prof[k, :, len(lat_cells)-1-i, j].data)]}
                         if (not os.path.exists(ofile)) or (override):

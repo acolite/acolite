@@ -9,6 +9,7 @@
 ## 2023-02-02
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
+##                2025-05-19 (QV) convert lat/lon to float
 
 def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosity = 5, url_base = None):
     print(isotime, limit)
@@ -164,7 +165,7 @@ def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosi
                         cur_data = [cur_data[ind] for ind in cur_idx]
                         cur_levels = [cur_levels[ind] for ind in cur_idx]
 
-                        res = {'time':float(ti),'levels':cur_levels,'lat':la, 'lon':lo, 'data':cur_data}
+                        res = {'time':float(ti),'levels':cur_levels,'lat':float(la), 'lon':float(lo), 'data':cur_data}
                         if (not os.path.exists(ofile)) or (override):
                             with open(ofile, 'w', encoding = 'utf-8') as f:
                                 f.write(json.dumps(res))
