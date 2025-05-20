@@ -177,6 +177,7 @@ tact_output_intermediate=False
 ged_fill=True
 ## TACT wavelength range (micron)
 tact_range=3.5,14
+use_system_libradtran=False
 
 ## EMINET settings
 eminet_water_fill=True

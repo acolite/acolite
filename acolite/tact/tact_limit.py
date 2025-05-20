@@ -7,6 +7,7 @@
 ##                2022-02-15 (QV) added L9/TIRS
 ##                2022-08-02 (QV) moved era5 profiles to separate function, added gdas1 profile option
 ##                2022-08-11 (QV) added ecostress and reptran
+##                2025-05-20 (QV) check if system uvspec binary is available
 
 def tact_limit(isotime, limit=None,
                   lat = None, lon = None, wave_range=[7, 14],
@@ -16,7 +17,7 @@ def tact_limit(isotime, limit=None,
     import netCDF4
     import numpy as np
     import scipy.interpolate
-    import os, json, glob
+    import os, json, glob, shutil
     from functools import partial
     import multiprocessing
     import acolite as ac
@@ -64,7 +65,14 @@ def tact_limit(isotime, limit=None,
     ## space/time cells
     lat_cells, lon_cells, time_cells = cells
 
-    if verbosity > 1: print('Running simulations for TACT using libRadtran at {}'.format(ac.config['libradtran_dir']))
+    if verbosity > 1:
+        ## check if we can use uvspec in environment
+        if ac.settings['run']['use_system_libradtran']:
+            uvspec = shutil.which('uvspec')
+        else:
+            uvspec = None
+        if uvspec is None: uvspec = '{}/bin/uvspec'.format(ac.config['libradtran_dir'])
+        print('Running simulations for TACT using libRadtran/uvspec at {}'.format(uvspec))
     ## run stuff in multiprocessing
     with multiprocessing.Pool(processes=processes) as pool:
         results = pool.map(partial(ac.tact.tact_simulations, atmosphere=None, reptran = reptran, wave_range=wave_range,

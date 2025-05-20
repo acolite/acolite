@@ -91,7 +91,13 @@ ACOLITE tries to retrieve the credentials for accessing EARTHDATA either from yo
 ## TACT installation
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
 
-By default ACOLITE expects the libRadtran (v2.0.5) to be in external/libRadtran-2.0.5 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= setting. To install libRadtran in the external directory (when in the main acolite directory):
+libRadtran can be manually compiled and installed in the external directory, or an executable binary in your $PATH can be used, for example by installing the package from conda-forge:
+
+            conda install conda-forge::rubin-libradtran
+
+If you are using the executable binary in your $PATH, set `use_system_libradtran=True`
+
+If you are using a manual installation, ACOLITE expects the libRadtran (v2.0.5) to be in external/libRadtran-2.0.5 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= configuration. To install libRadtran in the external directory (when in the main acolite directory):
 
             mkdir external
             cd external

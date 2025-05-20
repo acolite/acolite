@@ -2,9 +2,9 @@
 ## class to run libRadtran and read outputs
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-10-30
-## modifications:
+## modifications: 2025-05-20 (QV) check if system uvspec binary is available
 
-import os, subprocess, time, datetime, string
+import os, subprocess, time, datetime, string, shutil
 import acolite as ac
 import numpy as np
 
@@ -16,6 +16,11 @@ class lira(object):
         self.delete = delete # delete inp and out files
 
         self.working_dir = os.getcwd()
+
+        if ac.settings['run']['use_system_libradtran']:
+            self.uvspec = shutil.which('uvspec')
+        else:
+            self.uvspec = None
 
         ## get libradtran dir - used for data path and running bin/uvspec
         if libradtran_dir is not None:
@@ -126,11 +131,18 @@ class lira(object):
         if not os.path.exists(self.out_file):
             t0 = time.time()
             if not self.quiet: print('Running simulation {}'.format(self.run_name))
-            ## change directory to libradtran and run uvspec
-            os.chdir(self.libradtran_dir+'/bin')
-            cmd = ['./uvspec','< {}'.format(self.inp_file),'> {}'.format(self.out_file)]
+            if self.uvspec is None:
+                ## change directory to libradtran and run uvspec
+                os.chdir(self.libradtran_dir+'/bin')
+                cmd = ['./uvspec','< {}'.format(self.inp_file),'> {}'.format(self.out_file)]
+            else:
+                cmd = ['{}'.format(self.uvspec),'< "{}"'.format(self.inp_file),'> "{}"'.format(self.out_file)]
+            print(cmd)
+
+            ## run simulation
             p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE)
-            os.chdir(self.working_dir)
+            ## change back if we changed directory
+            if os.getcwd() != self.working_dir: os.chdir(self.working_dir)
             t1 = time.time()
             if not self.quiet:
                 print('Finished simulation {}'.format(self.run_name))
