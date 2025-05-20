@@ -137,7 +137,6 @@ class lira(object):
                 cmd = ['./uvspec','< {}'.format(self.inp_file),'> {}'.format(self.out_file)]
             else:
                 cmd = ['{}'.format(self.uvspec),'< "{}"'.format(self.inp_file),'> "{}"'.format(self.out_file)]
-            print(cmd)
 
             ## run simulation
             p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE)
