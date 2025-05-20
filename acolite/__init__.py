@@ -29,6 +29,8 @@ from acolite import himawari
 from acolite import gf
 from acolite import amazonia
 from acolite import formosat
+from acolite import deimos
+
 from acolite import ecostress
 from acolite import haiyang
 from acolite import sdgsat

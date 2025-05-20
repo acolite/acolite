@@ -204,6 +204,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## DEIMOS
+    if input_type == 'DEIMOS':
+        l1r_files, setu = ac.deimos.l1_convert(bundle)
+    ## end DEIMOS
+    ################
+
+    ################
     ## ECOSTRESS
     if input_type == 'ECOSTRESS':
         l1r_files, setu = ac.ecostress.l1_convert(bundle)

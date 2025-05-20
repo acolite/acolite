@@ -388,14 +388,13 @@ def identify_bundle(bundle, input_type = None, output = None):
                 metadata = ac.deimos.metadata(files_dict['MS']['metadata'])
             elif 'PAN' in images:
                 metadata = ac.deimos.metadata(files_dict['PAN']['metadata'])
-            if metadata['MISSION'] == 'Deimos 2':
+            if metadata['MISSION'] in ['DEIMOS', 'Deimos 2']:
                     input_type = 'DEIMOS'
                     break ## exit loop
         except:
             pass ## continue to next sensor
         ## end DEIMOS2
         ################
-
 
         ################
         ## ECOSTRESS
