@@ -6,6 +6,7 @@
 ## 2024-04-18
 ## modifications: 2025-05-12 (QV) added sensor and ssd keywords, FCI support
 ##                2025-05-13 (QV) renamed sensor keyword to instrument
+##                2025-05-19 (QV) make sure ssd is float
 
 def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True, instrument = 'SEVIRI', ssd = 0.5):
     import os
@@ -13,14 +14,15 @@ def geom(lon_0 = 0.0, sub = None, geolocation = True, geometry = True, instrumen
     import acolite as ac
 
     if (not geolocation) & (not geometry): return
+    ssd = float(ssd)
 
     ## geolocation and geometry datasets
     if instrument == 'SEVIRI':
         geol = ac.config['data_dir'] + '/GEO/{}/lonlat_{}.nc'.format(instrument, lon_0)
         geom = ac.config['data_dir'] + '/GEO/{}/vaavza_{}.nc'.format(instrument, lon_0)
     else:
-        geol = ac.config['data_dir'] + '/GEO/{}/lonlat_{}_{}km.nc'.format(instrument, lon_0, ssd)
-        geom = ac.config['data_dir'] + '/GEO/{}/vaavza_{}_{}km.nc'.format(instrument, lon_0, ssd)
+        geol = ac.config['data_dir'] + '/GEO/{}/lonlat_{}_{:.1f}km.nc'.format(instrument, lon_0, ssd)
+        geom = ac.config['data_dir'] + '/GEO/{}/vaavza_{}_{:.1f}km.nc'.format(instrument, lon_0, ssd)
 
     ## compute geolocation
     if (geolocation) & (not os.path.exists(geol)):
