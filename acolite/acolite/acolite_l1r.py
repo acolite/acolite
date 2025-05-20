@@ -253,6 +253,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## AHI
+    if input_type == 'Himawari':
+        l1r_files, setu = ac.himawari.l1_convert(bundle)
+    ## end AHI
+    ################
+
+    ################
     ## Haiyang
     if input_type == 'HAIYANG':
         l1r_files, setu = ac.haiyang.l1_convert(bundle)

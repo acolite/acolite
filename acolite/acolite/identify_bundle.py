@@ -460,6 +460,28 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## Himawari
+        try:
+            ## identify Himawari
+            fd = ac.himawari.bundle_test(bundle)
+            ## run throug platform and dates
+            for platform in fd:
+                for date in fd[platform]:
+                    for b in fd[platform][date]:
+                        for segment in fd[platform][date][b]:
+                            segment_file = fd[platform][date][b][segment]['path']
+                            break
+            ## read segment header
+            header = ac.himawari.segment_parse(segment_file, parse_data = False)
+            if header[1]['satellite_name'] in ['Himawari-8', 'Himawari-9']:
+                input_type = 'Himawari'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Himawari
+        ################
+
+        ################
         ## DIMAP
         try:
             dimfile, datfile = ac.dimap.bundle_test(bundle)

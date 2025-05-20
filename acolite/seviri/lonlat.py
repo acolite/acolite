@@ -9,6 +9,7 @@
 ##                2024-10-20 (QV) changed dtype to float32
 ##                2024-10-21 (QV) added column and line start and end
 ##                2025-05-13 (QV) renamed sensor keyword to instrument
+##                2025-05-19 (QV) added scanning angle base factor, added Himawari/AHI support
 
 def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
             column_start = 0, column_end = None, line_start = 0, line_end = None):
@@ -29,6 +30,9 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
         ## projection parameters
         p1 = 1.006803
         p2 = 1737121856
+
+        ## scanning angle base factor
+        sa_factor = 2**16
     elif instrument.upper() == 'FCI':
         ## earth dimensions and satellite distance (FCI)
         earth_radius_equator = 6378.137
@@ -60,8 +64,41 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
         p1 = (earth_radius_equator**2) / (earth_radius_pole**2)
         ## p2 == S5 from PUG
         p2 = np.round((satellite_distance**2) - (earth_radius_equator**2)).astype(int)
+
+        ## scanning angle base factor
+        sa_factor = 2**16
+    elif instrument.upper() == 'AHI':
+        ## earth dimensions and satellite distance (AHI)
+        ## from users guide
+        earth_radius_equator = 6378.1370
+        earth_radius_pole = 6356.7523
+        satellite_distance = 42164.0
+        ## image info
+        #nc, nl ## columns and lines
+        #coff, loff ## full disk centre
+        #cfac, lfac ## factors dependent on pixel resolution in micro rad
+        if ssd == 0.5: ## full disk at SSD 0.5 km (B03)
+            nc, nl = 22000, 22000
+            coff, loff = 11000.5, 11000.5
+            cfac, lfac = 81865099, 81865099
+        elif ssd == 1.0: ## full disk at SSD 1.0 km (B01, B02, B04)
+            nc, nl = 11000, 11000
+            coff, loff = 5500.5,  5500.5
+            cfac, lfac = 40932549, 40932549
+        elif ssd == 2.0: ## full disk at SSD 2.0 km (B05, B06)
+            nc, nl = 5500, 5500
+            coff, loff = 2750.5, 2750.5
+            cfac, lfac = 20466275, 20466275
+        else:
+            print('SSD = {} km not configured, use 0.5, 1.0, or 2.0'.format(ssd))
+            return
+
+        p1 = 1.006739501
+        p2 = 1737122264
+        ## scanning angle base factor
+        sa_factor = 2**16
     else:
-        print('Instrument = {} not configured, use SEVIRI (MSG) or FCI (MTG)'.format(instrument))
+        print('Instrument = {} not configured, use SEVIRI (MSG), FCI (MTG), or AHI (Himawari)'.format(instrument))
         return
 
     ## set up pixel dimensions
@@ -76,8 +113,13 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
     c, l = np.meshgrid(column_range, line_range)
 
     ## compute scanning angle
-    x = (2**16 * (c - coff) / cfac).astype(np.float32)
-    y = (2**16 * (l - loff) / lfac).astype(np.float32)
+    x = (sa_factor * (c - coff) / cfac).astype(np.float32)
+    y = (sa_factor * (l - loff) / lfac).astype(np.float32)
+
+    ## convert to radians for AHI
+    if instrument.upper() == 'AHI':
+        x = np.radians(x)
+        y = np.radians(y)
 
     cosx = np.cos(x)
     cosy = np.cos(y)

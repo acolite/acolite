@@ -23,6 +23,8 @@ from acolite import wyvern
 
 from acolite import seviri
 from acolite import fci
+from acolite import himawari
+
 
 from acolite import gf
 from acolite import amazonia

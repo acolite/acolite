@@ -78,6 +78,8 @@ pans_scale_factor
 sensor_noise_bias_correction_sigma_factor
 sensor_noise
 fci_lon_0_default
+ahi_target_res
+ahi_lon_0_default
 
 ## GEE
 st_lon

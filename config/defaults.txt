@@ -157,6 +157,9 @@ seviri_hrv=False
 ## FCI settings
 fci_lon_0_default=0.0
 
+## Himawari settings
+ahi_target_res=2.0
+ahi_lon_0_default=140.7
 
 ## Wyvern settings
 wyvern_use_provided_f0=True
