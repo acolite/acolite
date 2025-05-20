@@ -36,5 +36,5 @@ def libradtran_run(runfile):
     p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 
     ## change back to current path
-    if os.getcwd() != current_path: os.chdir(current_path)
+    if current_path is not None: os.chdir(current_path)
     return(outputfile)
