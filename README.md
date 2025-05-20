@@ -95,7 +95,7 @@ libRadtran can be manually compiled and installed in the external directory, or 
 
             conda install conda-forge::rubin-libradtran
 
-If you are using the executable binary in your $PATH, set `use_system_libradtran=True`
+If you are using the executable binary in your $PATH, set `use_system_libradtran=True` in your settings file.
 
 If you are using a manual installation, ACOLITE expects the libRadtran (v2.0.5) to be in external/libRadtran-2.0.5 directory, but this can be changed by editing the configuration file `nano config/config.txt` and providing the full path to the libRadtran directory at a different location to the libradtran_dir= configuration. To install libRadtran in the external directory (when in the main acolite directory):
 
