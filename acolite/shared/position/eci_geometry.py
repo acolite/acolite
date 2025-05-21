@@ -8,6 +8,7 @@
 ## modifications: 2022-02-10 (QV) fixed coordinate system rotation
 ##                2022-02-12 (QV) support obs arrays
 ##                2025-05-20 (QV) split spherical/oblate options, added variables as keywords
+##                2025-05-21 (QV) added SSP
 
 def eci_geometry(sat_x, sat_y, sat_z,
                  obs_lon, obs_lat, obs_alt,
@@ -16,6 +17,7 @@ def eci_geometry(sat_x, sat_y, sat_z,
                  Re = 6378.135, ## Earth radius (km)
                  #a = 6378.135, f = 1/298.26, ## WGS72
                  a = 6378.137, f = 1/298.257223563, ## WGS84
+                 ssp_tolerance = 0.001, return_ssp = True,
                  return_elevation = False, spherical = False):
     import numpy as np
     import datetime, dateutil.parser
@@ -67,6 +69,37 @@ def eci_geometry(sat_x, sat_y, sat_z,
     ## dict to store results
     ret = {}
 
+    ## return subsatellite point
+    if return_ssp:
+        ## first estimate of SSP
+        slat  = np.arctan(sat_z / np.sqrt(sat_x**2 + sat_y**2))
+        slon  = np.pi + np.arctan(sat_y / sat_x) - theta_g
+        sat_h = np.sqrt(sat_x**2 + sat_y**2 + sat_z**2) - Re
+
+        ## iterate for exact SSP latitude and height
+        if not spherical:
+            if obs_lat.shape == (1,):
+                esq = 2 * f - f ** 2
+                R = np.sqrt(sat_x**2 + sat_y**2)
+                diff = np.inf
+                ## only for one point!
+                while diff > ssp_tolerance:
+                    slat0 = 1 * slat
+                    C = 1 / np.sqrt(1 - esq * np.sin(slat) ** 2)
+                    slat = np.arctan((sat_z + a * C * esq * np.sin(slat))/R)
+                    diff = np.abs(slat - slat0)
+                ## satellite height
+                sat_h = R / np.cos(slat) - a * C
+            else:
+                print('SSP Iteration not implemented for multiple points.')
+                print('Returning first estimate for SSP.')
+
+        ## add to return values
+        ret['ssp_lat'] = np.degrees(slat)
+        ret['ssp_lon'] = np.degrees(slon)
+        ret['ssp_alt'] = sat_h
+    ## end subsatellite point
+
     ## compute observer ECI coordinates
     ## for spherical earth
     if spherical:
@@ -97,9 +130,9 @@ def eci_geometry(sat_x, sat_y, sat_z,
         del rx, ry, rz, r
         del rS, rE, rZ
 
-        ret = {'type': 'spherical',
-               'zenith': 90-np.degrees(El),
-               'azimuth': np.degrees(Az)}
+        ret['type'] = 'spherical'
+        ret['zenith'] = 90-np.degrees(El)
+        ret['azimuth'] =  np.degrees(Az)
         if return_elevation: ret['elevation'] = np.degrees(El)
         del Az, El
 
@@ -135,14 +168,19 @@ def eci_geometry(sat_x, sat_y, sat_z,
         del rxprime, ryprime, rzprime, rprime
         del rSprime, rEprime, rZprime
 
-        ret = {'type': 'oblate',
-               'zenith': 90-np.degrees(Elprime),
-               'azimuth': np.degrees(Azprime)}
+        ret['type'] = 'oblate'
+        ret['zenith'] = 90-np.degrees(Elprime)
+        ret['azimuth'] =  np.degrees(Azprime)
         if return_elevation: ret['elevation'] = np.degrees(Elprime)
         del Azprime, Elprime
 
     ## return single values if 1D
-    if ret['zenith'].shape == (1,): ret['zenith'] = ret['zenith'][0]
-    if ret['azimuth'].shape == (1,): ret['azimuth'] = ret['azimuth'][0]
+    for k in ret:
+        if k == 'type': continue
+        if ret[k].shape == (1,): ret[k] = ret[k][0]
+
+    #     if
+    # if ret['zenith'].shape == (1,): ret['zenith'] = ret['zenith'][0]
+    # if ret['azimuth'].shape == (1,): ret['azimuth'] = ret['azimuth'][0]
 
     return(ret)
