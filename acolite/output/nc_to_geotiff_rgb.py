@@ -10,6 +10,7 @@
 ##                                removed some keywords
 ##                2024-04-16 (QV) use gem NetCDF handling
 ##                2025-01-20 (QV) added use of rgb_datasets and unified output naming with png outputs
+##                2025-05-21 (QV) update settings parsing
 
 def nc_to_geotiff_rgb(f, settings = None, min_wave = 2,
                         rgb_datasets = ['rhot', 'rhos', 'rhotc', 'rhosu', 'rhorc', 'rhow'],
@@ -27,9 +28,13 @@ def nc_to_geotiff_rgb(f, settings = None, min_wave = 2,
     else:
         from osgeo_utils import gdal_merge
 
-    ## combine default and user defined settings
-    setu = ac.acolite.settings.parse(None, settings = settings)
-    for k in ac.settings['user']: setu[k] = ac.settings['user'][k]
+    ## get run settings
+    setu = {k: ac.settings['run'][k] for k in ac.settings['run']}
+    ## additional run settings
+    if settings is not None:
+        settings = ac.acolite.settings.parse(settings)
+        for k in settings: setu[k] = settings[k]
+    ## end additional run settings
 
     creationOptions = None
     oformat = 'GTiff'
