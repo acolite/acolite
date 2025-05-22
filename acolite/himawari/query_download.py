@@ -55,6 +55,7 @@ def query_download(date_start, date_end = None, time_diff = 660,
         date2 = date1 + datetime.timedelta(seconds=time_diff)
     elif type(date_end) == str:
         date2 = dateutil.parser.parse(date_end)
+        date2 += datetime.timedelta(seconds=time_diff)
     elif type(date_end) == datetime.datetime:
         date2 = date_end
     else:
@@ -104,6 +105,8 @@ def query_download(date_start, date_end = None, time_diff = 660,
 
     if not download: return(files)
 
+    print('Downloading {} files.'.format(len(files)))
+    
     ofiles = []
     for file in files:
         bn = os.path.basename(file)
