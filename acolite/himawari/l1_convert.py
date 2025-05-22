@@ -151,16 +151,16 @@ def l1_convert(inputfile, output = None, settings = None):
                             observation_lines.append(header[9]['line_number_{}'.format(oi)])
                             observation_times.append(header[9]['observation_time_{}'.format(oi)])
 
+                        ## scale factor for current band
+                        factor = header[2]['number_of_columns']/shape
+
                         ## do subsetting
                         if sub is not None:
-                            #print(band_name, header[2]['number_of_columns'], shape)
                             ## add one offset to start at 0
                             if header[2]['number_of_columns'] != shape:
-                                factor = header[2]['number_of_columns']/shape
                                 l0 = int((header[7]['first_line_number_of_image_sequence'] - 1) / factor)
                                 l1 = int((l0 + (header[2]['number_of_lines'])/ factor))
                             else:
-                                factor = 1
                                 l0 = header[7]['first_line_number_of_image_sequence']-1
                                 l1 = l0 + header[2]['number_of_lines']-1
 
@@ -172,25 +172,20 @@ def l1_convert(inputfile, output = None, settings = None):
                                 print('Skipping segment {} for subset {}:{} {}:{}.'.format(segment, row_range[0], row_range[1], column_range[0], column_range[1]))
                                 continue
 
-                            ## read data and compute mask
-                            data = ac.himawari.segment_parse(segment_file, header=header)
-                            mask = data == header[5]['count_value_of_pixels_outside_scan_area']
-                            mask = mask | data == header[5]['count_value_of_error_pixels']
+                        ## read data and compute mask
+                        data = ac.himawari.segment_parse(segment_file, header=header)
+                        mask = data == header[5]['count_value_of_pixels_outside_scan_area']
+                        mask = mask | data == header[5]['count_value_of_error_pixels']
 
-                            ## resample using segment shape
-                            if header[2]['number_of_columns'] != shape:
-                                data = scipy.ndimage.zoom(data, zoom=1/factor, order=1)
-                                mask = scipy.ndimage.zoom(mask, zoom=1/factor, order=1)
+                        ## resample using segment shape
+                        if header[2]['number_of_columns'] != shape:
+                            data = scipy.ndimage.zoom(data, zoom=1/factor, order=1)
+                            mask = scipy.ndimage.zoom(mask, zoom=1/factor, order=1)
 
-                            ## crop to subset in current segment
+                        ## crop to subset in current segment
+                        if sub is not None:
                             data = data[row_range_segment[0]:row_range_segment[1], column_range[0]:column_range[1]]
                             mask = mask[row_range_segment[0]:row_range_segment[1], column_range[0]:column_range[1]]
-
-                        else:
-                            ## read data and compute mask
-                            data = ac.himawari.segment_parse(segment_file, header=header)
-                            mask = band_data == header[5]['count_value_of_pixels_outside_scan_area']
-                            mask = mask | band_data == header[5]['count_value_of_error_pixels']
 
                         ## append data
                         band_data.append(data)
