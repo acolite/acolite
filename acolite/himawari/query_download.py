@@ -119,10 +119,9 @@ def query_download(date_start, date_end = None, time_diff = 660,
                 os.makedirs(os.path.dirname(ofile))
 
             print('Downloading {}'.format(file))
-            cmd = ['{}/himawari-dl.py'.format(himawari_download_script_dir), file, '-o "{}"'.format(ofile)]
+            cmd = ['python', '{}/himawari-dl.py'.format(himawari_download_script_dir), file, '-o "{}"'.format(ofile)]
             if netrc is not None: cmd += ['-n {}'.format(netrc)]
-            cmd = ' '.join(cmd)
-            p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+            p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE)
             if p.returncode != 0:
                 print('Error for file {}'.format(file))
                 if os.path.exists(ofile): os.remove(ofile)
