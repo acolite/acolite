@@ -9,7 +9,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-05-22
-## modifications:
+## modifications: 2025-05-22 (QV) in fact the downloaded files are tar files
 
 def query_download(date_start, date_end = None, time_diff = 660,
                    bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06'], ## VSWIR bands
@@ -18,7 +18,7 @@ def query_download(date_start, date_end = None, time_diff = 660,
                    strip_directory_name = False, download = True):
 
     import dateutil.parser, datetime
-    import os, sys, subprocess
+    import os, sys, subprocess, tarfile
     cwd = os.getcwd()
 
     ## test script dir
@@ -118,17 +118,32 @@ def query_download(date_start, date_end = None, time_diff = 660,
             if not os.path.exists(os.path.dirname(ofile)):
                 os.makedirs(os.path.dirname(ofile))
 
+            ofile_tmp = ofile + '.tar'
+
             print('Downloading {}'.format(file))
-            cmd = ['python', '{}/himawari-dl.py'.format(himawari_download_script_dir), file, '-o "{}"'.format(ofile)]
+            cmd = ['python', '{}/himawari-dl.py'.format(himawari_download_script_dir), file, '-o "{}"'.format(ofile_tmp)]
             if netrc is not None: cmd += ['-n {}'.format(netrc)]
             p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE)
             if p.returncode != 0:
                 print('Error for file {}'.format(file))
-                if os.path.exists(ofile): os.remove(ofile)
+                if os.path.exists(ofile_tmp): os.remove(ofile_tmp)
                 print('Command:')
                 print('{}'.format(' '.join(cmd)))
             else:
                 print('Success for file {}'.format(file))
+
+                ## extract file from archive
+                with tarfile.open(ofile_tmp) as t:
+                    for tf in t.getmembers():
+                      if tf.isreg():
+                        if (tf.name == file):
+                            ## remove the path from the name
+                            tf.name = os.path.basename(tf.name)
+                            ## extract the file to the output path
+                            t.extract(tf,os.path.dirname(ofile))
+                        else:
+                            print(tf.name)
+                os.remove(ofile_tmp)
             p = None
 
         if os.path.exists(ofile): ofiles.append(ofile)
