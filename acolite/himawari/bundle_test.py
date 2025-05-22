@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-05-19
-## modifications:
+## modifications: 2025-05-22 (QV) use date+time to list bundles
 
 def bundle_test(bundle):
     import os, glob
@@ -13,9 +13,10 @@ def bundle_test(bundle):
         files += glob.glob('{}/HS_H0[8|9]_*.DAT.bz2'.format(bundle))
         files.sort()
     else:
+        ## if file is given only list files with matching date+time (bn[6:21])
         dn = os.path.dirname(bundle)
         bn = os.path.basename(bundle)
-        files = glob.glob('{}/HS_H0[8|9]{}*{}'.format(dn, bn[6:16], os.path.splitext(bn)[1]))
+        files = glob.glob('{}/HS_H0[8|9]{}*{}'.format(dn, bn[6:21], os.path.splitext(bn)[1]))
         files.sort()
 
     ## test files
@@ -36,16 +37,19 @@ def bundle_test(bundle):
             resolution = sp[6]
             segment = sp[7]
 
+            ## use date time to sort files
+            date_time = '{}_{}'.format(date, time)
+
             ## add parameters to dict
             if platform not in fd: fd[platform] = {}
-            if date not in fd[platform]: fd[platform][date] = {}
-            if band not in fd[platform][date]: fd[platform][date][band] = {}
+            if date_time not in fd[platform]: fd[platform][date_time] = {}
+            if band not in fd[platform][date_time]: fd[platform][date_time][band] = {}
 
             ## check segments
-            if segment in fd[platform][date][band]:
-                print('Segment {} already in {}'.format(segment, fd[platform][date][band][segment]))
+            if segment in fd[platform][date_time][band]:
+                print('Segment {} already in {}'.format(segment, fd[platform][date_time][band][segment]))
             else:
-                fd[platform][date][band][segment] = {'path': file, 'resolution': resolution, 'observation': observation}
+                fd[platform][date_time][band][segment] = {'path': file, 'resolution': resolution, 'observation': observation}
         else:
             continue
 
