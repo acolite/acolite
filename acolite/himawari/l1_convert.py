@@ -5,6 +5,7 @@
 ## 2025-05-19
 ## modifications: 2025-05-20 (QV) mask and resample at segment level, added crop at segment level
 ##                2025-05-22 (QV) only delete lon, lat, vaa, vza if last scene for the sensor
+##                                get observation time from (sub)scene centre
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -135,11 +136,20 @@ def l1_convert(inputfile, output = None, settings = None):
                     ## load band data
                     band_data = []
                     mask_data = []
+                    ## track line times
+                    observation_lines = []
+                    observation_times = []
                     for si, segment in enumerate(segments):
                         segment_file = fd[platform][date][band_name][segment]['path']
 
                         ## read header
                         header = ac.himawari.segment_parse(segment_file, parse_data = False)
+
+                        ## get observation times
+                        for i in range(header[9]['number_of_observation_times']):
+                            oi = i + 1
+                            observation_lines.append(header[9]['line_number_{}'.format(oi)])
+                            observation_times.append(header[9]['observation_time_{}'.format(oi)])
 
                         ## do subsetting
                         if sub is not None:
@@ -192,11 +202,15 @@ def l1_convert(inputfile, output = None, settings = None):
                         ## get time
                         ## MJD starts Nov. 17 1858
                         dt0 = datetime.datetime(1858, 11, 17, 0, 0, 0)
-                        ## observation time range
-                        dt1 = dt0 + datetime.timedelta(days=header[1]['observation_start_time'])
-                        dt2 = dt0 + datetime.timedelta(days=header[1]['observation_end_time'])
-                        ## take midpoint as time (could be improved to crop location)
-                        dt = dt1 + (dt2 - dt1)
+
+                        ## get observation time
+                        observation_lines = np.asarray(observation_lines)
+                        observation_times = np.asarray(observation_times)
+                        factor = header[2]['number_of_columns']/shape
+                        if sub is not None: centre_pixel = (row_range[1]-row_range[0])/2
+                        else: centre_pixel = shape/2
+                        centre_time = np.interp(centre_pixel, observation_lines, observation_times)
+                        dt = dt0 + datetime.timedelta(days=centre_time)
 
                         ## get up gatts
                         gatts['sensor'] = sensor
