@@ -81,7 +81,7 @@ def l1_convert(inputfile, output = None, settings = None):
             elif setu['limit'] is not None:
                 sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
                 if sub is None:
-                    print('Limit {} not in full disk.'.format(limit))
+                    print('Limit {} not in full disk.'.format(setu['limit']))
                     continue
             else:
                 print('Warning: running without subsetting full disk image.')
