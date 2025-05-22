@@ -9,6 +9,7 @@
 ##                2022-02-12 (QV) support obs arrays
 ##                2025-05-20 (QV) split spherical/oblate options, added variables as keywords
 ##                2025-05-21 (QV) added SSP
+##                2025-05-22 (QV) split off GMST and SSP
 
 def eci_geometry(sat_x, sat_y, sat_z,
                  obs_lon, obs_lat, obs_alt,
@@ -17,46 +18,18 @@ def eci_geometry(sat_x, sat_y, sat_z,
                  Re = 6378.135, ## Earth radius (km)
                  #a = 6378.135, f = 1/298.26, ## WGS72
                  a = 6378.137, f = 1/298.257223563, ## WGS84
-                 ssp_tolerance = 0.001, return_ssp = True,
                  return_elevation = False, spherical = False):
     import numpy as np
     import datetime, dateutil.parser
     import acolite as ac
 
-    ## time stuff
-    if type(time) is str:
-        dtime = dateutil.parser.parse(time)
-    else:
-        dtime = time
+    ## get theta_g
+    theta_g = ac.shared.position.gmst(time)
 
     ## convert to arrays
     obs_lat = np.atleast_1d(obs_lat)
     obs_lon = np.atleast_1d(obs_lon)
     obs_alt = np.atleast_1d(obs_alt)
-
-    ## find julian date
-    ## du is days since JD 2451545.0 (midday UT 1st Jan 2000)
-    y = dtime.year - 1
-    A = int(y / 100)
-    B = 2 - A + int(A / 4)
-    julday_year = int(365.25 * y) + int(30.6001 * 14) + 1720994.5 + B
-    doy = int(dtime.strftime('%j')) ## day of year
-    du = julday_year + doy
-
-    ## get fraction of day (out of 24 hours)
-    dayfrac = dtime - datetime.datetime(dtime.year, dtime.month, dtime.day, tzinfo=dtime.tzinfo)
-    deltat = dayfrac.seconds/86400
-
-    ## get hour angle
-    jdi = du + deltat
-    ut = jdi + 0.5
-    ut = ut - int(ut)
-    jd = jdi - ut
-
-    tu  = (jd - 2451545.0) / 36525
-    gmst = 24110.54841 + tu * (8640184.812866 + tu * (0.093104 - tu * 6.2E-6))
-    gmst = np.mod((gmst + 86400.0 * 1.00273790934 * ut), 86400.0)
-    theta_g = np.pi * 2 * gmst / 86400.0
 
     ## convert to radians
     lat = np.radians(obs_lat)
@@ -68,37 +41,6 @@ def eci_geometry(sat_x, sat_y, sat_z,
 
     ## dict to store results
     ret = {}
-
-    ## return subsatellite point
-    if return_ssp:
-        ## first estimate of SSP
-        slat  = np.arctan(sat_z / np.sqrt(sat_x**2 + sat_y**2))
-        slon  = np.pi + np.arctan(sat_y / sat_x) - theta_g
-        sat_h = np.sqrt(sat_x**2 + sat_y**2 + sat_z**2) - Re
-
-        ## iterate for exact SSP latitude and height
-        if not spherical:
-            if obs_lat.shape == (1,):
-                esq = 2 * f - f ** 2
-                R = np.sqrt(sat_x**2 + sat_y**2)
-                diff = np.inf
-                ## only for one point!
-                while diff > ssp_tolerance:
-                    slat0 = 1 * slat
-                    C = 1 / np.sqrt(1 - esq * np.sin(slat) ** 2)
-                    slat = np.arctan((sat_z + a * C * esq * np.sin(slat))/R)
-                    diff = np.abs(slat - slat0)
-                ## satellite height
-                sat_h = R / np.cos(slat) - a * C
-            else:
-                print('SSP Iteration not implemented for multiple points.')
-                print('Returning first estimate for SSP.')
-
-        ## add to return values
-        ret['ssp_lat'] = np.degrees(slat)
-        ret['ssp_lon'] = np.degrees(slon)
-        ret['ssp_alt'] = sat_h
-    ## end subsatellite point
 
     ## compute observer ECI coordinates
     ## for spherical earth
@@ -178,9 +120,5 @@ def eci_geometry(sat_x, sat_y, sat_z,
     for k in ret:
         if k == 'type': continue
         if ret[k].shape == (1,): ret[k] = ret[k][0]
-
-    #     if
-    # if ret['zenith'].shape == (1,): ret['zenith'] = ret['zenith'][0]
-    # if ret['azimuth'].shape == (1,): ret['azimuth'] = ret['azimuth'][0]
 
     return(ret)
