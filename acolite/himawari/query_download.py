@@ -65,7 +65,7 @@ def query_download(date_start, date_end = None, time_diff = 660,
     date_name = date1.strftime('%Y%m%d_%H%M')
 
     ## query command
-    cmd = ['{}/himawari-ls.py'.format(himawari_download_script_dir), '-T {}'.format(data_type), '-A {}'.format(area_type),\
+    cmd = ['python', '{}/himawari-ls.py'.format(himawari_download_script_dir), '-T {}'.format(data_type), '-A {}'.format(area_type),\
           '-f {}'.format(date1.isoformat()[0:16]), '-t {}'.format(date2.isoformat()[0:16])]
     if netrc is not None: cmd += ['-n {}'.format(netrc)]
 
@@ -74,6 +74,8 @@ def query_download(date_start, date_end = None, time_diff = 660,
     if (p.returncode != 0):
         print('Error querying:')
         print(p.stdout.decode(encoding='utf-8').split('\n'))
+        print('Command:')
+        print('{}'.format(' '.join(cmd)))
         return
 
     ## parse returned files
@@ -121,12 +123,14 @@ def query_download(date_start, date_end = None, time_diff = 660,
             if netrc is not None: cmd += ['-n {}'.format(netrc)]
             cmd = ' '.join(cmd)
             p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
-            if p.returncode == 1:
+            if p.returncode != 0:
                 print('Error for file {}'.format(file))
                 if os.path.exists(ofile): os.remove(ofile)
+                print('Command:')
+                print('{}'.format(' '.join(cmd)))
             else:
                 print('Success for file {}'.format(file))
             p = None
 
         if os.path.exists(ofile): ofiles.append(ofile)
-    return(ofiles)        
+    return(ofiles)
