@@ -90,19 +90,15 @@ def l1_convert(inputfile, output = None, settings = None):
             ## get F0 for radiance -> reflectance computation
             f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
             f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd['rsr'])
-            #print(f0d)
 
             ## subset geolocation
             column_range, row_range = None, None
             if sub is not None:
                 column_range = sub[0], sub[0]+sub[2]
                 row_range = sub[1], sub[1]+sub[3]
-
-                ## subset geolocation and geometry
+                ## subset geolocation
                 lon = lon[row_range[0]:row_range[1], column_range[0]:column_range[1]]
                 lat = lat[row_range[0]:row_range[1], column_range[0]:column_range[1]]
-                #vaa = vaa[row_range[0]:row_range[1], column_range[0]:column_range[1]]
-                #vza = vza[row_range[0]:row_range[1], column_range[0]:column_range[1]]
 
             ## load angles
             vaa, vza = ac.seviri.geom(lon_0 = lon_0, ssd = ssd, instrument = 'AHI', geolocation = False, geometry = True, sub = sub)
@@ -256,30 +252,6 @@ def l1_convert(inputfile, output = None, settings = None):
                     ## reconstruct image
                     band_data = np.vstack(band_data)
                     mask = np.vstack(mask_data)
-
-                    print(band_name, band_data.shape)
-
-                    # if sub is not None:
-                    #     # if band_data.shape[0] == shape:
-                    #     #     row_range_ = row_range[0], row_range[1]
-                    #     #     column_range_ = column_range[0], column_range[1]
-                    #     # else:
-                    #     #     factor = band_data.shape[0]/shape
-                    #     #     #row_range_ = row_range[0], row_range[1]
-                    #     #     #column_range_ = column_range[0], column_range[1]
-                    #     ## resample different resolutions, note we could subset first then zoom
-                    #     if band_data.shape[0] != shape:
-                    #         factor = band_data.shape[0]/shape
-                    #         band_data = scipy.ndimage.zoom(band_data, zoom=1/factor, order=1)
-                    #         print(band_name, band_data.shape)
-                    #
-                    #     ## crop
-                    #     band_data = band_data[row_range[0]:row_range[1], column_range[0]:column_range[1]]
-
-                    ## get mask
-                    #mask = band_data == header[5]['count_value_of_pixels_outside_scan_area']
-                    #mask = mask | band_data == header[5]['count_value_of_error_pixels']
-                    #mask = mask | sza_mask ## additional mask for sun below horizon
 
                     ## get radiance conversion
                     slope = header[5]['slope_for_count_radiance_conversion']
