@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-05-19
 ## modifications: 2025-05-20 (QV) mask and resample at segment level, added crop at segment level
+##                2025-05-22 (QV) only delete lon, lat, vaa, vza if last scene for the sensor
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -107,7 +108,7 @@ def l1_convert(inputfile, output = None, settings = None):
             vaa, vza = ac.seviri.geom(lon_0 = lon_0, ssd = ssd, instrument = 'AHI', geolocation = False, geometry = True, sub = sub)
 
             ## run through dates for current sensor
-            for date in fd[platform]:
+            for date_idx, date in enumerate(fd[platform]):
 
                 gatts = {}
 
@@ -237,13 +238,13 @@ def l1_convert(inputfile, output = None, settings = None):
 
                         ## write position and angles
                         gemo.write('lon', lon)
-                        del lon
+                        if date_idx == len(fd[platform])-1: del lon
                         gemo.write('lat', lat)
-                        del lat
+                        if date_idx == len(fd[platform])-1: del lat
                         gemo.write('vza', vza)
-                        del vza
+                        if date_idx == len(fd[platform])-1: del vza
                         gemo.write('vaa', vaa)
-                        del vaa
+                        if date_idx == len(fd[platform])-1: del vaa
                         gemo.write('sza', sza)
                         del sza
                         gemo.write('saa', saa)
