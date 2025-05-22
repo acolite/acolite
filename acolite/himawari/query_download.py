@@ -106,9 +106,9 @@ def query_download(date_start, date_end = None, time_diff = 660,
     if not download: return(files)
 
     print('Downloading {} files.'.format(len(files)))
-    
+
     ofiles = []
-    for file in files:
+    for fi, file in enumerate(files):
         bn = os.path.basename(file)
         dn = os.path.dirname(file)
 
@@ -123,7 +123,7 @@ def query_download(date_start, date_end = None, time_diff = 660,
 
             ofile_tmp = ofile + '.tar'
 
-            print('Downloading {}'.format(file))
+            print('Downloading {}/{}: {}'.format(fi+1, len(files), file))
             cmd = ['python', '{}/himawari-dl.py'.format(himawari_download_script_dir), file, '-o "{}"'.format(ofile_tmp)]
             if netrc is not None: cmd += ['-n {}'.format(netrc)]
             p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE)
