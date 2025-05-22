@@ -5,6 +5,7 @@
 ## modifications: 2021-04-08 (QV) added VENUS
 ##                2022-07-21 (QV) added check for tar and zip files
 ##                2022-10-26 (QV) update Planet multi-scene zip file handling
+##                2025-05-22 (QV) made file extraction optional
 
 def identify_bundle(bundle, input_type = None, output = None):
     import os, glob, shutil, zipfile
@@ -21,12 +22,13 @@ def identify_bundle(bundle, input_type = None, output = None):
 
         ## test if zip/tar file
         bn, ext = os.path.splitext(bundle)
-        if os.path.isfile(bundle) & (ext.lower() in ['.zip', '.tar', '.gz', '.tgz', '.bz2']):
-            targ_bundle, extracted_path = ac.shared.extract_bundle(bundle, output=output, verbosity=2)
-            if targ_bundle is not None:
-                print(targ_bundle)
-                bundle = '{}'.format(targ_bundle)
-                zipped = True
+        if ac.settings['run']['extract_inputfile']:
+            if os.path.isfile(bundle) & (ext.lower() in ['.zip', '.tar', '.gz', '.tgz', '.bz2']):
+                targ_bundle, extracted_path = ac.shared.extract_bundle(bundle, output=output, verbosity=2)
+                if targ_bundle is not None:
+                    print(targ_bundle)
+                    bundle = '{}'.format(targ_bundle)
+                    zipped = True
 
         ################
         ## ACOLITE

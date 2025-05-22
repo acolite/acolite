@@ -548,6 +548,9 @@ l2w_delete_netcdf=False
 delete_acolite_run_text_files=False
 # delete output directory if empty
 delete_acolite_output_directory=False
+
+# extract input file
+extract_inputfile=True
 # delete extracted L1 file
 delete_extracted_input=False
 
