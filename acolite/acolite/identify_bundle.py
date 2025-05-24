@@ -535,6 +535,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## OpenCosmos
+        try:
+            sensor, paths = ac.opencosmos.bundle_test(bundle)
+            if sensor.startswith('OpenCosmos'):
+                input_type = 'OpenCosmos'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end OpenCosmos
+        ################
+
+        ################
         ## Haiyang
         try:
             ret = ac.haiyang.bundle_test(bundle)

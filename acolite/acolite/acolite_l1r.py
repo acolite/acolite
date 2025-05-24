@@ -287,6 +287,13 @@ def acolite_l1r(bundle, input_type=None):
     ## end Wyvern
     ################
 
+    ################
+    ## OpenCosmos
+    if input_type == 'OpenCosmos':
+        l1r_files, setu = ac.opencosmos.l1_convert(bundle)
+    ## end OpenCosmos
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:
