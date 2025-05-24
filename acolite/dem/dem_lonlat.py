@@ -9,6 +9,7 @@
 def dem_lonlat(lon, lat, source='copernicus30', default='copernicus30'):
     import acolite as ac
     import os
+    import numpy as np
 
     if source not in ['srtm', 'srtm15plus', \
                               'srtmgl1', 'srtmgl3',
@@ -17,6 +18,9 @@ def dem_lonlat(lon, lat, source='copernicus30', default='copernicus30'):
                               'COP-DEM_GLO-90-DGED__2021_1', 'COP-DEM_GLO-90-DGED__2022_1']:
         print('DEM {} not recognised, using {}.'.format(source, default))
         source = '{}'.format(default)
+
+    lon = np.atleast_1d(lon)
+    lat = np.atleast_1d(lat)
 
     if source.lower() == 'srtm':
         dem = ac.dem.hgt_lonlat(lon, lat)
@@ -30,4 +34,5 @@ def dem_lonlat(lon, lat, source='copernicus30', default='copernicus30'):
                           'COP-DEM_GLO-90-DGED__2021_1', 'COP-DEM_GLO-90-DGED__2022_1']:
         dem = ac.dem.copernicus_dem_lonlat(lon, lat, source=source)
 
+    if dem.shape == (1,): dem = dem[0]
     return(dem)
