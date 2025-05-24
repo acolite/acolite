@@ -483,6 +483,20 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## EarthCare
+        try:
+            ## test bundle and get igatts
+            sensor, igatts = ac.earthcare.bundle_test(bundle)
+            if (sensor == 'EarthCare_MSI'):
+                input_type = 'EarthCare'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end EarthCare
+        ################
+
+
+        ################
         ## DIMAP
         try:
             dimfile, datfile = ac.dimap.bundle_test(bundle)

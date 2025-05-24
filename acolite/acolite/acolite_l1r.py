@@ -232,6 +232,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## EarthCare
+    if input_type == 'EarthCare':
+        l1r_files, setu = ac.earthcare.l1_convert(bundle)
+    ## end EarthCare
+    ################
+
+    ################
     ## DIMAP
     if input_type == 'DIMAP':
         l1r_files, setu = ac.dimap.l1_convert(bundle)

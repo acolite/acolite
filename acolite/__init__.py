@@ -21,6 +21,7 @@ from acolite import hypso
 from acolite import pace
 from acolite import wyvern
 from acolite import opencosmos
+from acolite import earthcare
 
 from acolite import seviri
 from acolite import fci
