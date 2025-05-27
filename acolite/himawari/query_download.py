@@ -10,6 +10,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-05-22
 ## modifications: 2025-05-22 (QV) in fact the downloaded files are tar files
+##                2025-05-27 (QV) add time to printouts
 
 def query_download(date_start, date_end = None, time_diff = 660,
                    bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06'], ## VSWIR bands
@@ -105,7 +106,7 @@ def query_download(date_start, date_end = None, time_diff = 660,
 
     if not download: return(files)
 
-    print('Downloading {} files.'.format(len(files)))
+    print('{} Downloading {} files.'.format(datetime.datetime.now().isoformat()[0:19], len(files)))
 
     ofiles = []
     for fi, file in enumerate(files):
@@ -123,17 +124,17 @@ def query_download(date_start, date_end = None, time_diff = 660,
 
             ofile_tmp = ofile + '.tar'
 
-            print('Downloading {}/{}: {}'.format(fi+1, len(files), file))
+            print('{} Downloading {}/{}: {}'.format(datetime.datetime.now().isoformat()[0:19], fi+1, len(files), file))
             cmd = ['python', '{}/himawari-dl.py'.format(himawari_download_script_dir), file, '-o "{}"'.format(ofile_tmp)]
             if netrc is not None: cmd += ['-n {}'.format(netrc)]
             p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE)
             if p.returncode != 0:
-                print('Error for file {}'.format(file))
+                print('{} Error for file {}'.format(datetime.datetime.now().isoformat()[0:19], file))
                 if os.path.exists(ofile_tmp): os.remove(ofile_tmp)
                 print('Command:')
                 print('{}'.format(' '.join(cmd)))
             else:
-                print('Success for file {}'.format(file))
+                print('{} Success for file {}'.format(datetime.datetime.now().isoformat()[0:19], file))
 
                 ## extract file from archive
                 with tarfile.open(ofile_tmp) as t:
