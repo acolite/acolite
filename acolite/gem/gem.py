@@ -15,6 +15,7 @@
 ##                2024-05-22 (QV) added use_stored to data, added file = None option
 ##                2025-01-23 (QV) fix for wrong dataset attributes
 ##                2025-03-05 (QV) increased verbosity for opening/appending datasets
+##                2025-06-05 (QV) added atts function
 
 import acolite as ac
 import os, sys, json
@@ -148,6 +149,21 @@ class gem(object):
                     return(cdata, catt)
                 else:
                     return(cdata)
+
+        ## read attributes
+        def atts(self, ds, store = False, use_stored = True):
+            ## data already in memory
+            if (ds in self.data_att) & (use_stored):
+                catt = self.data_att[ds]
+            ## read in dataset
+            else:
+                if self.nc_mode != 'r': self.open('r')
+                if ds in self.datasets:
+                    catt = {attr : getattr(self.nc.variables[ds],attr) for attr in self.nc.variables[ds].ncattrs()}
+                    if (self.store) or (store): self.data_att[ds] = catt
+                else:
+                    return
+            return(catt)
 
         ## read data for nc_projection
         def projection_read(self):
