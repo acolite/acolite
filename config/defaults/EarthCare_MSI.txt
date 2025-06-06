@@ -1,0 +1,26 @@
+## ACOLITE default settings for EarthCare/MSI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+copy_datasets=lon,lat,sza,vza,raa,rhot_*
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_wave_range=400,2500
+
+l2w_mask_wave=1653
+l2w_mask_threshold=0.03
+l2w_mask_negative_rhow=False
+
+rgb_red_wl=1653
+rgb_green_wl=868
+rgb_blue_wl=666
+
+dsf_spectrum_option=percentile
+dsf_percentile=1
+rsr_version=extracted
+
+default_projection_resolution=500,750
