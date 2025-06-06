@@ -1,0 +1,36 @@
+## ACOLITE default settings for GOES17_ABI
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=resolved
+dsf_interface_reflectance=True
+resolved_geometry=True
+dsf_spectrum_option=percentile
+dsf_percentile=1
+luts=ACOLITE-LUT-202110-MOD2
+rsr_version=1nm
+
+dsf_filter_aot=True
+dsf_filter_percentile=5
+dsf_filter_box=3,3
+dsf_write_aot_550=True
+
+dsf_smooth_aot=True
+dsf_smooth_box=1,1
+dsf_tile_dimensions=15,15
+
+## masking settings
+l2w_mask_wave=1600
+l2w_mask_threshold=0.05
+l2w_mask_smooth=False
+l2w_mask_negative_rhow=False
+
+## rgb settings
+rgb_red_wl=864
+rgb_green_wl=640
+rgb_blue_wl=471
+map_title_rgb_wavelengths=True

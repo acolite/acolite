@@ -26,6 +26,7 @@ from acolite import earthcare
 from acolite import seviri
 from acolite import fci
 from acolite import himawari
+from acolite import goes
 
 
 from acolite import gf

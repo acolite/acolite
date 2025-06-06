@@ -483,6 +483,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## GOES-R
+        try:
+            igatts = ac.shared.nc_gatts(bundle)
+            if (igatts['platform_ID'] in ['G16', 'G17', 'G18', 'G19']) & (igatts['title'] == 'ABI L1b Radiances'):
+                input_type = 'GOES'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end GOES-R
+        ################
+
+        ################
         ## EarthCare
         try:
             ## test bundle and get igatts
