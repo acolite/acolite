@@ -10,7 +10,7 @@ def bundle_test(bundle, rad_base = 'OR_ABI-L1b-Rad'):
     import acolite as ac
 
     if os.path.isdir(bundle):
-        files = glob.glob('{}/{}*-*.nc'.format(rad_base, bundle))
+        files = glob.glob('{}/{}*-*.nc'.format(bundle, rad_base))
     else:
         bn = os.path.basename(bundle)
         dn = os.path.dirname(bundle)
