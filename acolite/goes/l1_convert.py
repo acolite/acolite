@@ -195,7 +195,7 @@ def l1_convert(inputfile, output = None, settings = None):
                             sub = ac.shared.geolocation_sub(lat, lon, setu['limit'])
                             if sub is None:
                                 print('Limit {} not in current product {}.'.format(setu['limit'], product))
-                                #continue
+                                continue
                         elif product in ['RadC', 'RadF']:
                             print('Warning: running without subsetting {} image.'.format(product))
                             print('It is recommended using a subset sub=x, y, nx, ny or limit=S, W, N, E.')
