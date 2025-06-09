@@ -106,6 +106,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
                     ## track output gatts
                     gatts = {}
+                    ofile = None
 
                     ## track if we have loaded current projection and geometry
                     cur_geometry = False
@@ -339,5 +340,6 @@ def l1_convert(inputfile, output = None, settings = None):
                         d = None
                     gemo.close()
                     gemo = None
-                if ofile not in ofiles: ofiles.append(ofile)
+                if ofile is not None:
+                    if ofile not in ofiles: ofiles.append(ofile)
     return(ofiles, setu)
