@@ -508,6 +508,7 @@ def l1_convert(inputfile, output = None, settings = None):
             if new:
                 gemo = ac.gem.gem(ofile, new = True)
                 gemo.gatts = {k: gatts[k] for k in gatts}
+                gemo.nc_projection = nc_projection
                 datasets = gemo.datasets
 
             ## run through image tiles
