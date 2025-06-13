@@ -148,7 +148,6 @@ def l1_convert(inputfile, output = None, settings = None):
             else:
                 print('Warning: running without subsetting full disk image.')
                 print('It is recommended using a subset sub=x, y, nx, ny or limit=S, W, N, E.')
-                return
 
             ## subset geolocation
             column_range, row_range = None, None
