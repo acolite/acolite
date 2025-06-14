@@ -598,7 +598,9 @@ def identify_bundle(bundle, input_type = None, output = None):
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified
-    if (input_type is None) & (zipped) & (os.path.exists(bundle)) & (bundle != orig_bundle):
+    if (input_type is None) & (zipped) & (os.path.exists(bundle)) & (bundle != orig_bundle) & (ac.settings['run']['delete_extracted_input']):
+        print('Removing extracted bundle that could not be identified: {}'.format(bundle))
+        print('Files were extracted from: {}'.format(orig_bundle))
         shutil.rmtree(bundle)
         bundle = '{}'.format(orig_bundle)
 
