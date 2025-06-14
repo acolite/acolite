@@ -12,6 +12,7 @@ def l1_convert(inputfile, output = None, settings = None):
     import os, json
     import dateutil.parser, time
     import numpy as np
+    import scipy.ndimage
     import acolite as ac
 
     ## get run settings
@@ -69,14 +70,14 @@ def l1_convert(inputfile, output = None, settings = None):
                 ## IR bands not used at the moment
                 datasets_tir = ['ir_38_hr', 'ir_105_hr']
                 full_dimensions = 22272, 22272
-                ssd = 0.5
+                input_ssd = 0.5
             elif 'FDHSI' in dtp:
                 datatype = 'FDHSI'
                 datasets = ['vis_04','vis_05','vis_06','vis_08','vis_09', 'nir_13','nir_16','nir_22']
                 ## note that these may have different resolution, but not used at the moment
                 datasets_tir = ['ir_38','wv_63','wv_73','ir_87','ir_97','ir_105','ir_123','ir_133']
                 full_dimensions = 11136, 11136
-                ssd = 1.0
+                input_ssd = 1.0
             else:
                 print('{} not recognised'.format(dtp))
                 continue
@@ -114,6 +115,11 @@ def l1_convert(inputfile, output = None, settings = None):
             ## read rsr
             rsrd = ac.shared.rsr_dict(sensor)[sensor]
 
+            factor = 1.0
+            if setu['fci_target_res'] != input_ssd:
+                factor = setu['fci_target_res'] / input_ssd
+            ssd = factor * input_ssd
+
             #if not setu['use_provided_f0']:
             #    f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
             #    f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd['rsr'])
@@ -128,10 +134,9 @@ def l1_convert(inputfile, output = None, settings = None):
             oname = '{}_{}'.format(gatts['sensor'], dt.strftime('%Y_%m_%d_%H_%M_%S'))
             if setu['region_name'] != '': oname+='_{}'.format(setu['region_name'])
             ofile = '{}/{}_{}.nc'.format(output, oname, gatts['acolite_file_type'])
-            #ofile_hrv = '{}/{}_{}_HRV.nc'.format(output, oname, gatts['acolite_file_type'])
+            ofile += '_{:.1f}km.nc'.format(ssd)
             gatts['oname'] = oname
             gatts['ofile'] = ofile
-            #gatts['ofile_hrv'] = ofile_hrv
 
             ## load geolocation and geometry
             if (lat is None) | (lon is None):
@@ -212,6 +217,9 @@ def l1_convert(inputfile, output = None, settings = None):
                 print('Reading radiance for {} {}'.format(dtp, ds))
                 data, irr = ac.fci.read_tiles(fci_files, dtp, ds, column_range = column_range, row_range = row_range)
                 band_irr = irr * 1.0
+
+                if factor != 1:
+                    data = scipy.ndimage.zoom(data, zoom=1/factor, order=1)
 
                 ### get F0
                 #if setu['use_provided_f0']:

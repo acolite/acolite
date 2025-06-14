@@ -155,6 +155,7 @@ viirs_mask_immixed_maxdif=0.002
 seviri_hrv=False
 
 ## FCI settings
+fci_target_res=1.0
 fci_lon_0_default=0.0
 
 ## Himawari settings
