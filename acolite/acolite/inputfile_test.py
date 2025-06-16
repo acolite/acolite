@@ -66,7 +66,7 @@ def inputfile_test(inputfile):
                         if not bn.endswith('.ZIP'): bn += '.ZIP'
                     elif bn.startswith('H2') & ('.L1B_ISS' in bn): ## HICO
                         download_source = 'oceandata'
-                        if not bn.endswith('.bz2'): bn += '.bz2'
+                        #if not bn.endswith('.bz2'): bn += '.bz2'
                     else:
                         print('Could not identify download source for scene {}'.format(file))
                         continue
