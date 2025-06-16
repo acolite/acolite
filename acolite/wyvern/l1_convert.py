@@ -5,6 +5,7 @@
 ## modifications: 2025-03-04 (QV) functionised from development code
 ##                2025-03-05 (QV) fixed issue with out of scene limit
 ##                                added wyvern_use_provided_f0 and wyvern_use_rsr_file
+##                2025-06-16 (QV) added nc_projection
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -108,6 +109,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
         ## set up projection
         warp_to, dct_prj, sub = None, None, None
+        nc_projection = None
         try:
             ## get projection from image
             dct = ac.shared.projection_read(file)
@@ -139,6 +141,9 @@ def l1_convert(inputfile, output = None, settings = None):
                 res_method = 'near'
                 warp_to = (dct_prj['proj4_string'], xyr, dct_prj['pixel_size'][0],dct_prj['pixel_size'][1], res_method)
 
+            ## set up nc_projection
+            nc_projection = ac.shared.projection_netcdf(dct_prj)
+
         ## for radiance conversion
         mus = np.cos(gatts['sza']*(np.pi/180))
         muv = np.cos(gatts['vza']*(np.pi/180))
@@ -146,6 +151,7 @@ def l1_convert(inputfile, output = None, settings = None):
         ## set up output gem
         gemo = ac.gem.gem(ofile, new = True)
         gemo.gatts = {k: gatts[k] for k in gatts}
+        gemo.nc_projection = nc_projection
 
         ## output geolocation
         if dct_prj is not None:
