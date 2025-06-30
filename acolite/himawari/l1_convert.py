@@ -108,7 +108,7 @@ def l1_convert(inputfile, output = None, settings = None):
             for date_idx, date in enumerate(fd[platform]):
 
                 gatts = {}
-
+                gemo = None
                 ## find location
                 for bi, band in enumerate(rsrd['rsr_bands']):
                     band_name = 'B{}'.format(band.zfill(2))
@@ -292,8 +292,10 @@ def l1_convert(inputfile, output = None, settings = None):
                     gemo.write(ds, band_data, ds_att = ds_att)
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, band_data.shape))
                     band_data = None
-                gemo.close()
-                gemo = None
-                if ofile not in ofiles: ofiles.append(ofile)
+
+                if gemo is not None:
+                    gemo.close()
+                    gemo = None
+                    if ofile not in ofiles: ofiles.append(ofile)
 
     return(ofiles, setu)
