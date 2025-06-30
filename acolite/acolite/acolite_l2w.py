@@ -666,22 +666,36 @@ def acolite_l2w(gem, output = None, settings = None,
 
         #############################
         ## Jiang et al. TSS
-        if cur_par == 'tss_jiang2021':
+        if cur_par.startswith('tss_jiang'):
             mask = True ## water parameter so apply mask
-            par_attributes = {'algorithm':'Jiang et al. 2021', 'title':'Jiang TSS'}
-            par_attributes['reference']='Jiang et al. 2021'
-            par_attributes['doi']='https://doi.org/10.1016/j.rse.2021.112386'
 
             ## load config
             if gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
                 tss_file = ac.config['data_dir']+'/Shared/algorithms/Jiang/tss_msi_2021.txt'
+                par_attributes = {'algorithm':'Jiang et al. 2023', 'title':'Jiang TSS'}
+                par_attributes['reference']='Jiang et al. 2023'
+                par_attributes['doi']='https://doi.org/10.1016/j.isprsjprs.2023.09.020'
+                par_name = 'TSS_Jiang2023'
             elif gem.gatts['sensor'] in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']:
                 tss_file = ac.config['data_dir']+'/Shared/algorithms/Jiang/tss_olci_2021.txt'
+                par_attributes = {'algorithm':'Jiang et al. 2021', 'title':'Jiang TSS'}
+                par_attributes['reference']='Jiang et al. 2021'
+                par_attributes['doi']='https://doi.org/10.1016/j.rse.2021.112386'
+                par_name = 'TSS_Jiang2021'
             else:
                 print('Parameter {} not configured for {}'.format(cur_par, gem.gatts['sensor']))
                 continue
+
+            ## check algorithm version
+            if len(par_name) == len(cur_par):
+                if par_name.lower() != cur_par:
+                    print('Use l2w parameter {} for {}'.format(par_name, gem.gatts['sensor']))
+                    continue
+
+            ## load algorithm config data
             tss_cfg = ac.acolite.settings.parse(None, settings=tss_file)
 
+            ## find Rrs data for required bands
             sen_wave = []
             for ki, k in enumerate(tss_cfg['Rrs_wave']):
                 ci, cw = ac.shared.closest_idx(rhos_waves, k)
@@ -695,7 +709,6 @@ def acolite_l2w(gem, output = None, settings = None,
                 Rrs_in[k] = cur_data/np.pi
                 del cur_data
 
-            par_name = 'TSS_Jiang2021'
             par_atts[par_name] = par_attributes
             par_data[par_name] = np.zeros(Rrs_in[k].shape) ## zeroes where no algorithm has been applied
 

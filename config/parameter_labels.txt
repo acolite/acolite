@@ -69,7 +69,8 @@ SPM_Novoa2017_m_switch,0,5,True,default,Novoa 2017 Switch (M),1
 #
 ## Jiang TSS algorithm
 #
-TSS_Jiang2021,1,100,True,Planck_Parchment_RGB,TSS Jiang,gm$^{-3}$
+TSS_Jiang2021,1,100,True,Planck_Parchment_RGB,TSS Jiang OLCI,gm$^{-3}$
+TSS_Jiang2023,1,100,True,Planck_Parchment_RGB,TSS Jiang MSI,gm$^{-3}$
 #
 ## CHL_OC
 #
