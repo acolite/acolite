@@ -671,7 +671,7 @@ def acolite_l2w(gem, output = None, settings = None,
 
             ## load config
             if gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
-                tss_file = ac.config['data_dir']+'/Shared/algorithms/Jiang/tss_msi_2021.txt'
+                tss_file = ac.config['data_dir']+'/Shared/algorithms/Jiang/tss_msi_2023.txt'
                 par_attributes = {'algorithm':'Jiang et al. 2023', 'title':'Jiang TSS'}
                 par_attributes['reference']='Jiang et al. 2023'
                 par_attributes['doi']='https://doi.org/10.1016/j.isprsjprs.2023.09.020'

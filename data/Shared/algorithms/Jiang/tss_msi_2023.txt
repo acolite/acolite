@@ -1,5 +1,5 @@
-## config file for Jiang et al. 2021 TSS algorithm for MSI
-## https://doi.org/10.1016/j.rse.2021.112386
+## config file for Jiang et al. 2023 TSS algorithm for MSI
+## https://doi.org/10.1016/j.isprsjprs.2023.09.020
 ## settings for QAA
 Rrs_wave=443,490,560,665,705,740,783,865
 aw=0.00515124,0.01919594,0.06299986,0.41395333,0.70385758,2.71167020,2.62000141,4.61714226
