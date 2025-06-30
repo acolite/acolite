@@ -83,6 +83,16 @@ ahi_target_res
 ahi_lon_0_default
 abi_target_res
 
+Rrs_wave
+aw
+bbw
+TSS_wave
+TSS_scale
+NIR_wave
+NIR_threshold
+poly_wave
+poly_coef
+
 ## GEE
 st_lon
 st_lat

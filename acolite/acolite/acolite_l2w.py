@@ -665,6 +665,84 @@ def acolite_l2w(gem, output = None, settings = None,
         #############################
 
         #############################
+        ## Jiang et al. TSS
+        if cur_par == 'tss_jiang2021':
+            mask = True ## water parameter so apply mask
+            par_attributes = {'algorithm':'Jiang et al. 2021', 'title':'Jiang TSS'}
+            par_attributes['reference']='Jiang et al. 2021'
+            par_attributes['doi']='https://doi.org/10.1016/j.rse.2021.112386'
+
+            ## load config
+            if gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
+                tss_file = ac.config['data_dir']+'/Shared/algorithms/Jiang/tss_msi_2021.txt'
+            elif gem.gatts['sensor'] in ['EN1_MERIS', 'S3A_OLCI', 'S3B_OLCI']:
+                tss_file = ac.config['data_dir']+'/Shared/algorithms/Jiang/tss_olci_2021.txt'
+            else:
+                print('Parameter {} not configured for {}'.format(cur_par, gem.gatts['sensor']))
+                continue
+            tss_cfg = ac.acolite.settings.parse(None, settings=tss_file)
+
+            sen_wave = []
+            for ki, k in enumerate(tss_cfg['Rrs_wave']):
+                ci, cw = ac.shared.closest_idx(rhos_waves, k)
+                cur_ds = [ds for ds in rhos_ds if ('{:.0f}'.format(cw) in ds)][0]
+                sen_wave.append(cw)
+                if ki == 0: Rrs_in = {}
+                cur_data = 1.0 * gem.data(cur_ds)
+                ## mask data
+                if (mask) & (setu['l2w_mask_water_parameters']): cur_data[(l2_flags & flag_value)!=0] = np.nan
+                ## convert to Rrs
+                Rrs_in[k] = cur_data/np.pi
+                del cur_data
+
+            par_name = 'TSS_Jiang2021'
+            par_atts[par_name] = par_attributes
+            par_data[par_name] = np.zeros(Rrs_in[k].shape) ## zeroes where no algorithm has been applied
+
+            ## find subsets where to apply algorithm
+            for ji in range(4):
+                ## 490 > 560
+                if ji == 0:
+                    sub = np.where((Rrs_in[490.] > Rrs_in[560.]) & (par_data[par_name] == 0))
+                    cur_wave = 560.
+
+                ## 490 > 620
+                if ji == 1:
+                    if gem.gatts['sensor'] in ['S2A_MSI', 'S2B_MSI', 'S2C_MSI']:
+                        ## estimate Rrs 620
+                        Rrs_620 = tss_cfg['poly_coef'][0] * Rrs_in[tss_cfg['poly_wave']] **3 +\
+                                  tss_cfg['poly_coef'][1] * Rrs_in[tss_cfg['poly_wave']] **2 +\
+                                  tss_cfg['poly_coef'][2] * Rrs_in[tss_cfg['poly_wave']] +\
+                                  tss_cfg['poly_coef'][3]
+                        sub = np.where((Rrs_in[490.] > Rrs_620) & (par_data[par_name] == 0))
+                    else:
+                        sub = np.where((Rrs_in[490.] > Rrs_in[620.]) & (par_data[par_name] == 0))
+                    cur_wave = 665.
+
+                ## NIR > blue
+                if ji == 2:
+                    sub = np.where((Rrs_in[tss_cfg['NIR_wave']] > Rrs_in[490.]) &\
+                                   (Rrs_in[tss_cfg['NIR_wave']] > tss_cfg['NIR_threshold']) &\
+                                   (par_data[par_name] == 0))
+                    cur_wave = 865.
+
+                ## leftover pixels
+                if ji == 3:
+                    sub = np.where(par_data[par_name] == 0)
+                    cur_wave = tss_cfg['NIR_wave']
+
+                ## continue if we have no pixels
+                if len(sub[0]) == 0: continue
+
+                ## compute tss based on QAA bbp
+                par_data[par_name][sub] = ac.parameters.jiang.tss(Rrs_in, tss_cfg, cur_wave, sub = sub)
+
+            ## remove Rrs
+            del Rrs_in
+        ## end Jiang et al. TSS
+        #############################
+
+        #############################
         ## CHL_OC
         if 'chl_oc' in cur_par:
             mask = True ## water parameter so apply mask
