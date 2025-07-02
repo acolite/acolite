@@ -133,7 +133,7 @@ def download(entity_list, dataset_list, identifier_list, output = None,
 
                 ## download file
                 if os.path.exists(tfile): os.remove(tfile)
-                dl = session.get(download_url, verify=False, allow_redirects=True)
+                dl = session.get(download_url, verify=True, allow_redirects=True)
                 print('Writing file to {}'.format(tfile))
                 if (dl.ok):
                     with open(tfile, 'wb') as p:

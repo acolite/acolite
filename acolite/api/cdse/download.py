@@ -97,7 +97,7 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
 
             ## download file
             if os.path.exists(zfile): os.remove(zfile)
-            dl = session.get(url, verify=False, allow_redirects=True)
+            dl = session.get(url, verify=True, allow_redirects=True)
             print('Writing file to {}'.format(zfile))
             if (dl.ok):
                 with open(zfile, 'wb') as p:
