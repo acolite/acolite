@@ -1530,6 +1530,77 @@ def acolite_l2w(gem, output = None, settings = None,
         #############################
 
         #############################
+        ## NDSI
+        if (cur_par == 'ndsi') | (cur_par.split('_')[0] == 'ndsi'):
+            mask = False ## no water mask
+            par_split = cur_par.split('_')
+            par_attributes = {'algorithm':'NDSI', 'dataset':'rhos'}
+            par_attributes['reference']=''
+            par_attributes['algorithm']=''
+
+            ## wavelengths and max wavelength difference
+            ndsi_diff = [20, 50]
+            req_waves = [560, 1600]
+
+            ## select bands
+            required_datasets, req_waves_selected = [], []
+            ds_waves = [w for w in rhos_waves]
+            ds_names = [ds for ds in rhos_ds]
+            if len(par_split) == 2:
+                par_attributes['dataset']=par_split[1]
+                ds_names = [ds for ds in gem.datasets if ds.startswith('{}_'.format(par_split[1]))]
+                ds_waves = [int(ds.split('_')[-1]) for ds in ds_names]
+
+            ## number of products possible
+            ndsi_products = 1
+
+            ## find green and SWIR bands to use
+            ndsi_waves = []
+            ndsi_datasets = []
+            for pi in range(ndsi_products):
+                ndsi_waves.append([])
+                ndsi_datasets.append([])
+
+                for ci, cw in enumerate(req_waves):
+                    if 'VIIRS' in gem.gatts['sensor']:
+                        band_prefix = 'M'
+                        ds_names_ = [ds for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        ds_waves_ = [ds_waves[ii] for ii, ds in enumerate(ds_names) if ds[5] == band_prefix]
+                        wi, wv = ac.shared.closest_idx(ds_waves_, cw)
+                        ds = ds_names_[wi]
+                    else:
+                        wi, wv = ac.shared.closest_idx(ds_waves, cw)
+                        ds = ds_names[wi]
+                    if wv > cw+ndsi_diff[ci]: continue
+                    if wv < cw-ndsi_diff[ci]: continue
+                    ndsi_waves[pi].append(wv)
+                    ndsi_datasets[pi].append(ds)
+
+            ## run through needed products
+            for pi in range(ndsi_products):
+                if len(ndsi_datasets[pi]) != len(req_waves): continue
+                par_attributes['waves']=ndsi_waves[pi]
+
+                ## output parameter name
+                par_name = '{}'.format(cur_par)
+                if 'VIIRS' in gem.gatts['sensor']:
+                    par_name += '_{}'.format(ndsi_datasets[pi][0][5].upper())
+
+                ## get data
+                for di, cur_ds in enumerate(ndsi_datasets[pi]):
+                    if di == 0: tmp_data = []
+                    cur_data = 1.0 * gem.data(cur_ds)
+                    tmp_data.append(cur_data)
+
+                ## compute ndsi
+                par_data[par_name] = (tmp_data[0]-tmp_data[1])/\
+                                     (tmp_data[0]+tmp_data[1])
+                par_atts[par_name] = par_attributes
+                tmp_data = None
+        ## end NDSI
+        #############################
+
+        #############################
         ## NDCI
         if (cur_par == 'ndci'):
             par_name = cur_par

@@ -124,6 +124,8 @@ fait_m,0,1,False,default,FAIT (M) (Dogliotti et al. 2018),1
 
 #
 ndci,-0.5,0.5,False,default,NDCI (Mishra et al. 2014),1
+
+## Normalised Difference Vegetation Index
 ndvi,-0.5,0.5,False,default,NDVI $\rho_s$,1
 ndvi_i,-0.5,0.5,False,default,NDVI (I) $\rho_s$,1
 ndvi_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,1
@@ -136,6 +138,13 @@ ndvi_rhos_m,-0.5,0.5,False,default,NDVI (M) $\rho_s$,1
 ndvi_rhosu,-0.5,0.5,False,default,NDVI $\rho_{su}$,1
 ndvi_rhosu_i,-0.5,0.5,False,default,NDVI (I) $\rho_{su}$,1
 ndvi_rhosu_m,-0.5,0.5,False,default,NDVI (M) $\rho_{su}$,1
+
+## Normalised Difference Snow Index
+ndsi,-0.5,0.5,False,Greys_r,NDSI $\rho_{s}$,1
+ndsi_rhot,-0.5,0.5,False,Greys_r,NDSI $\rho_{t}$,1
+ndsi_rhos,-0.5,0.5,False,Greys_r,NDSI $\rho_{s}$,1
+ndsi_rhosu,-0.5,0.5,False,Greys_r,NDSI $\rho_{su}$,1
+
 #
 slh,0,0.01,False,default,Scattering Line Height (Kudela et al. 2015),1
 #
