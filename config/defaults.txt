@@ -226,6 +226,7 @@ l2w_mask_high_toa=True
 l2w_mask_high_toa_threshold=0.3
 l2w_mask_high_toa_wave_range=400,2500
 l2w_mask_mixed=True
+l2w_mask_dem_shadow=False
 l2w_data_in_memory=False
 
 ## settings for Nechad algorithms

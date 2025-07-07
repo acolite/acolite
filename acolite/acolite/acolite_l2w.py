@@ -1811,6 +1811,8 @@ def acolite_l2w(gem, output = None, settings = None,
         for cur_ds in par_data:
             ## add mask
             if (mask) & (setu['l2w_mask_water_parameters']): par_data[cur_ds][(l2_flags & flag_value)!=0] = np.nan
+            if (setu['l2w_mask_dem_shadow']) & (setu['dem_shadow_mask']): par_data[cur_ds][(l2_flags & (2**setu['flag_exponent_dem_shadow']))!=0] = np.nan
+
             ## write to NetCDF
             if verbosity > 1: print('Writing {}'.format(cur_ds))
             gemo.write(cur_ds, par_data[cur_ds], ds_att = par_atts[cur_ds])
