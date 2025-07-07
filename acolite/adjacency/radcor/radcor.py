@@ -41,6 +41,7 @@
 ##                2025-04-14 (QV) add back gas transmittance for rhot outputs
 ##                2025-04-17 (QV) track settings in output gatts
 ##                2025-05-08 (QV) changed LUT handling
+##                2025-07-07 (QV) check sun zenith angle
 
 def radcor(ncf, settings = None):
     import os, json
@@ -520,6 +521,17 @@ def radcor(ncf, settings = None):
         print('The current implementation of RAdCor assumes a circular PSF and is not suited for higher viewing zenith angles.')
         print('Scene average viewing zenith angle {:.1f} > radcor_max_vza={:.1f}'.format(np.nanmean(vza), setu['radcor_max_vza']))
         return
+
+    if sza > setu['sza_limit']:
+        print('Current sun zenith angle greater than LUT limits.')
+        print('Scene average sun zenith angle {:.3f} > sza_limit={:.3f}'.format(np.nanmean(sza), setu['sza_limit']))
+        if setu['sza_limit_replace']:
+            if len(np.atleast_1d(sza)) == 1:
+                sza = setu['sza_limit']
+            else:
+                sza[sza>setu['sza_limit']] = setu['sza_limit']
+        else:
+            return
 
     cos_sza = np.cos(np.radians(sza))
     cos_vza = np.cos(np.radians(vza))
