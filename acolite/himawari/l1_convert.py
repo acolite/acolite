@@ -6,6 +6,7 @@
 ## modifications: 2025-05-20 (QV) mask and resample at segment level, added crop at segment level
 ##                2025-05-22 (QV) only delete lon, lat, vaa, vza if last scene for the sensor
 ##                                get observation time from (sub)scene centre
+##                2025-07-07 (QV) add try/except to segment parsing
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -143,7 +144,11 @@ def l1_convert(inputfile, output = None, settings = None):
                         segment_file = fd[platform][date][band_name][segment]['path']
 
                         ## read header
-                        header = ac.himawari.segment_parse(segment_file, parse_data = False)
+                        try:
+                            header = ac.himawari.segment_parse(segment_file, parse_data = False)
+                        except:
+                            print('Could not read header from {}'.format(segment_file))
+                            continue
 
                         ## get observation times
                         for i in range(header[9]['number_of_observation_times']):
@@ -173,7 +178,12 @@ def l1_convert(inputfile, output = None, settings = None):
                                 continue
 
                         ## read data and compute mask
-                        data = ac.himawari.segment_parse(segment_file, header=header)
+                        try:
+                            data = ac.himawari.segment_parse(segment_file, header=header)
+                        except:
+                            print('Could not read data from {}'.format(segment_file))
+                            continue
+
                         mask = data == header[5]['count_value_of_pixels_outside_scan_area']
                         mask = mask | data == header[5]['count_value_of_error_pixels']
 
