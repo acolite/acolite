@@ -1475,7 +1475,7 @@ def acolite_l2w(gem, output = None, settings = None,
             ds_names = [ds for ds in rhos_ds]
             if len(par_split) == 2:
                 par_attributes['dataset']=par_split[1]
-                ds_names = [ds for ds in gem.datasets if '{}_'.format(par_split[1]) in ds]
+                ds_names = [ds for ds in gem.datasets if ds.startswith('{}_'.format(par_split[1]))]
                 ds_waves = [int(ds.split('_')[-1]) for ds in ds_names]
 
             ## number of products possible (for VIIRS use both I and M bands)
