@@ -146,15 +146,11 @@ del credentials
 
 ## run through config data
 for t in config:
-    ## set EARTHDATA credentials
-    if t in ['EARTHDATA_u', 'EARTHDATA_p', 'EARTHDATA_token']:
-        if (t not in os.environ) & (len(config[t]) > 0): os.environ[t] = config[t]
-        continue
-    ## split lists (currently only sensors)
+    ## split lists
     if ',' in config[t]:
         config[t] = config[t].split(',')
         continue
-
+    ## set absolute paths
     if (os.path.exists(config[t])):
         config[t] = os.path.abspath(config[t])
 
