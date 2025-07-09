@@ -23,16 +23,18 @@ def auth(machine):
         pass
 
     ## remove token from machine if getting from environment/config/settings
+    token = False
     if machine.lower().endswith('_token'):
         machine = machine[0:-6]
-        
+        token = True
+
     ## get auth from environment
     if auth is None:
         if ('{}_u'.format(machine.upper()) in os.environ):
             if ('{}_p'.format(machine.upper()) in os.environ):
                 auth = (os.environ['{}_u'.format(machine.upper())], \
                         os.environ['{}_p'.format(machine.upper())])
-            if ('{}_token'.format(machine.upper()) in os.environ):
+            if (token) & ('{}_token'.format(machine.upper()) in os.environ):
                 auth = (os.environ['{}_u'.format(machine.upper())], \
                         os.environ['{}_token'.format(machine.upper())])
 
@@ -44,7 +46,7 @@ def auth(machine):
                    (ac.config['{}_p'.format(machine.upper())] != ''):
                     auth = (ac.config['{}_u'.format(machine.upper())], \
                             ac.config['{}_p'.format(machine.upper())])
-            if ('{}_token'.format(machine.upper()) in ac.config):
+            if (token) & ('{}_token'.format(machine.upper()) in ac.config):
                 if (ac.config['{}_u'.format(machine.upper())] != '') & \
                    (ac.config['{}_token'.format(machine.upper())] != ''):
                     auth = (ac.config['{}_u'.format(machine.upper())], \
@@ -58,7 +60,7 @@ def auth(machine):
                    (ac.settings['run']['{}_p'.format(machine.upper())] != ''):
                     auth = (ac.settings['run']['{}_u'.format(machine.upper())], \
                             ac.settings['run']['{}_p'.format(machine.upper())])
-            if ('{}_token'.format(machine.upper()) in ac.settings['run']):
+            if (token) & ('{}_token'.format(machine.upper()) in ac.settings['run']):
                 if (ac.settings['run']['{}_u'.format(machine.upper())] != '') & \
                    (ac.settings['run']['{}_token'.format(machine.upper())] != ''):
                     auth = (ac.settings['run']['{}_u'.format(machine.upper())], \
