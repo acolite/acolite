@@ -7,6 +7,7 @@
 ##                2023-11-21 (QV) added dataset as keyword, added ecostress_type
 ##                2024-04-27 (QV) moved to acolite.api
 ##                2024-07-24 (QV) added level id from scene, verify level when adding identifiers
+##                2025-07-09 (QV) update code to get token from ac.shared.auth
 
 def query(scene = None, collection = 2, level = 1, dataset = None,
                 landsat_type = None, ecostress_type = None,
@@ -23,7 +24,7 @@ def query(scene = None, collection = 2, level = 1, dataset = None,
     if api_url is None: api_url = ac.config['EARTHEXPLORER_api']
 
     ## get access token for query
-    access_token = ac.api.earthexplorer.auth(api_url=api_url)
+    access_token = ac.api.earthexplorer.auth(netrc_machine = 'earthexplorer_token')
     if access_token is None:
         print('Could not get EarthExplorer access token!')
         return

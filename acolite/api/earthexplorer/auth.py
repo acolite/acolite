@@ -16,8 +16,10 @@ def auth(api_url = None, return_auth = False, netrc_machine = 'earthexplorer',
     auth = ac.shared.auth(netrc_machine)
 
     if auth is None:
-        print('Could not determine {} credentials {}_u and {}_token.'.format(netrc_machine.upper(), netrc_machine.upper(), netrc_machine.upper()))
+        print_machine = netrc_machine.upper().replace('_TOKEN', '')
+        print('Could not determine {} credentials {}_u and {}_token.'.format(print_machine, print_machine, print_machine))
         print('Please add them to your .netrc file, environment variables, or ACOLITE config file.')
+        return
 
     if (len(auth[1]) != 64):
         print('{}_token length is not 64 characters, this is likely wrong.'.format(netrc_machine.upper()))

@@ -5,6 +5,7 @@
 ## modifications: 2023-09-20 (QV) removed lxml and use HTMLparser
 ##                2023-11-21 (QV) added ECOSTRESS download
 ##                2024-04-27 (QV) moved to acolite.api
+##                2025-07-09 (QV) update code to get token from ac.shared.auth
 
 def download(entity_list, dataset_list, identifier_list, output = None,
                   extract_tar = True, remove_tar = True, override = False, verbosity = 1):
@@ -70,7 +71,7 @@ def download(entity_list, dataset_list, identifier_list, output = None,
 
             ## try authentication
             if verbosity > 1: print('Getting EarthExplorer access token')
-            access_token, auth = ac.api.earthexplorer.auth(return_auth = True)
+            access_token = ac.api.earthexplorer.auth(netrc_machine = 'earthexplorer_token')
             if verbosity > 1: print('Got access_token {}'.format(access_token))
 
             ## set up session with X-Auth-Token
@@ -83,6 +84,13 @@ def download(entity_list, dataset_list, identifier_list, output = None,
 
             ## log in
             if verbosity > 1: print('Logging in to EarthExplorer')
+
+            ## get username and password to find download button
+            auth = ac.shared.auth('earthexplorer')
+            if auth is None:
+                print('Could not retrieve login credentials.')
+                continue
+
             response = session.post(ac.config['EARTHEXPLORER_ers']+'/login',
                                     data= {"username": auth[0],"password": auth[1],"csrf": csrf}, allow_redirects=True)
 

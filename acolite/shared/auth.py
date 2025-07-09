@@ -22,6 +22,10 @@ def auth(machine):
     except:
         pass
 
+    ## remove token from machine if getting from environment/config/settings
+    if machine.lower().endswith('_token'):
+        machine = machine[0:-6]
+        
     ## get auth from environment
     if auth is None:
         if ('{}_u'.format(machine.upper()) in os.environ):
