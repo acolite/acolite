@@ -61,12 +61,6 @@ def acolite_run(settings, inputfile=None, output=None):
     print('Platform - {} {} - {} - {}'.format(ac.system['sysname'], ac.system['release'], ac.system['machine'], ac.system['version']).replace('\n', ''))
     print('Run ID - {}'.format(ac.settings['run']['runid']))
 
-    ## earthdata credentials from settings file
-    for k in ['EARTHDATA_u', 'EARTHDATA_p']:
-        kv = ac.settings['run'][k] if k in ac.settings['run'] else ac.config[k]
-        if len(kv) == 0: continue
-        os.environ[k] = kv
-
     ## check if we have anything to do
     if 'inputfile' not in ac.settings['run']:
         print('Nothing to do. Did you provide a settings file or inputfile? Exiting.')
