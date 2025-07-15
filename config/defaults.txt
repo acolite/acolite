@@ -233,6 +233,12 @@ l2w_data_in_memory=False
 nechad_range=600,900
 nechad_max_rhow_C_factor=0.5
 
+## settings for NDVI/NDSI
+ndvi_wave=660,865
+ndvi_wave_diff=40,100
+ndsi_wave=560,1600
+ndsi_wave_diff=20,50
+
 ## smooth datasets before masking (get rid of some speckle in the masks)
 l2w_mask_smooth=True
 l2w_mask_smooth_sigma=3

@@ -82,6 +82,10 @@ fci_lon_0_default
 ahi_target_res
 ahi_lon_0_default
 abi_target_res
+ndvi_wave
+ndvi_wave_diff
+ndsi_wave
+ndsi_wave_diff
 
 Rrs_wave
 aw

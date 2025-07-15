@@ -37,3 +37,8 @@ dsf_residual_glint_wave_range
 tsdsf_wave_range
 dsf_wave_range
 sensor_noise
+
+ndvi_wave
+ndvi_wave_diff
+ndsi_wave
+ndsi_wave_diff

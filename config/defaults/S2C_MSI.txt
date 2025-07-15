@@ -27,3 +27,6 @@ geometry_fixed_footprint=False
 luts_reduce_dimensions=True
 
 rsr_version=V4
+
+## product settings
+ndvi_wave=665,835

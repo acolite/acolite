@@ -1466,8 +1466,8 @@ def acolite_l2w(gem, output = None, settings = None,
             par_attributes['algorithm']=''
 
             ## wavelengths and max wavelength difference
-            ndvi_diff = [40, 100]
-            req_waves = [660,865]
+            ndvi_diff = setu['ndvi_wave_diff']
+            req_waves = setu['ndvi_wave']
 
             ## select bands
             required_datasets,req_waves_selected = [],[]
@@ -1539,8 +1539,8 @@ def acolite_l2w(gem, output = None, settings = None,
             par_attributes['algorithm']=''
 
             ## wavelengths and max wavelength difference
-            ndsi_diff = [20, 50]
-            req_waves = [560, 1600]
+            ndsi_diff = setu['ndsi_wave_diff']
+            req_waves = setu['ndsi_wave']
 
             ## select bands
             required_datasets, req_waves_selected = [], []
