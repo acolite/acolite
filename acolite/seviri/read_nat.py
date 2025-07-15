@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2024-04-11
-## modifications:
+## modifications: 2025-07-15 (QV) output HRV radiance (for radiance = False)
 
 def read_nat(file, b, sub = None, radiance = False, return_meta = False):
     import os
@@ -21,6 +21,9 @@ def read_nat(file, b, sub = None, radiance = False, return_meta = False):
         band_ds = ds.GetRasterBand(b)
     ## HRV
     elif b == 12:
+        if radiance:
+            print('radiance = True not supported for HRV, setting radiance = False')
+            radiance = False
         ds = gdal.Open('HRV:{}'.format(file))
         band_ds = ds.GetRasterBand(1)
     else:
@@ -39,7 +42,7 @@ def read_nat(file, b, sub = None, radiance = False, return_meta = False):
         data = band_ds.ReadAsArray(sub[0], sub[1], sub[2], sub[3])
 
     ## calibrate to radiance
-    if (not radiance) & (b != 12):
+    if (not radiance):
         offset, slope = [float(v) for v in meta['ch{}_cal'.format('{}'.format(b).zfill(2))].split()]
         data = offset + slope * data
 

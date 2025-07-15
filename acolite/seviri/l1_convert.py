@@ -7,11 +7,13 @@
 ##                2024-04-18 (QV) added geolocation/geometry functions , added masks for negative Lt and sza > 90
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
+##                2025-07-15 (QV) resample HRV data
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
     import dateutil.parser, time
     import numpy as np
+    import scipy.ndimage
     import acolite as ac
 
     ## get run settings
@@ -167,17 +169,22 @@ def l1_convert(inputfile, output = None, settings = None):
             if (band == 'HRV'):
                 if (setu['seviri_hrv']):
                     if verbosity > 1: print('Converting bands: Reading {} from {}'.format(band, file))
-                    data = ac.seviri.read_nat(file, b, sub=sub_hrv) ## HRV only as DN
-                    ac.output.nc_write(ofile_hrv, 'hrv', data, new = True)
-                continue
+                    data = ac.seviri.read_nat(file, b, sub = sub_hrv, radiance = False)
+                    ds = 'Lt_{}'.format(rsrd['wave_name'][band])
+                    ac.output.nc_write(ofile_hrv, ds, data, new = True)
 
-            ## output nominal resolution bands
-            if verbosity > 1: print('Converting bands: Reading {} from {}'.format(band, file))
+                    ## resample to nominal resolution
+                    data = scipy.ndimage.zoom(data, zoom=1/3, order=1)
+                else:
+                    continue
+            else:
+                ## output nominal resolution bands
+                if verbosity > 1: print('Converting bands: Reading {} from {}'.format(band, file))
 
-            ## read radiance data
-            data = ac.seviri.read_nat(file, b, sub=sub, radiance = True)
-            ## add mask for negatives (out of disk?)
-            # data[data<0] = np.nan
+                ## read radiance data
+                data = ac.seviri.read_nat(file, b, sub=sub, radiance = True)
+                ## add mask for negatives (out of disk?)
+                # data[data<0] = np.nan
 
             if setu['output_lt']:
                 ds = 'Lt_{}'.format(rsrd['wave_name'][band])
