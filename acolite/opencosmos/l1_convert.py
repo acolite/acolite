@@ -5,6 +5,7 @@
 ## modifications: 2025-04-14 (QV) added nc_projection
 ##                2025-05-20 (QV) test timestamp length
 ##                2025-05-24 (QV) added scene centre geometry
+##                2025-07-22 (QV) added support for ECEF frames
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -130,7 +131,8 @@ def l1_convert(inputfile, output = None, settings = None):
         with open(paths['ancillary'], 'r', encoding = 'utf-8') as f:
             ancillary = json.load(f)
 
-        ecef =  ancillary['extrinsics']['gnss_lock']
+        ## earth centred earth fixed if GNSS lock achieved
+        ecef = ancillary['extrinsics']['gnss_lock']
 
         ## compute viewing angle at mid point
         mid1 = int(lon.shape[0]/2)
@@ -142,7 +144,6 @@ def l1_convert(inputfile, output = None, settings = None):
         ## get altitude from DEM
         dem = None
         if setu['dem_altitude']:
-            #obs_alt = ac.dem.dem_lonlat(obs_lon, obs_lat, source = setu['dem_source'])
             dem = ac.dem.dem_lonlat(lon, lat, source = setu['dem_source'])
             obs_alt = dem[mid1, mid2]
 
@@ -151,11 +152,23 @@ def l1_convert(inputfile, output = None, settings = None):
         for hi, h in enumerate(ancillary['extrinsics']['hist']):
             if 'position' in h:
                 dt =  datetime.datetime.fromtimestamp(h['time_s'], tz=datetime.timezone.utc)
-                satpos = ac.shared.position.eci_geometry(
-                                    h['position']['x_m']/1000,
-                                    h['position']['y_m']/1000,
-                                    h['position']['z_m']/1000,
-                                    obs_lon, obs_lat, obs_alt, dt)
+                if h['position']['frame'] == 2: ## frame 2 is ECEF
+                    satpos = ac.shared.position.ecef_geometry(
+                                        h['position']['x_m']/1000,
+                                        h['position']['y_m']/1000,
+                                        h['position']['z_m']/1000,
+                                        obs_lon, obs_lat, obs_alt)
+                elif h['position']['frame'] == 3: ## frame 3 is ECI
+                    satpos = ac.shared.position.eci_geometry(
+                                        h['position']['x_m']/1000,
+                                        h['position']['y_m']/1000,
+                                        h['position']['z_m']/1000,
+                                        obs_lon, obs_lat, obs_alt, dt)
+                else:
+                    print('Frame not recognised: {}'.format(h))
+                    continue
+
+                ## append position
                 satellite_positions.append([h['time_s'], dt, satpos])
 
         ## find closest element in sat time
@@ -210,7 +223,6 @@ def l1_convert(inputfile, output = None, settings = None):
         ## output geolocation
         if setu['output_geometry']:
             if setu['verbosity'] > 1: print('Writing geometry')
-            print('Warning, need to compute view geometry')
             gemo.write('sza', sza)
             gemo.write('saa', saa)
             gemo.write('vza', vza)
