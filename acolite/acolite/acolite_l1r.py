@@ -232,6 +232,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## Tanager
+    if input_type == 'Tanager':
+        l1r_files, setu = ac.tanager.l1_convert(bundle)
+    ## end Tanager
+    ################
+
+    ################
     ## EarthCare
     if input_type == 'EarthCare':
         l1r_files, setu = ac.earthcare.l1_convert(bundle)

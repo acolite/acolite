@@ -10,6 +10,7 @@ ISS_EMIT
 HYPSO1
 HYPSO2
 PACE_OCI
+Tanager
 Wyvern_Dragonette-001
 Wyvern_Dragonette-002
 Wyvern_Dragonette-003

@@ -436,6 +436,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## Tanager
+        try:
+            meta = ac.tanager.metadata(bundle)
+            if ('strip_id' in meta):
+                input_type = 'Tanager'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Tanager
+        ################
+
+        ################
         ## SEVIRI
         try:
             ret = ac.seviri.bundle_test(bundle)

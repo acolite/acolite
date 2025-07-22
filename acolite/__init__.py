@@ -17,6 +17,7 @@ from acolite import hyperion
 from acolite import desis
 from acolite import enmap
 from acolite import emit
+from acolite import tanager
 from acolite import hypso
 from acolite import pace
 from acolite import wyvern
