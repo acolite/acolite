@@ -288,6 +288,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## GOCI
+    if input_type == 'GOCI':
+        l1r_files, setu = ac.goci.l1_convert(bundle)
+    ## end GOCI
+    ################
+
+    ################
     ## Haiyang
     if input_type == 'HAIYANG':
         l1r_files, setu = ac.haiyang.l1_convert(bundle)

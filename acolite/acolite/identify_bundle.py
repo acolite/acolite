@@ -516,6 +516,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## GOCI2
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            #if gatts['title'] in ['GK2B GOCI-II Level-1B Radiances']:
+            if (gatts['platform'] == 'GK-2B') & (gatts['instrument'] == 'GOCI-II'):
+                input_type = 'GOCI'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end GOCI2
+        ################
+
+        ################
         ## EarthCare
         try:
             ## test bundle and get igatts

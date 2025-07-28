@@ -28,6 +28,7 @@ from acolite import seviri
 from acolite import fci
 from acolite import himawari
 from acolite import goes
+from acolite import goci
 
 
 from acolite import gf

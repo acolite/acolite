@@ -1,0 +1,42 @@
+## ACOLITE default settings for GK2_GOCI2
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## vicarious gains
+gains=True
+## unity gains
+gains_toa=1,1,1,1,1,1,1,1,1,1,1,1
+
+## from Jae-Hyun 2025-07-24
+gains_toa=1.0404,0.9710,0.9811,0.9530,1.0063,0.9399,0.9719,0.9863,1.0014,1.0141,1.0312,1.0311
+
+## disable sensor degradation until LUT can be shared
+goci2_sensor_degradation=False
+
+## dark spectrum fitting options
+dsf_aot_estimate=resolved
+dsf_interface_reflectance=True
+resolved_geometry=True
+dsf_spectrum_option=percentile
+dsf_percentile=5
+
+dsf_filter_aot=True
+dsf_filter_percentile=5
+dsf_filter_box=3,3
+dsf_write_aot_550=True
+
+dsf_smooth_aot=True
+dsf_smooth_box=1,1
+dsf_tile_dimensions=15,15
+
+## masking settings
+l2w_mask_wave=865
+l2w_mask_threshold=0.15
+l2w_mask_smooth=False
+l2w_mask_negative_rhow=False
+
+## rgb settings
+map_title_rgb_wavelengths=True

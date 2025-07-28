@@ -165,6 +165,9 @@ ahi_lon_0_default=140.7
 ## GOES settings
 abi_target_res=1.0
 
+## GOCI2 settings
+goci2_sensor_degradation=True
+
 ## Wyvern settings
 wyvern_use_provided_f0=True
 wyvern_use_rsr_file=True
