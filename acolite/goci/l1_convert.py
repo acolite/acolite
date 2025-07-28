@@ -77,7 +77,10 @@ def l1_convert(inputfile, output = None, settings = None):
         isodate = dt.isoformat()
 
         ## read sensor degradation
-        sensor_degradation = ac.goci.goci2_degradation(isodate)
+        if setu['goci2_sensor_degradation']:
+            sensor_degradation = ac.goci.goci2_degradation(isodate)
+        else:
+            print('Warning: GOCI2 sensor degradation factors will not be applied.')
 
         ## read lat/lon
         lat = ac.shared.nc_data(bundle, 'latitude', group = 'navigation_data')
