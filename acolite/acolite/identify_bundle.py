@@ -629,7 +629,8 @@ def identify_bundle(bundle, input_type = None, output = None):
         shutil.rmtree(bundle)
         bundle = '{}'.format(orig_bundle)
 
-    print('Identified {} as {} type'.format(orig_bundle, input_type))
+    if input_type is not None:
+        print('Identified {} as {} type'.format(orig_bundle, input_type))
 
     ## return input_type
     return(input_type, bundle, zipped, extracted_path)
