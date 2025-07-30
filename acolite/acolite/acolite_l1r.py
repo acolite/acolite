@@ -302,6 +302,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## Huanjing
+    if input_type == 'HUANJING':
+        l1r_files, setu = ac.huanjing.l1_convert(bundle)
+    ## end Huanjing
+    ################
+
+    ################
     ## HYPSO
     if input_type == 'HYPSO':
         l1r_files, setu = ac.hypso.l1_convert(bundle)

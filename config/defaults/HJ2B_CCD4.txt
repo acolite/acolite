@@ -1,0 +1,23 @@
+## ACOLITE default settings for Huanjing-2B CCD4
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_spectrum_option=percentile
+dsf_percentile=1
+dsf_aot_estimate=fixed
+dsf_wave_range=400,900
+dsf_tile_dimensions=375,375
+
+## masking options
+l2w_mask_wave=800
+l2w_mask_threshold=0.1
+
+## reproject L1A data
+reproject_inputfile=True
+reproject_inputfile_dem=False
+default_projection_resolution=16,-16
+export_geotiff_match_file=None

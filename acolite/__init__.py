@@ -38,6 +38,7 @@ from acolite import deimos
 
 from acolite import ecostress
 from acolite import haiyang
+from acolite import huanjing
 from acolite import sdgsat
 from acolite import dimap
 from acolite import s2resampling

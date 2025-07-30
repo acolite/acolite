@@ -346,7 +346,6 @@ def identify_bundle(bundle, input_type = None, output = None):
         ## end FORMOSAT
         ################
 
-
         ################
         ## SDGSAT-1 KX10 MII
         try:
@@ -380,7 +379,6 @@ def identify_bundle(bundle, input_type = None, output = None):
             pass ## continue to next sensor
         ## end IKONOS2
         ################
-
 
         ################
         ## DEIMOS2
@@ -541,7 +539,6 @@ def identify_bundle(bundle, input_type = None, output = None):
         ## end EarthCare
         ################
 
-
         ################
         ## DIMAP
         try:
@@ -617,6 +614,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         except:
             pass ## continue to next sensor
         ## end Haiyang
+        ################
+
+        ################
+        ## Huanjing
+        try:
+            imagefile, metafile = ac.huanjing.bundle_test(bundle)
+            metadata = ac.huanjing.metadata_parse(metafile)
+            if metadata['SatelliteID'] in ['HJ2A', 'HJ2B']:
+                input_type = 'HUANJING'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Huanjing
         ################
 
         ################
