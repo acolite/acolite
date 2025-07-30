@@ -16,8 +16,9 @@
 ##                2024-04-16 (QV) use gem NetCDF handling
 ##                2025-02-19 (QV) use settings.merge
 ##                2025-05-21 (QV) update settings parsing
+##                2025-07-28 (QV) use export_geotiff_use_projection_key from settings
 
-def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True):
+def nc_to_geotiff(f, settings = None, datasets = None):
     import acolite as ac
     import numpy as np
     import os
@@ -55,7 +56,8 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
         out = f.replace('.nc', '')
 
     ## use projection key in NetCDF metadata
-    if ('projection_key' in gem.gatts) & (use_projection_key):
+    if ('projection_key' in gem.gatts) & (setu['export_geotiff_use_projection_key']):
+        if setu['verbosity'] > 5: print('Using projection_key')
         for ds in gem.datasets:
             if datasets is not None:
                 if ds not in datasets: continue
@@ -73,6 +75,8 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
         tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
         if all([t in gem.gatts for t in tags]) or (match_file is not None):
             if match_file is None:
+                if setu['verbosity'] > 5: print('Using global attribute tags')
+
                 xrange = gem.gatts['xrange']
                 yrange = gem.gatts['yrange']
                 pixel_size = gem.gatts['pixel_size']
@@ -88,6 +92,8 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
 
             else:
                 if os.path.exists(match_file):
+                    if setu['verbosity'] > 5: print('Using match_file: {}'.format(match_file))
+
                     ## get projection info from match file
                     src_ds = gdal.Open(match_file)
                     transform = src_ds.GetGeoTransform()
@@ -133,6 +139,7 @@ def nc_to_geotiff(f, settings = None, datasets = None, use_projection_key = True
                         dataset = driver.Create(outfile, dimx, dimy, 1, dt)
                     ## write RPC data
                     if len(RPCs) > 0:
+                        if setu['verbosity'] > 5:  print('Writing RPC')
                         dataset.SetMetadata(RPCs ,'RPC')
                     ## write GCP data
                     if len(GCPs) > 0:

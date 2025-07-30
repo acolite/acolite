@@ -544,6 +544,7 @@ l1r_export_geotiff=False
 l2t_export_geotiff=False
 l2r_export_geotiff=False
 l2w_export_geotiff=False
+export_geotiff_use_projection_key=True
 export_geotiff_coordinates=False
 export_geotiff_match_file=None
 export_cloud_optimized_geotiff=False
