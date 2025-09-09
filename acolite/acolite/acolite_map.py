@@ -23,6 +23,7 @@
 ##                                added user parameter scaling file
 ##                2025-02-04 (QV) improved settings handling, changed parameter label identification
 ##                2025-04-14 (QV) added map_polygons, map_scalebar_straight
+##                2025-09-09 (QV) added mapping of Rrs RGBs
 
 def acolite_map(ncf, output = None,
                 settings = None,
@@ -118,7 +119,11 @@ def acolite_map(ncf, output = None,
             ## normalisation
             norm=mpl.colors.Normalize(vmin=pard['min'], vmax=pard['max'])#, clip=setu['map_fill_outrange'])
         else:
-            part = r'$\rho_{}$ RGB'.format('{'+par.replace('rgb_rho', '')+'}')
+            if 'rgb_rho' in par:
+                part = r'$\rho_{}$ RGB'.format('{'+par.replace('rgb_rho', '')+'}')
+            if 'rgb_Rrs' == par: part = r'$R_{rs}$ RGB'
+            if 'rgb_rrs' == par: part = r'$r_{rs}$ RGB'
+
             if setu['map_title_rgb_wavelengths']:
                 part += ' ({})'.format(', '.join(['{:.0f} nm'.format(w) for w in rgb_used]))
 
@@ -415,7 +420,7 @@ def acolite_map(ncf, output = None,
     else:
         plot_parameters = [k for k in gem.datasets if k in plot_datasets]
     for k in setu:
-        if k[0:7] != 'rgb_rho': continue
+        if k[0:7] not in ['rgb_rho', 'rgb_rrs', 'rgb_Rrs']: continue
         if setu[k]: plot_parameters+=[k]
 
     ## handle wildcards
@@ -626,7 +631,7 @@ def acolite_map(ncf, output = None,
 
         cparl = '{}'.format(cpar)
         ## RGB
-        if (cpar[0:7] == 'rgb_rho'):
+        if (cpar[0:7] in ['rgb_rho', 'rgb_Rrs', 'rgb_rrs']):
             ## find datasets for RGB compositing
             rgb_wave = [setu['rgb_red_wl'],setu['rgb_green_wl'],setu['rgb_blue_wl']]
             ds_base = [ds.split('_')[0:-1] for ds in gem.datasets if cpar.split('_')[1] in ds[0:len(cpar.split('_')[1])]]
