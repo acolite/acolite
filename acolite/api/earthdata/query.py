@@ -9,6 +9,7 @@
 ##                2024-10-16 (QV) added SeaHawk1
 ##                2025-03-19 (QV) added MERIS RR FRS
 ##                2025-03-27 (QV) added EMIT
+##                2025-09-11 (QV) added test for L1B and L1C collections
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
@@ -49,10 +50,23 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
             if pace_oci_level == 'L1B':
                 dataset = 'PACE_OCI_L1B_SCI'
                 datacenter = 'OB_CLOUD'
+                if 'L1B' not in pace_oci_collection_id[pace_oci_version]:
+                    print('L1B not configured for {}'.format(pace_oci_version))
+                    return
+                if pace_oci_collection_id[pace_oci_version]['L1B'] == '':
+                    print('L1B not configured for {}'.format(pace_oci_version))
+                    return
+
                 collection_id = pace_oci_collection_id[pace_oci_version]['L1B']
             elif pace_oci_level == 'L1C':
                 dataset = 'PACE_OCI_L1C_SCI'
                 datacenter = 'OB_CLOUD'
+                if 'L1C' not in pace_oci_collection_id[pace_oci_version]:
+                    print('L1C not configured for {}'.format(pace_oci_version))
+                    return
+                if pace_oci_collection_id[pace_oci_version]['L1C'] == '':
+                    print('L1C not configured for {}'.format(pace_oci_version))
+                    return
                 collection_id = pace_oci_collection_id[pace_oci_version]['L1C']
             elif pace_oci_level == 'L2':
                 dataset = 'PACE_OCI_L2_{}'.format(level2_type)
