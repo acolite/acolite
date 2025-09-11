@@ -5,6 +5,7 @@
 ## modifications: 2024-04-15 (QV) added JSON options
 ##                2024-04-28 (QV) added as acolite function
 ##                2025-03-27 (QV) scene naming based on url if producer_granule_id is not present
+##                2025-09-11 (QV) fix for soup links
 
 def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/'):
     import requests, time, json, os
@@ -78,7 +79,7 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
                     if link_base in l['href']: url = '{}'.format(l['href'])
                 else:
                     if (l['href'][0:4] == 'http') &\
-                       ((l['href'][-3:] in ['.nc', '.h5']) | (link['href'].lower().endswith('.zip'))):
+                       ((l['href'][-3:] in ['.nc', '.h5']) | (l['href'].lower().endswith('.zip'))):
                         url = '{}'.format(l['href'])
 
             ## try without x-netcdf requirement
@@ -89,7 +90,7 @@ def query_extract_scenes(query_url, verbosity = 0, link_base = 'https://ladsweb.
                         if link_base in l['href']: url = '{}'.format(l['href'])
                     else:
                         if (l['href'][0:4] == 'http') &\
-                           ((l['href'][-3:] in ['.nc', '.h5']) | (link['href'].lower().endswith('.zip'))):
+                           ((l['href'][-3:] in ['.nc', '.h5']) | (l['href'].lower().endswith('.zip'))):
                             url = '{}'.format(l['href'])
             if url is None: continue
 
