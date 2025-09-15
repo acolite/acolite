@@ -16,6 +16,7 @@
 ##                2025-03-01 (QV) added bundle_test to get metafile, added PGC identification
 ##                                replaced convert_atmospherically_corrected by worldview_convert_l2 setting
 ##                2025-04-07 (QV) change worldview_convert_l2 to convert_l2
+##                2025-09-15 (QV) added rpc_use = False
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
@@ -186,6 +187,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
         dct = None
         nc_projection = None
         warp_to = None
+        rpc_use = False
 
         ## get list of tiles in this bundle
         ntiles = len(meta['TILE_INFO'])
@@ -204,9 +206,13 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             ## get projection info from current tile
             try:
                 dct_vnir = ac.shared.projection_read(file)
+                if setu['verbosity'] > 5:
+                    print('Read projection info from {}'.format(file))
+                    print(dct_vnir)
             except:
                 dct_vnir = None
-
+                rpc_use = True
+                
             # ## shall we reproject the inputfile?
             # ## to add swir bundle
             # reproject = setu['reproject_inputfile_force'] | (setu['reproject_inputfile'] & (dct_vnir == None))
@@ -243,6 +249,9 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                     dct['xdim'] = np.round((dct['xrange'][1] - dct['xrange'][0]) / dct['pixel_size'][0]).astype(int)
                     dct['ydim'] = np.round((dct['yrange'][1] - dct['yrange'][0]) / dct['pixel_size'][1]).astype(int)
                     dct['dimensions'] = (dct['xdim'], dct['ydim'])
+                    if setu['verbosity'] > 5:
+                        print('Updated projection info from {}'.format(file))
+                        print(dct)
 
                 ## get projection info from swir file - not used atm, check if SWIR band projection matches?
                 #swir_file=None
@@ -288,8 +297,12 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             warp_to = ac.shared.projection_warp_to(dct)
 
             ## compute dimensions
+            print(dct['xdim'], dct['ydim'])
             dct['xdim'] = int(np.round((dct['xrange'][1]-dct['xrange'][0]) / dct['pixel_size'][0]))
             dct['ydim'] = int(np.round((dct['yrange'][1]-dct['yrange'][0]) / dct['pixel_size'][1]))
+            print(dct['xdim'], dct['ydim'])
+
+            print(dct['xrange'], dct['yrange'])
 
             ## these should match the global dims from metadata
             if setu['limit'] is None:
@@ -393,14 +406,14 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 ## get band scaling factors cf
                 if 'SWIR' not in band:
                     bt = [bt for bt in meta['BAND_INFO'] if meta['BAND_INFO'][bt]['name'] == band][0]
-                    d = ac.shared.read_band(file, idx=meta['BAND_INFO'][bt]['index'], sub=sub, warp_to=warp_to)
+                    d = ac.shared.read_band(file, idx=meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to, rpc_use = rpc_use)
                     cf = float(meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
                 else:
                     if swir_file is None:
                         swir_file='{}'.format(file)
                         swir_meta = meta.copy()
                     bt = [bt for bt in swir_meta['BAND_INFO'] if swir_meta['BAND_INFO'][bt]['name'] == band][0]
-                    d = ac.shared.read_band(swir_file, idx=swir_meta['BAND_INFO'][bt]['index'], sub=sub, warp_to=warp_to)
+                    d = ac.shared.read_band(swir_file, idx=swir_meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to, rpc_use = rpc_use)
                     cf = float(swir_meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(swir_meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
 
                 ## skip if one dimension is 0
