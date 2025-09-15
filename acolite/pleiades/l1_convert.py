@@ -14,6 +14,7 @@
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-07 (QV) added pleiades_force_metadata_geolocation
 ##                2025-02-10 (QV) cleaned up settings use
+##                2025-09-15 (QV) fixed processing of Airbus "REFLECTANCE" data
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -390,26 +391,23 @@ def l1_convert(inputfile, output = None, settings = None):
                         print(idx, b, btags[b])
                         data = data.astype(np.float32)
                         if (meta['RADIOMETRIC_PROCESSING'] == 'RADIANCE') | (meta['RADIOMETRIC_PROCESSING'] == 'BASIC'):
-                            #data *= (1./meta['BAND_INFO'][btags[b]]['radiance_gain'])
-                            #data += (meta['BAND_INFO'][btags[b]]['radiance_bias'])
-                            #data *= (np.pi * gatts['se_distance']**2) / (meta['BAND_INFO'][btags[b]]['F0'] * gatts['mus'])
                             data *= (1./bd['radiance_gain'])
                             data += (bd['radiance_bias'])
                             data *= (np.pi * gatts['se_distance']**2) / (bd['F0'] * gatts['mus'])
                         elif (meta['RADIOMETRIC_PROCESSING'] == 'LINEAR_STRETCH'):
                             print('Warning linear stretch data')
-                            #data *= (1./meta['BAND_INFO'][btags[b]]['radiance_gain'])
-                            #data += (meta['BAND_INFO'][btags[b]]['radiance_bias'])
-                            #data *= (np.pi * gatts['se_distance']**2) / (meta['BAND_INFO'][btags[b]]['F0'] * gatts['mus'])
                             data *= (1./bd['radiance_gain'])
                             data += (bd['radiance_bias'])
                             data *= (np.pi * gatts['se_distance']**2) / (bd['F0'] * gatts['mus'])
                         elif (meta['RADIOMETRIC_PROCESSING'] == 'REFLECTANCE'):
-                            #data /= meta['BAND_INFO'][btags[b]]['reflectance_gain']
-                            #data += meta['BAND_INFO'][btags[b]]['reflectance_bias']
+                            ## convert to reflectance (with AIRBUS A/C)
                             data /= bd['reflectance_gain']
                             data += bd['reflectance_bias']
-                            data /= gatts['mus']
+                            ## convert to LTOA
+                            data /= bd['radiance_gain']
+                            data += (bd['radiance_bias'])
+                            ## and convert to RHOT
+                            data *= (np.pi * gatts['se_distance']**2) / (bd['F0'] * gatts['mus'])
                         else:
                             print("{} RADIOMETRIC_PROCESSING not recognised".format(metadata['RADIOMETRIC_PROCESSING']))
                             continue
@@ -480,23 +478,17 @@ def l1_convert(inputfile, output = None, settings = None):
                             print('Updating MS projection')
                             gemo.nc_projection = nc_projection
                             print(lon.shape)
-                            #ac.output.nc_write(ofile, 'lon', lon, double=True,
-                            #                    nc_projection=nc_projection, update_projection=update_projection)
                             gemo.write('lon', lon, update_projection = True)
                             lon = None
                             update_projection = False
 
                             if verbosity > 1: print('Wrote lon')
                             print(lat.shape)
-                            #ac.output.nc_write(ofile, 'lat', lat, double=True,
-                            #                    nc_projection=nc_projection, update_projection=update_projection)
                             gemo.write('lat', lat)
                             lat = None
                             if verbosity > 1: print('Wrote lat')
 
                         ## write to netcdf file
-                        #ac.output.nc_write(ofile, ds, data_full, replace_nan=True, attributes=gatts, new=new, dataset_attributes = ds_att,
-                        #                    nc_projection=nc_projection, update_projection=update_projection)
                         gemo.write(ds, data_full, ds_att = ds_att, replace_nan=True)
                         update_projection = False
                         new = False
@@ -518,11 +510,9 @@ def l1_convert(inputfile, output = None, settings = None):
             if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
                 lon, lat = ac.shared.projection_geo(dct, add_half_pixel=True)
-                #ac.output.nc_write(ofile, 'lon', lon, attributes=gatts, new=new, nc_projection=nc_projection)
                 gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
-                #ac.output.nc_write(ofile, 'lat', lat)
                 gemo.write('lat', lat)
                 if verbosity > 1: print('Wrote lat ({})'.format(lat.shape))
                 lat = None
@@ -598,9 +588,15 @@ def l1_convert(inputfile, output = None, settings = None):
                         data += (bd['radiance_bias'])
                         data *= (np.pi * gatts['se_distance']**2) / (bd['F0'] * gatts['mus'])
                     elif (meta['RADIOMETRIC_PROCESSING'] == 'REFLECTANCE'):
+                        print("REFLECTANCE RADIOMETRIC_PROCESSING, converting to LTOA and RHOT")
+                        ## convert to reflectance (with AIRBUS A/C)
                         data /= bd['reflectance_gain']
                         data += bd['reflectance_bias']
-                        data /= gatts['mus']
+                        ## convert to LTOA
+                        data /= bd['radiance_gain']
+                        data += (bd['radiance_bias'])
+                        ## and convert to RHOT
+                        data *= (np.pi * gatts['se_distance']**2) / (bd['F0'] * gatts['mus'])
                     else:
                         print("{} RADIOMETRIC_PROCESSING not recognised".format(metadata['RADIOMETRIC_PROCESSING']))
                         continue
@@ -610,14 +606,8 @@ def l1_convert(inputfile, output = None, settings = None):
 
                     ## write to netcdf file
                     if (ii == 0):
-                        #ac.output.nc_write(ofile, ds, data, attributes=gatts, new=new,
-                        #                   dataset_attributes = ds_att, nc_projection=nc_projection)
-                        #new = False
                         gemo.write(ds, data, ds_att = ds_att)
                     else: ## second iteration is pan at native resolution
-                        #ac.output.nc_write(pofile, ds, data, new=new_pan,
-                        #                   dataset_attributes = ds_att, nc_projection=nc_projection_pan)
-                        #new_pan = False
                         ## write to netcdf file
                         gemop = ac.gem.gem(pofile, new = True)
                         gemop.gatts = {k: gatts[k] for k in gatts}
