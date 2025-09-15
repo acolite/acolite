@@ -569,6 +569,10 @@ def l1_convert(inputfile, output = None, settings = None):
                         saturated = data_in >= np.uint16(meta['SATURATED']) -1
 
                         data_in = data_in.astype(np.float32)
+                        data_in[nodata] = np.nan
+                        data_in[nodata2] = np.nan
+                        data_in[saturated] = np.nan
+
                         if it == 0:
                             data = data_in
                         else:
