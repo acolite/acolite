@@ -7,9 +7,11 @@
 ##                                 added in col and row diff check from landsat reader
 ##                 2022-09-21 (QV) allow passing of open gdal file
 ##                 2022-09-22 (QV) added rpc_dem option
+##                 2025-09-15 (QV) added rpc_use
 
-def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bilinear'
-                 target_res=None, sub=None, gdal_meta = False, rpc_dem = None, targetAlignedPixels = False):
+def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'bilinear'
+                 target_res = None, sub = None, gdal_meta = False,
+                 rpc_use = True, rpc_dem = None, targetAlignedPixels = False):
 
     import os, sys, fnmatch
     from osgeo import gdal
@@ -90,8 +92,9 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
 
             ## add transformeroptions
             rpc = False
-            RPCs = ds.GetMetadata('RPC')
-            if len(RPCs) > 0: rpc = True
+            if rpc_use:
+                RPCs = ds.GetMetadata('RPC')
+                if len(RPCs) > 0: rpc = True
             transformerOptions = []
             if rpc_dem is not None: transformerOptions+=['RPC_DEM={}'.format(rpc_dem)]
 
@@ -100,9 +103,9 @@ def read_band(file, idx = None, warp_to=None, warp_alg = 'near', # 'cubic', 'bil
             ds = gdal.Warp('', file,
                             xRes = xRes, yRes = yRes,
                             outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
-                            dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
+                            dstSRS = dstSRS, targetAlignedPixels = targetAlignedPixels,
                             rpc = rpc, transformerOptions = transformerOptions,
-                            format='VRT', resampleAlg=warp_alg)
+                            format = 'VRT', resampleAlg = warp_alg)
             if idx is not None:
                 data =  ds.GetRasterBand(idx).ReadAsArray()
             else:
