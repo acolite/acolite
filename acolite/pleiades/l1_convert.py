@@ -15,6 +15,7 @@
 ##                2025-02-07 (QV) added pleiades_force_metadata_geolocation
 ##                2025-02-10 (QV) cleaned up settings use
 ##                2025-09-15 (QV) fixed processing of Airbus "REFLECTANCE" data
+##                                updated data reading and added half pixel to nc_projection
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -153,7 +154,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ifile = ifiles[0]
             try:
                 print('Reading projection from {}'.format(ifile))
-                dct = ac.shared.projection_read(ifile)
+                dct = ac.shared.projection_read(ifile, use_world_transform = False)
             except:
                 print('Could not determine projection from {}'.format(ifile))
 
@@ -162,7 +163,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 for ifile in ifiles[1:]:
                     ## read projection
                     print('Reading projection from {}'.format(ifile))
-                    dct_tile = ac.shared.projection_read(ifile)
+                    dct_tile = ac.shared.projection_read(ifile, use_world_transform = False)
                     ## compute new ranges
                     dct['xrange'] = min(dct['xrange'][0], dct_tile['xrange'][0]),\
                                         max(dct['xrange'][1], dct_tile['xrange'][1])
@@ -172,7 +173,9 @@ def l1_convert(inputfile, output = None, settings = None):
                 dct['xdim'] = np.round((dct['xrange'][1] - dct['xrange'][0]) / dct['pixel_size'][0]).astype(int)
                 dct['ydim'] = np.round((dct['yrange'][1] - dct['yrange'][0]) / dct['pixel_size'][1]).astype(int)
                 dct['dimensions'] = (dct['xdim'], dct['ydim'])
+                print(dct)
 
+        rpc_use = False ## if projected and RPC are given this will lead to offsets
         new_method, reproject = False, False
         ## set up reprojection
         if (setu['reproject_inputfile_force']) | (setu['reproject_inputfile'] & (dct is None)):
@@ -210,10 +213,12 @@ def l1_convert(inputfile, output = None, settings = None):
                 dct = {k: dct_sub[k] for k in dct_sub}
 
             ## MS data
-            nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
+            nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
             xyr = [min(dct['xrange']),min(dct['yrange']),
                    max(dct['xrange']),max(dct['yrange']), dct['projection']]
             warp_to = (dct['projection'], xyr, dct['pixel_size'][0],dct['pixel_size'][1], res_method)
+            #print(warp_to)
+            #print(nc_projection)
 
             ## PAN data
             dct_pan = {k:dct[k] for k in dct}
@@ -222,7 +227,7 @@ def l1_convert(inputfile, output = None, settings = None):
                                     np.round((dct_pan['xrange'][1]-dct_pan['xrange'][0]) / dct_pan['pixel_size'][0],0).astype(int)
             dct_pan['ydim'] = dct_pan['dimensions'][0]
             dct_pan['xdim'] = dct_pan['dimensions'][1]
-            nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
+            nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = True)
             xyr_pan = [min(dct_pan['xrange']), min(dct_pan['yrange']),
                        max(dct_pan['xrange']), max(dct_pan['yrange']), dct_pan['projection']]
             warp_to_pan = (dct_pan['projection'], xyr_pan, dct_pan['pixel_size'][0],dct_pan['pixel_size'][1], res_method)
@@ -354,11 +359,11 @@ def l1_convert(inputfile, output = None, settings = None):
                             data = ac.shared.read_band(ifile_, idx=idx, sub=sub_tile)
                             if update_projection:
                                 try:
-                                    dct = ac.shared.projection_read(ifile_)
-                                    nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
+                                    dct = ac.shared.projection_read(ifile_, use_world_transform = False)
+                                    #nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
                                     if sub is not None:
                                         dct = ac.shared.projection_sub_dct(dct, sub)
-                                        nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel=False)
+                                    nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
                                 except BaseException as err:
                                     print("Could not determine projection from {} error {}".format(ifile_, type(err)))
                                     pass
@@ -375,11 +380,11 @@ def l1_convert(inputfile, output = None, settings = None):
                             ## read data
                             data = ac.shared.read_band(pifile, idx=1, sub=pansub_tile)
                             try:
-                                dct_pan = ac.shared.projection_read(pifile)
-                                nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
+                                dct_pan = ac.shared.projection_read(pifile, use_world_transform = False)
+                                #c_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = True)
                                 if pansub is not None:
                                     dct_pan = ac.shared.projection_sub_dct(dct_pan, pansub)
-                                    nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel=False)
+                                nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = True)
                             except BaseException as err:
                                 print("Could not determine projection from {} error {}".format(pifile, type(err)))
                                 pass
@@ -474,7 +479,7 @@ def l1_convert(inputfile, output = None, settings = None):
                         ## update lat/lon if we were able to compute nc_projection
                         if (update_projection) & (nc_projection is not None):
                             if verbosity > 1: print('Writing geolocation lon/lat')
-                            lon, lat = ac.shared.projection_geo(dct, add_half_pixel=False)
+                            lon, lat = ac.shared.projection_geo(dct, add_half_pixel = True)
                             print('Updating MS projection')
                             gemo.nc_projection = nc_projection
                             print(lon.shape)
@@ -509,7 +514,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## write lat/lon
             if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct, add_half_pixel=True)
+                lon, lat = ac.shared.projection_geo(dct, add_half_pixel = True)
                 gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
@@ -561,9 +566,11 @@ def l1_convert(inputfile, output = None, settings = None):
                         print('Reading band {} from {}'.format(b, tfile_))
 
                         if (ii == 0):
-                            data_in = ac.shared.read_band(tfile_, idx=idx, sub=sub, warp_to=warp_to, rpc_dem=rpc_dem)
+                            data_in = ac.shared.read_band(tfile_, idx = idx, sub = sub, warp_to = warp_to,
+                                rpc_dem = rpc_dem, rpc_use = rpc_use, targetAlignedPixels = True)
                         else:
-                            data_in = ac.shared.read_band(tfile_, idx=idx, sub=sub, warp_to=warp_to_pan, rpc_dem=rpc_dem)
+                            data_in = ac.shared.read_band(tfile_, idx = idx, sub = sub, warp_to = warp_to_pan,
+                                rpc_dem = rpc_dem, rpc_use = rpc_use, targetAlignedPixels = True)
                         nodata = data_in == np.uint16(meta['NODATA'])
                         nodata2 = data_in == 1
                         saturated = data_in >= np.uint16(meta['SATURATED']) -1
