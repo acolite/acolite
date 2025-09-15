@@ -7,7 +7,7 @@
 ##                2024-03-28 (QV) x/y range and pixel_size as lists
 ##                2025-01-24 (QV) allow passing of Open gdal dataset
 
-def projection_read(file):
+def projection_read(file, use_world_transform = True):
     from pyproj import Proj
     from osgeo import gdal,osr
     import os
@@ -22,12 +22,14 @@ def projection_read(file):
         ds = file
     else:
         print('{} not recognised'.format(file))
-        return()
+        return
 
     transform = ds.GetGeoTransform()
     projection = ds.GetProjection()
     dimx, dimy = ds.RasterXSize, ds.RasterYSize
     if close: ds = None
+    if (projection == ''):
+        print('Could not determine projection from {}'.format(file))
 
     ## get projection info
     src = osr.SpatialReference()
@@ -37,23 +39,24 @@ def projection_read(file):
 
     ## find world file if present
     wtransform = None
-    if type(file) == str:
-        for ext in ['J2W', 'TFW', 'WLD', 'j2w', 'tfw', 'wld']:
-            fbase, fext = os.path.splitext(file)
-            wfile = '{}.{}'.format(fbase, ext)
-            if os.path.exists(wfile):
-                break
-            wfile = None
-        ## read world file
-        if wfile is not None:
-            wtransform = []
-            with open(wfile, 'r') as f:
-                for l in f.readlines():
-                    wtransform.append(float(l.strip()))
-            if len(wtransform) != 6:
-                print('World file {} has wrong number of elements'.format(wfile))
-                wtransform = None
-        
+    if use_world_transform:
+        if type(file) == str:
+            for ext in ['J2W', 'TFW', 'WLD', 'j2w', 'tfw', 'wld']:
+                fbase, fext = os.path.splitext(file)
+                wfile = '{}.{}'.format(fbase, ext)
+                if os.path.exists(wfile):
+                    break
+                wfile = None
+            ## read world file
+            if wfile is not None:
+                wtransform = []
+                with open(wfile, 'r', encoding = 'utf-8') as f:
+                    for l in f.readlines():
+                        wtransform.append(float(l.strip()))
+                if len(wtransform) != 6:
+                    print('World file {} has wrong number of elements'.format(wfile))
+                    wtransform = None
+
     if wtransform is not None:
         ## world transform elements:
         ## 0 pixel X size
