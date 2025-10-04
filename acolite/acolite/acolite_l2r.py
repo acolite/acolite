@@ -1235,6 +1235,7 @@ def acolite_l2r(gem,
             exp_dm -= rorayl_mask
             mask = exp_dm >= setu['exp_mask_threshold']
             exp_dm = None
+        print('Rayleigh corrected band {} used with threshold {:.3f} for clear water masking'.format(exp_mask, setu['exp_mask_threshold']))
 
         ## compute aerosol epsilon band ratio
         epsilon = exp_d1/exp_d2
