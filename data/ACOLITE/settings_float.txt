@@ -13,6 +13,7 @@ dsf_max_tile_aot
 dsf_min_tile_cover
 dsf_wave_range
 exp_mask_threshold
+exp_mask_wave
 exp_fixed_epsilon_percentile
 exp_fixed_aerosol_reflectance_percentile
 dem_pressure_percentile

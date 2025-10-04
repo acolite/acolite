@@ -437,6 +437,7 @@ dsf_tile_interp_method=linear
 
 ## exponential options
 exp_mask_threshold=0.0215
+exp_mask_wave=1600
 exp_fixed_epsilon=True
 exp_fixed_epsilon_percentile=50
 exp_fixed_aerosol_reflectance=True
