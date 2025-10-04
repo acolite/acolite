@@ -1172,7 +1172,10 @@ def acolite_l2r(gem,
                 exp_mask = b
                 mask_wv = gem.bands[b]['wave_nm']
 
-        if (exp_b1 is None) or (exp_b2 is None): stop
+        if (exp_b1 is None) or (exp_b2 is None):
+            print('No suitable bands selected for EXP processing: exp_b1={}, exp_b2={}'.format(exp_b1, exp_b2))
+            print('Please change wavelengths for exp_wave1={} and exp_wave2={} in your settings.'.format(setu['exp_wave1']. setu['exp_wave2']))
+            return
 
         print('Selected bands {} and {} for EXP processing'.format(exp_b1, exp_b2))
         if (gem.bands[exp_b1]['rhot_ds'] not in gem.datasets) | (gem.bands[exp_b2]['rhot_ds'] not in gem.datasets):
@@ -1193,12 +1196,21 @@ def acolite_l2r(gem,
         exp_d1 = gem.data(gem.bands[exp_b1]['rhot_ds'])*1.0
         exp_d2 = gem.data(gem.bands[exp_b2]['rhot_ds'])*1.0
 
-        ## use mean geometry
-        xi = [gem.data_mem['pressure'+'_mean'][0][0],
-              gem.data_mem['raa'+'_mean'][0][0],
-              gem.data_mem['vza'+'_mean'][0][0],
-              gem.data_mem['sza'+'_mean'][0][0],
-              gem.data_mem['wind'+'_mean'][0][0]]
+        if setu['resolved_geometry']:
+            ## resolved
+            xi = [gem.data_mem['pressure'],
+                              gem.data_mem['raa'],
+                              gem.data_mem['vza'],
+                              gem.data_mem['sza'],
+                              gem.data_mem['wind']]
+        else:
+            ## use mean geometry
+            xi = [gem.data_mem['pressure'+'_mean'][0][0],
+                  gem.data_mem['raa'+'_mean'][0][0],
+                  gem.data_mem['vza'+'_mean'][0][0],
+                  gem.data_mem['sza'+'_mean'][0][0],
+                  gem.data_mem['wind'+'_mean'][0][0]]
+
 
         exp_lut = luts[0]
         exp_cwlim = 0.005
@@ -1244,8 +1256,12 @@ def acolite_l2r(gem,
             tr_b1 = (dtotr_b1 * utotr_b1 * gem.bands[exp_b1]['tt_gas'])
             tr_b2 = (dtotr_b2 * utotr_b2 * gem.bands[exp_b2]['tt_gas'])
             ## get gamma
-            exp_gamma = tr_b1 / tr_b2 if setu['exp_gamma'] is None else float(setu['exp_gamma'])
-            print('Gamma: {:.2f}'.format(exp_gamma))
+            if setu['exp_gamma'] is None:
+                exp_gamma = tr_b1 / tr_b2
+                print('Mean gamma: {:.2f}'.format(np.nanmean(exp_gamma)))
+            else:
+                exp_gamma = float(setu['exp_gamma'])
+                print('User set gamma: {:.2f}'.format(exp_gamma))
 
             ## get alpha
             if setu['exp_alpha'] is None:
@@ -1260,9 +1276,10 @@ def acolite_l2r(gem,
                     ssi0, ssw0 = ac.shared.closest_idx(simspec['wave'], gem.bands[exp_b1]['wave_mu'])
                     ssi1, ssw1 = ac.shared.closest_idx(simspec['wave'], gem.bands[exp_b2]['wave_mu'])
                     exp_alpha = simspec['ave'][ssi0]/simspec['ave'][ssi1]
+                print('SimSpec alpha: {:.2f}'.format(exp_alpha))
             else:
                 exp_alpha = float(setu['exp_alpha'])
-            print('Alpha: {:.2f}'.format(exp_alpha))
+                print('User set alpha: {:.2f}'.format(exp_alpha))
 
             ## first estimate of rhow to find clear waters
             exp_c1 = (exp_alpha/tr_b2)/(exp_alpha*exp_gamma-exp_initial_epsilon)
@@ -1305,7 +1322,7 @@ def acolite_l2r(gem,
         exp_fixed_rhoam = setu['exp_fixed_aerosol_reflectance']
         if exp_fixed_rhoam:
             rhoam = np.nanpercentile(rhoam,setu['exp_fixed_aerosol_reflectance_percentile'])
-            print('{:.0f}th percentile rhoam ({} nm): {:.5f}'.format(setu['exp_fixed_aerosol_reflectance_percentile'], long_wv, rhoam))
+            print('{:.0f}th percentile rhoam ({:.0f} nm): {:.5f}'.format(setu['exp_fixed_aerosol_reflectance_percentile'], long_wv, rhoam))
 
         print('EXP band 1', setu['exp_wave1'], exp_b1, gem.bands[exp_b1]['rhot_ds'])
         print('EXP band 2', setu['exp_wave2'], exp_b2, gem.bands[exp_b2]['rhot_ds'])
