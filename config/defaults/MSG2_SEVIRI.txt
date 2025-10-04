@@ -39,3 +39,14 @@ rgb_red_wl=1640
 rgb_green_wl=810
 rgb_blue_wl=640
 map_title_rgb_wavelengths=True
+
+## exponential processing settings
+exp_fixed_aerosol_reflectance=False
+## red/NIR
+exp_wave1=640
+exp_wave2=800
+## alpha from Neukermans 2012
+exp_alpha=6.09
+## NIR/SWIR
+#exp_wave1=800
+#exp_wave2=1640
