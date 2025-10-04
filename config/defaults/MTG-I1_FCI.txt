@@ -36,6 +36,8 @@ rgb_blue_wl=447
 map_title_rgb_wavelengths=True
 
 ## exponential processing settings
+exp_mask_wave=800
+exp_mask_threshold=0.1
 exp_fixed_aerosol_reflectance=False
 ## red/NIR
 exp_wave1=640
