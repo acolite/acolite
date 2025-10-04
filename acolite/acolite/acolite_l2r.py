@@ -1226,14 +1226,14 @@ def acolite_l2r(gem,
 
         ## compute mask
         if exp_mask == exp_b1:
-            mask = exp_d1 >= setu['exp_swir_threshold']
+            mask = exp_d1 >= setu['exp_mask_threshold']
         elif exp_mask == exp_b2:
-            mask = exp_d2 >= setu['exp_swir_threshold']
+            mask = exp_d2 >= setu['exp_mask_threshold']
         else:
             exp_dm = gem.data(gem.bands[exp_mask]['rhot_ds'])*1.0
             rorayl_mask = lutdw[exp_lut]['rgi'][exp_mask]((xi[0], lutdw[exp_lut]['ipd'][par], xi[1], xi[2], xi[3], xi[4], 0.001))
             exp_dm -= rorayl_mask
-            mask = exp_dm >= setu['exp_swir_threshold']
+            mask = exp_dm >= setu['exp_mask_threshold']
             exp_dm = None
 
         ## compute aerosol epsilon band ratio
