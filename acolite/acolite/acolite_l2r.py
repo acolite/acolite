@@ -106,7 +106,10 @@ def acolite_l2r(gem,
             aer_anc = ac.ac.ancillary.get_aer(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'))
         elif setu['dsf_aot_estimate'] == 'ancillary_fixed':
             aer_anc = ac.ac.ancillary.get_aer(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
-            print(aer_anc)
+        else:
+            print('dsf_aot_estimate={} not configured.'.format(setu['dsf_aot_estimate']))
+            return
+
         if 'data' not in aer_anc:
             print('Error in ancillary AOT retrieval.')
             return
