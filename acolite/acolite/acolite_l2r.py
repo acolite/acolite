@@ -657,6 +657,7 @@ def acolite_l2r(gem,
             aot_bands = []
             aot_dict = {}
             dsf_rhod = {}
+            dsf_location = {}
             for bi, b in enumerate(gem.bands):
                 ## test if band can or should be used in DSF
                 ## skip band if listed in dsf_exlude_bands
@@ -757,6 +758,7 @@ def acolite_l2r(gem,
                     if len(dark_pixel_location[0]) != 0:
                         dark_pixel_location_x = dark_pixel_location[0][0]
                         dark_pixel_location_y = dark_pixel_location[1][0]
+                    dsf_location[b] = (dark_pixel_location_x, dark_pixel_location_y)
                     #    print(dark_pixel_location_x, dark_pixel_location_y)
                     #    print(band_data)
                     #if not use_revlut:
@@ -1056,7 +1058,6 @@ def acolite_l2r(gem,
                 if setu['dsf_aot_estimate'] == 'fixed':
                     aot_sel_lut = '{}'.format(lut)
                     aot_sel_bands = [aot_stack[lut]['{}'.format(bb)][0][0] for bb in fit_bands]
-
             ## select model based on min rmsd for 2 bands
             else:
                 if setu['verbosity'] > 1: print('Choosing best fitting model: {} ({} bands)'.format(setu['dsf_model_selection'], setu['dsf_nbands']))
@@ -1401,6 +1402,9 @@ def acolite_l2r(gem,
             ## store bands used for DSF
             gemo.gatts['ac_bands'] = ','.join([str(b) for b in aot_stack[gemo.gatts['ac_model']]['band_list']])
             gemo.gatts['ac_nbands_fit'] = setu['dsf_nbands']
+            ## store dark location
+            for band in dsf_location: gemo.gatts['{}_xy_location'.format(band)] = dsf_location[band]
+
             for bbi, bn in enumerate(aot_sel_bands):
                 gemo.gatts['ac_band{}_idx'.format(bbi+1)] = aot_sel_bands[bbi]
                 gemo.gatts['ac_band{}'.format(bbi+1)] = aot_stack[gemo.gatts['ac_model']]['band_list'][aot_sel_bands[bbi]]
