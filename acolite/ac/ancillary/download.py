@@ -11,8 +11,9 @@
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_download
 ##                2023-10-16 (QV) added GMAO data, moved file size test
 ##                2023-12-28 (QV) added GMAO_IT
+##                2025-10-06 (QV) added file_types keyword
 
-def download(date, local_dir = None,
+def download(date, local_dir = None, file_types = None,
                        download=True, override = False, verbosity=0,
                        get_url = "https://oceandata.sci.gsfc.nasa.gov/ob/getfile"):
 
@@ -23,7 +24,7 @@ def download(date, local_dir = None,
     import acolite as ac
     if local_dir == None: local_dir=ac.config['met_dir']
 
-    ancillary_files = ac.ac.ancillary.list_files(date)
+    ancillary_files = ac.ac.ancillary.list_files(date, file_types = file_types)
 
     local_files = []
     for basefile in ancillary_files:

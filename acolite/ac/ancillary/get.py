@@ -11,8 +11,10 @@
 ##                2022-11-17 (QV) delete series by default
 ##                2023-10-16 (QV) added GMAO data, rescale and rename parameters in this function
 ##                2023-12-28 (QV) added GMAO_IT
+##                2025-10-06 (QV) added file_types keyword
 
-def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, keep_series=False):
+def get(date, lon, lat, local_dir = None, file_types = None,
+            quiet = True, kind = 'linear', verbosity = 0, keep_series = False):
     import acolite as ac
     import dateutil.parser, datetime
     import os
@@ -36,7 +38,7 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, 
         return({})
 
     ## list and download files
-    anc_local = ac.ac.ancillary.download(date = isodate, verbosity=verbosity)
+    anc_local = ac.ac.ancillary.download(date = isodate, verbosity = verbosity, file_types = file_types)
 
     ## find if we have merra2 files
     gmao_files = [file for file in anc_local if ('GMAO_MERRA2' in os.path.basename(file)) & (os.path.exists(file))]
@@ -50,7 +52,7 @@ def get(date, lon, lat, local_dir=None, quiet=True, kind='linear', verbosity=0, 
 
         ## set up ancillary
         anc = {'date':date, 'lon':lon, 'lat': lat, 'ftime':ftime, 'type': 'merra2', 'data': {}}
-        anc_gmao = ac.ac.ancillary.interp_gmao(gmao_files,  lon, lat, isodate, method=kind)
+        anc_gmao = ac.ac.ancillary.interp_gmao(gmao_files,  lon, lat, isodate, method = kind)
         for k in anc_gmao.keys():
             if (not keep_series) & ('series' in anc_gmao[k]): del anc_gmao[k]['series']
             anc['data'][k] = anc_gmao[k]
