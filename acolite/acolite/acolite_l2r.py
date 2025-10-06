@@ -28,6 +28,7 @@
 ##                2025-04-30 (QV) added sensor noise bias correction
 ##                2025-05-16 (QV) added filtering for sensor noise bias correction
 ##                2025-07-07 (QV) don't do model selection if only one model is used
+##                2025-10-06 (QV) added dsf_aot_option=ancillary and dsf_aot_option=ancillary_fixed
 
 def acolite_l2r(gem,
                 output = None,
@@ -97,6 +98,34 @@ def acolite_l2r(gem,
         setu['dsf_fixed_aot'] = opt_aot
         setu['dsf_fixed_lut'] = opt_lut
     ## end optimised aot
+
+    ## ancillary aot
+    if setu['dsf_aot_estimate'].startswith('ancillary'):
+        print('Retrieving AOT from ancillary data for L2R processing')
+        if setu['dsf_aot_estimate'] == 'ancillary':
+            aer_anc = ac.ac.ancillary.get_aer(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'))
+        elif setu['dsf_aot_estimate'] == 'ancillary_fixed':
+            aer_anc = ac.ac.ancillary.get_aer(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
+            print(aer_anc)
+        if 'data' not in aer_anc:
+            print('Error in ancillary AOT retrieval.')
+            return
+        else:
+            aer_ang = aer_anc['data']['TOTANGSTR']['interp']
+            aer_aot = aer_anc['data']['TOTEXTTAU']['interp']
+            aer_ang_mean = np.nanmean(aer_ang)
+            ## 6SV models C(ontinental) 1.08, M(aritime) 0.28,
+            anc_ang_threshold = 1.0
+            anc_lut = None
+            for lut in ac.settings['run']['luts']:
+                if (aer_ang_mean > anc_ang_threshold) & (lut[-1] == '1'): anc_lut = '{}'.format(lut)
+                elif (aer_ang_mean < anc_ang_threshold) & (lut[-1] == '2'): anc_lut = '{}'.format(lut)
+                else: anc_lut = '{}'.format(lut)
+            anc_aot = np.nanmean(aer_aot) * 1
+        print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(anc_aot, anc_lut, aer_ang_mean))
+        setu['dsf_fixed_aot'] = anc_aot
+        setu['dsf_fixed_lut'] = anc_lut
+    ## end ancillary aot
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
 
@@ -584,7 +613,6 @@ def acolite_l2r(gem,
     if (ac_opt == 'dsf'):
         ## user supplied aot
         if (setu['dsf_fixed_aot'] is not None):
-            setu['dsf_aot_estimate'] = 'fixed'
             aot_lut = None
             for li, lut in enumerate(luts):
                 if lut == setu['dsf_fixed_lut']:
@@ -592,13 +620,28 @@ def acolite_l2r(gem,
                     aot_lut.shape+=(1,1) ## make 1,1 dimensions
             if aot_lut is None:
                 print('LUT {} not recognised'.format(setu['dsf_fixed_lut']))
-
-            aot_sel = np.array(float(setu['dsf_fixed_aot']))
-            aot_sel.shape+=(1,1) ## make 1,1 dimensions
             aot_sel_lut = luts[aot_lut[0][0]]
             aot_sel_par = None
-            print('User specified aot {} and model {}'.format(aot_sel[0][0], aot_sel_lut))
 
+            ## ancillary aot can be 2D
+            if setu['dsf_aot_estimate'].startswith('ancillary'):
+                if setu['dsf_aot_estimate'] == 'ancillary_fixed':
+                    aot_sel = np.array(np.nanmean(aer_aot))
+                else:
+                    aot_sel = aer_aot * 1.0
+                del aer_aot
+            else:
+                aot_sel = np.array(float(setu['dsf_fixed_aot']))
+                aot_sel.shape += (1,1)
+
+            if len(np.atleast_1d(aot_sel)) > 1:
+                print('User specified aot with shape {}x{} and model {}'.format(aot_sel.shape[0], aot_sel.shape[1], aot_sel_lut))
+            else:
+                aot_sel.shape += (1,1)
+                print('User specified aot {:.3f} and model {}'.format(aot_sel[0][0], aot_sel_lut))
+
+            ## set to fixed for processing
+            setu['dsf_aot_estimate'] = 'fixed'
             ## geometry key '' if using resolved, otherwise '_mean' or '_tiled'
             gk = '' if use_revlut else '_mean'
         ## image derived aot
@@ -1342,7 +1385,11 @@ def acolite_l2r(gem,
 
     ## store fixed aot in gatts
     if (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] == 'fixed'):
-        gemo.gatts['ac_aot_550'] = aot_sel[0][0]
+        if aot_sel.shape == (1,1):
+            gemo.gatts['ac_aot_550'] = aot_sel[0][0]
+        #else:
+        #    gemo.gatts['ac_aot_550'] = np.nanmean(aot_sel)
+
         gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
 
         if setu['dsf_fixed_aot'] is None:
@@ -1359,7 +1406,10 @@ def acolite_l2r(gem,
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
         ## reformat & save aot
         if setu['dsf_aot_estimate'] == 'fixed':
-            aot_out = np.repeat(aot_sel, gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+            if aot_sel.shape == (1,1):
+                aot_out = np.repeat(aot_sel[0][0], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+            else:
+                aot_out = aot_sel * 1.0
         elif setu['dsf_aot_estimate'] == 'segmented':
             aot_out = np.zeros(gem.gatts['data_dimensions']) + np.nan
             for sidx, segment in enumerate(segment_data):
