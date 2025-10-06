@@ -3,10 +3,10 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-10-06
-## modifications:
+## modifications: 2025-10-06 (QV) determine file_types based on date
 
 def get_aer(date, lon, lat, local_dir = None,
-            file_types = ['GMAO_IT_AER'], datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
+            file_types = None, datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
             quiet = True, kind = 'linear', verbosity = 0, keep_series = False):
 
     import acolite as ac
@@ -34,6 +34,13 @@ def get_aer(date, lon, lat, local_dir = None,
     if isodate < '1978-10-27':
         print('Scene too old to get ancillary data: {}'.format(isodate))
         return()
+
+    if file_types is None:
+        diff = (dateutil.parser.parse(datetime.datetime.now().strftime('%Y-%m-%d')) -\
+                dateutil.parser.parse(dt.strftime('%Y-%m-%d'))).days
+        file_types = ['GMAO_MERRA2_AER']
+        if diff < 40: file_types = ['GMAO_IT_AER']
+        print('Using file types {} for date {} days before today.'.format(file_types, diff))
 
     ## list and download files
     anc_local = ac.ac.ancillary.download(date = isodate, verbosity = verbosity, file_types = file_types)
