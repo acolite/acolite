@@ -7,7 +7,7 @@
 ##                2021-03-01 (QV) simplified for acg renamed from ancillary_list
 ##                2023-10-16 (QV) changed date parsing, added GMAO FP and MERRA2 files
 ##                2023-12-28 (QV) added GMAO_IT_MET
-##                2025-10-06 (QV) added GMAO_IT_AER and GMAO_FP_AER
+##                2025-10-06 (QV) added GMAO_IT_AER and GMAO_FP_AER, added GMAO_MERRA2_AER
 
 def list_files(date, file_types = None):
     import os
@@ -134,6 +134,17 @@ def list_files(date, file_types = None):
                 cfile = "GMAO_IT.{}T{}0000.AER.NRT.nc".format(dtime.strftime("%Y%m%d"),str(h0+3).zfill(2))
             else:
                 cfile = "GMAO_IT.{}T{}0000.AER.NRT.nc".format((dtime+datetime.timedelta(days=1)).strftime("%Y%m%d"),'00')
+            basefiles.append(cfile)
+
+        elif file_type == "GMAO_MERRA2_AER":
+            ## hourly file before
+            cfile = "GMAO_MERRA2.{}T{}0000.AER.nc".format(dtime.strftime("%Y%m%d"),str(dtime.hour).zfill(2))
+            basefiles.append(cfile)
+            ## hourly file after
+            if dtime.hour < 23:
+                cfile = "GMAO_MERRA2.{}T{}0000.AER.nc".format(dtime.strftime("%Y%m%d"),str(dtime.hour+1).zfill(2))
+            else:
+                cfile = "GMAO_MERRA2.{}T{}0000.AER.nc".format((dtime+datetime.timedelta(days=1)).strftime("%Y%m%d"),'00')
             basefiles.append(cfile)
 
         else:
