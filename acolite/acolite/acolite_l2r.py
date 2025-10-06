@@ -755,16 +755,10 @@ def acolite_l2r(gem,
                     band_data.shape+=(1,1) ## make 1,1 dimensions
                     gk='_mean'
                     dark_pixel_location = np.where(band_data_copy <= band_data)
-                    if len(dark_pixel_location[0]) != 0:
-                        dark_pixel_location_x = dark_pixel_location[0][0]
-                        dark_pixel_location_y = dark_pixel_location[1][0]
+                    if len(dark_pixel_location[0]) != 0: ## store brightest pixel lower than band data
+                        dark_pixel_location_x = dark_pixel_location[0][-1]
+                        dark_pixel_location_y = dark_pixel_location[1][-1]
                     dsf_location[b] = (dark_pixel_location_x, dark_pixel_location_y)
-                    #    print(dark_pixel_location_x, dark_pixel_location_y)
-                    #    print(band_data)
-                    #if not use_revlut:
-                    #    gk='_mean'
-                    #else:
-                    #    band_data = np.tile(band_data, band_shape)
                     if setu['verbosity'] > 2: print(b, setu['dsf_spectrum_option'], '{:.3f}'.format(float(band_data[0,0])))
 
                 ## tiled path reflectance
