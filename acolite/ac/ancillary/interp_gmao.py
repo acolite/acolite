@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-10-16
-## modifications:
+## modifications: 2025-10-06 (QV) do all interpolations with rgi
 
 def interp_gmao(files, lon, lat, isodate, datasets = ['PS', 'TO3', 'TQV', 'U10M', 'V10M'], method = 'linear'):
     import acolite as ac
@@ -18,24 +18,16 @@ def interp_gmao(files, lon, lat, isodate, datasets = ['PS', 'TO3', 'TQV', 'U10M'
 
     ## input geolocation dimensions
     dim = np.atleast_1d(lon).shape
-    onedim = ((len(dim) == 1) & (dim[0] == 1))
+    #onedim = ((len(dim) == 1) & (dim[0] == 1))
 
     ## run through files
     interp_data = {ds:[] for ds in datasets}
     ftimes = []
     jdates = []
     for file in files:
-        #ds = ac.shared.nc_datasets(file)
-
         ## read lon/lat
         lons = ac.shared.nc_data(file, 'lon')
         lats = ac.shared.nc_data(file, 'lat')
-
-        ## make lons/lats 2D for reproject2
-        if not onedim:
-            shape = lats.shape[0], lons.shape[0]
-            lons = np.repeat(np.broadcast_to(lons, (1, shape[1])), shape[0], axis=0)
-            lats = np.repeat(np.expand_dims(lats, axis=1), shape[1], axis=1)
 
         ## get modelled time
         gatts = ac.shared.nc_gatts(file)
@@ -45,22 +37,12 @@ def interp_gmao(files, lon, lat, isodate, datasets = ['PS', 'TO3', 'TQV', 'U10M'
         ftimes.append(file_ftime)
         jdates.append(int(file_dt.strftime("%j")))
 
+        ## read data and interpolate
         for dataset in datasets:
             data = ac.shared.nc_data(file, dataset)
-            ## interpolation in space
-            if onedim:
-                #if method == 'nearest':
-                #    xi,xret = min(enumerate(lons), key=lambda x: abs(x[1]-float(lon)))
-                #    yi,yret = min(enumerate(lats), key=lambda x: abs(x[1]-float(lat)))
-                #    interp_data[dataset].append(data[yi,xi])
-                #else:
-                interp = interpolate.RegularGridInterpolator((lats, lons), data, method=method)
-                idata = interp((lat, lon))
-                interp_data[dataset].append(idata)
-            ## add QC?
-            else:
-                interp_data[dataset].append(ac.shared.reproject2(data, lons, lats, lon, lat,
-                                            nearest=kind == 'nearest',  radius_of_influence=10e5))
+            interp = interpolate.RegularGridInterpolator((lats, lons), data, method = method)
+            idata = interp((lat, lon))
+            interp_data[dataset].append(idata)
 
     ## add check for year for files[-1]?
     if (ftimes[-1] == 0.) & \
