@@ -118,12 +118,14 @@ def acolite_l2r(gem,
             aer_aot = aer_anc['data']['TOTEXTTAU']['interp']
             aer_ang_mean = np.nanmean(aer_ang)
             ## 6SV models C(ontinental) 1.08, M(aritime) 0.28,
-            anc_ang_threshold = 1.0
+            anc_ang_threshold = 0.68 ## midway between C and M
             anc_lut = None
-            for lut in ac.settings['run']['luts']:
+            print('Selecting LUT based on ancillary mean angstrom {:.2f} from LUTs {}'.format(aer_ang_mean, setu['luts']))
+            print('Angstrom threshold M < {} < C'.format(anc_ang_threshold))
+            for lut in setu['luts']:
+                if anc_lut is None: anc_lut = lut
                 if (aer_ang_mean > anc_ang_threshold) & (lut[-1] == '1'): anc_lut = '{}'.format(lut)
                 elif (aer_ang_mean < anc_ang_threshold) & (lut[-1] == '2'): anc_lut = '{}'.format(lut)
-                else: anc_lut = '{}'.format(lut)
             anc_aot = np.nanmean(aer_aot) * 1
         print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(anc_aot, anc_lut, aer_ang_mean))
         setu['dsf_fixed_aot'] = anc_aot
