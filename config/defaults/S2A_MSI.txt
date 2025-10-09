@@ -10,6 +10,14 @@ copy_datasets=lon,lat,sza,vza,raa,rhot_*
 s2_write_vaa=False
 s2_write_saa=False
 
+## settings for sensor noise bias correction
+sensor_noise_bias_correction=False
+sensor_noise_bias_correction_sun_zenith=True
+sensor_noise=0,0,0,0,0,0,0,0,0,0,0,0,0
+## derived 2025-04-30 from 681 tiles for NIR/SWIR
+sensor_noise=0,0,0,0,0,0,0,0.000342,0.000409,0,0,0.000241,0.000243
+## derived 2025-05-06 from 892 tiles for VSWIR
+sensor_noise=0.000250, 0.000549, 0.000435, 0.000349, 0.000303, 0.000341, 0.000375, 0.000347, 0.000416, 0, 0, 0.000246, 0.000247
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled
 dsf_spectrum_option=intercept
