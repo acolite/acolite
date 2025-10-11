@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-09-19
 ## modifications: 2022-09-20 (QV) changed file type handling
+##                2025-10-11 (QV) added BSQ 
 
 def bundle_test(bundle):
     import os, glob
@@ -30,4 +31,7 @@ def bundle_test(bundle):
                 files_dict[ftype] = '{}'.format(fpath)
         elif ext.lower() == '.tif':
             files_dict[ftype] = '{}'.format(fpath)
+        elif ext.lower() == '.bsq':
+            files_dict[ftype] = '{}'.format(fpath)
+
     return(files_dict)
