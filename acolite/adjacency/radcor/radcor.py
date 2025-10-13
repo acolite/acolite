@@ -471,7 +471,7 @@ def radcor(ncf, settings = None):
         elif sensor in ['WorldView2', 'WorldView3']:
             resolution = 2
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
-        elif sensor in ['WV_LG01', 'WV_LG01']:
+        elif sensor in ['WV_LG01', 'WV_LG02', 'WV_LG03', 'WV_LG04', 'WV_LG05', 'WV_LG06']:
             resolution = 1.36
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         elif sensor in ['HJ2A_CCD1', 'HJ2A_CCD2', 'HJ2A_CCD3', 'HJ2A_CCD4', 'HJ2B_CCD1', 'HJ2B_CCD2', 'HJ2B_CCD3', 'HJ2B_CCD4']:
