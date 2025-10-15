@@ -4,9 +4,10 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-10-06
 ## modifications: 2025-10-06 (QV) determine file_types based on date
+##                2025-10-15 (QV) added nrt_days as keyword
 
 def get_aer(date, lon, lat, local_dir = None,
-            file_types = None, datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
+            nrt_days = 43, file_types = None, datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
             quiet = True, kind = 'linear', verbosity = 0, keep_series = False):
 
     import acolite as ac
@@ -39,7 +40,7 @@ def get_aer(date, lon, lat, local_dir = None,
         diff = (dateutil.parser.parse(datetime.datetime.now().strftime('%Y-%m-%d')) -\
                 dateutil.parser.parse(dt.strftime('%Y-%m-%d'))).days
         file_types = ['GMAO_MERRA2_AER']
-        if diff < 40: file_types = ['GMAO_IT_AER']
+        if diff < nrt_days: file_types = ['GMAO_IT_AER']
         print('Using file types {} for date {} days before today.'.format(file_types, diff))
 
     ## list and download files
