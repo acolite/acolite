@@ -113,6 +113,9 @@ def acolite_l2r(gem,
         if 'data' not in aer_anc:
             print('Error in ancillary AOT retrieval.')
             return
+        elif aer_anc['data'] == {}:
+            print('Error in ancillary AOT retrieval.')
+            return
         else:
             aer_ang = aer_anc['data']['TOTANGSTR']['interp']
             aer_aot = aer_anc['data']['TOTEXTTAU']['interp']
