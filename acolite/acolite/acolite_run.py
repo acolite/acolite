@@ -217,6 +217,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
         ## run l1 convert
         ret = ac.acolite.acolite_l1r(bundle)
+        if ret is None: continue
         if len(ret) == 0: continue
         if len(ret[0]) == 0: continue
 
@@ -271,7 +272,9 @@ def acolite_run(settings, inputfile=None, output=None):
                     ## run dsf or exp
                     if (ac.settings['run']['atmospheric_correction_method'] in ['dark_spectrum', 'exponential']):
                         ret = ac.acolite.acolite_l2r(l1r)
-                        if len(ret) != 2:
+                        if ret is None:
+                            l2r = []
+                        elif len(ret) != 2:
                             l2r = []
                         else:
                             l2r, _ = ret
