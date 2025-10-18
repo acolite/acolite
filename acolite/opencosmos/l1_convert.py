@@ -145,7 +145,7 @@ def l1_convert(inputfile, output = None, settings = None):
         dem = None
         if setu['dem_altitude']:
             dem = ac.dem.dem_lonlat(lon, lat, source = setu['dem_source'])
-            obs_alt = dem[mid1, mid2]
+            if dem is not None: obs_alt = dem[mid1, mid2]
 
         ## satellite positions
         satellite_positions = []
