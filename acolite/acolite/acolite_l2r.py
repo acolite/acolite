@@ -1410,6 +1410,11 @@ def acolite_l2r(gem,
                 gemo.gatts['ac_band{}_idx'.format(bbi+1)] = aot_sel_bands[bbi]
                 gemo.gatts['ac_band{}'.format(bbi+1)] = aot_stack[gemo.gatts['ac_model']]['band_list'][aot_sel_bands[bbi]]
 
+    ## store most common lut
+    if (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] != 'fixed') & (setu['dsf_aot_most_common_model']):
+        gemo.gatts['ac_model'] = aot_sel_lut
+        gemo.gatts['ac_aot_550_mean'] = np.nanmean(aot_sel)
+
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
         ## reformat & save aot
