@@ -53,6 +53,7 @@ dem_shadow_mask_filter_kernel
 dem_shadow_mask_erode_its
 dem_shadow_mask_dilate_its
 sensor_noise_bias_correction_resampling
+ancillary_aerosol_nrt_days
 
 ## GEE
 percentiles

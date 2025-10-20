@@ -294,6 +294,11 @@ pressure=None
 pressure_default=1013.25
 elevation=None
 
+## ancillary aerosol options
+ancillary_aerosol=GMAO_MERRA2_MET
+ancillary_aerosol_nrt=GMAO_IT_AER
+ancillary_aerosol_nrt_days=50
+
 ## DEM options
 dem_pressure=False
 dem_pressure_resolved=True

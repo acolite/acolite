@@ -5,9 +5,11 @@
 ## 2025-10-06
 ## modifications: 2025-10-06 (QV) determine file_types based on date
 ##                2025-10-15 (QV) added nrt_days as keyword
+##                2025-10-20 (QV) added ancillary_aerosol, ancillary_aerosol_nrt and ancillary_aerosol_nrt_days as settings
+
 
 def get_aer(date, lon, lat, local_dir = None,
-            nrt_days = 43, file_types = None, datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
+            nrt_days = None, file_types = None, datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
             quiet = True, kind = 'linear', verbosity = 0, keep_series = False):
 
     import acolite as ac
@@ -37,10 +39,16 @@ def get_aer(date, lon, lat, local_dir = None,
         return()
 
     if file_types is None:
+        file_types = ac.settings['run']['ancillary_aerosol']
+        if type(file_types) is not list: file_types = [file_types]
+        file_types_nrt = ac.settings['run']['ancillary_aerosol_nrt']
+        if type(file_types_nrt) is not list: file_types_nrt = [file_types_nrt]
+
+        ## find out if NRT data are to be used
+        nrt_days = ac.settings['run']['ancillary_aerosol_nrt_days']
         diff = (dateutil.parser.parse(datetime.datetime.now().strftime('%Y-%m-%d')) -\
                 dateutil.parser.parse(dt.strftime('%Y-%m-%d'))).days
-        file_types = ['GMAO_MERRA2_AER']
-        if diff < nrt_days: file_types = ['GMAO_IT_AER']
+        if diff < nrt_days: file_types = file_types_nrt
         print('Using file types {} for date {} days before today.'.format(file_types, diff))
 
     ## list and download files
