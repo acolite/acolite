@@ -49,7 +49,7 @@ def get_aer(date, lon, lat, local_dir = None,
         diff = (dateutil.parser.parse(datetime.datetime.now().strftime('%Y-%m-%d')) -\
                 dateutil.parser.parse(dt.strftime('%Y-%m-%d'))).days
         if diff < nrt_days: file_types = file_types_nrt
-        print('Using file types {} for date {} days before today.'.format(file_types, diff))
+        print('Using file types {} for date {} days before today.'.format(', '.join(file_types), diff))
 
     ## list and download files
     anc_local = ac.ac.ancillary.download(date = isodate, verbosity = verbosity, file_types = file_types)
