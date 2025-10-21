@@ -1392,10 +1392,7 @@ def acolite_l2r(gem,
     if (ac_opt == 'dsf') & (setu['dsf_aot_estimate'] == 'fixed'):
         if aot_sel.shape == (1,1):
             gemo.gatts['ac_aot_550'] = aot_sel[0][0]
-        #else:
-        #    gemo.gatts['ac_aot_550'] = np.nanmean(aot_sel)
-
-        gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
+            gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
 
         if setu['dsf_fixed_aot'] is None:
             ## store fitting parameter
@@ -1404,7 +1401,11 @@ def acolite_l2r(gem,
             gemo.gatts['ac_bands'] = ','.join([str(b) for b in aot_stack[gemo.gatts['ac_model']]['band_list']])
             gemo.gatts['ac_nbands_fit'] = setu['dsf_nbands']
             ## store dark location
-            for band in dsf_location: gemo.gatts['{}_xy_location'.format(band)] = dsf_location[band]
+            for band in dsf_location:
+                gemo.gatts['{}_xy_location'.format(band)] = dsf_location[band]
+            ## store dark reflectance
+            for band in dsf_rhod:
+                gemo.gatts['{}_rhod'.format(band)] = dsf_rhod[band].flatten()
 
             for bbi, bn in enumerate(aot_sel_bands):
                 gemo.gatts['ac_band{}_idx'.format(bbi+1)] = aot_sel_bands[bbi]
