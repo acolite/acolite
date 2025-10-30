@@ -11,6 +11,7 @@ from .pressure_elevation import *
 from .irradiance import *
 
 from . import ancillary
+from . import skydome
 
 from .optimise_aot_homogeneous import *
 from .optimise_read import *
