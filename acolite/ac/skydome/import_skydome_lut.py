@@ -54,7 +54,7 @@ def import_skydome_lut(lutnc = None, lut_base_skydome = 'ACOLITE-FFSS-202510-82W
         slutnc = '{}-{}_{}.nc'.format(slutdir, par, sensor)
 
         ## try downloading sensor LUT from GitHub
-        if not os.path.exists(slutnc) & (get_remote):
+        if (not os.path.exists(slutnc)) & (get_remote):
             remote_lut = '{}/{}/{}/{}'.format(remote_base, 'SKYDOME', sensor, os.path.basename(slutnc))
             try:
                 ac.shared.download_file(remote_lut, slutnc)
