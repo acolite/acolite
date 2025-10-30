@@ -36,6 +36,8 @@ limit_buffer_units=degrees
 ## L1 tile merging
 merge_tiles=False
 merge_full_tiles=False
+## gdal warp resampling method
+warp_resampling_method=bilinear
 
 ## new output settings
 output=None

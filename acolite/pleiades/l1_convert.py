@@ -186,9 +186,9 @@ def l1_convert(inputfile, output = None, settings = None):
             ## set up ms projection
             if setu['limit'] is None:
                 vlimit = [np.nanmin(vlats), np.nanmin(vlons), np.nanmax(vlats), np.nanmax(vlons)]
-                dct, nc_projection, warp_to = ac.shared.projection_setup(vlimit, ms_resolution)
+                dct, nc_projection, warp_to = ac.shared.projection_setup(vlimit, ms_resolution, res_method = setu['warp_resampling_method'])
             else:
-                dct, nc_projection, warp_to = ac.shared.projection_setup(setu['limit'], ms_resolution)
+                dct, nc_projection, warp_to = ac.shared.projection_setup(setu['limit'], ms_resolution, res_method = setu['warp_resampling_method'])
             reproject = True
             ## update gatts
 #             gatts['scene_xrange'] = dct['xrange']
@@ -501,7 +501,6 @@ def l1_convert(inputfile, output = None, settings = None):
             ### end old method
         else:
             print('Pléiades new method')
-
             if new:
                 gemo = ac.gem.gem(ofile, new = True)
                 gemo.gatts = {k: gatts[k] for k in gatts}

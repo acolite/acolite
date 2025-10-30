@@ -212,7 +212,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             except:
                 dct_vnir = None
                 rpc_use = True
-                
+
             # ## shall we reproject the inputfile?
             # ## to add swir bundle
             # reproject = setu['reproject_inputfile_force'] | (setu['reproject_inputfile'] & (dct_vnir == None))
@@ -294,7 +294,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 global_dims = dct['ydim'], dct['xdim']
 
             ## create warp_to dataset
-            warp_to = ac.shared.projection_warp_to(dct)
+            warp_to = ac.shared.projection_warp_to(dct, res_method = setu['warp_resampling_method'])
 
             ## compute dimensions
             print(dct['xdim'], dct['ydim'])
