@@ -308,7 +308,10 @@ def acolite_l2r(gem,
             par = 'romix+rsky_t'
         elif (setu['dsf_interface_option']  == '6sv'):
             par = 'romix+rsurf'
-            print(par)
+        elif (setu['dsf_interface_option']  == 'ffss_boa'):
+            par = 'romix'
+            ## import skydome
+            meta_rsky, lut_rsky, rgi_rsky = ac.ac.skydome.import_skydome_lut(sensor = sensor_lut if not hyper else None, par = 'rsky')
     else:
         par = 'romix'
 
@@ -1684,6 +1687,19 @@ def acolite_l2r(gem,
             rhot_noatm = (cur_data / gem.bands[b]['tt_gas']) - romix
             del romix
             cur_data = (rhot_noatm) / (dutott + astot*rhot_noatm)
+
+            ## perform FFSS correction after a/c
+            if (setu['dsf_interface_reflectance']) & (setu['dsf_interface_option']  == 'ffss_boa'):
+                xi = (gem.data_mem['sza'+gk], gem.data_mem['vza'+gk_vza], np.abs(180-gem.data_mem['raa'+gk_raa]), aot_lut, aot_sel)
+                vza = np.atleast_1d(gem.data_mem['vza'+gk_vza])
+                vza[vza == 0.0] = 0.001
+                rhof = ac.ac.sky_refl(np.radians(vza), n_w=1.34)
+                del vza
+                rsky = rhof * rgi_rsky[b](xi)
+                del xi
+                cur_data -= rsky
+                del rsky, rhof, v
+            ## end FFSS
 
             ## compute at surface Ed
             if setu['output_ed']:
