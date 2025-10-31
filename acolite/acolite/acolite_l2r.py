@@ -1696,9 +1696,9 @@ def acolite_l2r(gem,
                 rhof = ac.ac.sky_refl(np.radians(vza), n_w=1.34)
                 del vza
                 rsky = rhof * rgi_rsky[b](xi)
-                del xi
+                del xi, rhof
                 cur_data -= rsky
-                del rsky, rhof, v
+                del rsky
             ## end FFSS
 
             ## compute at surface Ed
