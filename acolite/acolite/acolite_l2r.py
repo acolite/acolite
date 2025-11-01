@@ -1707,6 +1707,11 @@ def acolite_l2r(gem,
                 del vza
                 rsky = rhof * rgi_rsky[b](xi)
                 del xi, rhof
+                if (setu['dsf_aot_estimate'] == 'tiled'):
+                    if setu['verbosity'] > 1: print('Interpolating tiles for rsky')
+                    rsky = ac.shared.tiles_interp(rsky, xnew, ynew, target_mask=(valid_mask if setu['slicing'] else None), \
+                                target_mask_full=True, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
+
                 cur_data -= rsky
                 del rsky
             ## end FFSS
