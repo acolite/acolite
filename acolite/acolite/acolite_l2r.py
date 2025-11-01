@@ -303,17 +303,20 @@ def acolite_l2r(gem,
     print('current uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(gem.gatts['uoz'], gem.gatts['uwv'], gem.gatts['pressure']))
 
     ## which LUT data to read
+    par = 'romix'
+    ipar = 'romix+rsky_t'
     if (setu['dsf_interface_reflectance']):
         if (setu['dsf_interface_option'] == 'default'):
             par = 'romix+rsky_t'
         elif (setu['dsf_interface_option']  == '6sv'):
             par = 'romix+rsurf'
+            ipar = 'romix+rsurf'
         elif (setu['dsf_interface_option']  == 'ffss_boa'):
-            par = 'romix'
             ## import skydome
             meta_rsky, lut_rsky, rgi_rsky = ac.ac.skydome.import_skydome_lut(sensor = sensor_lut if not hyper else None, par = 'rsky')
-    else:
-        par = 'romix'
+        else:
+            print('dsf_interface_option={} not configured'.format(setu['dsf_interface_option']))
+            return
 
     ## set wind to wind range
     if gem.gatts['wind'] is None: gem.gatts['wind'] = setu['wind_default']
@@ -607,12 +610,12 @@ def acolite_l2r(gem,
     t0 = time.time()
     print('Loading LUTs {}'.format(setu['luts']))
     ## load reverse lut romix -> aot
-    if use_revlut: revl = ac.aerlut.reverse_lut(sensor_lut, par=par, \
+    if use_revlut: revl = ac.aerlut.reverse_lut(sensor_lut, par = par, \
                                                 rsky_lut = setu['dsf_interface_lut'], base_luts=setu['luts'])
     ## load aot -> atmospheric parameters lut
     ## QV 2022-04-04 interface reflectance is always loaded since we include wind in the interpolation below
     ## not necessary for runs with par == romix, to be fixed
-    lutdw = ac.aerlut.import_luts(add_rsky=True, par=(par if par == 'romix+rsurf' else 'romix+rsky_t'), sensor=None if hyper else sensor_lut,
+    lutdw = ac.aerlut.import_luts(add_rsky = True, par = ipar, sensor=None if hyper else sensor_lut,
                                   rsky_lut = setu['dsf_interface_lut'],
                                   base_luts = setu['luts'], pressures = setu['luts_pressures'],
                                   reduce_dimensions=setu['luts_reduce_dimensions'])
