@@ -60,10 +60,10 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     print('Creating reverse LUTs for {}'.format(sensor))
                     if lutdw is None:
                         print('Importing source LUTs')
-                        lutdw = ac.aerlut.import_luts(sensor=sensor, base_luts = base_luts,
-                                                        lut_par = [par], par = par, return_lut_array=True,
+                        lutdw = ac.aerlut.import_luts(sensor = sensor, base_luts = base_luts,
+                                                        lut_par = [par], par = par, return_lut_array = True,
                                                         pressures = pressures, get_remote = get_remote,
-                                                        add_rsky = par == 'romix+rsky_t', rsky_lut = rsky_lut)
+                                                        add_rsky = (par == 'romix+rsky_t') | (par == 'romix+ffss_toa'), rsky_lut = rsky_lut)
                     pid = lutdw[lut]['ipd'][par]
                     if len(lutdw[lut]['dim']) == 7:
                         wind_dim = True
