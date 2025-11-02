@@ -4,7 +4,7 @@
 ## 2025-11-01
 ## modifications:
 
-def import_skydome_lut_reformat(sensor = None, model = 1):
+def import_skydome_lut_reformat(sensor = None, model = 1, lut_base_skydome = 'ACOLITE-FFSS-202511-82W'):
     import numpy as np
     import scipy.interpolate
 
@@ -18,7 +18,7 @@ def import_skydome_lut_reformat(sensor = None, model = 1):
     vza_new = np.array([ 0. ,  1.5,  4. ,  8. , 12. , 16. , 24. , 32. , 40. , 48. , 56. , 64. , 72. ])
 
     ## read skydome
-    meta_rsky, lut_rsky = ac.ac.skydome.import_skydome_lut(sensor = sensor, par = 'rsky', return_rgi = False)
+    meta_rsky, lut_rsky = ac.ac.skydome.import_skydome_lut(sensor = sensor, par = 'rsky', lut_base_skydome = lut_base_skydome, return_rgi = False)
 
     ## compute fresnel
     muv = np.radians(meta_rsky['qza'])

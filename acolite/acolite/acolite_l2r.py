@@ -314,7 +314,7 @@ def acolite_l2r(gem,
         elif (setu['dsf_interface_option']  == 'ffss_boa'):
             ## keep default par/ipar
             ## import skydome
-            meta_rsky, lut_rsky, rgi_rsky = ac.ac.skydome.import_skydome_lut(sensor = sensor_lut if not hyper else None, par = 'rsky')
+            meta_rsky, lut_rsky, rgi_rsky = ac.ac.skydome.import_skydome_lut(sensor = sensor_lut if not hyper else None, lut_base_skydome = 'ACOLITE-FFSS-202511-82W', par = 'rsky')
         elif (setu['dsf_interface_option']  == 'ffss_toa'):
             par = 'romix+ffss_toa'
             ipar = 'romix+ffss_toa'
