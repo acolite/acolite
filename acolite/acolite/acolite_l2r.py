@@ -1069,8 +1069,8 @@ def acolite_l2r(gem,
                 aot_lut[aot_stack[lut]['mask']] = -1
                 aot_sel = aot_stack[lut]['aot'] * 1.0
                 aot_sel_par = aot_stack[lut]['aot'] * np.nan
+                aot_sel_lut = '{}'.format(lut)
                 if setu['dsf_aot_estimate'] == 'fixed':
-                    aot_sel_lut = '{}'.format(lut)
                     aot_sel_bands = [aot_stack[lut]['{}'.format(bb)][0][0] for bb in fit_bands]
             ## select model based on min rmsd for 2 bands
             else:
