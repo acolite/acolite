@@ -98,7 +98,7 @@ def acolite_run(settings, inputfile=None, output=None):
                     limit = ac.shared.polygon_limit(ac.settings['run']['polygon'])
                     ac.settings['run']['limit'] = [l for l in limit]
                     ac.settings['run']['polygon_clip'] = True
-                    if ac.settings['run']['verbosity'] > 1: print('Using limit from polygon envelope: {}'.format(limit))
+                    if ac.settings['run']['verbosity'] > 1: print('Using limit from polygon envelope: {}'.format(', '.join(['{:}'.format(v) for v in limit])))
                 except:
                     if ac.settings['run']['verbosity'] > 1: print('Failed to import polygon {}'.format(ac.settings['run']['polygon']))
         else:
@@ -131,7 +131,7 @@ def acolite_run(settings, inputfile=None, output=None):
             return
        ## set new limit
        ac.settings['run']['limit'] = [site_lat-lat_off, site_lon-lon_off, site_lat+lat_off, site_lon+lon_off]
-       print('New limit: {}'.format(ac.settings['run']['limit']))
+       print('New limit: {}'.format(', '.join(['{:}'.format(v) for v in ac.settings['run']['limit']])))
     ## end create limit based on station information
 
     ## check limit and add buffer if needed
@@ -168,8 +168,8 @@ def acolite_run(settings, inputfile=None, output=None):
                                                ac.settings['run']['limit_old'][2] + limit_buffer[0], \
                                                ac.settings['run']['limit_old'][3] + limit_buffer[1]]
                 if ac.settings['run']['verbosity'] > 1:
-                    print('Old limit: {}'.format(ac.settings['run']['limit_old']))
-                    print('New limit: {}'.format(ac.settings['run']['limit']))
+                    print('Old limit: {}'.format(', '.join(['{:}'.format(v) for v in ac.settings['run']['limit_old']])))
+                    print('New limit: {}'.format(', '.join(['{:}'.format(v) for v in ac.settings['run']['limit']])))
         ## set new limits to user settings
         for k in ['limit', 'limit_old']:
             if k in ac.settings['run']: ac.settings['user'][k] = ac.settings['run'][k]
