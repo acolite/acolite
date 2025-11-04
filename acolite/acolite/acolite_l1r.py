@@ -7,6 +7,7 @@
 ##                2024-03-14 (QV) update settings handling
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) fix user and run settings, removed settings from acolite_l1r and l1_convert calls
+##                2025-11-04 (QV) added .SAFE and .SEN3 to S2 and S3 input_types
 
 def acolite_l1r(bundle, input_type=None):
     import acolite as ac
@@ -65,14 +66,14 @@ def acolite_l1r(bundle, input_type=None):
 
     ################
     ## Sentinel-2
-    if input_type == 'Sentinel-2':
+    if input_type == 'Sentinel-2 .SAFE':
         l1r_files, setu = ac.sentinel2.l1_convert(bundle)
     ## end Sentinel-2
     ################
 
     ################
     ## Sentinel-3
-    if input_type == 'Sentinel-3':
+    if input_type == 'Sentinel-3 .SEN3':
         l1r_files, setu = ac.sentinel3.l1_convert(bundle)
     ## end Sentinel-3
     ################

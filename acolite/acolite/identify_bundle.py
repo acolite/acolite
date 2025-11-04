@@ -6,6 +6,7 @@
 ##                2022-07-21 (QV) added check for tar and zip files
 ##                2022-10-26 (QV) update Planet multi-scene zip file handling
 ##                2025-05-22 (QV) made file extraction optional
+##                2025-11-04 (QV) added .SAFE and .SEN3 to S2 and S3 input_types
 
 def identify_bundle(bundle, input_type = None, output = None):
     import os, glob, shutil, zipfile
@@ -74,7 +75,7 @@ def identify_bundle(bundle, input_type = None, output = None):
             granule = safe_files['granules'][0]
             meta, band_data= ac.sentinel2.metadata_scene(safe_files['metadata']['path'])
             if meta['SPACECRAFT_NAME'] in ['Sentinel-2A', 'Sentinel-2B', 'Sentinel-2C']:
-                input_type = 'Sentinel-2'
+                input_type = 'Sentinel-2 .SAFE'
                 break ## exit loop
         except:
             pass ## continue to next sensor
@@ -92,23 +93,23 @@ def identify_bundle(bundle, input_type = None, output = None):
                 dfiles.sort()
             gatts = ac.shared.nc_gatts(dfiles[0])
             if 'OLCI Level 1b Product' in gatts['title']:
-                input_type = 'Sentinel-3'
+                input_type = 'Sentinel-3 .SEN3'
                 break ## exit loop
             elif 'OLCI Level 2 WATER Product' in gatts['title']:
-                input_type = 'Sentinel-3'
+                input_type = 'Sentinel-3 .SEN3'
                 break ## exit loop
             elif 'MERIS Level 1b Product' in gatts['title']:
-                input_type = 'Sentinel-3'
+                input_type = 'Sentinel-3 .SEN3'
                 break ## exit loop
             elif 'MERIS Level 2 CLOUD Product' in gatts['title']:
-                input_type = 'Sentinel-3'
+                input_type = 'Sentinel-3 .SEN3'
                 break ## exit loop
             elif 'MERIS Level 2 WATER Product' in gatts['title']:
-                input_type = 'Sentinel-3'
+                input_type = 'Sentinel-3 .SEN3'
                 break ## exit loop
             elif 'S3 SLSTR L1' in gatts['title']:
                 input_type = 'SLSTR'
-                input_type = 'Sentinel-3'
+                input_type = 'Sentinel-3 .SEN3'
 
                 break ## exit loop
             else:
