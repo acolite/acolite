@@ -62,6 +62,7 @@ from acolite import parameters
 from acolite import api
 from acolite import rtm
 from acolite import custom
+from acolite import zarr
 
 ## ignore numpy errors
 import numpy as np
