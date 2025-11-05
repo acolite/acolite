@@ -58,13 +58,13 @@ TACT performance for Antarctic mountain sites and near shore waters was evaluate
 This repository contains all the source code to run ACOLITE in a Python environment. ACOLITE is also distributed as a binary package on the [releases page](https://github.com/acolite/acolite/releases) and is supported on the [ACOLITE forum](http://odnature.naturalsciences.be/remsem/acolite-forum/).
 
 ## Dependencies
-ACOLITE is coded in Python 3, and requires the following Python packages to run: `numpy matplotlib scipy gdal pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy`
+ACOLITE is coded in Python 3, and requires the following Python packages to run: `numpy matplotlib scipy gdal libgdal-jp2openjpeg libgdal-netcdf pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy zarr`
 
 A suitable Python environment can for example be set up using conda and the packages on conda-forge:
 
             conda create -n acolite -c conda-forge python=3
             conda activate acolite
-            conda install -c conda-forge numpy matplotlib scipy gdal libgdal-jp2openjpeg libgdal-netcdf pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy
+            conda install -c conda-forge numpy matplotlib scipy gdal libgdal-jp2openjpeg libgdal-netcdf pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy zarr
 
 Note that the above command assumes the use of GDAL >= 3.9, with JP2000 support to process Sentinel-2 imagery, and NetCDF support to output GeoTIFF files, which are installed by libgdal-jp2openjpeg and libgdal-netcdf. For GDAL < 3.9 these libgdal packages are not required.
 
