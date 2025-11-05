@@ -66,7 +66,7 @@ A suitable Python environment can for example be set up using conda and the pack
             conda activate acolite
             conda install -c conda-forge numpy matplotlib scipy gdal libgdal-jp2openjpeg libgdal-netcdf pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy zarr
 
-Note that the above command assumes the use of GDAL >= 3.9, with JP2000 support to process Sentinel-2 imagery, and NetCDF support to output GeoTIFF files, which are installed by libgdal-jp2openjpeg and libgdal-netcdf. For GDAL < 3.9 these libgdal packages are not required.
+Note that the above command assumes the use of GDAL >= 3.9, with JP2000 support to process Sentinel-2 imagery, and NetCDF support to output GeoTIFF files, which are installed by libgdal-jp2openjpeg and libgdal-netcdf. For GDAL < 3.9 these libgdal packages are not required. In certain environments the fsspec and aiohttp packages are also required for processing of zarr data.
 
 ## Installation
 * cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
