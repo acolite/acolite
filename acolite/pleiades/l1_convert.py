@@ -198,12 +198,14 @@ def l1_convert(inputfile, output = None, settings = None):
 #             gatts['scene_dims'] = dct['dimensions']
 #             if 'zone' in dct: gatts['scene_zone'] = dct['zone']
 
+        add_half_pixel = True
+        targetAlignedPixels = False
         if (dct is not None):
             new_method = True
             res_method = 'average'
             ## check limit
             if (setu['limit'] is not None) & (reproject is False):
-                dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners=True)
+                dct_sub = ac.shared.projection_sub(dct, setu['limit'], four_corners = True)
                 if dct_sub['out_lon']:
                     if verbosity > 1: print('Longitude limits outside {}'.format(bundle))
                     continue
@@ -213,7 +215,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 dct = {k: dct_sub[k] for k in dct_sub}
 
             ## MS data
-            nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
+            nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = add_half_pixel)
             xyr = [min(dct['xrange']),min(dct['yrange']),
                    max(dct['xrange']),max(dct['yrange']), dct['projection']]
             warp_to = (dct['projection'], xyr, dct['pixel_size'][0],dct['pixel_size'][1], res_method)
@@ -227,7 +229,7 @@ def l1_convert(inputfile, output = None, settings = None):
                                     np.round((dct_pan['xrange'][1]-dct_pan['xrange'][0]) / dct_pan['pixel_size'][0],0).astype(int)
             dct_pan['ydim'] = dct_pan['dimensions'][0]
             dct_pan['xdim'] = dct_pan['dimensions'][1]
-            nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = True)
+            nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = add_half_pixel)
             xyr_pan = [min(dct_pan['xrange']), min(dct_pan['yrange']),
                        max(dct_pan['xrange']), max(dct_pan['yrange']), dct_pan['projection']]
             warp_to_pan = (dct_pan['projection'], xyr_pan, dct_pan['pixel_size'][0],dct_pan['pixel_size'][1], res_method)
@@ -360,10 +362,10 @@ def l1_convert(inputfile, output = None, settings = None):
                             if update_projection:
                                 try:
                                     dct = ac.shared.projection_read(ifile_, use_world_transform = False)
-                                    #nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
+                                    #nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = add_half_pixel)
                                     if sub is not None:
                                         dct = ac.shared.projection_sub_dct(dct, sub)
-                                    nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
+                                    nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = add_half_pixel)
                                 except BaseException as err:
                                     print("Could not determine projection from {} error {}".format(ifile_, type(err)))
                                     pass
@@ -381,10 +383,10 @@ def l1_convert(inputfile, output = None, settings = None):
                             data = ac.shared.read_band(pifile, idx=1, sub=pansub_tile)
                             try:
                                 dct_pan = ac.shared.projection_read(pifile, use_world_transform = False)
-                                #c_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = True)
+                                #c_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = add_half_pixel)
                                 if pansub is not None:
                                     dct_pan = ac.shared.projection_sub_dct(dct_pan, pansub)
-                                nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = True)
+                                nc_projection_pan = ac.shared.projection_netcdf(dct_pan, add_half_pixel = add_half_pixel)
                             except BaseException as err:
                                 print("Could not determine projection from {} error {}".format(pifile, type(err)))
                                 pass
@@ -479,7 +481,7 @@ def l1_convert(inputfile, output = None, settings = None):
                         ## update lat/lon if we were able to compute nc_projection
                         if (update_projection) & (nc_projection is not None):
                             if verbosity > 1: print('Writing geolocation lon/lat')
-                            lon, lat = ac.shared.projection_geo(dct, add_half_pixel = True)
+                            lon, lat = ac.shared.projection_geo(dct, add_half_pixel = add_half_pixel)
                             print('Updating MS projection')
                             gemo.nc_projection = nc_projection
                             print(lon.shape)
@@ -513,7 +515,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## write lat/lon
             if (setu['output_geolocation']):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct, add_half_pixel = True)
+                lon, lat = ac.shared.projection_geo(dct, add_half_pixel = add_half_pixel)
                 gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon ({})'.format(lon.shape))
                 lon = None
@@ -566,10 +568,10 @@ def l1_convert(inputfile, output = None, settings = None):
 
                         if (ii == 0):
                             data_in = ac.shared.read_band(tfile_, idx = idx, sub = sub, warp_to = warp_to,
-                                rpc_dem = rpc_dem, rpc_use = rpc_use, targetAlignedPixels = True)
+                                rpc_dem = rpc_dem, rpc_use = rpc_use, targetAlignedPixels = targetAlignedPixels)
                         else:
                             data_in = ac.shared.read_band(tfile_, idx = idx, sub = sub, warp_to = warp_to_pan,
-                                rpc_dem = rpc_dem, rpc_use = rpc_use, targetAlignedPixels = True)
+                                rpc_dem = rpc_dem, rpc_use = rpc_use, targetAlignedPixels = targetAlignedPixels)
                         nodata = data_in == np.uint16(meta['NODATA'])
                         nodata2 = data_in == 1
                         saturated = data_in >= np.uint16(meta['SATURATED']) -1
