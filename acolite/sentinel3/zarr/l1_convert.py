@@ -294,6 +294,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
             dtype_in = tpg_data[k].dtype
             rgi = scipy.interpolate.RegularGridInterpolator([tpy, tpx], tpg_data[k].astype(np.float64), bounds_error = False, fill_value = None)
             tpg[k] = rgi((suby_,subx_)).astype(dtype_in)
+        del tpg_data
 
         ## compute relative azimuth TPG
         tpg['raa'] = abs(tpg['saa']-tpg['oaa'])
@@ -532,7 +533,10 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
             print('level2 conversion for ZARR not yet implemented')
 
         ## clear data
-        data = None
+        del data, tpg
+        del instrument_data, image_data
+
+        ## close file
         gemo.close()
         gemo = None
 
