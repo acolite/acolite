@@ -21,6 +21,8 @@ def inputfile_test(inputfile):
     if type(inputfile) == str:
         if os.path.exists(inputfile):
             tmp_files = [inputfile]
+        elif inputfile.startswith('https:') & inputfile.endswith('.zarr'):
+            tmp_files = [inputfile]
         elif ';' in inputfile:
             tmp_files = inputfile.split(';')
         else:
@@ -36,6 +38,12 @@ def inputfile_test(inputfile):
     for file in tmp_files:
         if len(file) == 0: continue
         file = file.strip() ## strip spaces
+
+        if file.startswith('https:') & file.endswith('.zarr'):
+            if ac.config['verbosity'] > 0: print('Assuming {} is zarr url.'.format(file))
+            inputfile_list.append(file)
+            continue
+            
         if not os.path.exists(file):
             if ac.config['verbosity'] > 0: print('Path {} does not exist.'.format(file))
             ## try and download from CDSE or EarthExplorer

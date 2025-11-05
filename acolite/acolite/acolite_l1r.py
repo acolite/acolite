@@ -75,6 +75,8 @@ def acolite_l1r(bundle, input_type=None):
     ## Sentinel-3
     if input_type == 'Sentinel-3 .SEN3':
         l1r_files, setu = ac.sentinel3.l1_convert(bundle)
+    if input_type == 'Sentinel-3 .ZARR':
+        l1r_files, setu = ac.sentinel3.zarr.l1_convert(bundle)
     ## end Sentinel-3
     ################
 
