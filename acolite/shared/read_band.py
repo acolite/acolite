@@ -13,7 +13,7 @@ def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'b
                  target_res = None, sub = None, gdal_meta = False,
                  rpc_use = True, rpc_dem = None, targetAlignedPixels = False):
 
-    import os, sys, fnmatch
+    import os, sys, fnmatch, json
     from osgeo import gdal
     gdal.UseExceptions()
 
@@ -33,6 +33,7 @@ def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'b
     if gdal_meta:
         try:
             md = ds.GetMetadata_Dict()
+            if '_eopf_attrs' in md: md['_eopf_attrs'] = json.loads(md['_eopf_attrs'])
         except:
             md = {}
 
