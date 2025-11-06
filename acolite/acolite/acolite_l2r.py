@@ -659,7 +659,8 @@ def acolite_l2r(gem,
                 print('User specified aot with shape {}x{} and model {}'.format(aot_sel.shape[0], aot_sel.shape[1], aot_sel_lut))
             else:
                 aot_sel.shape += (1,1)
-                print('User specified aot {:.3f} and model {}'.format(aot_sel[0][0], aot_sel_lut))
+                print(aot_sel, aot_sel_lut)
+                print('User specified aot {:.3f} and model {}'.format(aot_sel.flatten()[0], aot_sel_lut))
 
             ## set to fixed for processing
             setu['dsf_aot_estimate'] = 'fixed'
