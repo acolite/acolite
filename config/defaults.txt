@@ -74,6 +74,7 @@ s2_auxiliary_project=False
 s2_auxiliary_default=False
 s2_auxiliary_interpolate=True
 s2_write_dfoo=False
+s2_write_dfoo_per_band=False
 s2_write_vaa=False
 s2_write_saa=False
 
