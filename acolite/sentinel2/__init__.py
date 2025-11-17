@@ -15,3 +15,5 @@ from .gpt_geometry import *
 from .auxiliary_json import *
 from .auxiliary import *
 from .multi_tile_extent import *
+
+from . import zarr
