@@ -8,9 +8,10 @@
 ##                 2022-09-21 (QV) allow passing of open gdal file
 ##                 2022-09-22 (QV) added rpc_dem option
 ##                 2025-09-15 (QV) added rpc_use
+##                 2025-11-17 (QV) added source_srs
 
 def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'bilinear'
-                 target_res = None, sub = None, gdal_meta = False,
+                 target_res = None, sub = None, gdal_meta = False, source_srs = None,
                  rpc_use = True, rpc_dem = None, targetAlignedPixels = False):
 
     import os, sys, fnmatch, json
@@ -104,7 +105,7 @@ def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'b
             ds = gdal.Warp('', file,
                             xRes = xRes, yRes = yRes,
                             outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
-                            dstSRS = dstSRS, targetAlignedPixels = targetAlignedPixels,
+                            srcSRS = source_srs, dstSRS = dstSRS, targetAlignedPixels = targetAlignedPixels,
                             rpc = rpc, transformerOptions = transformerOptions,
                             format = 'VRT', resampleAlg = warp_alg)
             if idx is not None:
