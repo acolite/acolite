@@ -28,7 +28,10 @@ def read(file):
                 ## store settings
                 split = [s.strip() for s in split]
                 var = split[0]
-                val = [s.strip() for s in split[1].split(',')]
+                if var == 'polygon':
+                    val = split[1]  # WKT string
+                else:
+                    val = [s.strip() for s in split[1].split(',')]
                 if len(val) == 1:
                     val = val[0]
                     if val in ['True','true']: val=True
