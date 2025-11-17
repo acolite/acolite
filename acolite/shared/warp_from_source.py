@@ -4,14 +4,20 @@
 ## 2021-02-23
 ## modifications: 2022-09-22 (QV) added rpc_dem option
 ##                2023-07-25 (QV) removed proj4 string
+##                2025-11-13 (QV) added remote keyword, added wkt, epsg Nones and empty RPC list
+##                2025-11-17 (QV) added source_srs
 
-def warp_from_source(source, dct, data, warp_to = None, rpc_dem=None):
+def warp_from_source(source, dct, data, warp_to = None, rpc_dem = None,
+                    remote = False, source_srs = None, fill_value = None):
     import os
     from osgeo import ogr,osr,gdal
 
+    wkt, epgs = None, None
+    RPCs = []
+
     ## if target is a file copy information from there
     if type(source) is str:
-        if os.path.exists(source):
+        if (os.path.exists(source)) | (remote):
             g = gdal.Open(source)
             xSrc = g.RasterXSize
             ySrc = g.RasterYSize
@@ -57,10 +63,16 @@ def warp_from_source(source, dct, data, warp_to = None, rpc_dem=None):
         xyr = [min(dct['xrange']),
                min(dct['yrange'])+dct['pixel_size'][1],
                max(dct['xrange'])+dct['pixel_size'][0],
-               max(dct['yrange']),
-               dct['proj4_string']]
-        warp_to_region = (dct['proj4_string'], xyr,
-                          dct['pixel_size'][0], dct['pixel_size'][1],'average')
+               max(dct['yrange']),]
+
+        if 'projection' in dct:
+            xyr.append(dct['projection'])
+            warp_to_region = (dct['projection'], xyr,
+                              dct['pixel_size'][0], dct['pixel_size'][1],'average')
+        else:
+            xyr.append(dct['proj4_string'])
+            warp_to_region = (dct['proj4_string'], xyr,
+                              dct['pixel_size'][0], dct['pixel_size'][1],'average')
     else:
         warp_to_region = warp_to
 
@@ -117,9 +129,9 @@ def warp_from_source(source, dct, data, warp_to = None, rpc_dem=None):
         ds = gdal.Warp('', source_ds,
                         xRes = xRes, yRes = yRes,
                         outputBounds = outputBounds, outputBoundsSRS = outputBoundsSRS,
-                        dstSRS=dstSRS, targetAlignedPixels = targetAlignedPixels,
+                        srcSRS = source_srs, dstSRS = dstSRS, targetAlignedPixels = targetAlignedPixels,
                         rpc = rpc, transformerOptions = transformerOptions,
-                        format='VRT', resampleAlg=warp_alg)
+                        dstNodata = fill_value, format = 'VRT', resampleAlg = warp_alg)
 
         data = ds.ReadAsArray()
         ds = None
