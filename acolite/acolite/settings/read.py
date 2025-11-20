@@ -29,7 +29,7 @@ def read(file):
                 split = [s.strip() for s in split]
                 var = split[0]
                 if var == 'polygon':
-                    val = split[1]  # WKT string
+                    val = [split[1]]  # WKT string
                 else:
                     val = [s.strip() for s in split[1].split(',')]
                 if len(val) == 1:
