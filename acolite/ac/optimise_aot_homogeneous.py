@@ -188,6 +188,10 @@ def optimise_aot_homogeneous(gem, quiet = True, settings = None, lutdw = None):
         if setu['ancillary_data'] & ('wind' in anc): wind = anc['wind'] * 1.0
     else: wind = gem.gatts['wind']
 
+    ## set wind speed to 2 m/s for 6SV interface
+    if romix_par == 'romix+rsurf':
+        wind = 2.0
+
     ## elevation derived pressure
     elevation = None
     if setu['elevation'] is not None:
