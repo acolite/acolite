@@ -1434,11 +1434,12 @@ def acolite_l2r(gem,
     ## write aot to outputfile
     if (output_file) & (ac_opt == 'dsf') & (setu['dsf_write_aot_550']):
         ## reformat & save aot
-        if setu['dsf_aot_estimate'] == 'fixed':
-            if aot_sel.shape == (1,1):
-                aot_out = np.repeat(aot_sel[0][0], gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+        if setu['dsf_aot_estimate'] in ['fixed', 'optimise']:
+            #if aot_sel.shape == (1,1):
+            if aot_sel.flatten().shape == (1,):
+                aot_out = np.repeat(aot_sel.flatten(), gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
             else:
-                aot_out = aot_sel * 1.0
+                aot_out = aot_sel.flatten() * 1.0
         elif setu['dsf_aot_estimate'] == 'segmented':
             aot_out = np.zeros(gem.gatts['data_dimensions']) + np.nan
             for sidx, segment in enumerate(segment_data):
@@ -1447,6 +1448,7 @@ def acolite_l2r(gem,
             aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
         else:
             aot_out = aot_sel * 1.0
+
         ## write aot
         gemo.write('aot_550', aot_out)
         aot_out = None
