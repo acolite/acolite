@@ -60,17 +60,10 @@ def l1_convert(inputfile, output = None, settings = None):
             bands_fwhm = metadata['Sessions'][session]['ImagerConfiguration']['BandSetup']
             bands_centre = metadata['Sessions'][session]['ImagerConfiguration']['BandCWL']
             nbands = metadata['Sessions'][session]['ImagerConfiguration']['SpectralBands']
-            ## create RSR
-            rsr = ac.shared.rsr_hyper(bands_centre, bands_fwhm, step=0.1)
-            rsrd = ac.shared.rsr_dict(rsrd={sensor:{'rsr':rsr}})
-            ## rename bands to match file names - could add band names argument to rsr_hyper
             bands_list = list(paths['bands'].keys())
-            for bi, bname in enumerate(bands_list):
-                for k in rsrd[sensor]:
-                    if type(rsrd[sensor][k]) != dict: continue
-                    if bi in rsrd[sensor][k]:
-                        rsrd[sensor][k][bname] = rsrd[sensor][k].pop(bi)
-            rsrd[sensor]['rsr_bands'] = bands_list
+            ## create RSR
+            rsr = ac.shared.rsr_hyper(bands_centre, bands_fwhm, names = bands_list, step = 0.1)
+            rsrd = ac.shared.rsr_dict(rsrd = {sensor:{'rsr':rsr}})
         else:
             prj_band = 'NIR'
             ## read RSR
