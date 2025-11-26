@@ -43,13 +43,39 @@ def l1_convert(inputfile, output = None, settings = None):
         if output is None: output = setu['output']
         if output is None: output = os.path.dirname(file)
 
-        ## read RSR
-        rsrd = ac.shared.rsr_dict(sensor)
-
         ## read F0
         #if setu['verbosity'] > 2: print('Using F0 from solar_irradiance_reference={}'.format(setu['solar_irradiance_reference']))
         #f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
         #f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd[gatts['sensor']]['rsr'])
+
+        ## read metadata to get timestamp (and HAMMER bands config)
+        with open(paths['metadata'], 'r', encoding = 'utf-8') as f:
+            metadata = json.load(f)
+
+        session = list(metadata['Sessions'].keys())[0]
+        platform_time = metadata['Sessions'][session]['TimeSync'][0]['PlatformTime']
+
+        if sensor in ['OpenCosmos_Hammer']:
+            prj_band = 'HS0'
+            bands_fwhm = metadata['Sessions'][session]['ImagerConfiguration']['BandSetup']
+            bands_centre = metadata['Sessions'][session]['ImagerConfiguration']['BandCWL']
+            nbands = metadata['Sessions'][session]['ImagerConfiguration']['SpectralBands']
+            ## create RSR
+            rsr = ac.shared.rsr_hyper(bands_centre, bands_fwhm, step=0.1)
+            rsrd = ac.shared.rsr_dict(rsrd={sensor:{'rsr':rsr}})
+            ## rename bands to match file names - could add band names argument to rsr_hyper
+            bands_list = list(paths['bands'].keys())
+            for bi, bname in enumerate(bands_list):
+                for k in rsrd[sensor]:
+                    if type(rsrd[sensor][k]) != dict: continue
+                    if bi in rsrd[sensor][k]:
+                        rsrd[sensor][k][bname] = rsrd[sensor][k].pop(bi)
+            rsrd[sensor]['rsr_bands'] = bands_list
+        else:
+            prj_band = 'NIR'
+            ## read RSR
+            rsrd = ac.shared.rsr_dict(sensor)
+        del metadata
 
         ## test band files and make bands dataset
         bands = {}
@@ -60,19 +86,12 @@ def l1_convert(inputfile, output = None, settings = None):
                     cwave = rsrd[sensor]['wave_nm'][b]
                     swave = '{:.0f}'.format(cwave)
                     bands[b]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
-                               'wave_name':'{:.0f}'.format(cwave), }
+                                   'wave_name':'{:.0f}'.format(cwave), }
                     #           'rsr': rsrd[gatts['sensor']]['rsr'][b],'f0': f0d[b]}
                     bands[b]['path'] = paths['bands'][b]
 
             if b not in bands:
                 print('Band {} not found at {}'.format(b, bundle))
-
-        ## read metadata to get timestamp
-        with open(paths['metadata'], 'r', encoding = 'utf-8') as f:
-            metadata = json.load(f)
-        session = list(metadata['Sessions'].keys())[0]
-        platform_time = metadata['Sessions'][session]['TimeSync'][0]['PlatformTime']
-        del metadata
 
         ## parse date
         time_scale = len('{}'.format(platform_time)) % 10
@@ -84,7 +103,7 @@ def l1_convert(inputfile, output = None, settings = None):
         warp_to, dct_prj, sub = None, None, None
         try:
             ## get projection from image
-            dct = ac.shared.projection_read(bands['NIR']['path'])
+            dct = ac.shared.projection_read(bands[prj_band]['path'])
         except:
             if setu['verbosity'] > 1: print('Could not determine image projection')
             dct = None
@@ -193,6 +212,11 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts['vza'] = np.nanmean(vza)
         gatts['vaa'] = np.nanmean(vaa)
         gatts['raa'] = np.nanmean(raa)
+
+        ## add band config for HAMMER
+        if sensor in ['OpenCosmos_Hammer']:
+            gatts['band_widths'] = bands_fwhm
+            gatts['band_waves'] = bands_centre
 
         ## output file name
         oname = '{}_{}'.format(gatts['sensor'], time.strftime('%Y_%m_%d_%H_%M_%S'))

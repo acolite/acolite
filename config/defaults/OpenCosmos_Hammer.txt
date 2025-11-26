@@ -1,0 +1,18 @@
+## ACOLITE default settings for OpenCosmos Hammer
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+## dark spectrum fitting options
+dsf_aot_estimate=fixed
+dsf_spectrum_option=percentile
+dsf_percentile=1
+
+## masking options
+l2w_mask_wave=865
+l2w_mask_threshold=0.1
+
+resolved_geometry=False
+dem_altitude=True

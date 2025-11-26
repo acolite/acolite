@@ -9,6 +9,7 @@ ENMAP_HSI
 ISS_EMIT
 HYPSO1
 HYPSO2
+OpenCosmos_Hammer
 PACE_OCI
 Tanager
 Wyvern_Dragonette-001
