@@ -1,0 +1,13 @@
+<ComponentGeoCoding>
+  <ForwardCodingKey>FWD_PIXEL</ForwardCodingKey>
+  <InverseCodingKey>INV_PIXEL_QUAD_TREE</InverseCodingKey>
+  <GeoChecks>ANTIMERIDIAN</GeoChecks>
+  <GeoCRS>GEOGCS["WGS84(DD)", DATUM["WGS84", SPHEROID["WGS84", 6378137.0, 298.257223563]], PRIMEM["Greenwich", 0.0], UNIT["degree", 0.017453292519943295], AXIS["Geodetic longitude", EAST], AXIS["Geodetic latitude", NORTH], AUTHORITY["EPSG","4326"]]</GeoCRS>
+  <LonVariableName>lon</LonVariableName>
+  <LatVariableName>lat</LatVariableName>
+  <RasterResolutionKm>0</RasterResolutionKm>
+  <OffsetX>0.5</OffsetX>
+  <OffsetY>0.5</OffsetY>
+  <SubsamplingX>1.0</SubsamplingX>
+  <SubsamplingY>1.0</SubsamplingY>
+</ComponentGeoCoding>

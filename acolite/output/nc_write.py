@@ -126,16 +126,20 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         nc.setncattr('contact', 'Quinten Vanhellemont' )
         nc.setncattr('acolite_version', ac.version )
 
-        ## set beam dataformat global attributes
-        #nc.setncattr('product_type', 'NetCDF' )
-        ## QV 2025-11-27 commented out beam metadata profile
-        ##               in SNAP12-13 this lead to loss of geolocation
-        ##               the auto_grouping feature is lost by not using beam profile
-        ##               (we still write the attribute just in case)
-        # nc.setncattr('metadata_profile', 'beam' )
-        # nc.setncattr('metadata_version', '0.5' )
-        # nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs:Lt:Ed')
-        # nc.setncattr('title', 'NetCDF/CF Data Product' )
+        # set beam dataformat global attributes
+        if ac.settings['run']['netcdf_metadata_profile'] == 'beam':
+            nc.setncattr('product_type', 'NetCDF' )
+            nc.setncattr('metadata_profile', 'beam' )
+            nc.setncattr('metadata_version', '0.5' )
+            nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs:Lt:Ed')
+            nc.setncattr('title', 'NetCDF/CF Data Product' )
+
+            ## read geocoding for beam
+            with open(ac.config['data_dir'] + '/Shared/geocoding.xml', 'r', encoding = 'utf-8') as f:
+                geocoding = ''
+                for line in f.readlines():
+                    geocoding += line
+            nc.setncattr('geocoding', geocoding)
 
         ## CF convention
         nc.setncattr('Conventions', 'CF-1.7')
