@@ -27,6 +27,7 @@
 ##                2024-04-15 (QV) allow passing of netCDF4 Dataset
 ##                2024-04-16 (QV) removed NetCDF compression parameters from keywords
 ##                2025-01-23 (QV) added break to dataset attributes check
+##                2025-11-27 (QV) disabled the use of metadata_profile=beam
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -126,10 +127,15 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
         nc.setncattr('acolite_version', ac.version )
 
         ## set beam dataformat global attributes
-        nc.setncattr('product_type', 'NetCDF' )
-        nc.setncattr('metadata_profile', 'beam' )
-        nc.setncattr('metadata_version', '0.5' )
-        nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs:Lt:Ed')
+        #nc.setncattr('product_type', 'NetCDF' )
+        ## QV 2025-11-27 commented out beam metadata profile
+        ##               in SNAP12-13 this lead to loss of geolocation
+        ##               the auto_grouping feature is lost by not using beam profile
+        ##               (we still write the attribute just in case)
+        # nc.setncattr('metadata_profile', 'beam' )
+        # nc.setncattr('metadata_version', '0.5' )
+        # nc.setncattr('auto_grouping', 'rhot:rhorc:rhos:rhow:Rrs:Lt:Ed')
+        # nc.setncattr('title', 'NetCDF/CF Data Product' )
 
         ## CF convention
         nc.setncattr('Conventions', 'CF-1.7')
