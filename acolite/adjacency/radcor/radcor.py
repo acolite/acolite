@@ -42,6 +42,7 @@
 ##                2025-04-17 (QV) track settings in output gatts
 ##                2025-05-08 (QV) changed LUT handling
 ##                2025-07-07 (QV) check sun zenith angle
+##                2025-12-08 (QV) added ancillary_fixed option, added tsdsf_exclude_bands
 
 def radcor(ncf, settings = None):
     import os, json
@@ -651,6 +652,13 @@ def radcor(ncf, settings = None):
     # Create bands dictionary and select bands:
     #
 
+    ## convert exclude bands to list
+    if setu['tsdsf_exclude_bands'] != None:
+        if type(setu['tsdsf_exclude_bands']) != list:
+            setu['tsdsf_exclude_bands'] = [setu['tsdsf_exclude_bands']]
+    else:
+        setu['tsdsf_exclude_bands'] = []
+
     ## Bands dictionary
     bands = {}
     bint = 0
@@ -692,6 +700,7 @@ def radcor(ncf, settings = None):
             if (setu['radcor_skip_pan']) & ('OLI' in sensor) & (b == '8'): bands[b]['radcor_use_band'] = False
             if (bands[b]['wavelength'] < setu['tsdsf_wave_range'][0]): bands[b]['tsdsf_use_band'] = False
             if (bands[b]['wavelength'] > setu['tsdsf_wave_range'][1]): bands[b]['tsdsf_use_band'] = False
+            if (b in setu['tsdsf_exclude_bands']): bands[b]['tsdsf_use_band'] = False
 
     ## List of bands to be used
     bands_ = [b for b in bands if (bands[b]['radcor_use_band']) & (bands[b]['tsdsf_use_band'])]

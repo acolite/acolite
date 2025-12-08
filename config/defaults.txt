@@ -390,6 +390,7 @@ tsdsf_psf_centre_zero=False
 tsdsf_bratio_option=percentile
 tsdsf_bratio_percentile=1
 tsdsf_wave_range=400,2500
+tsdsf_exclude_bands=None
 
 ## dark spectrum fitting options
 dsf_aot_estimate=tiled

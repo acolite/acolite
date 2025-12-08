@@ -38,6 +38,9 @@ tsdsf_wave_range
 dsf_wave_range
 sensor_noise
 
+dsf_exclude_bands
+tsdsf_exclude_bands
+
 ndvi_wave
 ndvi_wave_diff
 ndsi_wave
