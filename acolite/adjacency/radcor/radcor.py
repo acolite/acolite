@@ -861,15 +861,26 @@ def radcor(ncf, settings = None):
     tau550_est = np.zeros((3, nbands_)) #ALEX 2024-08-27
     idmin      = np.zeros((3, nbands_, 2)) #ALEX 2024-08-27
 
+    ## initialise to nans
+    best_fit = np.nan
+    best_idx = np.nan
+    best_band = np.nan
+
     ## user fixed
     if (setu['radcor_force_model'] is not None) & (setu['radcor_force_aot'] is not None):
         print('\nUser supplied model and aot: radcor_force_model={} radcor_force_aot={}'.format(setu['radcor_force_model'],setu['radcor_force_aot']))
         best_mod = setu['radcor_force_model']
         best_aot = setu['radcor_force_aot']
-        ## set these to nan if user forces model and aot
-        best_fit = np.nan
-        best_idx = np.nan
-        best_band = np.nan
+    ## use ancillary aerosol information
+    elif setu['radcor_aot_estimate'].startswith('ancillary'):
+        print('Retrieving AOT from ancillary data for RAdCor processing')
+        aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
+        if aer_anc is None: return
+        aer_lut, aer_aot, aer_ang_mean = aer_anc
+        best_mod = aer_md[aer_lut[-4:]]
+        best_aot = aer_aot
+        print('Setting aot={:.3f} (mean) and lut={} (mean angstrom={:.2f}) based on ancillary data'.format(aer_aot, aer_lut, aer_ang_mean))
+    ## other aot estimates
     else:
         print('\nRunning AOT estimation using radcor_aot_estimate={}'.format(setu['radcor_aot_estimate']))
 

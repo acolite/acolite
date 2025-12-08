@@ -20,7 +20,7 @@ def validate_settings(settings):
     valid = True
 
     ## check aot estimate
-    estimatelist = ['tsdsf', 'dsf', 'optimise']
+    estimatelist = ['tsdsf', 'dsf', 'optimise', 'ancillary_fixed']
     if settings['radcor_aot_estimate'] not in estimatelist:
         print('Error: radcor_aot_estimate must be one of: {}'.format(', '.join(estimatelist)))
         valid = False
