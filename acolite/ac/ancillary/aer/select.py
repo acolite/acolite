@@ -34,6 +34,4 @@ def select(date, lon, lat):
                 if (aer_ang_mean >= anc_ang_threshold) & (lut[-1] == '1'): anc_lut = '{}'.format(lut)
                 elif (aer_ang_mean < anc_ang_threshold) & (lut[-1] == '2'): anc_lut = '{}'.format(lut)
         anc_aot = np.nanmean(aer_aot) * 1
-    print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(anc_aot, anc_lut, aer_ang_mean))
-
-    return(anc_lut, anc_aot)
+    return(anc_lut, anc_aot, aer_ang_mean)
