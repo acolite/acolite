@@ -1,4 +1,4 @@
-## get_aer
+## get
 ## downloads and interpolates ancillary aerosol data from the ocean data server
 ##
 ## written by Quinten Vanhellemont, RBINS
@@ -6,9 +6,9 @@
 ## modifications: 2025-10-06 (QV) determine file_types based on date
 ##                2025-10-15 (QV) added nrt_days as keyword
 ##                2025-10-20 (QV) added ancillary_aerosol, ancillary_aerosol_nrt and ancillary_aerosol_nrt_days as settings
+##                2025-12-08 (QV) moved from ac.ancillary.get_aer to ac.ancillary.aer.get
 
-
-def get_aer(date, lon, lat, local_dir = None,
+def get(date, lon, lat, local_dir = None,
             nrt_days = None, file_types = None, datasets = ['TOTEXTTAU', 'TOTSCATAU', 'TOTANGSTR'],
             quiet = True, kind = 'linear', verbosity = 0, keep_series = False):
 
