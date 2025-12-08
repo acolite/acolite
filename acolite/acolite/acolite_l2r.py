@@ -103,36 +103,17 @@ def acolite_l2r(gem,
     if setu['dsf_aot_estimate'].startswith('ancillary'):
         print('Retrieving AOT from ancillary data for L2R processing')
         if setu['dsf_aot_estimate'] == 'ancillary':
-            aer_anc = ac.ac.ancillary.get_aer(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'))
+            aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'))
         elif setu['dsf_aot_estimate'] == 'ancillary_fixed':
-            aer_anc = ac.ac.ancillary.get_aer(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
+            aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
         else:
             print('dsf_aot_estimate={} not configured.'.format(setu['dsf_aot_estimate']))
             return
-
-        if 'data' not in aer_anc:
-            print('Error in ancillary AOT retrieval.')
-            return
-        elif aer_anc['data'] == {}:
-            print('Error in ancillary AOT retrieval.')
-            return
-        else:
-            aer_ang = aer_anc['data']['TOTANGSTR']['interp']
-            aer_aot = aer_anc['data']['TOTEXTTAU']['interp']
-            aer_ang_mean = np.nanmean(aer_ang)
-            ## 6SV models C(ontinental) 1.08, M(aritime) 0.28,
-            anc_ang_threshold = 0.68 ## midway between C and M
-            anc_lut = setu['luts'][0]
-            if len(setu['luts']) > 1:
-                print('Selecting LUT based on ancillary mean angstrom {:.2f} from LUTs {}'.format(aer_ang_mean, setu['luts']))
-                print('Angstrom threshold M < {} < C'.format(anc_ang_threshold))
-                for lut in setu['luts']:
-                    if (aer_ang_mean >= anc_ang_threshold) & (lut[-1] == '1'): anc_lut = '{}'.format(lut)
-                    elif (aer_ang_mean < anc_ang_threshold) & (lut[-1] == '2'): anc_lut = '{}'.format(lut)
-            anc_aot = np.nanmean(aer_aot) * 1
-        print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(anc_aot, anc_lut, aer_ang_mean))
-        setu['dsf_fixed_aot'] = anc_aot
-        setu['dsf_fixed_lut'] = anc_lut
+        if aer_anc is None: return
+        aer_lut, aer_aot = aer_anc
+        ## set as fixed user parameters
+        setu['dsf_fixed_lut'] = aer_lut
+        setu['dsf_fixed_aot'] = aer_aot
     ## end ancillary aot
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
