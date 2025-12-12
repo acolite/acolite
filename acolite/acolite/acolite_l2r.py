@@ -306,16 +306,9 @@ def acolite_l2r(gem,
 
     ## set wind to wind range
     if gem.gatts['wind'] is None: gem.gatts['wind'] = setu['wind_default']
-    if (par == 'romix+rsurf'):
-        #gem.gatts['wind'] = max(2, gem.gatts['wind'])
-        #gem.gatts['wind'] = min(20, gem.gatts['wind'])
-        gem.gatts['wind'] = 2.
-    elif (par == 'romix+rsky_t') | (par == 'romix'):
+    if (par == 'romix+rsky_t') | (par == 'romix'):
         gem.gatts['wind'] = max(0.1, gem.gatts['wind'])
         gem.gatts['wind'] = min(20, gem.gatts['wind'])
-    else:
-        ## placeholder for ffss_toa
-        gem.gatts['wind'] = 0
 
     ## get mean average geometry
     geom_ds = ['sza', 'vza', 'raa', 'pressure', 'wind']
