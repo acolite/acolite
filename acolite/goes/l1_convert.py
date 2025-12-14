@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-06-05
-## modifications:
+## modifications: 2025-12-14 (QV) fix 500 m subset issue
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -207,7 +207,7 @@ def l1_convert(inputfile, output = None, settings = None):
                         if sub is not None:
                             ## offset to multiple of 4 pixels
                             sub_mod = [s % 4 for s in sub]
-                            sub = [sub[0] - sub_mod[0], sub[1] - sub_mod[1], sub[2] + sub_mod[2], sub[3] + sub_mod[3]]
+                            sub = [sub[0] - sub_mod[0], sub[1] - sub_mod[1], sub[2] - sub_mod[2], sub[3] - sub_mod[3]]
 
                             column_range = sub[0], sub[0]+sub[2]
                             row_range = sub[1], sub[1]+sub[3]
