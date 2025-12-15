@@ -28,9 +28,11 @@ l2w_mask_wave=1600
 l2w_mask_threshold=0.05
 l2w_mask_smooth=False
 l2w_mask_negative_rhow=False
+l2w_mask_cirrus_wave=1379
 
 ## rgb settings
 rgb_red_wl=864
 rgb_green_wl=640
 rgb_blue_wl=471
 map_title_rgb_wavelengths=True
+rgb_max=0.1,0.1,0.1
