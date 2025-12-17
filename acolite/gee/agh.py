@@ -18,6 +18,7 @@
 ##                2023-07-12 (QV) removed netcdf_compression settings from nc_write call
 ##                2024-06-15 (QV) added to S2_SR_HARMONIZED
 ##                2025-02-05 (QV) added S2C_MSI
+##                2025-12-17 (QV) added acolite_file_type to gatts
 
 def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
     import os, datetime, dateutil.parser, requests, json, time
@@ -1081,6 +1082,12 @@ def agh(image, imColl, rsrd = {}, lutd = {}, luti = {}, settings = {}):
                     gatts['acolite_type'] = 'l2r_st_gee_hybrid'
                 else:
                     gatts['acolite_type'] = 'st_gee_hybrid'
+
+        if 'acolite_file_type' not in gatts:
+            if 'acolite_type' in gatts:
+                gatts['acolite_file_type'] = gatts['acolite_type'].upper()[0:3]
+            else:
+                gatts['acolite_file_type'] = 'L1R' ## assume L1R
 
         ## output file names
         ext = ''
