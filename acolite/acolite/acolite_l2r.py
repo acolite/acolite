@@ -552,6 +552,7 @@ def acolite_l2r(gem,
         gemo.bands = gem.bands
         gemo.verbosity = setu['verbosity']
         gemo.gatts['acolite_version'] = ac.version
+        gemo.gatts['sensor_lut'] = sensor_lut
 
         ## add settings to gatts
         for k in setu:
