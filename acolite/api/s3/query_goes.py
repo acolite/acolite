@@ -74,9 +74,9 @@ def query_goes(start_date, end_date = None, local_directory = None, time_range_s
 
                 ## download file
                 if download:
-                    if verbosity > 1: print('Downloading {}'.format(file))
+                    if verbosity > 2: print('Downloading {}'.format(file))
                     fs.download(file,local_file)
-                    if verbosity > 1: print('Downloaded to {}'.format(local_file))
+                    if verbosity > 2: print('Downloaded to {}'.format(local_file))
 
             remote_files.append(file)
             if os.path.exists(local_file):
