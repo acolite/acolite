@@ -6,7 +6,7 @@
 
 def query_goes(start_date, end_date = None, local_directory = None, time_range_sec = 600, download = False, override = False,
                satellite_index = 19, channels = ['M6C01', 'M6C02', 'M6C03', 'M6C04', 'M6C05', 'M6C06'],
-               url_base = 's3://noaa-goes', product_base = 'ABI-L1b-Rad', scan_factor = 'C', ):
+               url_base = 's3://noaa-goes', product_base = 'ABI-L1b-Rad', scan_factor = 'C', verbosity = 0, ):
 
     import os, dateutil.parser, datetime
     import s3fs
@@ -35,7 +35,7 @@ def query_goes(start_date, end_date = None, local_directory = None, time_range_s
 
     if local_directory is None:
         local_directory = os.getcwd()
-        print('Warning: DOwnloading to current directory: {}'.format(local_directory))
+        if verbosity > 0: print('Warning: Downloading to current directory: {}'.format(local_directory))
 
     ## set up anonymous S3 file system
     fs = s3fs.S3FileSystem(anon = True)
@@ -46,7 +46,8 @@ def query_goes(start_date, end_date = None, local_directory = None, time_range_s
     ## run through dates
     for di, dt in enumerate(dates):
         files = fs.glob('{}{}/{}/{}/{}/*/*'.format(url_base, satellite_index, product, dt['year'], dt['doy']))
-        print('Found {} files for date {}'.format(len(files), dt['isodate']))
+        if verbosity > 1: print('Found {} total files for date {}'.format(len(files), dt['isodate']))
+        n0 = len(remote_files)
 
         ## run through files
         for file in files:
@@ -73,13 +74,15 @@ def query_goes(start_date, end_date = None, local_directory = None, time_range_s
 
                 ## download file
                 if download:
-                    print('Downloading {}'.format(file))
+                    if verbosity > 1: print('Downloading {}'.format(file))
                     fs.download(file,local_file)
-                    print('Downloaded to {}'.format(local_file))
+                    if verbosity > 1: print('Downloaded to {}'.format(local_file))
 
             remote_files.append(file)
             if os.path.exists(local_file):
                 local_files.append(local_file)
+
+        if verbosity > 1: print('Selected {} files from date {}'.format(len(remote_files) - n0, dt['isodate']))
 
     if download:
         return(local_files)
