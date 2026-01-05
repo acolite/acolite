@@ -635,6 +635,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## Hyperfield
+        try:
+            sensor, paths = ac.hyperfield.bundle_test(bundle)
+            if sensor.startswith('hyperfield'):
+                input_type = 'Hyperfield'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Hyperfield
+        ################
+
+        ################
         ## Haiyang
         try:
             ret = ac.haiyang.bundle_test(bundle)

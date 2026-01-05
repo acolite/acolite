@@ -332,6 +332,13 @@ def acolite_l1r(bundle, input_type=None):
     ## end OpenCosmos
     ################
 
+    ################
+    ## Hyperfield
+    if input_type == 'Hyperfield':
+        l1r_files, setu = ac.hyperfield.l1_convert(bundle)
+    ## end Hyperfield
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:
