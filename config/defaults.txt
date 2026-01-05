@@ -203,6 +203,8 @@ verbosity=5
 
 ## output TOA radiance (not from all sensors)
 output_lt=False
+## (re)compute rhot from TOA radiance (not from all sensors)
+compute_rhot_from_lt=False
 
 ## extraterrestrial solar reference to use in radiance-reflectance conversion
 ## only for sensors where ACOLITE does Lr->rhot conversion

@@ -47,11 +47,6 @@ def l1_convert(inputfile, output = None, settings = None):
         if output is None: output = setu['output']
         if output is None: output = os.path.dirname(file)
 
-        ## read F0
-        #if setu['verbosity'] > 2: print('Using F0 from solar_irradiance_reference={}'.format(setu['solar_irradiance_reference']))
-        #f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-        #f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd[gatts['sensor']]['rsr'])
-
         ## read metadata to get timestamp (and HAMMER bands config)
         with open(paths['metadata'], 'r', encoding = 'utf-8') as f:
             metadata = json.load(f)
@@ -80,6 +75,13 @@ def l1_convert(inputfile, output = None, settings = None):
         ## create rsr
         rsr = ac.shared.rsr_hyper(bands_centre, bands_fwhm, step = 0.1)
         rsrd = ac.shared.rsr_dict(rsrd = {sensor:{'rsr':rsr}})
+
+        ## read F0
+        if setu['compute_rhot_from_lt']:
+            if setu['verbosity'] > 2: print('Using F0 from solar_irradiance_reference={}'.format(setu['solar_irradiance_reference']))
+            f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
+            f0d = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data'], rsrd[sensor]['rsr'])
+
         ## create bands dict
         bands = {}
         for b in rsrd[sensor]['rsr_bands']:
@@ -87,9 +89,11 @@ def l1_convert(inputfile, output = None, settings = None):
             swave = '{:.0f}'.format(cwave)
             bands[b]= {'wave':cwave, 'wavelength':cwave, 'wave_mu':cwave/1000.,
                                      'wave_name':'{:.0f}'.format(cwave), }
+            if setu['compute_rhot_from_lt']: bands[b]['f0'] = f0d[b]
             for k in metadata['image']['bands'][b]:
                 if k not in bands[b]:
                     bands[b][k] = metadata['image']['bands'][b][k]
+
 
         ## set up projection
         warp_to, dct_prj, sub = None, None, None
@@ -147,6 +151,7 @@ def l1_convert(inputfile, output = None, settings = None):
         raa = np.abs(saa - vaa)
         #raa[raa>180]= np.abs(360-raa[raa>180])
         if raa > 180: raa = np.abs(360-raa)
+        mu0 = np.cos(np.radians(sza))
 
         #del metadata
 
@@ -226,7 +231,12 @@ def l1_convert(inputfile, output = None, settings = None):
             if setu['output_lt']:
                 ## convert to radiance in W/m^2/sr/nm
                 cdata_radiance = cdata / bands[b]['toa_radiance_to_reflectance_factor']
+                ## convert to same units as F0
+                cdata_radiance *= 1000
                 gemo.write('Lt_{}'.format(ds_att['wave_name']), cdata_radiance, ds_att = ds_att)
+                ## recompute cdata from radiance
+                if setu['compute_rhot_from_lt']:
+                    cdata = (np.pi*cdata_radiance*se_distance**2) / (ds_att['f0'] * mu0)
                 cdata_radiance = None
 
             gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
