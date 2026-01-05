@@ -478,6 +478,9 @@ def radcor(ncf, settings = None):
         elif sensor in ['HJ2A_CCD1', 'HJ2A_CCD2', 'HJ2A_CCD3', 'HJ2A_CCD4', 'HJ2B_CCD1', 'HJ2B_CCD2', 'HJ2B_CCD3', 'HJ2B_CCD4']:
             resolution = 16.
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
+        elif sensor in ['SeaHawk1_HawkEye']:
+            resolution = 120.
+            print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         else:
             print('RAdCor processing not implemented for {}'.format(sensor))
             print('Not running RAdCor on scene {}'.format(ncf))
