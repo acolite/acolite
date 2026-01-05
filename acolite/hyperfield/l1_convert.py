@@ -2,7 +2,7 @@
 ## converts Hyperfield data to l1r NetCDF for acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-01-06
-## modifications:
+## modifications: 2026-01-06 (QV) added output_lt
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -220,8 +220,14 @@ def l1_convert(inputfile, output = None, settings = None):
             if bands[b]['offset'] != 0.0: cdata += bands[b]['offset']
             if bands[b]['scale'] != 1.0: cdata *= bands[b]['scale']
 
-            #cdata /= bands[b]['toa_radiance_to_reflectance_factor']
             cdata[mask] = np.nan
+
+            ## write toa radiance
+            if setu['output_lt']:
+                ## convert to radiance in W/m^2/sr/nm
+                cdata_radiance = cdata * bands[b]['toa_radiance_to_reflectance_factor']
+                gemo.write('Lt_{}'.format(ds_att['wave_name']), cdata_radiance, ds_att = ds_att)
+                cdata_radiance = None
 
             gemo.write('rhot_{}'.format(bands[b]['wave_name']), cdata, ds_att = ds_att)
             cdata = None
