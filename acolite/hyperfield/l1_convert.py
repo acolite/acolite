@@ -225,7 +225,7 @@ def l1_convert(inputfile, output = None, settings = None):
             ## write toa radiance
             if setu['output_lt']:
                 ## convert to radiance in W/m^2/sr/nm
-                cdata_radiance = cdata * bands[b]['toa_radiance_to_reflectance_factor']
+                cdata_radiance = cdata / bands[b]['toa_radiance_to_reflectance_factor']
                 gemo.write('Lt_{}'.format(ds_att['wave_name']), cdata_radiance, ds_att = ds_att)
                 cdata_radiance = None
 
