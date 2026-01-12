@@ -103,7 +103,8 @@ def acolite_l2r(gem,
     if setu['dsf_aot_estimate'].startswith('ancillary'):
         print('Retrieving AOT from ancillary data for L2R processing')
         if setu['dsf_aot_estimate'] == 'ancillary':
-            aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'))
+            aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'), resolved = True)
+            print('Ancillary aerosol shape: {}'.format(aer_anc[1].shape))
         elif setu['dsf_aot_estimate'] == 'ancillary_fixed':
             aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
         else:
@@ -112,9 +113,9 @@ def acolite_l2r(gem,
         if aer_anc is None: return
         aer_lut, aer_aot, aer_ang_mean = aer_anc
         ## set as fixed user parameters
-        print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(aer_aot, aer_lut, aer_ang_mean))
+        print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(np.nanmean(aer_aot), aer_lut, aer_ang_mean))
         setu['dsf_fixed_lut'] = aer_lut
-        setu['dsf_fixed_aot'] = aer_aot
+        setu['dsf_fixed_aot'] = np.nanmean(aer_aot)
     ## end ancillary aot
 
     output_name = gem.gatts['output_name'] if 'output_name' in gem.gatts else os.path.basename(gemf).replace('.nc', '')
@@ -1415,7 +1416,7 @@ def acolite_l2r(gem,
             if aot_sel.flatten().shape == (1,):
                 aot_out = np.repeat(aot_sel.flatten(), gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
             else:
-                aot_out = aot_sel.flatten() * 1.0
+                aot_out = np.asarray(aot_sel)
         elif setu['dsf_aot_estimate'] == 'segmented':
             aot_out = np.zeros(gem.gatts['data_dimensions']) + np.nan
             for sidx, segment in enumerate(segment_data):
@@ -1423,7 +1424,10 @@ def acolite_l2r(gem,
         elif setu['dsf_aot_estimate'] == 'tiled':
             aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
         else:
-            aot_out = aot_sel * 1.0
+            if aot_sel.flatten().shape == (1,):
+                aot_out = np.repeat(aot_sel.flatten(), gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
+            else:
+                aot_out = np.asarray(aot_sel)
 
         ## write aot
         gemo.write('aot_550', aot_out)
