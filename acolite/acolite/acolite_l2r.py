@@ -626,7 +626,7 @@ def acolite_l2r(gem,
                 if setu['dsf_aot_estimate'] == 'ancillary_fixed':
                     aot_sel = np.array(np.nanmean(aer_aot))
                 else:
-                    aot_sel = aer_aot * 1.0
+                    aot_sel = np.asarray(aer_aot)
                 del aer_aot
             else:
                 aot_sel = np.array(float(setu['dsf_fixed_aot']))
