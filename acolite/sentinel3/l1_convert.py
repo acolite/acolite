@@ -20,6 +20,7 @@
 ##                2025-02-07 (QV) added tile merging
 ##                2025-02-08 (QV) fixed for full tile merging
 ##                2025-03-19 (QV) added s3_product_type, added s3_product_type to oname
+##                2026-01-12 (QV) check for extra directory level in SEN3
 
 def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
 
@@ -39,6 +40,22 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
             inputfile = inputfile.split(',')
         else:
             inputfile = list(inputfile)
+
+    ## test if there is another SEN3 level (e.g. zip file from EUMDAC)
+    for bi, bundle in enumerate(inputfile):
+        ncfiles0 =  glob.glob('{}/*.nc'.format(bundle))
+        ncfiles1 = glob.glob('{}/*.SEN3/*.nc'.format(bundle))
+        if (len(ncfiles0) == 0) & (len(ncfiles1) > 0):
+            dirnames = list(set([os.path.dirname(ncf) for ncf in ncfiles1]))
+            dirnames.sort()
+            if len(dirnames) == 1:
+                print('Using {} in {}'.format(dirnames[0], bundle))
+                inputfile[bi] = dirnames[0]
+            else:
+                print(dirnames)
+                continue
+    ## end test other SEN3 level
+
     nscenes = len(inputfile)
     if setu['verbosity'] > 1: print('Starting conversion of {} scene{}'.format(nscenes, '' if nscenes==1 else 's'))
 
