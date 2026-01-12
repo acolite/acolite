@@ -104,7 +104,8 @@ def acolite_l2r(gem,
         print('Retrieving AOT from ancillary data for L2R processing')
         if setu['dsf_aot_estimate'] == 'ancillary':
             aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], gem.data('lon'), gem.data('lat'), resolved = True)
-            print('Ancillary aerosol shape: {}'.format(aer_anc[1].shape))
+            if aer_anc is not None:
+                print('Ancillary aerosol shape: {}'.format(aer_anc[1].shape))
         elif setu['dsf_aot_estimate'] == 'ancillary_fixed':
             aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
         else:
