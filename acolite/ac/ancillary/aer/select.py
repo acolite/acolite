@@ -5,7 +5,7 @@
 ## 2025-12-08
 ## modifications:
 
-def select(date, lon, lat):
+def select(date, lon, lat, resolved = False):
 
     import acolite as ac
     import numpy as np
@@ -33,5 +33,8 @@ def select(date, lon, lat):
             for lut in ac.settings['run']['luts']:
                 if (aer_ang_mean >= anc_ang_threshold) & (lut[-1] == '1'): anc_lut = '{}'.format(lut)
                 elif (aer_ang_mean < anc_ang_threshold) & (lut[-1] == '2'): anc_lut = '{}'.format(lut)
-        anc_aot = np.nanmean(aer_aot) * 1
+        if (resolved):
+            anc_aot = np.asarray(aer_aot)
+        else:
+            anc_aot = np.nanmean(aer_aot) * 1
     return(anc_lut, anc_aot, aer_ang_mean)
