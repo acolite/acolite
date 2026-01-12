@@ -112,7 +112,7 @@ def acolite_l2r(gem,
         if aer_anc is None: return
         aer_lut, aer_aot, aer_ang_mean = aer_anc
         ## set as fixed user parameters
-        print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(aer_aot, anc_lut, aer_ang_mean))
+        print('Setting dsf_fixed_aot={:.3f} (mean) and dsf_fixed_lut={} (mean angstrom={:.2f}) based on ancillary data'.format(aer_aot, aer_lut, aer_ang_mean))
         setu['dsf_fixed_lut'] = aer_lut
         setu['dsf_fixed_aot'] = aer_aot
     ## end ancillary aot
