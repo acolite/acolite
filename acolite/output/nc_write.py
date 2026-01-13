@@ -98,12 +98,17 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                 if t not in dataset_attributes:
                     dataset_attributes[t] = atts[t]
         dataset_attributes['parameter'] = dataset
-    ## convert bool attributes to string
+
+    ## do some attribute conversion
     if dataset_attributes is not None:
+        ## convert bool attributes to string
         for att in dataset_attributes:
             if type(dataset_attributes[att]) == bool:
                 dataset_attributes[att] = str(dataset_attributes[att])
 
+        ## add radiation_wavelength for SNAP spectrum viewer
+        if 'wavelength' in dataset_attributes:
+            dataset_attributes['radiation_wavelength'] = dataset_attributes['wavelength']
     dims = data.shape
     if global_dims is None: global_dims = dims
 
