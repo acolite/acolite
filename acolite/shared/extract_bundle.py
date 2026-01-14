@@ -4,8 +4,9 @@
 ## 2022-07-21
 ## modifications: 2022-10-03 (QV) check if there is only one directory in the unzipped file
 ##                2025-02-11 (QV) added bz2 extraction
+##                2026-01-14 (QV) added types list as keyword
 
-def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
+def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0, types = ['tar', 'zip', 'bz2']):
     import os, tarfile, zipfile, bz2, shutil
     import acolite as ac
 
@@ -17,7 +18,7 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
     extracted = False
 
     ## tar file
-    if not extracted:
+    if (not extracted) & ('tar' in types):
         try:
             with tarfile.open(orig_bundle) as f:
                 files = f.getnames()
@@ -38,7 +39,7 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
     ## end tar file
 
     ## zip file
-    if not extracted:
+    if (not extracted) & ('zip' in types):
         try:
             with zipfile.ZipFile(orig_bundle, 'r') as f:
                 files= [i.filename for i in f.infolist()]
@@ -63,7 +64,7 @@ def extract_bundle(bundle, output=None, targ_bundle=None, verbosity=0):
     ## end zip file
 
     ## bz2 file
-    if not extracted:
+    if (not extracted) & ('bz2' in types):
         try:
             targ_bundle = '{}/{}'.format(output, bn)
             with bz2.BZ2File(orig_bundle) as fi, open(targ_bundle,"wb") as fo:
