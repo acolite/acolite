@@ -136,27 +136,23 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
         isodate = dtime.isoformat()
 
         ## read rsr
-        rsrf = ac.path+'/data/RSR/{}.txt'.format(meta['sensor'])
-        rsr, rsr_bands = ac.shared.rsr_read(rsrf)
-        waves = np.arange(250, 2500)/1000
-        waves_mu = ac.shared.rsr_convolute_dict(waves, waves, rsr)
-        waves_names = {'{}'.format(b):'{:.0f}'.format(waves_mu[b]*1000) for b in waves_mu}
+        rsrd = ac.shared.rsr_dict(sensor=sensor)[sensor]
 
         gains = None
         if setu['gains']:
-            if (len(setu['gains_toa']) == len(rsr_bands)) &\
-               (len(setu['offsets_toa']) == len(rsr_bands)):
+            if (len(setu['gains_toa']) == len(rsrd['rsr_bands'])) &\
+               (len(setu['offsets_toa']) == len(rsrd['rsr_bands'])):
                gains = {}
-               for bi, band in enumerate(rsr_bands):
+               for bi, band in enumerate(rsrd['rsr_bands']):
                    gains[band] = {'gain': float(setu['gains_toa'][bi]),
                                 'offset': float(setu['offsets_toa'][bi])}
             else:
-                print('Use of gains requested, but provided number of gain ({}) or offset ({}) values does not match number of bands in RSR ({})'.format(len(setu['gains_toa']), len(setu['offsets_toa']), len(rsr_bands)))
-                print('Provide gains in band order: {}'.format(','.join(rsr_bands)))
+                print('Use of gains requested, but provided number of gain ({}) or offset ({}) values does not match number of bands in RSR ({})'.format(len(setu['gains_toa']), len(setu['offsets_toa']), len(rsrd['rsr_bands'])))
+                print('Provide gains in band order: {}'.format(','.join(rsrd['rsr_bands'])))
 
         ## get F0 - not stricty necessary if using USGS reflectance
         f0 = ac.shared.f0_get(f0_dataset=setu['solar_irradiance_reference'])
-        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsr)
+        f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsrd['rsr'])
 
         gatts = {'sensor':meta['sensor'], 'satellite':meta['satellite'],
                      'isodate':isodate, #'global_dims':global_dims,
@@ -175,9 +171,9 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
         gatts['ofile'] = ofile
 
         ## add band info to gatts
-        for b in rsr_bands:
-            gatts['{}_wave'.format(b)] = waves_mu[b]*1000
-            gatts['{}_name'.format(b)] = waves_names[b]
+        for b in rsrd['rsr_bands']:
+            gatts['{}_wave'.format(b)] = rsrd['wave_mu'][b]*1000
+            gatts['{}_name'.format(b)] = rsrd['wave_name'][b]
             gatts['{}_f0'.format(b)] = f0_b[b]
 
         ## global scene dimensions from metadata
@@ -472,10 +468,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             if data_full is None: continue
 
             ## set up dataset attributes
-            ds = 'rhot_{}'.format(waves_names[band])
+            ds = 'rhot_{}'.format(rsrd['wave_name'][band])
             if atmospherically_corrected: ds = ds.replace('rhot_', 'rhos_acomp_')
 
-            ds_att = {'wavelength': waves_mu[band]*1000, 'band_name': band, 'f0': f0_b[band]/10.}
+            ds_att = {'wavelength': rsrd['wave_mu'][band]*1000, 'band_name': band, 'f0': f0_b[band]/10.}
             if gains != None:
                 ds_att['gain'] = gains[band]['gain']
                 ds_att['offset'] = gains[band]['offset']
