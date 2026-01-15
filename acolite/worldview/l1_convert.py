@@ -17,6 +17,7 @@
 ##                                replaced convert_atmospherically_corrected by worldview_convert_l2 setting
 ##                2025-04-07 (QV) change worldview_convert_l2 to convert_l2
 ##                2025-09-15 (QV) added rpc_use = False
+##                2026-01-15 (QV) changed to rsr_dict, added basic support for PAN processing
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
@@ -58,7 +59,6 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             return()
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
-    new = True
     ofile = None
     ofiles = []
 
@@ -76,6 +76,18 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
         else:
             meta = ac.worldview.metadata_parse(metafile)
         sensor = meta['sensor']
+
+        ## test if we have the pan bundle as well
+        pan_bundle = None
+        if bundle.endswith('MUL') & (not setu['worldview_skip_pan']):
+            if os.path.exists(bundle[0:-3] + 'PAN'):
+                pan_bundle = bundle[0:-3] + 'PAN'
+
+        pan_meta = None
+        if (pan_bundle is not None):
+            print('Found PAN bundle: {}'.format(pan_bundle))
+            pan_metafile = ac.worldview.bundle_test(pan_bundle)
+            pan_meta = ac.worldview.metadata_parse(pan_metafile)
 
         ## get sensor specific defaults
         setd = ac.acolite.settings.parse(sensor)
@@ -123,6 +135,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             print('Is this a multispectral WorldView image?')
             continue
         if swir_bundle is not None: band_names += [swir_meta['BAND_INFO'][b]['name'] for b in list(swir_meta['BAND_INFO'].keys())]
+        if pan_bundle is not None: band_names += [pan_meta['BAND_INFO'][b]['name'] for b in list(pan_meta['BAND_INFO'].keys())]
 
         ## get observation geometry
         raa = abs(float(meta['MEANSUNAZ']) - float(meta['MEANSATAZ']))
@@ -291,14 +304,25 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
 
             ## create warp_to dataset
             warp_to = ac.shared.projection_warp_to(dct, res_method = setu['warp_resampling_method'])
+            print('MS warp_to: ', warp_to)
 
             ## compute dimensions
-            print(dct['xdim'], dct['ydim'])
+            #print(dct['xdim'], dct['ydim'])
             dct['xdim'] = int(np.round((dct['xrange'][1]-dct['xrange'][0]) / dct['pixel_size'][0]))
             dct['ydim'] = int(np.round((dct['yrange'][1]-dct['yrange'][0]) / dct['pixel_size'][1]))
-            print(dct['xdim'], dct['ydim'])
+            #print(dct['xdim'], dct['ydim'])
+            #print(dct['xrange'], dct['yrange'])
 
-            print(dct['xrange'], dct['yrange'])
+            ## create pan version
+            if pan_bundle is not None:
+                dct_pan = {k:dct[k] for k in dct}
+                dct_pan['pixel_size'] = dct_pan['pixel_size'][0]/setu['worldview_pan_factor'], dct_pan['pixel_size'][1]/setu['worldview_pan_factor']
+                dct_pan['xdim'] = int(np.round((dct_pan['xrange'][1]-dct_pan['xrange'][0]) / dct_pan['pixel_size'][0]))
+                dct_pan['ydim'] = int(np.round((dct_pan['yrange'][1]-dct_pan['yrange'][0]) / dct_pan['pixel_size'][1]))
+                if 'sub' in dct_pan: pan_sub = dct_pan['sub']
+                global_dims_pan = dct_pan['ydim'], dct_pan['xdim']
+                warp_to_pan = ac.shared.projection_warp_to(dct_pan, res_method = setu['warp_resampling_method'])
+                print('PAN warp_to: ', warp_to_pan)
 
             ## these should match the global dims from metadata
             if setu['limit'] is None:
@@ -314,11 +338,9 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             gatts['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
 
         ## write results to output file
-        new = True
         gemo = ac.gem.gem(ofile, new = True)
         gemo.gatts = {k: gatts[k] for k in gatts}
         gemo.nc_projection = nc_projection
-        new = False
 
         ## write lat/lon
         if setu['output_geolocation']:
@@ -358,6 +380,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
         ## run through bands
         for b,band in enumerate(band_names):
             data_full = None
+            data_full_pan = None
 
             ## run through tiles in this bundle
             ntiles = len(meta['TILE_INFO'])
@@ -399,18 +422,38 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                             continue
                 ## end swir bundle
 
+                ## get tile from PAN bundle if detected
+                pan_file = None
+                if pan_bundle is not None:
+                    for tile_mdata_pan in pan_meta['TILE_INFO']:
+                        if tile in tile_mdata_pan['FILENAME']:
+                            pan_file = '{}/{}'.format(pan_bundle,tile_mdata_pan['FILENAME'])
+                        if not os.path.exists(pan_file):
+                            continue
+                    ## full resolution pan output
+                    if (setu['worldview_pan_output_full_resolution']):
+                        ofile_pan = '{}/{}_{}_pan.nc'.format(output, oname, gatts['acolite_file_type'])
+                        gemop = ac.gem.gem(ofile_pan, new = True)
+                ## end swir bundle
+
                 ## get band scaling factors cf
-                if 'SWIR' not in band:
-                    bt = [bt for bt in meta['BAND_INFO'] if meta['BAND_INFO'][bt]['name'] == band][0]
-                    d = ac.shared.read_band(file, idx=meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to, rpc_use = rpc_use)
-                    cf = float(meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
-                else:
+                if 'SWIR' in band:
                     if swir_file is None:
                         swir_file='{}'.format(file)
                         swir_meta = meta.copy()
                     bt = [bt for bt in swir_meta['BAND_INFO'] if swir_meta['BAND_INFO'][bt]['name'] == band][0]
                     d = ac.shared.read_band(swir_file, idx=swir_meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to, rpc_use = rpc_use)
                     cf = float(swir_meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(swir_meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
+                elif 'PAN' in band:
+                    bt = [bt for bt in pan_meta['BAND_INFO'] if pan_meta['BAND_INFO'][bt]['name'] == band][0]
+                    d = ac.shared.read_band(pan_file, idx=pan_meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to, rpc_use = rpc_use)
+                    cf = float(pan_meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(pan_meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
+                    if setu['worldview_pan_output_full_resolution']:
+                        dfull = ac.shared.read_band(pan_file, idx=pan_meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to_pan, rpc_use = rpc_use)
+                else:
+                    bt = [bt for bt in meta['BAND_INFO'] if meta['BAND_INFO'][bt]['name'] == band][0]
+                    d = ac.shared.read_band(file, idx=meta['BAND_INFO'][bt]['index'], sub = sub, warp_to = warp_to, rpc_use = rpc_use)
+                    cf = float(meta['BAND_INFO'][bt]['ABSCALFACTOR'])/float(meta['BAND_INFO'][bt]['EFFECTIVEBANDWIDTH'])
 
                 ## skip if one dimension is 0
                 if (d.shape[0] == 0) | (d.shape[1] == 0):
@@ -456,6 +499,11 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 d[nodata] = np.nan
 
                 ## make new data full array for the current band
+                #if band == 'PAN':
+                #    if data_full is None: data_full = np.zeros(global_dims_pan) + np.nan
+                #else:
+                #    if data_full is None: data_full = np.zeros(global_dims) + np.nan
+
                 if data_full is None: data_full = np.zeros(global_dims) + np.nan
 
                 ## add in data using offset if shape does not match
@@ -465,6 +513,19 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                     dsub = np.where(np.isnan(data_full))
                     data_full[dsub] = d[dsub]
                 d = None
+
+                ## add full res pan data
+                if (setu['worldview_pan_output_full_resolution']) & (band == 'PAN'):
+                    if (data_full_pan is None):
+                        data_full_pan = np.zeros(global_dims_pan) + np.nan
+                    ## add in data using offset if shape does not match
+                    if dfull.shape != data_full_pan.shape:
+                        data_full_pan[offset_pan[1]:offset_pan[1]+dfull.shape[0], offset_pan[0]:offset_pan[0]+dfull.shape[1]] = dfull
+                    else:
+                        dsub = np.where(np.isnan(data_full_pan))
+                        data_full_pan[dsub] = dfull[dsub]
+                    dfull = None
+
             if data_full is None: continue
 
             ## set up dataset attributes
@@ -477,11 +538,27 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 ds_att['offset'] = gains[band]['offset']
                 ds_att['gains_parameter'] = setu['gains_parameter']
 
+            #if band == 'PAN':
+            #    if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
+            #    gemop.write(ds, data_full, ds_att = ds_att)
+            #    if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
+            #    gemop.close()
+            #    ## resample to ms resolution
+
+
             ## write to netcdf file
             if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             gemo.write(ds, data_full, ds_att = ds_att)
             if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full.shape))
             data_full = None
+
+            ## write to pan netcdf file
+            if (setu['worldview_pan_output_full_resolution']) & (band == 'PAN'):
+                if verbosity > 1: print('{} - Converting bands: Writing {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full_pan.shape))
+                gemop.write(ds, data_full_pan, ds_att = ds_att)
+                gemop.close()
+                if verbosity > 1: print('{} - Converting bands: Wrote {} ({})'.format(datetime.datetime.now().isoformat()[0:19], ds, data_full_pan.shape))
+                data_full_pan = None
 
         gemo.close()
         if verbosity > 1:

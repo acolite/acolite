@@ -84,6 +84,11 @@ def metadata_parse(metafile):
             band_indices=[1,2,3,4,5,6,7,8]
             band_tag_names = ["BAND_C","BAND_B","BAND_G","BAND_Y","BAND_R","BAND_RE","BAND_N", "BAND_N2"]
 
+            ## add PAN band
+            band_names += ['PAN']
+            band_indices += [1]
+            band_tag_names += ['BAND_P']
+
         if metadata['SATID'] == 'QB02':
             metadata['satellite'] = 'QuickBird2'
             metadata['sensor'] = 'QuickBird2'
