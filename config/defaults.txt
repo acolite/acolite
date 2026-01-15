@@ -108,6 +108,9 @@ inputfile_swir=None
 worldview_reproject=False
 worldview_reproject_resolution=2
 worldview_reproject_method=nearest
+worldview_pan_factor=4
+worldview_pan_output_full_resolution=False
+worldview_skip_pan=False
 
 ## Planet options
 planet_store_sr=False
