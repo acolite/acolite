@@ -5,7 +5,8 @@
 ## last updates: 2021-05-31 (QV) added remote lut retrieval
 ##               2021-10-24 (QV) added pressures and get_remote as keyword to other functions
 ##               2021-10-25 (QV) test if the wind dimension is != 1 or missing
-##                2023-08-03 (QV) get lut url from ac.config
+##               2023-08-03 (QV) get lut url from ac.config
+##               2026-01-19 (QV) changed np.product to np.prod
 
 def reverse_lut(sensor, lutdw=None, par = 'romix',
                        pct = (1,60), nbins = 20, override = False,
@@ -88,7 +89,7 @@ def reverse_lut(sensor, lutdw=None, par = 'romix',
                     dims = [len(d) for d in dim]
                     luta = np.zeros(dims) + np.nan
                     ii = 0
-                    ni = np.product(dims[:-1])
+                    ni = np.prod(dims[:-1])
                     for pi, pressure in enumerate(pressures):
                         for ri, raa in enumerate(raas):
                             for vi, vza in enumerate(vzas):
