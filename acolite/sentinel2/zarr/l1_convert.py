@@ -50,12 +50,6 @@ def l1_convert(inputfile, output = None, settings = None,
         #if output is None: output = os.path.dirname(bundle)
         if verbosity > 1: print('Starting conversion of {}'.format(bundle))
 
-        # ## to remove :-)
-        # #ac.settings['user']['s2_target_res'] = 60
-        # for k in settings:
-        #     ac.settings['user'][k] = settings[k]
-        # ## end to remove
-
         t0 = time.time() ## track time
 
         ## track if we are dealing with local or remote dataset
@@ -98,9 +92,6 @@ def l1_convert(inputfile, output = None, settings = None,
                     else:
                         if verbosity > 0: print("Merging tiles without ROI limit, merging to all tiles extent")
                         dct_tiles = ac.sentinel2.zarr.multi_tile_extent(inputfile, dct = None, s2_target_res = setu['s2_target_res'])
-                        ## this does work now, right :-)
-                        #print('merge_tiles=True and merge_full_tiles=True not yet supported for zarr processing')
-                        #print(dct_tiles)
                 else:
                     extend_region = True
 
@@ -220,10 +211,6 @@ def l1_convert(inputfile, output = None, settings = None,
             gatts['{}_wave'.format(b)] = rsrd['wave_nm'][b]
             gatts['{}_name'.format(b)] = rsrd['wave_name'][b]
             gatts['{}_f0'.format(b)] = f0_b[b]
-
-        ## get scene projection and extent
-        ## done above
-        #dct = ac.sentinel2.projection(grmeta, s2_target_res=int(setu['s2_target_res']))
 
         ## full scene
         gatts['scene_xrange'] = dct['xrange']
@@ -763,16 +750,6 @@ def l1_convert(inputfile, output = None, settings = None,
                 gemoa.write(an, ret, replace_nan = True)
                 if verbosity > 1: print('Wrote {} {}'.format(an, ret.shape))
                 del interp_an, ret
-
-        # ## update attributes of aux file
-        # ## aux output file could be written here, or running through ofiles after the main loop
-        # if setu['s2_auxiliary_include'] & setu['s2_auxiliary_project']:
-        #     try:
-        #         gemoa.gatts = {k: gatts[k] for k in gatts}
-        #         gemoa.gatts_update()
-        #         gemoa.close()
-        #     except:
-        #         pass
 
         if verbosity > 1:
             print('Conversion took {:.1f} seconds'.format(time.time()-t0))
