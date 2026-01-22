@@ -21,6 +21,7 @@
 ##                2025-02-08 (QV) fixed for full tile merging
 ##                2025-03-19 (QV) added s3_product_type, added s3_product_type to oname
 ##                2026-01-12 (QV) check for extra directory level in SEN3
+##                2026-01-22 (QV) moved gains application
 
 def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
 
@@ -201,15 +202,6 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
                             data[ds][crop_out[bi][2]:crop_out[bi][3], crop_out[bi][0]:crop_out[bi][1]] = gem.data(ds, sub=sub)
                         if setu['verbosity'] > 2: print(ds, data[ds].shape)
 
-                        ## apply gains (if last tile)
-                        if (setu['gains']) & ((not setu['merge_tiles']) | (bi == nscenes-1)):
-                            cg = 1.0
-                            if len(setu['gains_toa']) == len_gains:
-                                gi = int(re.findall(r'\d+', ds)[0])-1
-                                cg = float(setu['gains_toa'][gi])
-                            if setu['verbosity'] > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
-                            data[ds]*=cg
-
                     elif setu['output_geolocation']:
                         data_ = gem.data(ds, sub=sub)
                         if data_shape is None: data_shape = data_.shape
@@ -228,6 +220,19 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         if (setu['merge_tiles']) & (bi < len(inputfile)-1):
             new = False
             continue
+
+        ## apply gains
+        if (setu['gains']):
+            if (len(setu['gains_toa']) == len_gains):
+                for ds in data:
+                    if not ds.endswith('_radiance'): continue
+                    gi = int(re.findall(r'\d+', ds)[0])-1
+                    cg = float(setu['gains_toa'][gi])
+                    if setu['verbosity'] > 2: print('Applying gain {:.5f} for {}'.format(cg, ds))
+                    data[ds] *= cg
+            else:
+                print('Not applying gains, as length gains_toa ({}) != length required gains ({})'.format(len(setu['gains_toa'], len_gains)))
+        ## end apply gains
 
         ## determine product level
         product_level = 'level1'
