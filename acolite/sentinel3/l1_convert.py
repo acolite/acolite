@@ -21,7 +21,7 @@
 ##                2025-02-08 (QV) fixed for full tile merging
 ##                2025-03-19 (QV) added s3_product_type, added s3_product_type to oname
 ##                2026-01-12 (QV) check for extra directory level in SEN3
-##                2026-01-22 (QV) moved gains application
+##                2026-01-22 (QV) moved gains application, fix for bundle merging subsetting
 
 def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
 
@@ -77,6 +77,10 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         else: ## unpack returns
             sub_merged, data_shape_merged, sort_bundles, crop_in, crop_out = ret
             inputfile = [inputfile[bi] for bi in sort_bundles]
+            if len(inputfile) == 1:
+                if setu['verbosity'] > 1: print('One scene covers ROI, setting merge_tiles=False.')
+                setu['merge_tiles'] = False
+                ac.settings['run']['merge_tiles'] = False
 
     ## start conversion
     new = True
@@ -354,7 +358,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
             di = meta['instrument_data']['detector_index']
         else:
             di = meta['instrument_data']['detector_index'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
-        print(di.shape)
+
         ## smile correction - from l2gen smile.c
         if (setu['smile_correction']) & (product_level == 'level1'):
             if setu['verbosity'] > 1: print('Running smile correction')
