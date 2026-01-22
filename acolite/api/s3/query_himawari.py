@@ -81,3 +81,8 @@ def query_himawari(start_date, end_date = None, local_directory = None, time_ran
             remote_files.append(file)
             if os.path.exists(local_file):
                 local_files.append(local_file)
+                
+    if download:
+        return(local_files)
+    else:
+        return(remote_files)
