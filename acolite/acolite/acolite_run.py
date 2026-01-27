@@ -14,6 +14,7 @@
 ##                2025-01-20 (QV) updated RGB output logic
 ##                2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-02 (QV) moved version printout up, fixed limit_buffer when limit is None
+##                2026-01-27 (QV) moved limit creation options to ac.shared.limit
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os, shutil, copy
@@ -68,112 +69,45 @@ def acolite_run(settings, inputfile=None, output=None):
     else:
         nscenes = len(ac.settings['run']['inputfile'])
 
+    ### limit settings below
+    ## first test polylakes
     if ac.settings['run']['polylakes']:
         ac.settings['run']['polygon'] = ac.shared.polylakes(ac.settings['run']['polylakes_database'])
         ac.settings['run']['polygon_limit'] = False
         ac.settings['run']['polygon_clip'] = True
 
-    ## check if polygon is a file or WKT
-    ## if WKT make new polygon file in output directory
-    ## new and old polygon inputs tracked here in user settings since WKT is provided by the user
-    if 'polygon' in ac.settings['run']:
-        if ac.settings['run']['polygon'] is not None:
-            ## is the given polygon a wkt?
-            if not os.path.exists(ac.settings['run']['polygon']):
-                try:
-                    polygon_new = ac.shared.polygon_from_wkt(ac.settings['run']['polygon'],
-                                     file = '{}/polygon_{}.json'.format(ac.settings['run']['output'], ac.settings['run']['runid']))
-                    ac.settings['run']['polygon_old'] = '{}'.format(ac.settings['run']['polygon'])
-                    ac.settings['run']['polygon'] = '{}'.format(polygon_new)
-                    ac.settings['run']['polygon_clip'] = True
-                except:
-                    if ac.settings['run']['verbosity'] > 1: print('Provided polygon is not a valid WKT polygon')
-                    if ac.settings['run']['verbosity'] > 1: print(ac.settings['run']['polygon'])
-                    ac.settings['run']['polygon'] = None
-                    pass
-
-            ## read the polygon file
-            if os.path.exists(ac.settings['run']['polygon']) & ac.settings['run']['polygon_limit']:
-                try:
-                    limit = ac.shared.polygon_limit(ac.settings['run']['polygon'])
-                    ac.settings['run']['limit'] = [l for l in limit]
-                    ac.settings['run']['polygon_clip'] = True
-                    if ac.settings['run']['verbosity'] > 1: print('Using limit from polygon envelope: {}'.format(', '.join(['{:}'.format(v) for v in limit])))
-                except:
-                    if ac.settings['run']['verbosity'] > 1: print('Failed to import polygon {}'.format(ac.settings['run']['polygon']))
-        else:
-            ac.settings['run']['polygon_clip'] = False
+    ## compute polygon limits
+    if ac.settings['run']['polygon'] is not None:
+        setv = ac.shared.limit.polygon_check(ac.settings['run']['polygon'], polygon_limit = ac.settings['run']['polygon_limit'],
+                                             verbosity = ac.settings['run']['verbosity'])
+        for k in setv: ## update keys
+            ac.settings['run'][k] = setv[k]
+            ac.settings['user'][k] = setv[k]
 
     ## create limit based on station_lon, station_lat, station_box
     if (ac.settings['run']['station_lon'] is not None) &\
        (ac.settings['run']['station_lat'] is not None) &\
        (ac.settings['run']['station_box_size'] is not None) &\
        (ac.settings['run']['limit'] is None):
-       site_lat = ac.settings['run']['station_lat']
-       site_lon = ac.settings['run']['station_lon']
-       box_size = ac.settings['run']['station_box_size']
-       print('Creating new limit for position {}N, {}E, box size {} {}'.format(site_lat, site_lon, box_size, ac.settings['run']['station_box_units']))
-       if ac.settings['run']['station_box_units'][0] in ['k', 'm']:
-           if ac.settings['run']['station_box_units'][0] == 'm': box_size /= 1000.
-           ## get approximate distance per degree lon/lat
-           dlon, dlat = ac.shared.distance_in_ll(site_lat)
-           if type(box_size) is list:
-               lat_off, lon_off = (box_size[0]/dlat)/2, (box_size[1]/dlon)/2
-           else:
-               lat_off, lon_off = (box_size/dlat)/2, (box_size/dlon)/2
-       elif ac.settings['run']['station_box_units'][0] in ['d']:
-            if type(box_size) is list:
-                lat_off, lon_off = box_size[0]/2, box_size[1]/2
-            else:
-                lat_off, lon_off = box_size/2, box_size/2
-       else:
-            print('station_box_units={} not configured'.format(ac.settings['run']['station_box_units']))
-            return
-       ## set new limit
-       ac.settings['run']['limit'] = [site_lat-lat_off, site_lon-lon_off, site_lat+lat_off, site_lon+lon_off]
-       print('New limit: {}'.format(', '.join(['{:}'.format(v) for v in ac.settings['run']['limit']])))
+        setv = ac.shared.limit.station_check(ac.settings['run']['station_lon'], ac.settings['run']['station_lat'],
+                                             ac.settings['run']['station_box_size'], ac.settings['run']['station_box_units'],
+                                             verbosity = ac.settings['run']['verbosity'])
+        for k in setv: ## update keys
+            ac.settings['run'][k] = setv[k]
+            ac.settings['user'][k] = setv[k]
     ## end create limit based on station information
 
-    ## check limit and add buffer if needed
-    if 'limit' in ac.settings['run']:
-        if ac.settings['run']['limit'] is not None:
-            if len(ac.settings['run']['limit']) != 4:
-                print('ROI limit should be four elements in decimal degrees: limit=S,W,N,E')
-                print('Provided in the settings:', ac.settings['run']['limit'])
-                return
-
-        ## add limit buffer
-        if ('limit_buffer' in ac.settings['run']) & (ac.settings['run']['limit'] is not None):
-            if (ac.settings['run']['limit_buffer'] is not None):
-                if ac.settings['run']['verbosity'] > 1: print('Applying limit buffer of {} {}'.format(ac.settings['run']['limit_buffer'], ac.settings['run']['limit_buffer_units']))
-                ac.settings['run']['limit_old'] = [l for l in ac.settings['run']['limit']]
-
-                if ac.settings['run']['limit_buffer_units'][0].lower() == 'd':
-                    limit_factor = 1.0, 1.0
-                elif ac.settings['run']['limit_buffer_units'][0].lower() in ['m','k']:
-                    mean_lat = (ac.settings['run']['limit'][0] + ac.settings['run']['limit'][2]) / 2.
-                    dlon, dlat = ac.shared.distance_in_ll(lat=mean_lat)
-                    limit_factor = 1/dlat, 1/dlon
-                    if ac.settings['run']['limit_buffer_units'][0].lower() == 'm':
-                        limit_factor = limit_factor[0]/1000, limit_factor[1]/1000
-                else:
-                    print('limit_buffer_units={} not configured'.format(ac.settings['run']['limit_buffer_units']))
-                    return
-
-                ## compute limit buffer
-                limit_buffer = ac.settings['run']['limit_buffer'] * limit_factor[0], \
-                               ac.settings['run']['limit_buffer'] * limit_factor[1]
-                ac.settings['run']['limit'] = [ac.settings['run']['limit_old'][0] - limit_buffer[0], \
-                                               ac.settings['run']['limit_old'][1] - limit_buffer[1], \
-                                               ac.settings['run']['limit_old'][2] + limit_buffer[0], \
-                                               ac.settings['run']['limit_old'][3] + limit_buffer[1]]
-                if ac.settings['run']['verbosity'] > 1:
-                    print('Old limit: {}'.format(', '.join(['{:}'.format(v) for v in ac.settings['run']['limit_old']])))
-                    print('New limit: {}'.format(', '.join(['{:}'.format(v) for v in ac.settings['run']['limit']])))
-        ## set new limits to user settings
-        for k in ['limit', 'limit_old']:
-            if k in ac.settings['run']: ac.settings['user'][k] = ac.settings['run'][k]
+    ## add buffer to limit if needed
+    if ac.settings['run']['limit'] is not None:
+        setv = ac.shared.limit.buffer(ac.settings['run']['limit'], ac.settings['run']['limit_buffer'],
+                                      ac.settings['run']['limit_buffer_units'],
+                                      verbosity = ac.settings['run']['verbosity'])
+        ## update keys
+        for k in setv: ## update keys
+            ac.settings['run'][k] = setv[k]
+            ac.settings['user'][k] = setv[k]
     ## end checking limit settings
+    ### limit settings above
 
     ## make list of lists to process, one list if merging tiles
     inputfile_list = ac.acolite.inputfile_test(ac.settings['run']['inputfile'])
