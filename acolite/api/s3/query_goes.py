@@ -2,14 +2,20 @@
 ## simple query and download function for GOES on AWS S3 storage
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-12-17
-## modifications:
+## modifications: 2026-01-28 (QV) added sza threshold option
 
 def query_goes(start_date, end_date = None, local_directory = None, time_range_sec = 600, download = False, override = False,
                satellite_index = 19, channels = ['M6C01', 'M6C02', 'M6C03', 'M6C04', 'M6C05', 'M6C06'],
+               max_sun_zenith_angle = 70, station_lon = None, station_lat = None,
                url_base = 's3://noaa-goes', product_base = 'ABI-L1b-Rad', scan_factor = 'C', verbosity = 0, ):
 
     import os, dateutil.parser, datetime
     import s3fs
+    import acolite as ac
+
+    ## compute sun zenith angles for location
+    compute_sun = (max_sun_zenith_angle is not None) &\
+                    (station_lon is not None) & (station_lat is not None)
 
     ## check scan factor
     scan_factors = ['C', 'F', 'M1', 'M2']
@@ -69,6 +75,12 @@ def query_goes(start_date, end_date = None, local_directory = None, time_range_s
                 h, m, s = sdate[7:9], sdate[9:11], sdate[11:13]
                 image_isodate = dt['isodate']+'T{}:{}:{}'.format(h,m,s)
                 image_dtime = dateutil.parser.parse(image_isodate)
+
+                ## compute sun position for this image and given location
+                if compute_sun:
+                    sun_angle = ac.shared.sun_position(image_dtime, float(station_lon), float(station_lat))['zenith']
+                    if sun_angle > float(max_sun_zenith_angle): continue ## sun too low
+
                 if (image_dtime < dt_start): continue ## continue if before start date
                 if (image_dtime > dt_end): continue ## continue if after end date
 

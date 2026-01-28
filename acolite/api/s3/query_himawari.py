@@ -2,14 +2,20 @@
 ## simple query and download function for Himawari on AWS S3 storage
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-01-20
-## modifications:
+## modifications: 2026-01-28 (QV) added sza threshold option
 
 def query_himawari(start_date, end_date = None, local_directory = None, time_range_sec = 600, download = False, override = False,
                    satellite_index = 9, channels = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06'],
+                   max_sun_zenith_angle = 70, station_lon = None, station_lat = None,
                    url_base = 's3://noaa-himawari', product_base = 'AHI-L1b', scan_factor = 'FLDK', ):
 
     import os, dateutil.parser, datetime
     import s3fs
+    import acolite as ac
+
+    ## compute sun zenith angles for location
+    compute_sun = (max_sun_zenith_angle is not None) &\
+                    (station_lon is not None) & (station_lat is not None)
 
     ## check scan factor
     scan_factors = ['FLDK', 'Japan', 'Target']
@@ -69,6 +75,12 @@ def query_himawari(start_date, end_date = None, local_directory = None, time_ran
                 # ## parse image date date
                 image_isodate = sp[2][0:4] + '-' + sp[2][4:6] + '-' + sp[2][6:8] + 'T' + sp[3][0:2] + ':' + sp[3][2:4] + ':' + '00'
                 image_dtime = dateutil.parser.parse(image_isodate)
+
+                ## compute sun position for this image and given location
+                if compute_sun:
+                    sun_angle = ac.shared.sun_position(image_dtime, float(station_lon), float(station_lat))['zenith']
+                    if sun_angle > float(max_sun_zenith_angle): continue ## sun too low
+
                 if (image_dtime < dt_start): continue ## continue if before start date
                 if (image_dtime > dt_end): continue ## continue if after end date
 
@@ -81,7 +93,7 @@ def query_himawari(start_date, end_date = None, local_directory = None, time_ran
             remote_files.append(file)
             if os.path.exists(local_file):
                 local_files.append(local_file)
-                
+
     if download:
         return(local_files)
     else:
