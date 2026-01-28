@@ -45,7 +45,7 @@ def query_himawari(start_date, end_date = None, local_directory = None, time_ran
 
     if local_directory is None:
         local_directory = os.getcwd()
-        print('Warning: DOwnloading to current directory: {}'.format(local_directory))
+        print('Warning: Downloading to current directory: {}'.format(local_directory))
 
     ## set up anonymous S3 file system
     fs = s3fs.S3FileSystem(anon = True)
