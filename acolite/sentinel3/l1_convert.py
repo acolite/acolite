@@ -546,7 +546,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
                 ds_att  = {'wavelength':float(wave)}
 
                 ## write data
-                if s3_product_collection >= '004':
+                if s3_product_collection in ['004']:
                     factor = np.pi
                 else:
                     factor = 1.0
