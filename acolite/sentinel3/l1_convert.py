@@ -123,16 +123,19 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
             print('Sensor {} from file {} not configured.'.format(sensor, bundle))
             continue
 
-        ## track if RR or FR, track collection
+        ## track if RR or FR
         s3_product_type = None
-        s3_product_collection = None
         for k in ['sentinel3:productType','envisat:productType']:
             if k in smeta:
                 if 'FR' in smeta[k]:
                     s3_product_type = 'FR'
                 elif 'RR' in smeta[k]:
                     s3_product_type = 'RR'
-                ## track collection ID
+        ## track collection
+        s3_product_collection = None
+        for k in ['sentinel3:productName','envisat:productName']:
+            if k in smeta:
+                print(k, smeta[k])
                 colli = smeta[k].find('.SEN3')
                 s3_product_collection = smeta[k][colli-3:colli]
                 break
@@ -546,7 +549,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
                 ds_att  = {'wavelength':float(wave)}
 
                 ## write data
-                if s3_product_collection in ['004']:
+                if s3_product_collection >= '004':
                     factor = np.pi
                 else:
                     factor = 1.0
