@@ -133,7 +133,7 @@ def warp_and_merge(tiles, output = None, limit = None,
                              (dct_limit['yrange'][0],dct_limit['yrange'][1],\
                               dct_limit['yrange'][0],dct_limit['yrange'][1]), inverse=True)
         pos_limit = [min(pos[1]), min(pos[0]), max(pos[1]), max(pos[0])]
-        dem_files = ac.dem.copernicus_dem_find(pos_limit)
+        dem_files = ac.dem.copernicus.copernicus_dem_find(pos_limit)
 
         if len(dem_files) == 1:
             rpc_dem = dem_files[0]

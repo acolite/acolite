@@ -236,7 +236,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
             ## set up RPC DEM
             rpc_dem = None
-            if setu['reproject_inputfile_dem']: rpc_dem = ac.dem.copernicus_dem_rpc(dct, output=output)
+            if setu['reproject_inputfile_dem']: rpc_dem = ac.dem.copernicus.copernicus_dem_rpc(dct, output=output)
 
         ## convert using "old" method
         ## run through tiles and subset output data

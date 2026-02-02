@@ -94,7 +94,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 dct, nc_projection, warp_to = ac.shared.projection_setup(limit, resolution, res_method = 'bilinear', utm = True, epsg = None, add_half_pixel=False)
                 print(dct, warp_to)
                 if setu['reproject_inputfile_dem']:
-                    rpc_dem = ac.dem.copernicus_dem_rpc(dct, output = output)
+                    rpc_dem = ac.dem.copernicus.copernicus_dem_rpc(dct, output = output)
                     print(rpc_dem)
             elif (setu['limit'] is not None):
                 print('Processing of a subset requested for LEVEL1A data without reprojection, which is not supported.')
