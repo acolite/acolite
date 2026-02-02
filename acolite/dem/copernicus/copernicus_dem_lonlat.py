@@ -11,6 +11,7 @@
 ## function written by Quinten Vanhellemont, RBINS
 ## 2022-07-06
 ## modifications: 2022-07-30 (QV) added dem_tile check
+##                2026-02-02 (QV) moved from dem to dem.copernicus
 
 def copernicus_dem_lonlat(lon1, lat1, sea_level=0, source='copernicus30', nearest=False, dem_min = -500.0):
 
@@ -20,7 +21,7 @@ def copernicus_dem_lonlat(lon1, lat1, sea_level=0, source='copernicus30', neares
 
     ## get limit based on lat lon and find and download DEM tiles
     limit = np.nanmin(lat1), np.nanmin(lon1), np.nanmax(lat1), np.nanmax(lon1)
-    dem_tiles = ac.dem.copernicus_dem_find(limit, source = source)
+    dem_tiles = ac.dem.copernicus.copernicus_dem_find(limit, source = source)
 
     dem = None
     ## run through dem files and reproject data to target lat,lon

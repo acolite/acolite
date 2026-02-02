@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-09-12
 ## modifications: 2025-03-31 (QV) added encoding
+##                2026-02-02 (QV) moved from dem to dem.copernicus
 
 def copernicus_dem_filelist(publicDemURLs = 'https://prism-dem-open.copernicus.eu/pd-desk-open-access/publicDemURLs'):
 

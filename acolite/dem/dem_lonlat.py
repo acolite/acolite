@@ -5,7 +5,8 @@
 ## 2022-01-09
 ## modifications: 2022-07-06 (QV) added Copernicus DEM
 ##                2022-07-07 (QV) added SRTM1 DEM
-##                2026-07-02 (QV) added SRTMGL3S, moved srtm to dem.srtm
+##                2026-07-02 (QV) added SRTMGL3S
+##                                moved srtm to dem.srtm, copernicus to dem.copernicus
 
 def dem_lonlat(lon, lat, source='copernicus30', default='copernicus30'):
     import acolite as ac
@@ -35,7 +36,7 @@ def dem_lonlat(lon, lat, source='copernicus30', default='copernicus30'):
     if source in ['copernicus30', 'copernicus90',
                           'COP-DEM_GLO-30-DGED__2021_1', 'COP-DEM_GLO-30-DGED__2022_1',
                           'COP-DEM_GLO-90-DGED__2021_1', 'COP-DEM_GLO-90-DGED__2022_1']:
-        dem = ac.dem.copernicus_dem_lonlat(lon, lat, source=source)
+        dem = ac.dem.copernicus.copernicus_dem_lonlat(lon, lat, source=source)
 
     if dem is not None:
         if dem.shape == (1,): dem = dem[0]

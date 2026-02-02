@@ -4,6 +4,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-09-22
 ## modifications: 2022-12-30 (QV) update to use gdal_merge import
+##                2026-02-02 (QV) moved from dem to dem.copernicus
 
 def copernicus_dem_rpc(dct_limit, output=None):
     import acolite as ac
@@ -21,7 +22,7 @@ def copernicus_dem_rpc(dct_limit, output=None):
                          (dct_limit['yrange'][0],dct_limit['yrange'][1],\
                           dct_limit['yrange'][0],dct_limit['yrange'][1]), inverse=True)
     pos_limit = [min(pos[1]), min(pos[0]), max(pos[1]), max(pos[0])]
-    dem_files = ac.dem.copernicus_dem_find(pos_limit)
+    dem_files = ac.dem.copernicus.copernicus_dem_find(pos_limit)
 
     if len(dem_files) == 1:
         rpc_dem = dem_files[0]

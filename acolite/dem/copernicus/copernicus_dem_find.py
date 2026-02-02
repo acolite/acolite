@@ -2,6 +2,7 @@
 ## finds Copernicus DEM TIFs or COGs for given limit
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-07-05
+## modifications: 2026-02-02 (QV) moved from dem to dem.copernicus
 
 def copernicus_dem_find(limit, source = 'copernicus30'):
     import os
@@ -23,7 +24,7 @@ def copernicus_dem_find(limit, source = 'copernicus30'):
     dem_tiles = []
     for lon in [dem_limit[1] + i for i in range(nrow)]:
         for lat in [dem_limit[0] + j for j in range(ncol)]:
-            ret = ac.dem.copernicus_dem_download(lon, lat, source)
+            ret = ac.dem.copernicus.copernicus_dem_download(lon, lat, source)
             if ret is None: continue
             dem_tiles.append(ret)
 

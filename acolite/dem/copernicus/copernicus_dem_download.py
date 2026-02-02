@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-07-05
 ## modifications: 2023-09-12 (QV) added new Copernicus PRISM download options
+##                2026-02-02 (QV) moved from dem to dem.copernicus
 
 def copernicus_dem_download(lon, lat, source = 'copernicus30'):
     import os, math, tarfile
@@ -63,7 +64,7 @@ def copernicus_dem_download(lon, lat, source = 'copernicus30'):
             ac.shared.download_file(download_url, tilelist)
         if (server == 'copernicus'):
             print('Getting Copernicus DEM file lists from PRISM. This can take a few minutes.')
-            ac.dem.copernicus_dem_filelist()
+            ac.dem.copernicus.copernicus_dem_filelist()
 
     ## read tiles
     tiles = ac.acolite.settings.read_list(tilelist)
