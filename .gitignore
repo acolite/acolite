@@ -27,6 +27,7 @@ data/GED/AG100.003
 data/GED/AG100.003_h5
 data/SRTM/SRTMGL1/
 data/SRTM/SRTMGL3/
+data/SRTM/SRTMGL3S/
 
 # Algorithm development files
 data/Shared/Algorithms/P3QAA/*/
