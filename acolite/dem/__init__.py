@@ -1,7 +1,3 @@
-from .srtm15plus import srtm15plus
-from .srtm15plus_reproject import srtm15plus_reproject
-from .srtm15plus_lonlat import srtm15plus_lonlat
-
 from .dem_lonlat import dem_lonlat
 
 from .copernicus_dem_download import copernicus_dem_download
@@ -14,3 +10,4 @@ from .hillshade_nc import hillshade_nc
 from .emodnet_bathymetry import emodnet_bathymetry
 
 from . import srtm
+from . import srtm15plus

@@ -3,6 +3,7 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2022-01-07
 ## modifications: 2022-01-09 (QV) renamed to reproject
+##                2026-02-02 (QV) moved to srtm15plus.srtm15plus_reproject
 
 def srtm15plus_reproject(dct = None, gatts = None, sea_level = 0):
     import os

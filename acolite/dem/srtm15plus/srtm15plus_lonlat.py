@@ -6,7 +6,7 @@
 ##
 ## function written by Quinten Vanhellemont, RBINS
 ## 2022-01-09
-## modifications:
+## modifications: 2026-02-02 (QV) moved to srtm15plus.srtm15plus_lonlat
 
 def srtm15plus_lonlat(lon1, lat1, path=None, sea_level=0):
 
@@ -20,7 +20,7 @@ def srtm15plus_lonlat(lon1, lat1, path=None, sea_level=0):
     from pyresample import geometry
 
     if path is None:
-        file = ac.dem.srtm15plus(path=None \
+        file = ac.dem.srtm15plus.srtm15plus(path=None \
                                     if 'srtm15plus_path' not in ac.config \
                                     else ac.config['srtm15plus_path'])
     else:

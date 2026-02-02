@@ -7,16 +7,17 @@
 ## function written by Quinten Vanhellemont, RBINS
 ## 2022-01-09
 ## modifications: 2024-02-29 (QV) added external dir config
+##                2026-02-02 (QV) moved to srtm15plus.srtm15plus, updated to V2.7
 
 def srtm15plus(path=None):
     import acolite as ac
     import os
 
-    url = 'https://topex.ucsd.edu/pub/srtm15_plus/SRTM15_V2.3.nc'
+    url = 'https://topex.ucsd.edu/pub/srtm15_plus/SRTM15_V2.7.nc'
     if path is not None:
         local_file = path
     else:
-        local_file = '{}/{}'.format(ac.config['external_dir'], 'SRTM15_V2.3.nc')
+        local_file = '{}/{}'.format(ac.config['external_dir'], 'SRTM15_V2.7.nc')
     local_dir = os.path.dirname(local_file)
 
     ## download/extract

@@ -28,7 +28,7 @@ def dem_lonlat(lon, lat, source='copernicus30', default='copernicus30'):
         if source.lower() in ['srtm', 'srtmgl1', 'srtmgl3', 'srtmgl3s']:
             dem = ac.dem.srtm.hgt_lonlat(lon, lat, source = source)
         elif source.lower() == 'srtm15plus':
-            dem = ac.dem.srtm15plus_lonlat(lon, lat)
+            dem = ac.dem.srtm15plus.srtm15plus_lonlat(lon, lat)
         else:
             print('dem_source={} not configured.'.format(source))
 
