@@ -5,6 +5,7 @@
 ## modifications: 2022-01-01 (QV) check if retrieved zipfile is valid
 ##                2022-07-06 (QV) check if file exists before deleting
 ##                2022-07-07 (QV) added SRTM1 DEM
+##                2026-02-02 (QV) moved from dem.hgt_download - this function is now obsolete?
 
 def hgt_download(tile, url_base, hgt_dir = None, override = False):
     import zipfile, os

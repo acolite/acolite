@@ -5,6 +5,7 @@
 ##                2019-04-24 (QV) added support for zip files
 ##                2021-04-07 (QV) changed numpy import
 ##                2022-07-07 (QV) added SRTM1 DEM
+##                2026-02-02 (QV) moved from dem.hgt_read
 
 def hgt_read(file):
     import struct

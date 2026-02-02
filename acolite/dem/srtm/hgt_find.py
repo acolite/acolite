@@ -6,8 +6,9 @@
 ##                2021-04-07 (QV) changed numpy import
 ##                2021-04-21 (QV) added download
 ##                2022-07-07 (QV) added SRTM1 DEM
+##                2026-02-02 (QV) moved from dem.hgt_find, changed download function
 
-def hgt_find(limit, required=False, hgt_dir=None, hgt_url = None):
+def hgt_find(limit, required = False, hgt_dir = None):
     import os
     import numpy as np
     import acolite as ac
@@ -20,7 +21,8 @@ def hgt_find(limit, required=False, hgt_dir=None, hgt_url = None):
         for line in f.readlines():
             tiles.append(line.strip())
 
-    hgt_ext = os.path.basename(hgt_url)[2:]
+    #hgt_ext = os.path.basename(hgt_url)[2:]
+    hgt_ext = '.zip'
     hgt_limit = [int(np.floor(limit[0])),
                  int(np.floor(limit[1])),
                  int(np.ceil(limit[2])),
@@ -44,16 +46,18 @@ def hgt_find(limit, required=False, hgt_dir=None, hgt_url = None):
             lon_pf = "W" if lon < 0 else "E"
 
             hgt_file = '{}{}{}{}'.format(lat_pf,str(abs(lat)).zfill(2),lon_pf,str(abs(lon)).zfill(3))
-            if '{}.{}'.format(hgt_file, source) not in tiles: continue
-            hgt_required.append(hgt_file)
+            hgt_granule = '{}.{}'.format(hgt_file, source)
+            if hgt_granule not in tiles: continue
+            #hgt_required.append(hgt_file)
+            hgt_required.append(hgt_granule + '.hgt')
 
     hgt_files = []
-
-    for hgt_file in hgt_required:
-        hgt_path = '{}/{}{}'.format(hgt_dir, hgt_file, hgt_ext)
+    for hgt_granule in hgt_required:
+        hgt_path = '{}/{}{}'.format(hgt_dir, hgt_granule, hgt_ext)
         ## try downloading if we don't have the tile
         ## note that some tiles do not exist
-        if not os.path.exists(hgt_path): ac.dem.hgt_download(hgt_file, hgt_url, hgt_dir=hgt_dir)
+        #if not os.path.exists(hgt_path): ac.dem.hgt_download(hgt_file, hgt_url, hgt_dir=hgt_dir)
+        if not os.path.exists(hgt_path): ac.dem.srtm.hgt_download_earthdata(hgt_granule, output = hgt_dir)
 
         if os.path.exists(hgt_path): hgt_files.append(hgt_path)
         else:

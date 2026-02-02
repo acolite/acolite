@@ -5,6 +5,7 @@
 ## last update: 2017-07-18 (QV) added grid keyword
 ##                2021-04-07 (QV) changed numpy import
 ##                2022-07-07 (QV) added SRTM1 DEM
+##                2026-02-02 (QV) moved from dem.hgt_geolocation
 
 def hgt_geolocation(file, grid=True):
     import os
