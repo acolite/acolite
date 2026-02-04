@@ -77,6 +77,7 @@ from .rsr_hyper import *
 from .interp2d import *
 from .derivative import *
 from .plane_fit import *
+from .stats import *
 
 from .polylakes import *
 
