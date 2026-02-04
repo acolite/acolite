@@ -315,29 +315,30 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         uoz = None
         uwv = None
         pressure = None
-        if (setu['use_supplied_ancillary']) & (not setu['ancillary_data']):
-            ## convert ozone from kg.m-2 to cm.atm
-            setu['uoz_default'] = np.nanmean(tpg['total_ozone'])/0.02141419
-            ## convert water from kg.m-2 to g.cm-2
-            setu['uwv_default'] = np.nanmean(tpg['total_columnar_water_vapour'])/10
-            setu['pressure'] = np.nanmean(tpg['sea_level_pressure'])
-        else:
-            if setu['ancillary_data']:
-                print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(isodate, clon, clat))
-                anc = ac.ac.ancillary.get(dtime, clon, clat, verbosity=setu['verbosity'])
-                ## overwrite the defaults
-                if ('uoz' in anc): setu['uoz_default'] = anc['uoz']
-                if ('uwv' in anc): setu['uwv_default'] = anc['uwv']
-                if ('wind' in anc) & (setu['wind'] is None): setu['wind'] = anc['wind']
-                if ('pressure' in anc) & (setu['pressure'] == setu['pressure_default']): setu['pressure'] = anc['pressure']
+        if (setu['smile_correction']) & (product_level == 'level1'): ## only needed for level1 processing
+            if (setu['use_supplied_ancillary']) & (not setu['ancillary_data']):
+                ## convert ozone from kg.m-2 to cm.atm
+                setu['uoz_default'] = np.nanmean(tpg['total_ozone'])/0.02141419
+                ## convert water from kg.m-2 to g.cm-2
+                setu['uwv_default'] = np.nanmean(tpg['total_columnar_water_vapour'])/10
+                setu['pressure'] = np.nanmean(tpg['sea_level_pressure'])
+            else:
+                if setu['ancillary_data']:
+                    print('Getting ancillary data for {} {:.3f}E {:.3f}N'.format(isodate, clon, clat))
+                    anc = ac.ac.ancillary.get(dtime, clon, clat, verbosity=setu['verbosity'])
+                    ## overwrite the defaults
+                    if ('uoz' in anc): setu['uoz_default'] = anc['uoz']
+                    if ('uwv' in anc): setu['uwv_default'] = anc['uwv']
+                    if ('wind' in anc) & (setu['wind'] is None): setu['wind'] = anc['wind']
+                    if ('pressure' in anc) & (setu['pressure'] == setu['pressure_default']): setu['pressure'] = anc['pressure']
 
-        if uoz is None: uoz = setu['uoz_default']
-        if uwv is None: uwv = setu['uwv_default']
-        if pressure is None: pressure = setu['pressure']
-        print('current uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(uoz, uwv, pressure))
+            if uoz is None: uoz = setu['uoz_default']
+            if uwv is None: uwv = setu['uwv_default']
+            if pressure is None: pressure = setu['pressure']
+            print('current uoz: {:.2f} uwv: {:.2f} pressure: {:.2f}'.format(uoz, uwv, pressure))
 
-        ## for smile correction
-        ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
+            ## for smile correction
+            ttg = ac.ac.gas_transmittance(sza, vza, uoz=uoz, uwv=uwv, sensor=sensor)
 
         ## get per pixel detector index
         if (setu['merge_tiles']):

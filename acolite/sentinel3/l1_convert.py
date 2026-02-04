@@ -332,7 +332,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         uoz = None
         uwv = None
         pressure = None
-        if (product_level == 'level1'): ## only needed for level1 processing
+        if (setu['smile_correction']) & (product_level == 'level1'): ## only needed for level1 processing
             if (setu['use_supplied_ancillary']) & (not setu['ancillary_data']):
                 ## convert ozone from kg.m-2 to cm.atm
                 setu['uoz_default'] = np.nanmean(tpg['total_ozone'])/0.02141419
