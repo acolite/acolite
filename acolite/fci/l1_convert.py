@@ -7,6 +7,7 @@
 ## modifications: 2024-10-18 (QV) initial development
 ##                2025-05-12 (QV) added geolocation/geometry, radiance conversion and subsetting
 ##                2025-05-13 (QV) converted to l1_convert function
+##                2026-02-05 (QV) changed column and row ranges for different ssd
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -213,9 +214,18 @@ def l1_convert(inputfile, output = None, settings = None):
                 band = band_names[ds]
                 ds_att = {'wavelength':rsrd['wave_nm'][band]}
 
+                ## adapt row and column ranges to the current band
+                ## needed to support processing with ssd != 1 km
+                if factor != 1:
+                    column_range_ = [int(column_range[0]*factor), int(column_range[1]*factor)]
+                    row_range_ = [int(row_range[0]*factor), int(row_range[1]*factor)]
+                else:
+                    column_range_ = [column_range[0], column_range[1]]
+                    row_range_ = [row_range[0], row_range[1]]
+
                 ## read radiance
                 print('Reading radiance for {} {}'.format(dtp, ds))
-                data, irr = ac.fci.read_tiles(fci_files, dtp, ds, column_range = column_range, row_range = row_range)
+                data, irr = ac.fci.read_tiles(fci_files, dtp, ds, column_range = column_range_, row_range = row_range_)
                 band_irr = irr * 1.0
 
                 if factor != 1:
@@ -227,7 +237,6 @@ def l1_convert(inputfile, output = None, settings = None):
                 #else:
                 #    band_irr = f0d[band]
                 ds_att['band_irr'] = band_irr
-                print(band, band_irr)
 
                 if setu['output_lt']:
                     ds = 'Lt_{}'.format(rsrd['wave_name'][band])
