@@ -699,7 +699,7 @@ def radcor(ncf, settings = None):
             bands[b]['radcor_use_band'] = True
             bands[b]['tsdsf_use_band'] = True
             if bands[b]['tt_gas'] < setu['min_tgas_rho']: bands[b]['radcor_use_band'] = False
-            if bands[b]['tt_gas'] < setu['min_tgas_aot']: bands[b]['radcor_use_band'] = False
+            if bands[b]['tt_gas'] < setu['min_tgas_aot']: bands[b]['tsdsf_use_band'] = False
             if (setu['radcor_skip_pan']) & ('OLI' in sensor) & (b == '8'): bands[b]['radcor_use_band'] = False
             if (bands[b]['wavelength'] < setu['tsdsf_wave_range'][0]): bands[b]['tsdsf_use_band'] = False
             if (bands[b]['wavelength'] > setu['tsdsf_wave_range'][1]): bands[b]['tsdsf_use_band'] = False
