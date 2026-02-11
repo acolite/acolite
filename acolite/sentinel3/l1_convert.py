@@ -329,6 +329,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         clon = np.nanmean(tpg['longitude'])
 
         ## compute gas transmittance
+        ttg = None
         uoz = None
         uwv = None
         pressure = None
@@ -522,7 +523,8 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
                 dname = dnames[iw]
 
                 ds_att  = {'wavelength':float(wave)}
-                for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
+                if ttg is not None:
+                    for key in ttg: ds_att[key]=ttg[key][bnames[iw]]
 
                 ## write toa radiance
                 if setu['output_lt']:
