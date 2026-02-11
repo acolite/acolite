@@ -5,10 +5,11 @@
 ## 2025-11-19
 ## modifications: 2025-12-16 (QV) added dataset keyword, moved wavelengths and rgb range to keywords
 ##                2026-01-15 (QV) added export_netcdf option, added to acolite.masking
+##                2026-02-11 (QV) added masks as keyword
 
 def ocm(ncf, output = None, plot_rgb = True, plot_mask = False, plot_rgb_mask = True,
                   rgb_range = [0, 0.15], rgb_default = [665, 560, 490], wave_ref = [665, 560, 885],
-                  fill_nan = True, fill_value = 0, dataset = 'rhot',
+                  fill_nan = True, fill_value = 0, dataset = 'rhot', masks = None,
                   export_maps = False, export_netcdf = False, return_mask = True):
     import os
     import acolite as ac
@@ -100,9 +101,10 @@ def ocm(ncf, output = None, plot_rgb = True, plot_mask = False, plot_rgb_mask = 
             print('Wrote RGB to {}'.format(rgb_out))
 
         ## colour masks
-        masks = {1: {'name': 'Thick Cloud', 'color': 'red'},
-                 2: {'name': 'Thin Cloud', 'color': 'orange'},
-                 3: {'name': 'Cloud Shadow', 'color': 'yellow'}}
+        if masks is None:
+            masks = {1: {'name': 'Thick Cloud', 'color': 'red'},
+                     2: {'name': 'Thin Cloud', 'color': 'orange'},
+                     3: {'name': 'Cloud Shadow', 'color': 'yellow'}}
 
         ## make mask figure
         if plot_mask:
