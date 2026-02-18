@@ -4,11 +4,13 @@
 ## 2025-11-06
 ## modifications: 2025-11-17 (QV) added tile merging
 ##                2026-01-14 (QV) changed AUX interpolation and integrated to sentinel2.zarr
+##                2026-02-18 (QV) added plane_fit_geom as keyword - but don't use it!
 
 def l1_convert(inputfile, output = None, settings = None,
                 check_sensor = True,
                 check_time = True,
-                max_merge_time = 600, # seconds
+                max_merge_time = 600, # seconds,
+                plane_fit_geom = False,
                 ):
 
     import sys, os, glob, dateutil.parser, time
@@ -468,7 +470,7 @@ def l1_convert(inputfile, output = None, settings = None,
                     mean_vza = np.zeros(band_x_mesh.shape) + np.nan
                     mean_vaa = np.zeros(band_x_mesh.shape) + np.nan
 
-                    if False:
+                    if plane_fit_geom:
                         ## plane fitting
                         ## run through detectors
                         for di, det_name in enumerate(detectors):
@@ -564,7 +566,7 @@ def l1_convert(inputfile, output = None, settings = None,
                     band_vza = np.zeros(band_x_mesh.shape) + np.nan
                     band_vaa = np.zeros(band_x_mesh.shape) + np.nan
 
-                    if False:
+                    if plane_fit_geom:
                         ## plane fit
                         ## run through detectors
                         for di, det_name in enumerate(detectors):
