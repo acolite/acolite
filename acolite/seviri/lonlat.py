@@ -10,6 +10,7 @@
 ##                2024-10-21 (QV) added column and line start and end
 ##                2025-05-13 (QV) renamed sensor keyword to instrument
 ##                2025-05-19 (QV) added scanning angle base factor, added Himawari/AHI support
+##                2026-02-23 (QV) add one pixel to column and line indexes
 
 def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
             column_start = 0, column_end = None, line_start = 0, line_end = None):
@@ -110,7 +111,7 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
         line_range = np.arange(line_start, nl)
     else:
         line_range = np.arange(line_start, line_end)
-    c, l = np.meshgrid(column_range, line_range)
+    c, l = np.meshgrid(column_range + 1, line_range + 1) ## add one to the column and line ranges
 
     ## compute scanning angle
     x = (sa_factor * (c - coff) / cfac).astype(np.float32)
