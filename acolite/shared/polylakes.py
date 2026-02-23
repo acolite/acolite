@@ -14,21 +14,34 @@
 ## modifications: 2022-01-01 (QV) renamed from worldlakes, added hydrolakes
 ##                2024-02-29 (QV) added external dir config
 ##                                added gshhg (L1 for land/water mask)
+##                2026-02-23 (QV) added ne datasets, print warning for worldlakes
 
-def polylakes(database = 'worldlakes', remove_zip = False):
+def polylakes(database = 'hydrolakes', remove_zip = False):
     import acolite as ac
     import os, zipfile
 
-    if database.lower() not in ['worldlakes', 'hydrolakes', 'gshhg']:
-        print('Polylake database {} not recognised, using worldlakes.'.format(database))
-        database = 'worldlakes'
+    if database.lower() not in ['ne_10m_lakes', 'ne_110m_lakes', 'worldlakes', 'hydrolakes', 'gshhg']:
+        print('Polylake database {} not recognised, using worldwaterbodies.'.format(database))
+        database = 'hydrolakes'
 
     ## local worldlakes files
-    if database.lower() == 'worldlakes':
+    if database.lower() == 'worldlakes': ## does no longer exist 2026-02-23
+        print('Warning: worldlakes dataset no longer available from ESRI')
+        print('A local copy should still work, otherwise use hydrolakes.')
         url = 'https://opendata.arcgis.com/api/v3/datasets/0abb136c398942e080f736c8eb09f5c4_0/downloads/data?format=shp&spatialRefId=4326'
         local_zip = '{}/{}'.format(ac.config['external_dir'], 'World_Lakes-shp.zip')
         local_file = '{}/{}'.format(ac.config['external_dir'], 'World_Lakes-shp/World_Lakes.shp')
         local_dir = '{}/{}'.format(ac.config['external_dir'], 'World_Lakes-shp')
+    elif database.lower() == 'ne_10m_lakes':
+        url = 'https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_lakes.zip'
+        local_zip = '{}/{}'.format(ac.config['external_dir'], 'ne_10m_lakes.zip')
+        local_file = '{}/{}'.format(ac.config['external_dir'], 'ne_10m_lakes/ne_10m_lakes.shp')
+        local_dir = '{}/{}'.format(ac.config['external_dir'], 'ne_10m_lakes')
+    elif database.lower() == 'ne_110m_lakes':
+        url = 'https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_lakes.zip'
+        local_zip = '{}/{}'.format(ac.config['external_dir'], 'ne_110m_lakes.zip')
+        local_file = '{}/{}'.format(ac.config['external_dir'], 'ne_110m_lakes/ne_110m_lakes.shp')
+        local_dir = '{}/{}'.format(ac.config['external_dir'], 'ne_110m_lakes')
     elif database.lower() == 'hydrolakes':
         url = 'https://97dc600d3ccc765f840c-d5a4231de41cd7a15e06ac00b0bcc552.ssl.cf5.rackcdn.com/HydroLAKES_polys_v10_shp.zip'
         local_zip = '{}/{}'.format(ac.config['external_dir'], 'HydroLAKES_polys_v10_shp.zip')
@@ -48,7 +61,7 @@ def polylakes(database = 'worldlakes', remove_zip = False):
             ret = ac.shared.download_file(url, local_zip)
 
         ## extract
-        if os.path.exists(local_zip):
+        if (not os.path.exists(local_file)) & os.path.exists(local_zip):
             print('Extracting {}'.format(local_zip))
             with zipfile.ZipFile(local_zip, 'r') as z:
                 z.extractall(local_dir)

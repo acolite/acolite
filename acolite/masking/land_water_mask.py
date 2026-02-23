@@ -11,7 +11,7 @@ def land_water_mask(ncf, add_lakes = True, extend = False, extend_km = 20, poly_
 
     ## get lake dataset
     if (add_lakes) & (poly_lakes is None):
-        poly_lakes = ac.shared.polylakes('worldlakes')
+        poly_lakes = ac.shared.polylakes('hydrolakes')
         if ac.settings['run']['verbosity'] > 3: print('Using lake dataset {}'.format(poly_lakes))
 
     ## get land mask dataset
