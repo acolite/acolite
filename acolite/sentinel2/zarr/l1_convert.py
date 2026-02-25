@@ -433,13 +433,17 @@ def l1_convert(inputfile, output = None, settings = None,
             if bname in bands_10m: grid_key = 'r10m'
             elif bname in bands_20m: grid_key = 'r20m'
             elif bname in bands_60m: grid_key = 'r60m'
-            else: continue
+            else:
+                print('{} not found'.format(bname))
+                continue
             print('ZARR band name {} and grid_key {}'.format(bname, grid_key))
 
             ## output geometry
             if setu['output_geometry']:
                 ## get detector footprints if B1 or if using per band footprints
-                if (setu['geometry_fixed_footprint'] & (b == '1')) | ((not setu['geometry_fixed_footprint']) & setu['geometry_per_band']):
+                get_footprint = (setu['geometry_fixed_footprint'] & (b == '1')) |\
+                                (not setu['geometry_fixed_footprint']) | (setu['geometry_per_band'])
+                if get_footprint:
                     ## set up path for current band detector footprint
                     ifile_dfoo = '{}/conditions/mask/detector_footprint/{}/{}'.format(bundle, grid_key, bname)
                     if not url:
