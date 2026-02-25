@@ -326,30 +326,31 @@ def l1_convert(inputfile, output = None, settings = None,
                 if verbosity > 1: print('Wrote ym {}'.format(y.shape))
                 y = None
 
-        # dct_prj tracks projection for target scene
-        #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_prj, xy = True, add_half_pixel = True)
-
-        ## use dct_sub for current tile grid mesh
-        #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_sub, xy = True, add_half_pixel = True)
-        #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_sub['region'], xy = True, add_half_pixel = True)
-
-        ## use full tile grid mesh, reproject and subset later
-        ## needed for tile merging in different zones
-        print('Constructing interpolator mesh')
-        band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct, xy = True, add_half_pixel = True)
-        print('Interpolator mesh shape', band_x_mesh.shape)
-
-        ## 60 metre warp to for geometry
-        warp_to_geom = ac.shared.projection_warp_to(dct, res_method = 'average')
-
-        ## coordinates for geometry interpolator
-        xnew = np.linspace(0, x_grid.shape[0]-1, num = band_x_mesh.shape[0])
-        ynew = np.linspace(0, y_grid.shape[0]-1, num = band_y_mesh.shape[1])
-
         ## for per pixel geometry
         if (setu['output_geometry']):
-            print('Computing per pixel geometries')
+            ## only compute meshes if outputting geometry
+            # dct_prj tracks projection for target scene
+            #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_prj, xy = True, add_half_pixel = True)
 
+            ## use dct_sub for current tile grid mesh
+            #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_sub, xy = True, add_half_pixel = True)
+            #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_sub['region'], xy = True, add_half_pixel = True)
+
+            ## use full tile grid mesh, reproject and subset later
+            ## needed for tile merging in different zones
+            print('Constructing interpolator mesh')
+            band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct, xy = True, add_half_pixel = True)
+            print('Interpolator mesh shape', band_x_mesh.shape)
+
+            ## 60 metre warp to for geometry
+            warp_to_geom = ac.shared.projection_warp_to(dct, res_method = 'average')
+
+            ## coordinates for geometry interpolator
+            xnew = np.linspace(0, x_grid.shape[0]-1, num = band_x_mesh.shape[0])
+            ynew = np.linspace(0, y_grid.shape[0]-1, num = band_y_mesh.shape[1])
+
+
+            print('Computing per pixel geometries')
             ## dct_prj tracks projection for target scene
             #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_prj, xy = True, add_half_pixel = True)
 
