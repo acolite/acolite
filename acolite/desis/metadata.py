@@ -81,7 +81,7 @@ def metadata(metafile):
         if metadata['mission'] == 'DESIS':
             metadata['satellite'] = metadata['satelliteID']
             # metadata['sensor'] = f"{metadata['mission']}_{metadata['sensor']}"
-            metadata['isotime']=metadata['startTime'] #metadata["EARLIESTACQTIME"]
+            metadata['isotime'] = metadata['startTime'] #metadata["EARLIESTACQTIME"]
 
             ## geometry info
             metadata['sza'] = float(metadata['sunZenithAngle'])
@@ -93,7 +93,7 @@ def metadata(metafile):
 
             ## QV 2023-06-13
             ## testing - to check raa convention
-            metadata['raa'] = 180 - metadata['raa']
+            #metadata['raa'] = 180 - metadata['raa']
             ## end testing
 
             metadata['NUMROWS'] = dimy
