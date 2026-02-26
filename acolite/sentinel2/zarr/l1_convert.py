@@ -4,7 +4,6 @@
 ## 2025-11-06
 ## modifications: 2025-11-17 (QV) added tile merging
 ##                2026-01-14 (QV) changed AUX interpolation and integrated to sentinel2.zarr
-##                2026-02-18 (QV) added plane_fit_geom as keyword - but don't use it!
 ##                2026-02-26 (QV) fixed grid rotation and moved plane_fit_geom to settings as s2_geometry_plane_fit
 
 def l1_convert(inputfile, output = None, settings = None,
@@ -347,8 +346,8 @@ def l1_convert(inputfile, output = None, settings = None,
             warp_to_geom = ac.shared.projection_warp_to(dct, res_method = 'average')
 
             ## coordinates for geometry interpolator
-            xnew = np.linspace(0, x_grid.shape[0]-1, num = band_x_mesh.shape[0])
-            ynew = np.linspace(0, y_grid.shape[0]-1, num = band_y_mesh.shape[1])
+            xnew = np.linspace(0, x_grid.shape[0]-1, num = band_x_mesh.shape[0]) + 1
+            ynew = np.linspace(0, y_grid.shape[0]-1, num = band_y_mesh.shape[1]) + 1
 
 
             print('Computing per pixel geometries')
@@ -512,9 +511,9 @@ def l1_convert(inputfile, output = None, settings = None,
                             vaa_ = ac.sentinel2.grid_extend(viewing_incidence_angles_mean[di, ai, :, :], iterations = 1, crop = False)
 
                             ## interpolate
-                            mean_vza[valid] = ac.shared.tiles_interp(vza_, xnew+1, ynew+1, smooth = False, fill_nan = True,
+                            mean_vza[valid] = ac.shared.tiles_interp(vza_, xnew, ynew, smooth = False, fill_nan = True,
                                                               target_mask = det_mask, target_mask_full = False, method='linear')
-                            mean_vaa[valid] = ac.shared.tiles_interp(vaa_, xnew+1, ynew+1, smooth = False, fill_nan = True,
+                            mean_vaa[valid] = ac.shared.tiles_interp(vaa_, xnew, ynew, smooth = False, fill_nan = True,
                                                               target_mask = det_mask, target_mask_full = False, method='linear')
 
                     ## warp to target scene
@@ -607,9 +606,9 @@ def l1_convert(inputfile, output = None, settings = None,
                             vza_ = ac.sentinel2.grid_extend(viewing_incidence_angles[bi, di, zi, :, :], iterations = 1, crop = False)
                             vaa_ = ac.sentinel2.grid_extend(viewing_incidence_angles[bi, di, ai, :, :], iterations = 1, crop = False)
                             ## interpolate
-                            band_vza[valid] = ac.shared.tiles_interp(vza_, xnew+1, ynew+1, smooth = False, fill_nan = True,
+                            band_vza[valid] = ac.shared.tiles_interp(vza_, xnew, ynew, smooth = False, fill_nan = True,
                                                               target_mask = det_mask, target_mask_full = False, method='linear')
-                            band_vaa[valid] = ac.shared.tiles_interp(vaa_, xnew+1, ynew+1, smooth = False, fill_nan = True,
+                            band_vaa[valid] = ac.shared.tiles_interp(vaa_, xnew, ynew, smooth = False, fill_nan = True,
                                                               target_mask = det_mask, target_mask_full = False, method='linear')
 
                     ## warp to target scene
