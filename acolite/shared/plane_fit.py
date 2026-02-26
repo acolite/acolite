@@ -12,7 +12,7 @@ def plane_fit(geom_x, geom_y, geom_grid, mesh = True):
     import scipy
 
     if not mesh:
-        ii, jj = np.meshgrid(geom_x, geom_y, indexing='ij')
+        ii, jj = np.meshgrid(geom_x, geom_y, indexing = 'xy')
         arr = np.vstack([ii.ravel(), jj.ravel(), geom_grid.ravel()])
     else:
         arr = np.vstack([geom_x.ravel(), geom_y.ravel(), geom_grid.ravel()])

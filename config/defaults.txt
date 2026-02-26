@@ -89,6 +89,7 @@ geometry_res=60
 geometry_per_band=False
 geometry_fixed_footprint=False
 geometry_override=False
+s2_geometry_plane_fit=False
 
 ## sensor noise bias correction
 sensor_noise_bias_correction=False
