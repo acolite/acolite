@@ -5,6 +5,7 @@
 ## modifications: 2025-11-17 (QV) added tile merging
 ##                2026-01-14 (QV) changed AUX interpolation and integrated to sentinel2.zarr
 ##                2026-02-26 (QV) fixed grid rotation and moved plane_fit_geom to settings as s2_geometry_plane_fit
+##                                use geometry_res to determine geometry resolution
 
 def l1_convert(inputfile, output = None, settings = None,
                 check_sensor = True,
@@ -336,19 +337,19 @@ def l1_convert(inputfile, output = None, settings = None,
             #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_sub, xy = True, add_half_pixel = True)
             #band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_sub['region'], xy = True, add_half_pixel = True)
 
+            ## dct for geometry
+            dct_geom = ac.sentinel2.zarr.projection(z, meta = meta, s2_target_res = setu['geometry_res'])
+            warp_to_geom = ac.shared.projection_warp_to(dct_geom, res_method = 'average')
+
             ## use full tile grid mesh, reproject and subset later
             ## needed for tile merging in different zones
             print('Constructing interpolator mesh')
-            band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct, xy = True, add_half_pixel = True)
+            band_x_mesh, band_y_mesh = ac.shared.projection_geo(dct_geom, xy = True, add_half_pixel = True)
             print('Interpolator mesh shape', band_x_mesh.shape)
-
-            ## 60 metre warp to for geometry
-            warp_to_geom = ac.shared.projection_warp_to(dct, res_method = 'average')
 
             ## coordinates for geometry interpolator
             xnew = np.linspace(0, x_grid.shape[0]-1, num = band_x_mesh.shape[0]) + 1
             ynew = np.linspace(0, y_grid.shape[0]-1, num = band_y_mesh.shape[1]) + 1
-
 
             print('Computing per pixel geometries')
             ## dct_prj tracks projection for target scene
@@ -387,8 +388,8 @@ def l1_convert(inputfile, output = None, settings = None,
                 #saa = ac.shared.warp_from_source(dct_prj, dct_sub, saa, fill_value = np.nan)
                 #sza = ac.shared.warp_from_source(dct_sub, dct_prj, sza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                 #saa = ac.shared.warp_from_source(dct_sub, dct_prj, saa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                sza = ac.shared.warp_from_source(dct, dct_prj, sza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                saa = ac.shared.warp_from_source(dct, dct_prj, saa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                sza = ac.shared.warp_from_source(dct_geom, dct_prj, sza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                saa = ac.shared.warp_from_source(dct_geom, dct_prj, saa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
 
             ## write data
             gemo.write('sza', sza, replace_nan = True,)
@@ -527,8 +528,8 @@ def l1_convert(inputfile, output = None, settings = None,
                         #mean_vaa = ac.shared.warp_from_source(dct_prj, dct_sub, mean_vaa, fill_value = np.nan)
                         #mean_vza = ac.shared.warp_from_source(dct_sub, dct_prj, mean_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         #mean_vaa = ac.shared.warp_from_source(dct_sub, dct_prj, mean_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                        mean_vza = ac.shared.warp_from_source(dct, dct_prj, mean_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                        mean_vaa = ac.shared.warp_from_source(dct, dct_prj, mean_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                        mean_vza = ac.shared.warp_from_source(dct_geom, dct_prj, mean_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                        mean_vaa = ac.shared.warp_from_source(dct_geom, dct_prj, mean_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
 
                     ## write vza
                     ds = 'vza'
@@ -558,7 +559,7 @@ def l1_convert(inputfile, output = None, settings = None,
                             #dfoo_ = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to)
                             #dfoo_ = ac.shared.warp_from_source(dct_prj, dct_sub, dfoo, fill_value = np.nan)
                             #dfoo_ = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                            dfoo_ = ac.shared.warp_from_source(dct, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                            dfoo_ = ac.shared.warp_from_source(dct_geom, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         else:
                             dfoo_ = dfoo * 1
                         ds = 'dfoo'
@@ -618,8 +619,8 @@ def l1_convert(inputfile, output = None, settings = None,
                         #band_vaa = ac.shared.warp_from_source(dct_sub, dct_prj, band_vaa, warp_to = warp_to)
                         #band_vza = ac.shared.warp_from_source(dct_prj, dct_sub, band_vza, fill_value = np.nan)
                         #band_vaa = ac.shared.warp_from_source(dct_prj, dct_sub, band_vaa, fill_value = np.nan)
-                        band_vza = ac.shared.warp_from_source(dct, dct_prj, band_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                        band_vaa = ac.shared.warp_from_source(dct, dct_prj, band_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                        band_vza = ac.shared.warp_from_source(dct_geom, dct_prj, band_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                        band_vaa = ac.shared.warp_from_source(dct_geom, dct_prj, band_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
 
                     ## write vza
                     ds = 'vza_{}'.format(rsrd['wave_name'][b])
@@ -652,7 +653,7 @@ def l1_convert(inputfile, output = None, settings = None,
                         #if dct_sub != dct_prj: ## warp to target scene
                         #    #dfoo = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to)
                         #    dfoo = ac.shared.warp_from_source(dct_prj, dct_sub, dfoo, fill_value = np.nan)
-                            dfoo = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                            dfoo = ac.shared.warp_from_source(dct_geom, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         ds = 'dfoo_{}'.format(rsrd['wave_name'][b])
                         gemo.write(ds, dfoo, replace_nan = True,)
                         if verbosity > 1: print('Wrote {} {}'.format(ds, dfoo.shape))
