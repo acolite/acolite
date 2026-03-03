@@ -5,14 +5,20 @@
 ## modifications: 2025-04-03 (QV) added run settings
 ##                2025-07-09 (QV) added token option
 
+
 def auth(machine):
-    import os, requests, json, netrc
+    import netrc
+    import os
+
     import acolite as ac
 
     auth = None
-    ## get auth from netrc file
+    ## get auth from netrc file or NETRC environment variable
     try:
+        nr = netrc.netrc(os.environ['NETRC'])
+    except KeyError:
         nr = netrc.netrc()
+    try:
         ret = nr.authenticators(machine)
         if ret is not None:
             login, account, password = ret
