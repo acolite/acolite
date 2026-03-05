@@ -20,7 +20,7 @@ pub use resample::{resample, ResampleMethod};
 pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader, 
              read_geotiff_band, write_geotiff_band, write_geotiff_multiband,
              write_cog, cog_available, write_geozarr};
-pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor};
+pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor, PaceOciSensor};
 pub use stac::{StacClient, StacItem, StacAsset, search_landsat, search_sentinel2};
 
 /// Library version
