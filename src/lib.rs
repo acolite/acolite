@@ -12,13 +12,16 @@ pub mod pipeline;
 pub mod parallel;
 pub mod resample;
 pub mod simd;
+pub mod stac;
 
 pub use error::{AcoliteError, Result};
 pub use pipeline::{Pipeline, ProcessingConfig};
 pub use resample::{resample, ResampleMethod};
 pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader, 
-             read_geotiff_band, write_geotiff_band, write_geotiff_multiband};
+             read_geotiff_band, write_geotiff_band, write_geotiff_multiband,
+             write_cog, cog_available, write_geozarr};
 pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor};
+pub use stac::{StacClient, StacItem, StacAsset, search_landsat, search_sentinel2};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -3,7 +3,11 @@
 pub mod netcdf;
 pub mod zarr;
 pub mod geotiff;
+pub mod cog;
+pub mod geozarr;
 
 pub use self::netcdf::{NetCdfReader, NetCdfWriter};
 pub use self::zarr::{ZarrReader, ZarrWriter};
 pub use self::geotiff::{read_geotiff_band, write_geotiff_band, write_geotiff_multiband};
+pub use self::cog::{write_cog, cog_available};
+pub use self::geozarr::write_geozarr;
