@@ -14,6 +14,17 @@ pub fn process_bands_parallel(
         .collect()
 }
 
+/// Process f32 bands in parallel (for sensors like PACE where data is already TOA reflectance)
+pub fn process_bands_parallel_f32(
+    pipeline: &Pipeline,
+    bands: Vec<BandData<f32>>,
+) -> Result<Vec<BandData<f64>>> {
+    bands
+        .into_par_iter()
+        .map(|band| pipeline.process_band_f32(band))
+        .collect()
+}
+
 /// Process bands sequentially (for comparison/debugging)
 pub fn process_bands_sequential(
     pipeline: &Pipeline,

@@ -107,6 +107,37 @@ impl Pipeline {
     pub fn metadata(&self) -> &Metadata {
         &self.metadata
     }
+
+    /// Process a single band that is already TOA reflectance (f32, e.g. PACE OCI rhot)
+    pub fn process_band_f32(&self, band: BandData<f32>) -> Result<BandData<f64>> {
+        let mut toa = band.data.mapv(|v| v as f64);
+
+        if self.config.apply_gas {
+            toa = gas_correction(
+                &toa, band.wavelength, self.config.ozone, self.config.water_vapor,
+                self.metadata.sun_zenith, self.metadata.view_zenith.unwrap_or(0.0),
+            );
+        }
+        if self.config.apply_rayleigh {
+            toa = rayleigh_correction(
+                &toa, band.wavelength, self.metadata.sun_zenith,
+                self.metadata.view_zenith.unwrap_or(0.0), 1013.25,
+            )?;
+        }
+        let corrected = if self.config.apply_aerosol && self.aot.is_some() {
+            dsf_correction(
+                &toa, self.aot.unwrap(), band.wavelength,
+                self.metadata.sun_zenith, self.metadata.view_zenith.unwrap_or(0.0),
+            )
+        } else {
+            toa
+        };
+
+        Ok(BandData::new(
+            corrected, band.wavelength, band.bandwidth,
+            band.name, band.projection, band.geotransform,
+        ))
+    }
 }
 
 #[cfg(test)]

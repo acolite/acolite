@@ -18,7 +18,7 @@ rayon = "1.8"
 
 # Geospatial I/O
 tiff = "0.9"
-gdal = { version = "0.16", optional = true }
+gdal = "0.17"
 
 # STAC and HTTP
 reqwest = { version = "0.11", default-features = false, features = ["blocking", "rustls-tls", "json", "stream"] }
@@ -38,11 +38,12 @@ chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 env_logger = "0.11"
 dirs = "5.0"
+zeroize = "1.8"
 
 [features]
 default = []
 full-io = ["netcdf", "hdf5"]
-gdal-support = ["gdal"]
+gdal-support = []
 
 [dev-dependencies]
 criterion = "0.5"

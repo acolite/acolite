@@ -1,32 +1,29 @@
 //! ACOLITE-RS: High-performance atmospheric correction for aquatic remote sensing
 //!
-//! This is a Rust port of ACOLITE, focusing on performance through parallelization
-//! and efficient memory management.
+//! Architecture: Loader → AC (Processor) → Writer
 
 pub mod core;
-pub mod io;
-pub mod sensors;
-pub mod ac;
 pub mod error;
+pub mod sensors;
+pub mod auth;
+pub mod loader;
+pub mod writer;
+pub mod ac;
 pub mod pipeline;
 pub mod parallel;
 pub mod resample;
 pub mod simd;
-pub mod stac;
-pub mod earthdata;
-pub mod download;
 
 pub use error::{AcoliteError, Result};
 pub use pipeline::{Pipeline, ProcessingConfig};
-pub use resample::{resample, ResampleMethod};
-pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader, 
-             read_geotiff_band, write_geotiff_band, write_geotiff_multiband,
-             write_cog, cog_available, write_geozarr};
+pub use core::{BandData, GeoTransform, Metadata, Projection};
+pub use auth::{Credentials, aws_profile};
+pub use loader::{load_landsat_scene, load_landsat_bands};
+#[cfg(feature = "netcdf")]
+pub use loader::{load_pace_l1b, PaceScene};
+pub use writer::{write_cog, cog_available};
 pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor, PaceOciSensor};
-pub use stac::{StacClient, StacItem, StacAsset, search_landsat, search_sentinel2};
-pub use earthdata::{EarthdataAuth, search_pace_data, download_pace_file, 
-                    get_s3_credentials, download_from_s3_with_token, S3Credentials,
-                    search_cmr_collection, search_landsat_data};
+pub use resample::{resample, ResampleMethod};
+pub use loader::source::cmr::{search_pace_l1b, search_pace_scene, CmrGranule};
 
-/// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
