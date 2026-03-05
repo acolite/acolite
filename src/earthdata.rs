@@ -3,6 +3,8 @@
 use crate::{Result, AcoliteError};
 use std::fs;
 use std::path::PathBuf;
+use std::io::Write;
+use futures_util::StreamExt;
 
 /// Earthdata credentials
 #[derive(Debug, Clone)]
@@ -133,6 +135,136 @@ pub fn search_pace_data(
     
     log::info!("Found {} PACE granules", urls.len());
     Ok(urls)
+}
+
+/// Get temporary S3 credentials from TEA endpoint
+pub fn get_s3_credentials(auth: &EarthdataAuth) -> Result<S3Credentials> {
+    let client = reqwest::blocking::Client::new();
+    let tea_url = "https://obdaac-tea.earthdatacloud.nasa.gov/s3credentials";
+    
+    log::info!("Getting S3 credentials from TEA...");
+    
+    let response = if let Some(token) = &auth.token {
+        client
+            .get(tea_url)
+            .bearer_auth(token)
+            .send()
+            .map_err(|e| AcoliteError::Processing(format!("TEA request failed: {}", e)))?
+    } else {
+        return Err(AcoliteError::Processing("Token required for S3 access".to_string()));
+    };
+    
+    if !response.status().is_success() {
+        return Err(AcoliteError::Processing(format!("TEA HTTP {}", response.status())));
+    }
+    
+    let creds: S3Credentials = response.json()
+        .map_err(|e| AcoliteError::Processing(format!("Parse S3 creds failed: {}", e)))?;
+    
+    log::info!("Got S3 credentials (expires: {})", creds.expiration);
+    Ok(creds)
+}
+
+/// S3 temporary credentials from TEA
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct S3Credentials {
+    #[serde(rename = "accessKeyId")]
+    pub access_key_id: String,
+    #[serde(rename = "secretAccessKey")]
+    pub secret_access_key: String,
+    #[serde(rename = "sessionToken")]
+    pub session_token: String,
+    pub expiration: String,
+}
+
+/// Download file from S3 via TEA with streaming (async, no timeout)
+pub async fn download_s3_streaming(
+    s3_url: &str,
+    output_path: &str,
+    auth: &EarthdataAuth,
+) -> Result<()> {
+    let s3_path = s3_url.strip_prefix("s3://")
+        .ok_or_else(|| AcoliteError::Processing("Invalid S3 URL".to_string()))?;
+    
+    let https_url = format!("https://obdaac-tea.earthdatacloud.nasa.gov/{}", s3_path);
+    
+    let token = auth.token.as_ref()
+        .ok_or_else(|| AcoliteError::Processing("Token required".to_string()))?;
+    
+    log::info!("Streaming download: {}", s3_path);
+    
+    let client = reqwest::Client::builder()
+        .build()
+        .map_err(|e| AcoliteError::Processing(format!("Client failed: {}", e)))?;
+    
+    let response = client
+        .get(&https_url)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| AcoliteError::Processing(format!("Request failed: {}", e)))?;
+    
+    if !response.status().is_success() {
+        return Err(AcoliteError::Processing(format!("HTTP {}", response.status())));
+    }
+    
+    let total_size = response.content_length().unwrap_or(0);
+    log::info!("File size: {} MB", total_size / 1_000_000);
+    
+    let mut file = fs::File::create(output_path)
+        .map_err(|e| AcoliteError::Io(e))?;
+    
+    let mut stream = response.bytes_stream();
+    let mut downloaded = 0u64;
+    let mut last_progress = 0;
+    
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| AcoliteError::Processing(format!("Stream error: {}", e)))?;
+        file.write_all(&chunk).map_err(|e| AcoliteError::Io(e))?;
+        
+        downloaded += chunk.len() as u64;
+        
+        if total_size > 0 {
+            let progress = (downloaded * 100 / total_size) as u32;
+            if progress >= last_progress + 10 {
+                log::info!("Progress: {}% ({} MB)", progress, downloaded / 1_000_000);
+                last_progress = progress;
+            }
+        }
+    }
+    
+    log::info!("Download complete: {} MB", downloaded / 1_000_000);
+    Ok(())
+}
+
+/// Blocking wrapper for streaming download
+pub fn download_from_s3_blocking(
+    s3_url: &str,
+    output_path: &str,
+    auth: &EarthdataAuth,
+) -> Result<()> {
+    tokio::runtime::Runtime::new()
+        .map_err(|e| AcoliteError::Processing(format!("Tokio runtime failed: {}", e)))?
+        .block_on(download_s3_streaming(s3_url, output_path, auth))
+}
+
+/// Download file from S3 using TEA proxy (handles auth automatically)
+pub fn download_from_s3_with_token(
+    s3_url: &str,
+    output_path: &str,
+    auth: &EarthdataAuth,
+) -> Result<()> {
+    download_from_s3_blocking(s3_url, output_path, auth)
+}
+
+/// Download file from S3 using temporary credentials
+pub fn download_from_s3(
+    s3_url: &str,
+    output_path: &str,
+    creds: &S3Credentials,
+) -> Result<()> {
+    // Deprecated - use download_from_s3_with_token instead
+    Err(AcoliteError::Processing("Use download_from_s3_with_token".to_string()))
 }
 
 /// Download file from NASA DAAC with authentication

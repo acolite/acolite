@@ -75,20 +75,52 @@ fn main() {
     std::fs::create_dir_all(&output_dir).unwrap();
     let nc_path = output_dir.join(filename);
     
-    println!("\n→ Downloading PACE data...");
+    println!("\n→ Downloading PACE data via S3...");
     println!("  File: {}", filename);
     
     if nc_path.exists() {
         println!("  ✓ File already exists (using cached)");
     } else {
-        match download_pace_file(download_url, nc_path.to_str().unwrap(), &auth) {
+        // Get S3 credentials (not needed for TEA but validates auth)
+        use acolite_rs::{get_s3_credentials, download_from_s3_with_token};
+        
+        match get_s3_credentials(&auth) {
             Ok(_) => {
-                println!("  ✓ Download complete");
+                println!("  ✓ Authentication validated");
+                
+                // Convert HTTPS URL to S3 URL
+                let s3_url = if download_url.contains("obdaac-tea.earthdatacloud.nasa.gov") {
+                    download_url.replace(
+                        "https://obdaac-tea.earthdatacloud.nasa.gov/",
+                        "s3://"
+                    )
+                } else {
+                    format!("s3://ob-cumulus-prod-public/{}", filename)
+                };
+                
+                println!("  S3 path: {}", s3_url);
+                
+                match download_from_s3_with_token(&s3_url, nc_path.to_str().unwrap(), &auth) {
+                    Ok(_) => {
+                        println!("  ✓ Download complete");
+                    }
+                    Err(e) => {
+                        eprintln!("\n✗ S3 download failed: {}", e);
+                        std::process::exit(1);
+                    }
+                }
             }
             Err(e) => {
-                eprintln!("\n✗ Download failed: {}", e);
-                eprintln!("  Check credentials and network");
-                std::process::exit(1);
+                eprintln!("\n✗ Failed to get S3 credentials: {}", e);
+                eprintln!("  Trying direct HTTPS download...");
+                
+                match download_pace_file(download_url, nc_path.to_str().unwrap(), &auth) {
+                    Ok(_) => println!("  ✓ Download complete"),
+                    Err(e) => {
+                        eprintln!("\n✗ Download failed: {}", e);
+                        std::process::exit(1);
+                    }
+                }
             }
         }
     }

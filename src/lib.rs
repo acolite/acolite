@@ -23,7 +23,8 @@ pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader,
              write_cog, cog_available, write_geozarr};
 pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor, PaceOciSensor};
 pub use stac::{StacClient, StacItem, StacAsset, search_landsat, search_sentinel2};
-pub use earthdata::{EarthdataAuth, search_pace_data, download_pace_file};
+pub use earthdata::{EarthdataAuth, search_pace_data, download_pace_file, 
+                    get_s3_credentials, download_from_s3_with_token, S3Credentials};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
