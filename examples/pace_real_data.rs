@@ -37,11 +37,11 @@ fn main() {
     
     // Search for PACE data
     println!("\n→ Searching for PACE OCI data...");
-    let bbox = [-80.0, 30.0, -70.0, 40.0]; // Atlantic Ocean
-    let start_date = "2024-03-01";
-    let end_date = "2024-03-31";
+    let bbox = [110.0, -45.0, 155.0, -10.0]; // Australia
+    let start_date = "2024-02-01";
+    let end_date = "2025-01-31";
     
-    println!("  Area: Atlantic Ocean");
+    println!("  Area: Australia (110°E-155°E, 10°S-45°S)");
     println!("  Period: {} to {}", start_date, end_date);
     
     let urls = match search_pace_data(&bbox, start_date, end_date) {
@@ -49,7 +49,6 @@ fn main() {
             if urls.is_empty() {
                 println!("\n✗ No PACE data found for this region/time");
                 println!("  Try different dates or region");
-                println!("\nNote: PACE launched Feb 2024, data available from March 2024+");
                 std::process::exit(0);
             }
             println!("  ✓ Found {} granules", urls.len());
@@ -108,7 +107,7 @@ fn process_pace_file(nc_path: &str) {
     println!("  Reading {} bands from NetCDF...", band_names.len());
     
     let mut metadata = Metadata::new(sensor.name().to_string(), Utc::now());
-    metadata.set_geometry(35.0, -75.0);
+    metadata.set_geometry(-25.0, 135.0); // Central Australia
     
     let config = ProcessingConfig {
         apply_rayleigh: true,

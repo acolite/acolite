@@ -86,13 +86,16 @@ pub fn search_pace_data(
     let cmr_url = "https://cmr.earthdata.nasa.gov/search/granules.json";
     
     let params = [
-        ("short_name", "PACE_OCI_L1B"),
+        ("short_name", "PACE_OCI_L1B_SCI"),
         ("bounding_box", &format!("{},{},{},{}", bbox[0], bbox[1], bbox[2], bbox[3])),
         ("temporal", &format!("{},{}", start_date, end_date)),
-        ("page_size", "10"),
+        ("page_size", "50"),
     ];
     
     log::info!("Searching PACE data in CMR...");
+    log::debug!("CMR URL: {}", cmr_url);
+    log::debug!("Params: {:?}", params);
+    log::debug!("Bbox: {:?}", bbox);
     
     let response = client
         .get(cmr_url)
@@ -137,19 +140,30 @@ pub fn download_pace_file(
 ) -> Result<()> {
     log::info!("Downloading: {}", url);
     
+    // OB DAAC requires session-based authentication
+    // First, create a session by authenticating to URS
     let client = reqwest::blocking::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
+        .cookie_store(true) // Enable cookie store for session
         .build()
         .map_err(|e| AcoliteError::Processing(format!("Client build failed: {}", e)))?;
     
+    // Authenticate to URS first
+    let urs_url = "https://urs.earthdata.nasa.gov/oauth/authorize";
+    let _auth_response = client
+        .get(urs_url)
+        .basic_auth(&auth.username, Some(&auth.password))
+        .send()
+        .map_err(|e| AcoliteError::Processing(format!("URS auth failed: {}", e)))?;
+    
+    // Now download the file with the authenticated session
     let response = client
         .get(url)
-        .basic_auth(&auth.username, Some(&auth.password))
         .send()
         .map_err(|e| AcoliteError::Processing(format!("Download failed: {}", e)))?;
     
     if !response.status().is_success() {
-        return Err(AcoliteError::Processing(format!("HTTP {}", response.status())));
+        return Err(AcoliteError::Processing(format!("HTTP {} - Note: OB DAAC may require additional authentication setup", response.status())));
     }
     
     let bytes = response.bytes()
