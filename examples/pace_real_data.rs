@@ -6,11 +6,24 @@ use acolite_rs::{
     write_geozarr
 };
 use acolite_rs::sensors::Sensor;
-use acolite_rs::core::Metadata;
+use acolite_rs::core::{Metadata, BandData, Projection, GeoTransform};
 use acolite_rs::io::read_pace_band_simple;
 use acolite_rs::parallel::process_bands_parallel;
 use chrono::Utc;
 use std::path::Path;
+use ndarray::Array2;
+
+fn downsample_array(arr: &Array2<f32>, target_h: usize, target_w: usize) -> Array2<f64> {
+    let (h, w) = arr.dim();
+    let step_h = (h / target_h).max(1);
+    let step_w = (w / target_w).max(1);
+    
+    Array2::from_shape_fn((target_h, target_w), |(i, j)| {
+        let src_i = (i * step_h).min(h - 1);
+        let src_j = (j * step_w).min(w - 1);
+        arr[[src_i, src_j]] as f64
+    })
+}
 
 fn main() {
     env_logger::init();
@@ -132,14 +145,72 @@ fn main() {
 
 fn process_pace_file(nc_path: &str) {
     use tempfile::TempDir;
+    use acolite_rs::io::pace_nc_real::{get_pace_dimensions, read_pace_band, read_pace_geolocation};
     
     let sensor = PaceOciSensor;
-    let band_names = sensor.band_names();
     
-    println!("  Reading {} bands from NetCDF...", band_names.len());
+    println!("  Getting dimensions...");
+    let (num_bands, scans, pixels) = match get_pace_dimensions(nc_path) {
+        Ok(dims) => {
+            println!("  ✓ {} bands, {} scans, {} pixels", dims.0, dims.1, dims.2);
+            dims
+        }
+        Err(e) => {
+            println!("\n✗ Failed to read dimensions: {}", e);
+            return;
+        }
+    };
+    
+    println!("  Reading geolocation...");
+    let (lat, lon) = match read_pace_geolocation(nc_path) {
+        Ok(geo) => {
+            println!("  ✓ Geolocation: {} × {}", geo.0.shape()[0], geo.0.shape()[1]);
+            println!("  Lat range: {:.2} to {:.2}", 
+                geo.0.iter().filter(|x| x.is_finite()).fold(f32::INFINITY, |a, &b| a.min(b)),
+                geo.0.iter().filter(|x| x.is_finite()).fold(f32::NEG_INFINITY, |a, &b| a.max(b)));
+            println!("  Lon range: {:.2} to {:.2}",
+                geo.1.iter().filter(|x| x.is_finite()).fold(f32::INFINITY, |a, &b| a.min(b)),
+                geo.1.iter().filter(|x| x.is_finite()).fold(f32::NEG_INFINITY, |a, &b| a.max(b)));
+            geo
+        }
+        Err(e) => {
+            println!("\n✗ Failed to read geolocation: {}", e);
+            return;
+        }
+    };
+    
+    // Read first 10 bands
+    let num_to_read = 10.min(num_bands);
+    println!("  Reading first {} bands...", num_to_read);
+    
+    let mut bands = Vec::new();
+    for i in 0..num_to_read {
+        match read_pace_band(nc_path, i) {
+            Ok(band) => {
+                let valid = band.iter().filter(|x| x.is_finite() && **x > 0.0).count();
+                println!("    Band {}: {} valid pixels", i, valid);
+                bands.push(band);
+            }
+            Err(e) => {
+                println!("    Band {}: failed - {}", i, e);
+                break;
+            }
+        }
+    }
+    
+    if bands.is_empty() {
+        println!("\n✗ No bands could be read");
+        return;
+    }
+    
+    println!("  ✓ Read {} bands ({} × {})", bands.len(), bands[0].shape()[0], bands[0].shape()[1]);
     
     let mut metadata = Metadata::new(sensor.name().to_string(), Utc::now());
-    metadata.set_geometry(-25.0, 135.0); // Central Australia
+    
+    // Use actual geolocation center
+    let center_lat = lat[[scans/2, pixels/2]];
+    let center_lon = lon[[scans/2, pixels/2]];
+    metadata.set_geometry(center_lat as f64, center_lon as f64);
     
     let config = ProcessingConfig {
         apply_rayleigh: true,
@@ -154,26 +225,28 @@ fn process_pace_file(nc_path: &str) {
     let mut pipeline = Pipeline::new(metadata.clone(), config);
     pipeline.set_aot(0.12);
     
-    // Read subset of bands for demo (first 20)
-    println!("  Reading subset of bands (first 20 for demo)...");
-    let bands_f64: Vec<_> = band_names.iter()
-        .take(20)
-        .filter_map(|name| {
+    // Convert to BandData for processing (downsample for demo)
+    let band_names = sensor.band_names();
+    let bands_f64: Vec<_> = bands.iter()
+        .enumerate()
+        .take(10)
+        .filter_map(|(i, band)| {
+            let name = &band_names[i];
             let wl = sensor.wavelength(name)?;
             let bw = sensor.bandwidth(name)?;
             
-            match read_pace_band_simple(nc_path, name, wl, bw) {
-                Ok(band) => Some(band),
-                Err(e) => {
-                    log::warn!("Failed to read {}: {}", name, e);
-                    None
-                }
-            }
+            // Downsample to 200x200 for demo
+            let downsampled = downsample_array(band, 200, 200);
+            
+            let proj = Projection::from_epsg(4326);
+            let geotrans = GeoTransform::new(center_lon as f64, 0.01, center_lat as f64, -0.01);
+            
+            Some(BandData::new(downsampled, wl, bw, name.clone(), proj, geotrans))
         })
         .collect();
     
     if bands_f64.is_empty() {
-        println!("\n✗ No bands could be read");
+        println!("\n✗ No bands for processing");
         return;
     }
     

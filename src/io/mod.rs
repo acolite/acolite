@@ -6,6 +6,7 @@ pub mod geotiff;
 pub mod cog;
 pub mod geozarr;
 pub mod pace_nc;
+pub mod pace_nc_real;
 
 pub use self::netcdf::{NetCdfReader, NetCdfWriter};
 pub use self::zarr::{ZarrReader, ZarrWriter};
