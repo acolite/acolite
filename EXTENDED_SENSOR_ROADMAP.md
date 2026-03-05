@@ -204,6 +204,13 @@
 
 ### Sensors to Implement
 
+#### PACE OCI (2024-present) - **GeoZarr Output**
+- 286 hyperspectral bands (1km resolution)
+- Wavelengths: 315-2260 nm
+- Continuous spectrum: 5nm sampling (340-890 nm)
+- SWIR bands for atmospheric correction
+- Primary ocean color mission for 2020s+
+
 #### ENVISAT MERIS (2002-2012) - **COG Output**
 - 15 bands (300m resolution)
 - Wavelengths: 390-1040 nm
@@ -218,14 +225,16 @@
 - Wavelengths: 412-12000 nm
 
 ### Technical Requirements
+- PACE OCI NetCDF-4 reader
+- Hyperspectral ocean color algorithms
 - MERIS N1 format reader
 - VIIRS HDF5 reader
 - Multi-resolution band handling
 - Day/Night band processing
 
 ### Output Format
-- **All COG**: Moderate band count (<25)
-- Ocean color optimized
+- **PACE OCI**: GeoZarr (286 hyperspectral bands)
+- **MERIS, VIIRS**: COG (multispectral)
 
 ---
 
@@ -278,6 +287,7 @@
 | QuickBird-2 | 5 | 2.4m | 450-900 nm | COG | 11 |
 | ENVISAT MERIS | 15 | 300m | 390-1040 nm | COG | 13 |
 | VIIRS | 22 | 375m-750m | 412-12000 nm | COG | 13 |
+| PACE OCI | 286 | 1km | 315-2260 nm | GeoZarr | 13 |
 | Landsat 8/9 TIRS | 2 | 100m | 10.6-12.5 µm | COG | 14 |
 | ASTER | 14 | 15m-90m | 520-11650 nm | COG | 14 |
 | **Superspectral (GeoZarr)** |
@@ -288,8 +298,9 @@
 | HICO | 128 | 90m | 380-960 nm | GeoZarr | 12 |
 | HYPERION | 220 | 30m | 400-2500 nm | GeoZarr | 12 |
 | CHRIS | 62 | 17-36m | 400-1050 nm | GeoZarr | 12 |
+| PACE OCI | 286 | 1km | 315-2260 nm | GeoZarr | 13 |
 
-**Total Sensors**: 31 (3 complete, 28 planned)
+**Total Sensors**: 32 (3 complete, 29 planned)
 
 ---
 
@@ -368,6 +379,7 @@
 ### Phase 13 (Ocean Color)
 - MERIS N1 format (ESA proprietary)
 - VIIRS multi-resolution
+- PACE OCI hyperspectral (286 bands)
 - Ocean-specific algorithms
 - Glint correction
 
@@ -446,9 +458,11 @@
 
 ### Phase 13
 - 2 ocean color sensor implementations
+- PACE OCI NetCDF-4 reader
+- Hyperspectral ocean color algorithms
 - MERIS N1 reader
 - VIIRS HDF5 reader
-- 2 new examples
+- 3 new examples
 
 ### Phase 14
 - TACT thermal correction
