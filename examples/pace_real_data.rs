@@ -27,8 +27,9 @@ fn main() {
         Err(e) => {
             eprintln!("✗ Failed to load credentials: {}", e);
             eprintln!("\nCreate ~/.easi-workflows-auth.conf with:");
-            eprintln!("  username=YOUR_EARTHDATA_USERNAME");
-            eprintln!("  password=YOUR_EARTHDATA_PASSWORD");
+            eprintln!("[earthdata]");
+            eprintln!("    user: YOUR_EARTHDATA_USERNAME");
+            eprintln!("    password: YOUR_EARTHDATA_PASSWORD");
             eprintln!("\nGet credentials at: https://urs.earthdata.nasa.gov/");
             std::process::exit(1);
         }

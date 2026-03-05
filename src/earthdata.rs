@@ -21,7 +21,7 @@ impl EarthdataAuth {
         
         if !auth_path.exists() {
             return Err(AcoliteError::Processing(
-                format!("Auth file not found: {:?}\nCreate with:\n  username=YOUR_USERNAME\n  password=YOUR_PASSWORD", auth_path)
+                format!("Auth file not found: {:?}\nCreate with:\n[earthdata]\n    user: YOUR_USERNAME\n    password: YOUR_PASSWORD", auth_path)
             ));
         }
         
@@ -30,26 +30,46 @@ impl EarthdataAuth {
         
         let mut username = None;
         let mut password = None;
+        let mut in_earthdata_section = false;
         
         for line in content.lines() {
             let line = line.trim();
+            
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
             
-            if let Some((key, value)) = line.split_once('=') {
-                match key.trim() {
-                    "username" => username = Some(value.trim().to_string()),
-                    "password" => password = Some(value.trim().to_string()),
-                    _ => {}
+            // Check for [earthdata] section
+            if line == "[earthdata]" {
+                in_earthdata_section = true;
+                continue;
+            }
+            
+            // Check for other sections
+            if line.starts_with('[') && line.ends_with(']') {
+                in_earthdata_section = false;
+                continue;
+            }
+            
+            // Parse key: value pairs in earthdata section
+            if in_earthdata_section {
+                if let Some((key, value)) = line.split_once(':') {
+                    let key = key.trim();
+                    let value = value.trim();
+                    
+                    match key {
+                        "user" => username = Some(value.to_string()),
+                        "password" => password = Some(value.to_string()),
+                        _ => {}
+                    }
                 }
             }
         }
         
         let username = username.ok_or_else(|| 
-            AcoliteError::Processing("username not found in auth file".to_string()))?;
+            AcoliteError::Processing("user not found in [earthdata] section".to_string()))?;
         let password = password.ok_or_else(|| 
-            AcoliteError::Processing("password not found in auth file".to_string()))?;
+            AcoliteError::Processing("password not found in [earthdata] section".to_string()))?;
         
         Ok(Self { username, password })
     }
