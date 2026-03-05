@@ -47,8 +47,22 @@ impl LutManager {
         
         self.ensure_dir()?;
         
-        // Placeholder - would use reqwest in production
-        log::warn!("LUT download not implemented (requires reqwest): {}", url);
+        log::info!("Downloading LUT: {}", name);
+        let response = reqwest::blocking::get(url)
+            .map_err(|e| AcoliteError::Processing(format!("Download failed: {}", e)))?;
+        
+        if !response.status().is_success() {
+            return Err(AcoliteError::Processing(format!("HTTP {}", response.status())));
+        }
+        
+        let bytes = response.bytes()
+            .map_err(|e| AcoliteError::Processing(format!("Read failed: {}", e)))?;
+        
+        let size = bytes.len();
+        fs::write(self.lut_path(name), bytes)
+            .map_err(|e| AcoliteError::Io(e))?;
+        
+        log::info!("Downloaded {} ({} bytes)", name, size);
         Ok(())
     }
     
@@ -165,5 +179,21 @@ mod tests {
         
         let r = lut.interpolate(500.0, 30.0, 0.0, 90.0, 1013.25);
         assert!(r >= 0.0);
+    }
+    
+    #[test]
+    #[ignore] // Requires network
+    fn test_lut_download() {
+        use tempfile::TempDir;
+        
+        let temp = TempDir::new().unwrap();
+        let manager = LutManager::new(Some(temp.path().to_path_buf()));
+        
+        // Download README from acolite_luts repo
+        let url = "https://raw.githubusercontent.com/acolite/acolite_luts/main/README.md";
+        let result = manager.download_lut("test_readme.md", url);
+        
+        assert!(result.is_ok());
+        assert!(manager.has_lut("test_readme.md"));
     }
 }

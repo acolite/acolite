@@ -228,3 +228,52 @@ fn test_multi_resolution_resampling() {
     let mean_resampled = data_20m_back.mean().unwrap();
     assert!((mean_original - mean_resampled).abs() < 0.01);
 }
+
+#[test]
+fn test_sentinel3_processing() {
+    use acolite_rs::{Pipeline, ProcessingConfig, Sentinel3Sensor};
+    use acolite_rs::sensors::Sensor;
+    
+    let sensor = Sentinel3Sensor;
+    assert_eq!(sensor.name(), "S3_OLCI");
+    assert_eq!(sensor.band_names().len(), 21);
+    
+    let mut metadata = Metadata::new(sensor.name().to_string(), Utc::now());
+    metadata.set_geometry(30.0, 140.0);
+    
+    let config = ProcessingConfig {
+        apply_rayleigh: true,
+        apply_gas: true,
+        apply_aerosol: false,
+        output_reflectance: true,
+        parallel: true,
+        ozone: 0.3,
+        water_vapor: 2.0,
+    };
+    
+    let pipeline = Pipeline::new(metadata, config);
+    
+    let proj = Projection::from_epsg(32633);
+    let geotrans = GeoTransform::new(300000.0, 300.0, 4500000.0, -300.0);
+    
+    let bands: Vec<_> = ["Oa01", "Oa04", "Oa06"]
+        .iter()
+        .map(|name| {
+            let wl = sensor.wavelength(name).unwrap();
+            let bw = sensor.bandwidth(name).unwrap();
+            
+            BandData::new(
+                Array2::from_elem((50, 50), 1000u16),
+                wl,
+                bw,
+                name.to_string(),
+                proj.clone(),
+                geotrans.clone(),
+            )
+        })
+        .collect();
+    
+    let result = process_bands_parallel(&pipeline, bands).unwrap();
+    assert_eq!(result.len(), 3);
+    assert!(result[0].data.mean().unwrap() > 0.0);
+}

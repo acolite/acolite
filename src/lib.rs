@@ -17,6 +17,7 @@ pub use error::{AcoliteError, Result};
 pub use pipeline::{Pipeline, ProcessingConfig};
 pub use resample::{resample, ResampleMethod};
 pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader};
+pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
