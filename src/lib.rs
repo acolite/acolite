@@ -16,7 +16,8 @@ pub mod simd;
 pub use error::{AcoliteError, Result};
 pub use pipeline::{Pipeline, ProcessingConfig};
 pub use resample::{resample, ResampleMethod};
-pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader};
+pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader, 
+             read_geotiff_band, write_geotiff_band, write_geotiff_multiband};
 pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor};
 
 /// Library version

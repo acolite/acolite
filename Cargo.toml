@@ -16,6 +16,9 @@ path = "src/main.rs"
 ndarray = "0.15"
 rayon = "1.8"
 
+# Geospatial I/O
+tiff = "0.9"
+
 # I/O (optional - requires system libraries)
 netcdf = { version = "0.9", optional = true }
 hdf5 = { version = "0.8", optional = true }
