@@ -9,6 +9,7 @@ use std::path::PathBuf;
 pub struct EarthdataAuth {
     pub username: String,
     pub password: String,
+    pub token: Option<String>,
 }
 
 impl EarthdataAuth {
@@ -30,6 +31,7 @@ impl EarthdataAuth {
         
         let mut username = None;
         let mut password = None;
+        let mut token = None;
         let mut in_earthdata_section = false;
         
         for line in content.lines() {
@@ -60,6 +62,7 @@ impl EarthdataAuth {
                     match key {
                         "user" => username = Some(value.to_string()),
                         "password" => password = Some(value.to_string()),
+                        "token" => token = Some(value.to_string()),
                         _ => {}
                     }
                 }
@@ -71,7 +74,7 @@ impl EarthdataAuth {
         let password = password.ok_or_else(|| 
             AcoliteError::Processing("password not found in [earthdata] section".to_string()))?;
         
-        Ok(Self { username, password })
+        Ok(Self { username, password, token })
     }
 }
 
@@ -140,30 +143,32 @@ pub fn download_pace_file(
 ) -> Result<()> {
     log::info!("Downloading: {}", url);
     
-    // OB DAAC requires session-based authentication
-    // First, create a session by authenticating to URS
     let client = reqwest::blocking::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
-        .cookie_store(true) // Enable cookie store for session
         .build()
         .map_err(|e| AcoliteError::Processing(format!("Client build failed: {}", e)))?;
     
-    // Authenticate to URS first
-    let urs_url = "https://urs.earthdata.nasa.gov/oauth/authorize";
-    let _auth_response = client
-        .get(urs_url)
-        .basic_auth(&auth.username, Some(&auth.password))
-        .send()
-        .map_err(|e| AcoliteError::Processing(format!("URS auth failed: {}", e)))?;
-    
-    // Now download the file with the authenticated session
-    let response = client
-        .get(url)
-        .send()
-        .map_err(|e| AcoliteError::Processing(format!("Download failed: {}", e)))?;
+    // Use token if available, otherwise basic auth
+    let response = if let Some(token) = &auth.token {
+        log::info!("Using bearer token authentication");
+        client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .map_err(|e| AcoliteError::Processing(format!("Download failed: {}", e)))?
+    } else {
+        log::info!("Using basic authentication");
+        client
+            .get(url)
+            .basic_auth(&auth.username, Some(&auth.password))
+            .send()
+            .map_err(|e| AcoliteError::Processing(format!("Download failed: {}", e)))?
+    };
     
     if !response.status().is_success() {
-        return Err(AcoliteError::Processing(format!("HTTP {} - Note: OB DAAC may require additional authentication setup", response.status())));
+        return Err(AcoliteError::Processing(
+            format!("HTTP {} - Check credentials and token", response.status())
+        ));
     }
     
     let bytes = response.bytes()
