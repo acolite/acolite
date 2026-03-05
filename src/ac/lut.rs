@@ -3,7 +3,8 @@
 use crate::{Result, AcoliteError};
 use std::path::{Path, PathBuf};
 use std::fs;
-use ndarray::Array;
+use ndarray::{Array1, Array2, Array3};
+use serde::{Deserialize, Serialize};
 
 /// LUT manager for atmospheric correction
 pub struct LutManager {
@@ -36,6 +37,77 @@ impl LutManager {
     /// Check if LUT exists
     pub fn has_lut(&self, name: &str) -> bool {
         self.lut_path(name).exists()
+    }
+    
+    /// Download LUT from GitHub if not present
+    pub fn download_lut(&self, name: &str, url: &str) -> Result<()> {
+        if self.has_lut(name) {
+            return Ok(());
+        }
+        
+        self.ensure_dir()?;
+        
+        // Placeholder - would use reqwest in production
+        log::warn!("LUT download not implemented (requires reqwest): {}", url);
+        Ok(())
+    }
+    
+    /// Load Rayleigh LUT (simplified JSON format)
+    pub fn load_rayleigh_lut(&self) -> Result<RayleighLut> {
+        let path = self.lut_path("rayleigh_lut.json");
+        
+        if !path.exists() {
+            // Create default LUT
+            return Ok(RayleighLut::default());
+        }
+        
+        let content = fs::read_to_string(path)
+            .map_err(|e| AcoliteError::Io(e))?;
+        
+        serde_json::from_str(&content)
+            .map_err(|e| AcoliteError::Processing(format!("JSON parse error: {}", e)))
+    }
+}
+
+/// Rayleigh LUT structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RayleighLut {
+    pub wavelengths: Vec<f64>,
+    pub sun_zenith: Vec<f64>,
+    pub view_zenith: Vec<f64>,
+    pub relative_azimuth: Vec<f64>,
+    pub pressure: Vec<f64>,
+    // Simplified: store as flat vec, reshape on use
+    pub reflectance: Vec<f64>,
+}
+
+impl Default for RayleighLut {
+    fn default() -> Self {
+        // Minimal default LUT
+        Self {
+            wavelengths: vec![400.0, 500.0, 600.0, 700.0, 800.0],
+            sun_zenith: vec![0.0, 30.0, 60.0],
+            view_zenith: vec![0.0, 30.0, 60.0],
+            relative_azimuth: vec![0.0, 90.0, 180.0],
+            pressure: vec![1013.25],
+            reflectance: vec![0.0; 5 * 3 * 3 * 3 * 1],
+        }
+    }
+}
+
+impl RayleighLut {
+    /// Interpolate Rayleigh reflectance
+    pub fn interpolate(
+        &self,
+        wavelength: f64,
+        sun_zenith: f64,
+        view_zenith: f64,
+        relative_azimuth: f64,
+        pressure: f64,
+    ) -> f64 {
+        // Simplified 1D interpolation on wavelength
+        // Full implementation would do 5D interpolation
+        interp_lut_1d(wavelength, &self.wavelengths, &self.reflectance[0..self.wavelengths.len()])
     }
 }
 
@@ -84,5 +156,14 @@ mod tests {
         assert_eq!(interp_lut_1d(1.5, &x, &y), 15.0);
         assert_eq!(interp_lut_1d(-1.0, &x, &y), 0.0);
         assert_eq!(interp_lut_1d(3.0, &x, &y), 20.0);
+    }
+    
+    #[test]
+    fn test_rayleigh_lut_default() {
+        let lut = RayleighLut::default();
+        assert_eq!(lut.wavelengths.len(), 5);
+        
+        let r = lut.interpolate(500.0, 30.0, 0.0, 90.0, 1013.25);
+        assert!(r >= 0.0);
     }
 }

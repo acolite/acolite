@@ -16,17 +16,27 @@ path = "src/main.rs"
 ndarray = "0.15"
 rayon = "1.8"
 
+# I/O (optional - requires system libraries)
+netcdf = { version = "0.9", optional = true }
+hdf5 = { version = "0.8", optional = true }
+
 # Utilities
 thiserror = "1.0"
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 env_logger = "0.11"
 dirs = "5.0"
 
+[features]
+default = []
+full-io = ["netcdf", "hdf5"]
+
 [dev-dependencies]
 criterion = "0.5"
+tempfile = "3.8"
 
 [[bench]]
 name = "performance"
