@@ -11,7 +11,7 @@
 //!   cargo run --example process_pace --features netcdf -- --lat 36.0 --lon -75.5 --start 2024-07-01 --end 2024-07-02 --download
 
 use acolite_rs::{
-    Credentials, Pipeline, ProcessingConfig, write_cog,
+    Credentials, Pipeline, ProcessingConfig, write_auto,
     search_pace_l1b, CmrGranule,
 };
 use acolite_rs::loader::source::download::download_file;
@@ -137,14 +137,14 @@ fn process_pace_file(path: &Path, output_dir: &str) {
     let mpx = (nrows * ncols * result.len()) as f64 / ac_time.as_secs_f64() / 1e6;
     println!("  ✓ {} bands in {:.2?} ({:.1} Mpx/s)", result.len(), ac_time, mpx);
 
-    // Write output
+    // Write output — auto-selects GeoZarr for hyperspectral (>50 bands)
     std::fs::create_dir_all(output_dir).expect("create output dir");
     let stem = path.file_stem().unwrap_or_default().to_string_lossy();
-    let out_path = format!("{}/{}_corrected.tif", output_dir, stem);
+    let out_path = format!("{}/{}_corrected", output_dir, stem);
 
-    println!("\n→ Writing COG to {}", out_path);
+    println!("\n→ Writing output (auto-format)...");
     let start = std::time::Instant::now();
-    write_cog(&out_path, &result, &scene.metadata).expect("COG write failed");
+    write_auto(&out_path, &result, &scene.metadata).expect("Write failed");
     println!("  ✓ Written in {:.2?}", start.elapsed());
 
     // Summary

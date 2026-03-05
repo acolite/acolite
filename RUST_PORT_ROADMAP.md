@@ -9,150 +9,148 @@ src/
 ├── loader/         # INPUT: Read satellite data
 │   ├── geotiff.rs  # GDAL-based GeoTIFF reader
 │   ├── landsat.rs  # Landsat L1 scene loader
+│   ├── pace.rs     # PACE OCI L1B NetCDF reader
 │   └── source/     # Remote data access
-│       ├── cmr.rs      # NASA CMR search
+│       ├── cmr.rs      # NASA CMR search (OBDAAC + LP DAAC)
 │       ├── stac.rs     # STAC search
 │       └── download.rs # Download (EarthData + AWS S3)
 ├── ac/             # PROCESSING: Atmospheric correction
-│   ├── pipeline.rs → (in src/pipeline.rs)
-│   ├── calibration.rs  # DN → TOA
-│   ├── rayleigh.rs     # Rayleigh scattering
-│   ├── gas.rs          # Gas transmittance
-│   ├── dsf.rs          # Dark Spectrum Fitting
-│   └── lut.rs          # LUT management
+│   ├── calibration.rs, rayleigh.rs, gas.rs, dsf.rs, lut.rs
 ├── writer/         # OUTPUT: Write results
-│   └── cog.rs      # Cloud-Optimized GeoTIFF
+│   ├── mod.rs      # Auto-dispatch: >50 bands → GeoZarr, ≤50 → COG
+│   ├── cog.rs      # Cloud-Optimized GeoTIFF (multispectral/superspectral)
+│   └── geozarr.rs  # GeoZarr V3 (hyperspectral)
 ├── core/           # Data types
 ├── sensors/        # Sensor definitions
 └── (pipeline, parallel, resample, simd)
 ```
 
-## Current State (Post-Refactor)
+## Output Format Strategy
 
-- **2,026 lines** source (down from 4,233 — 52% reduction)
-- **5 examples** (down from 19 — 74% reduction)
+`write_auto()` selects format based on band count:
+
+| Category | Bands | Format | Rationale |
+|----------|-------|--------|-----------|
+| Hyperspectral | >50 | GeoZarr | 3D chunked array, efficient for 100s of bands |
+| Superspectral | 16–50 | per-band COG | Widely compatible, manageable file count |
+| Multispectral | ≤15 | per-band COG | Standard GIS workflow |
+
+## Sensor Audit — Band Count Classification
+
+### Hyperspectral (>50 bands) → GeoZarr
+
+| Sensor | Bands | Status |
+|--------|-------|--------|
+| Tanager | 420 | Not started |
+| PACE OCI | 286 | ✅ Loader + search done |
+| EMIT | 285 | Not started |
+| HYPERION | 242 | Not started |
+| PRISMA | 239 | Not started |
+| DESIS | 235 | Not started |
+| EnMAP | 224 | Not started |
+| HyperField | 150 | Not started |
+| HICO | 128 | Not started |
+| HYPSO | 120 | Not started |
+| CHRIS | 62 | Not started |
+
+### Superspectral (16–50 bands) → per-band COG
+
+| Sensor | Bands | Status |
+|--------|-------|--------|
+| Aqua/Terra MODIS | 36 | Not started |
+| WorldView-3 | 29 | Not started |
+| VIIRS (NPP/J1/J2) | 22 | Not started |
+| Sentinel-3 OLCI | 21 | Sensor def exists |
+| AMAZONIA-1 WFI | 18 | Not started |
+| GOES ABI | 16 | Not started |
+| Himawari AHI | 16 | Not started |
+| MTG-I FCI | 16 | Not started |
+
+### Multispectral (≤15 bands) → per-band COG
+
+| Sensor | Bands | Status |
+|--------|-------|--------|
+| ENVISAT MERIS | 15 | Not started |
+| Sentinel-2 MSI | 13 | Sensor def exists |
+| GOCI-2 | 12 | Not started |
+| SEVIRI | 12 | Not started |
+| Sentinel-3 SLSTR | 11 | Not started |
+| Landsat 8/9 OLI | 9 | ✅ Full pipeline |
+| Landsat 7 ETM+ | 8 | Not started |
+| PlanetScope SD8 | 8 | Not started |
+| Landsat 5 TM | 7 | Not started |
+| WorldView-2 | 6–8 | Not started |
+| Pléiades | 5–7 | Not started |
+| QuickBird-2 | 5 | Not started |
+
+### Priority for Rust Port
+
+1. **Landsat 8/9** — ✅ Done
+2. **PACE OCI** — ✅ Loader + search + GeoZarr writer
+3. **Sentinel-2 MSI** — Sensor def exists, needs JP2 loader
+4. **Sentinel-3 OLCI** — Sensor def exists, needs NetCDF loader
+5. **PRISMA/DESIS/EnMAP** — Share HDF5 loader pattern
+6. **EMIT** — NetCDF, similar to PACE
+
+## Current State
+
 - **25 tests** passing
+- **5 examples** (Landsat, PACE, Sentinel-2, Sentinel-3, AWS Landsat)
 - **Clean architecture**: loader → ac → writer
-- **Secure credentials**: zeroize-on-drop, .netrc support, no hardcoded profiles
-- **No code duplication**: single search, single download, single GeoTIFF reader
-- **Real data validated**: Landsat 8 scene processed (7691×7801, 18.6 Mpx/s)
+- **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
+- **Real data validated**: Landsat 8 scene + PACE OBDAAC search
 
 ## Completed ✅
 
-### Phase A: Consolidation
-- [x] Restructured into loader/ac/writer architecture
-- [x] Merged 3 search implementations → `loader/source/cmr.rs`
-- [x] Merged 3 download implementations → `loader/source/download.rs`
-- [x] Deleted duplicate GeoTIFF reader (tiff crate version)
-- [x] Deleted 4 PACE-specific IO files
-- [x] Secure credential handling (zeroize, .netrc, env vars)
-- [x] Consolidated 19 examples → 5
-- [x] Deleted intermediate documentation
-
-### Earlier Phases
-- [x] Core data types (BandData, Metadata, Projection, GeoTransform)
-- [x] Sensor definitions (Landsat 8/9, Sentinel-2, Sentinel-3, PACE)
-- [x] GDAL GeoTIFF reading
-- [x] COG writing
-- [x] STAC + CMR search
-- [x] Parallel band processing (rayon)
-- [x] Real Landsat scene processed via AWS S3
+### Phase A: Architecture
+- [x] Loader → AC → Writer restructure
+- [x] Secure credentials (zeroize, .netrc, env vars)
+- [x] Single search/download/reader implementations
+- [x] PACE OCI L1B NetCDF reader
+- [x] OBDAAC CMR search (collection_id based)
+- [x] GeoZarr writer (zarrs crate, Zarr V3, gzip, CF metadata)
+- [x] Auto-dispatch writer (>50 bands → GeoZarr, ≤50 → COG)
+- [x] f32 pipeline path for pre-calibrated sensors (PACE)
 
 ## Next: Phase B — Real Atmospheric Correction
 
 ### B.1 LUT Loading (1 week)
-Port LUT loading from Python ACOLITE's `acolite_luts` repo:
 - [ ] Download NetCDF LUTs from https://github.com/acolite/acolite_luts
 - [ ] Parse 6SV Rayleigh LUT (wavelength × SZA × VZA × RAA × pressure)
-- [ ] Parse aerosol LUTs (per model: Continental, Maritime, Urban)
-- [ ] Implement N-dimensional interpolation
-
-**Python reference**: `acolite/aerlut/import_lut.py`, `acolite/aerlut/ilut.py`
+- [ ] Parse aerosol LUTs (Continental, Maritime, Urban)
+- [ ] N-dimensional interpolation
 
 ### B.2 Rayleigh Correction (3 days)
-Replace placeholder with real implementation:
-- [ ] `ray_tau()` — Rayleigh optical thickness from LUT
-- [ ] `ray_phase()` — Phase function
-- [ ] `ray_refl()` — Rayleigh reflectance (path + sky)
+- [ ] Replace placeholder with LUT-based implementation
 - [ ] Pressure correction
 
-**Python reference**: `acolite/ac/rayleigh.py` (99 lines)
-
 ### B.3 Gas Transmittance (3 days)
-Replace placeholder with real implementation:
-- [ ] O3 transmittance from absorption coefficients
-- [ ] H2O transmittance from LUT
-- [ ] O2 transmittance
-- [ ] Combined gas correction
-
-**Python reference**: `acolite/ac/gas_transmittance.py` (68 lines)
+- [ ] O3/H2O/O2 transmittance from LUTs
+- [ ] Replace all-zero k_o3 values
 
 ### B.4 DSF Algorithm (1 week)
-Port the core atmospheric correction:
 - [ ] Tile-based dark spectrum extraction
-- [ ] AOT optimization per tile (minimize cost function)
+- [ ] AOT optimization per tile
 - [ ] Aerosol model selection
-- [ ] Path reflectance subtraction
-- [ ] Diffuse transmittance correction
-
-**Python reference**: `acolite/acolite/acolite_l2r.py` (2218 lines — core section ~500 lines)
 
 ### B.5 Calibration (2 days)
-- [ ] Parse MTL for calibration coefficients
-- [ ] DN → radiance → TOA reflectance chain
-- [ ] Earth-Sun distance correction per scene date
-
-**Python reference**: `acolite/landsat/read_toa.py`, `acolite/landsat/metadata_bands.py`
+- [ ] DN → radiance → TOA reflectance from MTL
 
 ## Phase C — Validation (1-2 weeks)
-
-- [ ] Process same Landsat scene with Python and Rust
-- [ ] Pixel-level RMSE comparison (target: <0.001 ρ)
+- [ ] Pixel-level RMSE comparison with Python ACOLITE
 - [ ] Band-by-band statistical comparison
-- [ ] Performance benchmarking on real data
-- [ ] Edge cases: cloud-heavy, coastal, inland water
 
-## Phase D — Python Sync Framework (Ongoing)
+## Phase D — Additional Loaders
+- [ ] Sentinel-2 (JP2 via GDAL)
+- [ ] Sentinel-3 OLCI (NetCDF)
+- [ ] PRISMA/DESIS/EnMAP (HDF5)
+- [ ] EMIT (NetCDF)
 
-### Strategy
-1. Pin to Python ACOLITE release tags (not main branch)
-2. Track changes in critical files only:
-   - `acolite/acolite/acolite_l2r.py` (core AC)
-   - `acolite/ac/rayleigh.py` (Rayleigh)
-   - `acolite/ac/gas_transmittance.py` (gas)
-   - `acolite/aerlut/ilut.py` (LUT interpolation)
-   - `acolite/landsat/l1_convert.py` (Landsat loader)
-3. Automated comparison tests on tagged releases
-
-### Python → Rust Function Mapping
-
-| Python | Rust |
-|--------|------|
-| `landsat.l1_convert()` | `loader::landsat::load_landsat_scene()` |
-| `acolite_l1r()` | `pipeline::Pipeline::process_band()` (calibration) |
-| `acolite_l2r()` | `pipeline::Pipeline::process_band()` (AC) |
-| `ac.rayleigh.ray_refl()` | `ac::rayleigh::rayleigh_correction()` |
-| `ac.gas_transmittance()` | `ac::gas::gas_correction()` |
-| `aerlut.ilut()` | `ac::lut::LutManager` |
-| `output.nc_write()` | `writer::cog::write_cog()` |
-
-### What NOT to Port
-- GUI (`acolite_gui.py`)
-- GEE integration
-- TACT (thermal) — separate concern
-- RAdCor (adjacency) — separate concern
-- 30+ sensor `l1_convert` — only Landsat/S2/PACE initially
-
-## Phase E — Production Hardening (2-4 weeks)
-
+## Phase E — Production Hardening
 - [ ] Remove all `unwrap()` from library code
-- [ ] Streaming processing (process while downloading)
+- [ ] Streaming processing
 - [ ] CLI matching Python ACOLITE settings files
 - [ ] NetCDF L2 output matching Python format
-- [ ] Sentinel-2 loader (JP2 via GDAL)
-- [ ] PACE loader (HDF5/NetCDF)
-- [ ] Memory optimization for large scenes
-- [ ] rustdoc documentation
 
 ## Dependencies
 
@@ -160,12 +158,12 @@ Port the core atmospheric correction:
 gdal = "0.17"        # GeoTIFF read/write
 ndarray = "0.15"     # Array processing
 rayon = "1.8"        # Parallelism
+zarrs = "0.23"       # Zarr V3 (GeoZarr output)
 tiff = "0.9"         # Fallback TIFF writing
 reqwest = "0.11"     # HTTP
 serde = "1.0"        # Serialization
 chrono = "0.4"       # DateTime
 thiserror = "1.0"    # Error types
 zeroize = "1.8"      # Credential security
-log = "0.4"          # Logging
-dirs = "5.0"         # Home directory
+netcdf = "0.9"       # PACE/S3 NetCDF (optional)
 ```
