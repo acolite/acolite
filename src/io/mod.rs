@@ -8,6 +8,7 @@ pub mod geozarr;
 pub mod pace_nc;
 pub mod pace_nc_real;
 pub mod pace_zarr;
+pub mod pace_zarr_optimized;
 
 pub use self::netcdf::{NetCdfReader, NetCdfWriter};
 pub use self::zarr::{ZarrReader, ZarrWriter};
