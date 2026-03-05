@@ -1,6 +1,6 @@
 //! Landsat sensor implementation
 
-use crate::{Result, AcoliteError, core::Metadata, sensors::Sensor};
+use crate::{Result, AcoliteError, core::Metadata, sensors::{Sensor, parse_mtl}};
 use std::collections::HashMap;
 
 pub struct LandsatSensor {
@@ -37,9 +37,8 @@ impl Sensor for LandsatSensor {
         &self.name
     }
     
-    fn parse_metadata(&self, _path: &str) -> Result<Metadata> {
-        // Placeholder - will implement MTL parsing
-        Err(AcoliteError::Processing("Not implemented".to_string()))
+    fn parse_metadata(&self, path: &str) -> Result<Metadata> {
+        parse_mtl(path)
     }
     
     fn band_names(&self) -> Vec<String> {

@@ -8,8 +8,11 @@ pub mod io;
 pub mod sensors;
 pub mod ac;
 pub mod error;
+pub mod pipeline;
+pub mod parallel;
 
 pub use error::{AcoliteError, Result};
+pub use pipeline::{Pipeline, ProcessingConfig};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
