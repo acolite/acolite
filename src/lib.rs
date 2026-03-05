@@ -14,6 +14,7 @@ pub mod resample;
 pub mod simd;
 pub mod stac;
 pub mod earthdata;
+pub mod download;
 
 pub use error::{AcoliteError, Result};
 pub use pipeline::{Pipeline, ProcessingConfig};
@@ -24,7 +25,8 @@ pub use io::{NetCdfWriter, NetCdfReader, ZarrWriter, ZarrReader,
 pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor, PaceOciSensor};
 pub use stac::{StacClient, StacItem, StacAsset, search_landsat, search_sentinel2};
 pub use earthdata::{EarthdataAuth, search_pace_data, download_pace_file, 
-                    get_s3_credentials, download_from_s3_with_token, S3Credentials};
+                    get_s3_credentials, download_from_s3_with_token, S3Credentials,
+                    search_cmr_collection, search_landsat_data};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

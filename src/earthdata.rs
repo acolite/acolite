@@ -80,61 +80,73 @@ impl EarthdataAuth {
     }
 }
 
-/// Search PACE data from NASA CMR
-pub fn search_pace_data(
+/// Generic CMR search for any collection
+pub fn search_cmr_collection(
+    collection: &str,
     bbox: &[f64; 4],
     start_date: &str,
     end_date: &str,
 ) -> Result<Vec<String>> {
     let client = reqwest::blocking::Client::new();
-    
     let cmr_url = "https://cmr.earthdata.nasa.gov/search/granules.json";
     
     let params = [
-        ("short_name", "PACE_OCI_L1B_SCI"),
+        ("short_name", collection),
         ("bounding_box", &format!("{},{},{},{}", bbox[0], bbox[1], bbox[2], bbox[3])),
         ("temporal", &format!("{},{}", start_date, end_date)),
         ("page_size", "50"),
     ];
     
-    log::info!("Searching PACE data in CMR...");
-    log::debug!("CMR URL: {}", cmr_url);
-    log::debug!("Params: {:?}", params);
-    log::debug!("Bbox: {:?}", bbox);
+    log::info!("Searching CMR: {}", collection);
     
-    let response = client
-        .get(cmr_url)
-        .query(&params)
-        .send()
-        .map_err(|e| AcoliteError::Processing(format!("CMR search failed: {}", e)))?;
+    let response = client.get(cmr_url).query(&params).send()
+        .map_err(|e| AcoliteError::Processing(format!("CMR failed: {}", e)))?;
     
     if !response.status().is_success() {
-        return Err(AcoliteError::Processing(format!("HTTP {}", response.status())));
+        return Err(AcoliteError::Processing(format!("CMR HTTP {}", response.status())));
     }
     
     let json: serde_json::Value = response.json()
         .map_err(|e| AcoliteError::Processing(format!("Parse failed: {}", e)))?;
     
-    let mut urls = Vec::new();
+    let entries = json["feed"]["entry"].as_array()
+        .ok_or_else(|| AcoliteError::Processing("No entries".to_string()))?;
     
-    if let Some(entries) = json["feed"]["entry"].as_array() {
-        for entry in entries {
-            if let Some(links) = entry["links"].as_array() {
-                for link in links {
-                    if link["rel"].as_str() == Some("http://esipfed.org/ns/fedsearch/1.1/data#") {
-                        if let Some(href) = link["href"].as_str() {
-                            if href.ends_with(".nc") {
-                                urls.push(href.to_string());
-                            }
-                        }
+    let mut urls = Vec::new();
+    for entry in entries {
+        if let Some(links) = entry["links"].as_array() {
+            for link in links {
+                if let Some(href) = link["href"].as_str() {
+                    if href.contains("s3.") || href.ends_with(".nc") || 
+                       href.ends_with(".tar") || href.ends_with(".zip") {
+                        urls.push(href.to_string());
+                        break;
                     }
                 }
             }
         }
     }
     
-    log::info!("Found {} PACE granules", urls.len());
+    log::info!("Found {} granules", urls.len());
     Ok(urls)
+}
+
+/// Search PACE data from NASA CMR
+pub fn search_pace_data(
+    bbox: &[f64; 4],
+    start_date: &str,
+    end_date: &str,
+) -> Result<Vec<String>> {
+    search_cmr_collection("PACE_OCI_L1B_SCI", bbox, start_date, end_date)
+}
+
+/// Search Landsat 8/9 data
+pub fn search_landsat_data(
+    bbox: &[f64; 4],
+    start_date: &str,
+    end_date: &str,
+) -> Result<Vec<String>> {
+    search_cmr_collection("LANDSAT_OT_C2_L1", bbox, start_date, end_date)
 }
 
 /// Get temporary S3 credentials from TEA endpoint
