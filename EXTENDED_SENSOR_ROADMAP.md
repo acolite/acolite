@@ -3,7 +3,7 @@
 **Project Goal**: Port ACOLITE to Rust for 5-10x performance improvement with full sensor support
 
 **Current Status**: Phase 7 Complete (90% of core functionality)  
-**Timeline**: 36 weeks total → Extended to 52 weeks for full sensor suite
+**Timeline**: 36 weeks core → Extended to 64 weeks for complete sensor suite (52 sensors)
 
 ---
 
@@ -238,7 +238,60 @@
 
 ---
 
-## Phase 14: Thermal & Specialized (Weeks 51-52)
+## Phase 15: Additional Multispectral Sensors (Weeks 53-56)
+
+### Sensors to Implement
+
+#### Huanjing-1 (HJ-1) CCD (2008-present) - **COG Output**
+- 4 bands (30m resolution)
+- Blue, Green, Red, NIR
+- Chinese environmental monitoring satellite
+- Wavelengths: 430-900 nm
+
+#### Deimos-1/2 (2009-present) - **COG Output**
+- 4 bands (22m resolution)
+- Green, Red, Red Edge, NIR
+- Spanish Earth observation
+- Wavelengths: 520-900 nm
+
+#### Formosat-2 (2004-2016) - **COG Output**
+- 5 bands (8m multispectral, 2m pan)
+- Blue, Green, Red, NIR, Pan
+- Taiwanese satellite
+- Wavelengths: 450-900 nm
+
+#### IKONOS (1999-2015) - **COG Output**
+- 5 bands (4m multispectral, 1m pan)
+- Blue, Green, Red, NIR, Pan
+- First commercial high-resolution
+- Wavelengths: 445-853 nm
+
+#### GF-1/2/6 (Gaofen) (2013-present) - **COG Output**
+- 4-8 bands (2-16m resolution)
+- Chinese high-resolution series
+- Blue, Green, Red, NIR + Pan
+- Wavelengths: 450-890 nm
+
+#### Amazonia-1 (2021-present) - **COG Output**
+- 4 bands (64m resolution)
+- Blue, Green, Red, NIR
+- Brazilian satellite
+- Wavelengths: 450-890 nm
+
+#### SDGSAT-1 (2021-present) - **COG Output**
+- 7 bands (10m multispectral)
+- Coastal, Blue, Green, Red, NIR, SWIR1, SWIR2
+- Chinese SDG monitoring
+- Wavelengths: 420-2400 nm
+
+### Technical Requirements
+- Chinese satellite metadata parsers
+- Multiple commercial formats
+- High-resolution processing
+- International data access
+
+### Output Format
+- **All COG**: Multispectral sensors (<10 bands)
 
 ### Sensors to Implement
 
@@ -301,6 +354,14 @@
 | PACE OCI | 286 | 1km | 315-2260 nm | GeoZarr | 13 |
 
 **Total Sensors**: 32 (3 complete, 29 planned)
+
+**Note**: Python ACOLITE supports 40+ sensors. Additional sensors to be added in future phases:
+- **Hyperspectral**: EMIT, EnMAP, HYPSO-1, Tanager, Wyvern
+- **Geostationary**: GOES, Himawari, Meteosat FCI, SEVIRI, GOCI
+- **Ocean/Thermal**: AVHRR, ECOSTRESS, EarthCARE, Haiyang
+- **Commercial**: OpenCosmos
+
+These will be prioritized based on user demand and data availability.
 
 ---
 
@@ -472,13 +533,13 @@
 
 ---
 
-## Final Project Statistics (Week 52)
+## Final Project Statistics (Week 64)
 
 ### Code
-- **Total Lines**: ~15,000-20,000 Rust
-- **Sensors**: 31 complete implementations
-- **Tests**: 200+ comprehensive tests
-- **Examples**: 30+ working demonstrations
+- **Total Lines**: ~20,000-25,000 Rust
+- **Sensors**: 52 complete implementations
+- **Tests**: 300+ comprehensive tests
+- **Examples**: 50+ working demonstrations
 
 ### Performance
 - **Average Speedup**: 10-50x vs Python
@@ -487,9 +548,10 @@
 
 ### Coverage
 - **Temporal**: 1984-present (40+ years)
-- **Spatial**: 0.3m-1km resolution
-- **Spectral**: 2-239 bands
-- **Missions**: 20+ satellite missions
+- **Spatial**: 0.3m-2km resolution
+- **Spectral**: 2-420 bands
+- **Missions**: 30+ satellite missions
+- **Geostationary**: 4 missions (GOES, Himawari, Meteosat, GOCI)
 
 ---
 
@@ -503,6 +565,35 @@
 - Cloud platform integration (AWS, GCP, Azure)
 - GPU acceleration for hyperspectral
 - Machine learning integration
+
+### Additional Sensors (Future Phases 15-17)
+
+#### Phase 15: Additional Multispectral (Weeks 53-56)
+- Huanjing-1 CCD, Deimos-1/2, Formosat-2
+- IKONOS, GF-1/2/6 (Gaofen)
+- Amazonia-1, SDGSAT-1
+- **7 sensors, all COG output**
+
+#### Phase 16: Advanced Hyperspectral (Weeks 57-60)
+- EMIT (285 bands, 60m) - GeoZarr
+- EnMAP (228 bands, 30m) - GeoZarr
+- HYPSO-1 (120 bands, 200m) - GeoZarr
+- Tanager (420 bands, 30m) - GeoZarr
+- Wyvern (>100 bands, 5m) - GeoZarr
+- **5 sensors, all GeoZarr output**
+
+#### Phase 17: Geostationary & Specialized (Weeks 61-64)
+- GOES-R ABI (16 bands, 0.5-2km) - COG
+- Himawari-8/9 AHI (16 bands, 0.5-2km) - COG
+- Meteosat FCI (16 bands, 1-2km) - COG
+- GOCI-II (13 bands, 250m) - COG
+- AVHRR (6 bands, 1km) - COG
+- ECOSTRESS (5 bands, 70m thermal) - COG
+- EarthCARE MSI (7 bands, 500m) - COG
+- Haiyang (10 bands, 250m-1km) - COG
+- **8 sensors, all COG output**
+
+**Extended Total**: 52 sensors across 17 phases
 
 ### Long-term Vision
 - Real-time processing capability
