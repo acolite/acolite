@@ -1,9 +1,10 @@
 //! Integration tests for ACOLITE-RS
 
-use acolite_rs::{Pipeline, ProcessingConfig};
+use acolite_rs::{Pipeline, ProcessingConfig, ResampleMethod, resample};
 use acolite_rs::core::{Metadata, BandData, Projection, GeoTransform};
 use acolite_rs::ac::{estimate_dark_spectrum, optimize_aot};
 use acolite_rs::parallel::process_bands_parallel;
+use acolite_rs::sensors::{Sensor, Sentinel2Sensor};
 use ndarray::Array2;
 use chrono::Utc;
 
@@ -155,4 +156,75 @@ fn test_parallel_vs_sequential_consistency() {
         assert_eq!(p.data.shape(), s.data.shape());
         assert_eq!(p.wavelength, s.wavelength);
     }
+}
+
+#[test]
+fn test_sentinel2_sensor() {
+    let s2a = Sentinel2Sensor::new_s2a();
+    
+    assert_eq!(s2a.name(), "S2A_MSI");
+    assert!(s2a.band_names().len() >= 13);
+    
+    // Check 10m bands
+    let bands_10m = s2a.bands_at_resolution(10);
+    assert_eq!(bands_10m.len(), 4);
+    assert!(bands_10m.contains(&"B02".to_string()));
+    assert!(bands_10m.contains(&"B03".to_string()));
+    assert!(bands_10m.contains(&"B04".to_string()));
+    assert!(bands_10m.contains(&"B08".to_string()));
+    
+    // Check wavelengths
+    assert_eq!(s2a.wavelength("B04"), Some(664.6));
+    assert_eq!(s2a.resolution("B04"), Some(10));
+    
+    // Check 20m bands
+    let bands_20m = s2a.bands_at_resolution(20);
+    assert_eq!(bands_20m.len(), 6);
+}
+
+#[test]
+fn test_sentinel2_processing() {
+    let mut metadata = Metadata::new("S2A_MSI".to_string(), Utc::now());
+    metadata.set_geometry(28.0, 130.0);
+    
+    let config = ProcessingConfig::default();
+    let pipeline = Pipeline::new(metadata, config);
+    
+    let proj = Projection::from_epsg(32610);
+    let geotrans = GeoTransform::new(600000.0, 10.0, 5000000.0, -10.0);
+    
+    // Process 10m band
+    let band = BandData::new(
+        Array2::from_elem((100, 100), 1500u16),
+        664.6,
+        31.0,
+        "B04".to_string(),
+        proj,
+        geotrans,
+    );
+    
+    let result = pipeline.process_band(band);
+    assert!(result.is_ok());
+    
+    let corrected = result.unwrap();
+    assert_eq!(corrected.shape(), (100, 100));
+    assert_eq!(corrected.wavelength, 664.6);
+}
+
+#[test]
+fn test_multi_resolution_resampling() {
+    let data_20m = Array2::from_elem((50, 50), 0.15);
+    
+    // Resample 20m to 10m (upsampling)
+    let data_10m = resample(&data_20m, 20, 10, ResampleMethod::Bilinear).unwrap();
+    assert_eq!(data_10m.dim(), (100, 100));
+    
+    // Resample 10m to 20m (downsampling)
+    let data_20m_back = resample(&data_10m, 10, 20, ResampleMethod::Average).unwrap();
+    assert_eq!(data_20m_back.dim(), (50, 50));
+    
+    // Check values are preserved approximately
+    let mean_original = data_20m.mean().unwrap();
+    let mean_resampled = data_20m_back.mean().unwrap();
+    assert!((mean_original - mean_resampled).abs() < 0.01);
 }

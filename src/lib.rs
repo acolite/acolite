@@ -10,9 +10,11 @@ pub mod ac;
 pub mod error;
 pub mod pipeline;
 pub mod parallel;
+pub mod resample;
 
 pub use error::{AcoliteError, Result};
 pub use pipeline::{Pipeline, ProcessingConfig};
+pub use resample::{resample, ResampleMethod};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
