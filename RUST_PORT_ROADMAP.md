@@ -92,6 +92,54 @@ src/
 5. **PRISMA/DESIS/EnMAP** — Share HDF5 loader pattern
 6. **EMIT** — NetCDF, similar to PACE
 
+## Regression Testing
+
+Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRESSION_TESTING_ROADMAP.md).
+
+### Rust E2E Tests
+
+| Test file | Sensor | Tests | Command |
+|-----------|--------|-------|---------|
+| [tests/landsat_e2e.rs](tests/landsat_e2e.rs) | Landsat 8/9 | 15 | `cargo test --test landsat_e2e` |
+| [tests/pace_e2e.rs](tests/pace_e2e.rs) | PACE OCI | 5 | `cargo test --test pace_e2e` |
+| [tests/sentinel2_e2e.rs](tests/sentinel2_e2e.rs) | Sentinel-2 | 18 | `cargo test --test sentinel2_e2e` |
+| [tests/integration_tests.rs](tests/integration_tests.rs) | Cross-sensor | 7 | `cargo test --test integration_tests` |
+| [benches/performance.rs](benches/performance.rs) | Landsat+S2 | — | `cargo bench` |
+
+### Python ↔ Rust Regression Tests
+
+| Test file | Sensor | Tier | Command |
+|-----------|--------|------|---------|
+| [tests/regression/test_landsat_regression.py](tests/regression/test_landsat_regression.py) | Landsat 8/9 | 1-3 | `pytest tests/regression/test_landsat_regression.py -v` |
+| [tests/regression/test_pace_regression.py](tests/regression/test_pace_regression.py) | PACE OCI | 1-4 | `pytest tests/regression/test_pace_regression.py -v` |
+| [tests/regression/test_sentinel2_regression.py](tests/regression/test_sentinel2_regression.py) | Sentinel-2 | 1-3 | `pytest tests/regression/test_sentinel2_regression.py -v` |
+| [tests/regression/test_landsat_rust_vs_python.py](tests/regression/test_landsat_rust_vs_python.py) | Landsat 8/9 | Full AC | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
+| [tests/regression/test_pace_rust_vs_python.py](tests/regression/test_pace_rust_vs_python.py) | PACE OCI | Full AC | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
+| [tests/regression/conftest.py](tests/regression/conftest.py) | — | Fixtures | Shared pytest config, tolerances, CLI options |
+
+### Test Tiers
+
+- **Tier 1 — Synthetic** (always runs): Physics invariants, monotonicity, range checks
+- **Tier 2 — Integration** (needs netCDF4): Metadata parsing, structure validation
+- **Tier 3 — Real data** (`--runslow`): Per-band reflectance stats, band count parity
+- **Tier 4 — Cross-implementation** (`--runslow`): Rust vs Python per-pixel correlation (R > 0.80, RMSE < 0.02)
+
+### Quick Commands
+
+```bash
+# All Rust tests (no external data)
+cargo test
+
+# All Python regression (Tier 1+2, no real data)
+pytest tests/regression/ -v
+
+# Full regression with real data
+pytest tests/regression/ -v --runslow \
+  --pace-file /path/to/PACE_OCI.L1B.nc \
+  --landsat-file /path/to/LC08_L1TP_... \
+  --s2-file /path/to/S2A_MSIL1C_....SAFE
+```
+
 ## Current State
 
 - **25 tests** passing
@@ -137,8 +185,9 @@ src/
 - [ ] DN → radiance → TOA reflectance from MTL
 
 ## Phase C — Validation (1-2 weeks)
-- [ ] Pixel-level RMSE comparison with Python ACOLITE
-- [ ] Band-by-band statistical comparison
+- [x] Pixel-level RMSE comparison with Python ACOLITE — see [test_landsat_rust_vs_python.py](tests/regression/test_landsat_rust_vs_python.py), [test_pace_rust_vs_python.py](tests/regression/test_pace_rust_vs_python.py)
+- [x] Band-by-band statistical comparison — Landsat R>0.998, PACE r=0.9995
+- [ ] Sentinel-2 Rust vs Python full AC comparison (pending LUT-DSF for S2)
 
 ## Phase D — Additional Loaders
 - [ ] Sentinel-2 (JP2 via GDAL)
