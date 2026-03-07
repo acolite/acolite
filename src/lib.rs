@@ -19,6 +19,7 @@ pub use pipeline::{Pipeline, ProcessingConfig};
 pub use core::{BandData, GeoTransform, Metadata, Projection};
 pub use auth::{Credentials, aws_profile};
 pub use loader::{load_landsat_scene, load_landsat_bands};
+pub use loader::{load_sentinel2_scene, S2Scene, S2_AC_BANDS};
 #[cfg(feature = "netcdf")]
 pub use loader::{load_pace_l1b, PaceScene};
 pub use writer::{write_cog, write_geozarr, write_auto, cog_available};
