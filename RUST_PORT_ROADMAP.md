@@ -9,19 +9,24 @@ src/
 ├── loader/         # INPUT: Read satellite data
 │   ├── geotiff.rs  # GDAL-based GeoTIFF reader
 │   ├── landsat.rs  # Landsat L1 scene loader
+│   ├── sentinel2.rs # S2 SAFE JP2 loader + radiometric calibration
 │   ├── pace.rs     # PACE OCI L1B NetCDF reader
 │   └── source/     # Remote data access
 │       ├── cmr.rs      # NASA CMR search (OBDAAC + LP DAAC)
 │       ├── stac.rs     # STAC search
 │       └── download.rs # Download (EarthData + AWS S3)
 ├── ac/             # PROCESSING: Atmospheric correction
-│   ├── calibration.rs, rayleigh.rs, gas.rs, dsf.rs, lut.rs
+│   ├── aerlut.rs   # Aerosol LUT reader (sensor-specific 6SV NetCDF)
+│   ├── dsf.rs      # DSF: dark spectrum, AOT inversion, model selection, correction
+│   ├── gas_lut.rs  # Gas transmittance (O₃, H₂O, CO₂, O₂ from LUTs + RSR)
+│   ├── interp.rs   # N-dimensional regular grid interpolator
+│   ├── calibration.rs, rayleigh.rs, gas.rs, lut.rs
 ├── writer/         # OUTPUT: Write results
 │   ├── mod.rs      # Auto-dispatch: >50 bands → GeoZarr, ≤50 → COG
 │   ├── cog.rs      # Cloud-Optimized GeoTIFF (multispectral/superspectral)
 │   └── geozarr.rs  # GeoZarr V3 (hyperspectral)
-├── core/           # Data types
-├── sensors/        # Sensor definitions
+├── core/           # Data types (band, metadata, projection)
+├── sensors/        # Sensor definitions (landsat, sentinel2, sentinel3, pace)
 └── (pipeline, parallel, resample, simd)
 ```
 
@@ -42,7 +47,7 @@ src/
 | Sensor | Bands | Status |
 |--------|-------|--------|
 | Tanager | 420 | Not started |
-| PACE OCI | 286 | ✅ Loader + search done |
+| PACE OCI | 286 | ✅ Loader + search + GeoZarr writer |
 | EMIT | 285 | Not started |
 | HYPERION | 242 | Not started |
 | PRISMA | 239 | Not started |
@@ -71,11 +76,11 @@ src/
 | Sensor | Bands | Status |
 |--------|-------|--------|
 | ENVISAT MERIS | 15 | Not started |
-| Sentinel-2 MSI | 13 | Sensor def exists |
+| Sentinel-2 MSI | 13 | ✅ Full LUT-DSF pipeline |
 | GOCI-2 | 12 | Not started |
 | SEVIRI | 12 | Not started |
 | Sentinel-3 SLSTR | 11 | Not started |
-| Landsat 8/9 OLI | 9 | ✅ Full pipeline |
+| Landsat 8/9 OLI | 9 | ✅ Full LUT-DSF pipeline |
 | Landsat 7 ETM+ | 8 | Not started |
 | PlanetScope SD8 | 8 | Not started |
 | Landsat 5 TM | 7 | Not started |
@@ -85,9 +90,9 @@ src/
 
 ### Priority for Rust Port
 
-1. **Landsat 8/9** — ✅ Done
-2. **PACE OCI** — ✅ Loader + search + GeoZarr writer
-3. **Sentinel-2 MSI** — Sensor def exists, needs JP2 loader
+1. **Landsat 8/9** — ✅ Full LUT-DSF pipeline, validated
+2. **Sentinel-2 MSI** — ✅ Full LUT-DSF pipeline, physics-equivalent (RMSE < 0.002)
+3. **PACE OCI** — ✅ Loader + search + GeoZarr writer
 4. **Sentinel-3 OLCI** — Sensor def exists, needs NetCDF loader
 5. **PRISMA/DESIS/EnMAP** — Share HDF5 loader pattern
 6. **EMIT** — NetCDF, similar to PACE
@@ -96,42 +101,39 @@ src/
 
 Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRESSION_TESTING_ROADMAP.md).
 
-### Rust E2E Tests
+### Rust Tests
+
+| Suite | Tests | Command |
+|-------|-------|---------|
+| Unit tests | 26 | `cargo test --features full-io` |
+| Integration tests | 8 | `cargo test --test integration_tests` |
+| E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
+
+### Python ↔ Rust Regression Tests (107 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
-| [tests/landsat_e2e.rs](tests/landsat_e2e.rs) | Landsat 8/9 | 15 | `cargo test --test landsat_e2e` |
-| [tests/pace_e2e.rs](tests/pace_e2e.rs) | PACE OCI | 5 | `cargo test --test pace_e2e` |
-| [tests/sentinel2_e2e.rs](tests/sentinel2_e2e.rs) | Sentinel-2 | 18 | `cargo test --test sentinel2_e2e` |
-| [tests/integration_tests.rs](tests/integration_tests.rs) | Cross-sensor | 7 | `cargo test --test integration_tests` |
-| [benches/performance.rs](benches/performance.rs) | Landsat+S2 | — | `cargo bench` |
-
-### Python ↔ Rust Regression Tests
-
-| Test file | Sensor | Tier | Command |
-|-----------|--------|------|---------|
-| [tests/regression/test_landsat_regression.py](tests/regression/test_landsat_regression.py) | Landsat 8/9 | 1-3 | `pytest tests/regression/test_landsat_regression.py -v` |
-| [tests/regression/test_pace_regression.py](tests/regression/test_pace_regression.py) | PACE OCI | 1-4 | `pytest tests/regression/test_pace_regression.py -v` |
-| [tests/regression/test_sentinel2_regression.py](tests/regression/test_sentinel2_regression.py) | Sentinel-2 | 1-3 | `pytest tests/regression/test_sentinel2_regression.py -v` |
-| [tests/regression/test_landsat_rust_vs_python.py](tests/regression/test_landsat_rust_vs_python.py) | Landsat 8/9 | Full AC | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
-| [tests/regression/test_pace_rust_vs_python.py](tests/regression/test_pace_rust_vs_python.py) | PACE OCI | Full AC | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
-| [tests/regression/conftest.py](tests/regression/conftest.py) | — | Fixtures | Shared pytest config, tolerances, CLI options |
-
-### Test Tiers
-
-- **Tier 1 — Synthetic** (always runs): Physics invariants, monotonicity, range checks
-- **Tier 2 — Integration** (needs netCDF4): Metadata parsing, structure validation
-- **Tier 3 — Real data** (`--runslow`): Per-band reflectance stats, band count parity
-- **Tier 4 — Cross-implementation** (`--runslow`): Rust vs Python per-pixel correlation (R > 0.80, RMSE < 0.02)
+| test_landsat_regression.py | Landsat 8/9 | 13 | `pytest tests/regression/test_landsat_regression.py -v` |
+| test_landsat_rust_vs_python.py | Landsat 8/9 | 13 | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
+| test_benchmark_rust_vs_python.py | Landsat 8/9 | 7 | `pytest tests/regression/test_benchmark_rust_vs_python.py -v -s` |
+| test_sentinel2_regression.py | Sentinel-2 | 19 | `pytest tests/regression/test_sentinel2_regression.py -v` |
+| test_s2_rust_vs_python.py | Sentinel-2 | 15 | `pytest tests/regression/test_s2_rust_vs_python.py -v -s` |
+| test_s2_benchmark_rust_vs_python.py | Sentinel-2 | 9 | `pytest tests/regression/test_s2_benchmark_rust_vs_python.py -v -s` |
+| test_pace_regression.py | PACE OCI | 17 | `pytest tests/regression/test_pace_regression.py -v` |
+| test_pace_rust_vs_python.py | PACE OCI | 14 | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
+| conftest.py | — | — | Shared pytest config, tolerances, CLI options |
 
 ### Quick Commands
 
 ```bash
-# All Rust tests (no external data)
-cargo test
+# All Rust tests
+cargo test --features full-io
 
 # All Python regression (Tier 1+2, no real data)
 pytest tests/regression/ -v
+
+# Sentinel-2 fixed-mode regression (requires cached S2 data)
+pytest tests/regression/test_s2_rust_vs_python.py -v -s
 
 # Full regression with real data
 pytest tests/regression/ -v --runslow \
@@ -142,11 +144,13 @@ pytest tests/regression/ -v --runslow \
 
 ## Current State
 
-- **25 tests** passing
-- **5 examples** (Landsat, PACE, Sentinel-2, Sentinel-3, AWS Landsat)
+- **48 Rust tests** (26 unit + 8 integration + 14 e2e)
+- **107 Python regression tests**
+- **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
-- **Real data validated**: Landsat 8 scene + PACE OBDAAC search
+- **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02
+- **No unwrap() in library code** (all replaced with proper error propagation)
 
 ## Completed ✅
 
@@ -160,51 +164,53 @@ pytest tests/regression/ -v --runslow \
 - [x] Auto-dispatch writer (>50 bands → GeoZarr, ≤50 → COG)
 - [x] f32 pipeline path for pre-calibrated sensors (PACE)
 
-## Next: Phase B — Real Atmospheric Correction
+### Phase B: Real Atmospheric Correction
+- [x] LUT loading — sensor-specific 6SV NetCDF LUTs, multi-pressure stacking
+- [x] N-dimensional interpolation (RegularGridInterpolator equivalent)
+- [x] Gas transmittance — O₃/H₂O/CO₂/O₂ from ko3 data + RSR convolution
+- [x] DSF algorithm — dark spectrum extraction (intercept method), AOT inversion, model selection
+- [x] Tiled DSF — 200×200 tile grid, per-tile AOT, most-common model voting
+- [x] Fixed DSF — whole-scene dark spectrum, single AOT
+- [x] Surface reflectance correction — `rhos = (rhot/tt_gas - romix) / (dutott + astot*(rhot/tt_gas - romix))`
+- [x] Multi-model selection — MOD1 (Continental) + MOD2 (Maritime), min RMSD
 
-### B.1 LUT Loading (1 week)
-- [ ] Download NetCDF LUTs from https://github.com/acolite/acolite_luts
-- [ ] Parse 6SV Rayleigh LUT (wavelength × SZA × VZA × RAA × pressure)
-- [ ] Parse aerosol LUTs (Continental, Maritime, Urban)
-- [ ] N-dimensional interpolation
+### Phase C: Validation
+- [x] Landsat 8/9 Rust vs Python — R>0.998, RMSE<0.02
+- [x] Sentinel-2 A/B Rust vs Python — R=1.000, RMSE<0.002 (physics-equivalent)
+- [x] PACE OCI Rust vs Python — r=0.9995
 
-### B.2 Rayleigh Correction (3 days)
-- [ ] Replace placeholder with LUT-based implementation
-- [ ] Pressure correction
+### Phase E: Production Hardening (partial)
+- [x] Remove all `unwrap()` from library code (proper error propagation)
+- [x] S2 RADIO_ADD_OFFSET support (processing baseline ≥ 4.0)
+- [x] CLI args: `--model auto|MOD1|MOD2`, `--aot-mode tiled|fixed`
 
-### B.3 Gas Transmittance (3 days)
-- [ ] O3/H2O/O2 transmittance from LUTs
-- [ ] Replace all-zero k_o3 values
+## Next Steps
 
-### B.4 DSF Algorithm (1 week)
-- [ ] Tile-based dark spectrum extraction
-- [ ] AOT optimization per tile
-- [ ] Aerosol model selection
-
-### B.5 Calibration (2 days)
-- [ ] DN → radiance → TOA reflectance from MTL
-
-## Phase C — Validation (1-2 weeks)
-- [x] Pixel-level RMSE comparison with Python ACOLITE — see [test_landsat_rust_vs_python.py](tests/regression/test_landsat_rust_vs_python.py), [test_pace_rust_vs_python.py](tests/regression/test_pace_rust_vs_python.py)
-- [x] Band-by-band statistical comparison — Landsat R>0.998, PACE r=0.9995
-- [ ] Sentinel-2 Rust vs Python full AC comparison (pending LUT-DSF for S2)
-
-## Phase D — Additional Loaders
-- [ ] Sentinel-2 (JP2 via GDAL)
-- [ ] Sentinel-3 OLCI (NetCDF)
+### Phase D — Additional Loaders
+- [ ] Sentinel-3 OLCI (NetCDF) — sensor def exists, needs full pipeline
 - [ ] PRISMA/DESIS/EnMAP (HDF5)
 - [ ] EMIT (NetCDF)
 
-## Phase E — Production Hardening
-- [ ] Remove all `unwrap()` from library code
-- [ ] Streaming processing
+### Phase E — Production Hardening (remaining)
+- [ ] ROI subsetting (limit parameter)
+- [ ] Interface reflectance (rsky)
+- [ ] Ancillary data (NCEP ozone/pressure/wind)
+- [ ] DEM-derived pressure
+- [ ] Glint correction
+- [ ] Streaming processing for large scenes
 - [ ] CLI matching Python ACOLITE settings files
-- [ ] NetCDF L2 output matching Python format
+- [ ] NetCDF L2R output matching Python format
+
+### Phase F — Water Products (L2W)
+- [ ] Port `acolite_l2w.py` parameter computation
+- [ ] Chlorophyll-a (OC algorithms)
+- [ ] TSS (Nechad, Dogliotti)
+- [ ] Turbidity
 
 ## Dependencies
 
 ```toml
-gdal = "0.17"        # GeoTIFF read/write
+gdal = "0.17"        # GeoTIFF/JP2 read/write
 ndarray = "0.15"     # Array processing
 rayon = "1.8"        # Parallelism
 zarrs = "0.23"       # Zarr V3 (GeoZarr output)
@@ -214,5 +220,5 @@ serde = "1.0"        # Serialization
 chrono = "0.4"       # DateTime
 thiserror = "1.0"    # Error types
 zeroize = "1.8"      # Credential security
-netcdf = "0.9"       # PACE/S3 NetCDF (optional)
+netcdf = "0.9"       # LUT/PACE/S3 NetCDF (optional, full-io feature)
 ```
