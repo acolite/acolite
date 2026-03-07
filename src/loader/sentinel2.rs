@@ -34,11 +34,18 @@ pub struct S2Scene {
     pub metadata: Metadata,
     pub sensor_lut: String,
     pub lut_band_map: Vec<(String, String)>,
+    /// Quantification value (typically 10000)
+    pub quantification_value: f64,
+    /// Per-band radiometric add offset (processing baseline ≥ 4.0), keyed by band_id "0".."12"
+    pub radio_add_offset: HashMap<String, f64>,
 }
 
 /// Load a Sentinel-2 SAFE directory, resampling all bands to `target_res` metres.
 pub fn load_sentinel2_scene(safe_dir: &Path, target_res: u32) -> Result<S2Scene> {
-    let safe_name = safe_dir.file_name().unwrap_or_default().to_string_lossy();
+    let safe_name = safe_dir
+        .file_name()
+        .ok_or_else(|| AcoliteError::InvalidMetadata("SAFE path has no filename".into()))?
+        .to_string_lossy();
 
     // Detect sensor
     let sensor_lut = if safe_name.starts_with("S2A") {
@@ -96,7 +103,9 @@ pub fn load_sentinel2_scene(safe_dir: &Path, target_res: u32) -> Result<S2Scene>
         let mut data = Array2::<u16>::zeros((tgt_h, tgt_w));
         rb.read_into_slice(
             (0, 0), (src_w, src_h), (tgt_w, tgt_h),
-            data.as_slice_mut().unwrap(), None,
+            data.as_slice_mut()
+                .ok_or_else(|| AcoliteError::Processing(format!("Non-contiguous array for {}", bname)))?,
+            None,
         ).map_err(|e| AcoliteError::Gdal(format!("Read {}: {}", bname, e)))?;
 
         let proj = Projection::from_wkt(ds.projection());
@@ -106,12 +115,46 @@ pub fn load_sentinel2_scene(safe_dir: &Path, target_res: u32) -> Result<S2Scene>
         lut_band_map.push((bname.to_string(), lut_bn.to_string()));
     }
 
+    // Parse radiometric calibration from product-level metadata
+    let (quant, offsets) = parse_s2_radiometric(safe_dir)?;
+
     Ok(S2Scene {
         bands,
         metadata,
         sensor_lut: sensor_lut.to_string(),
         lut_band_map,
+        quantification_value: quant,
+        radio_add_offset: offsets,
     })
+}
+
+/// Parse QUANTIFICATION_VALUE and RADIO_ADD_OFFSET from MTD_MSIL1C.xml
+fn parse_s2_radiometric(safe_dir: &Path) -> Result<(f64, HashMap<String, f64>)> {
+    let mtd_path = safe_dir.join("MTD_MSIL1C.xml");
+    let content = std::fs::read_to_string(&mtd_path)
+        .map_err(|e| AcoliteError::Processing(format!("Read MTD_MSIL1C.xml: {}", e)))?;
+
+    // Parse QUANTIFICATION_VALUE
+    let quant = extract_simple_tag(&content, "QUANTIFICATION_VALUE").unwrap_or(10000.0);
+
+    // Parse RADIO_ADD_OFFSET elements: <RADIO_ADD_OFFSET band_id="0">-1000</RADIO_ADD_OFFSET>
+    let mut offsets = HashMap::new();
+    for part in content.split("<RADIO_ADD_OFFSET").skip(1) {
+        if let (Some(bid_start), Some(val_end)) = (part.find("band_id=\""), part.find("</RADIO_ADD_OFFSET>")) {
+            let bid_s = bid_start + 9; // len of 'band_id="'
+            if let Some(bid_e) = part[bid_s..].find('"') {
+                let band_id = &part[bid_s..bid_s + bid_e];
+                // Value is between > and </
+                if let Some(gt) = part[..val_end].find('>') {
+                    if let Ok(v) = part[gt + 1..val_end].trim().parse::<f64>() {
+                        offsets.insert(band_id.to_string(), v);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((quant, offsets))
 }
 
 fn find_band_jp2(img_data: &Path, band_name: &str) -> Option<std::path::PathBuf> {

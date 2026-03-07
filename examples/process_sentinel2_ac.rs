@@ -3,6 +3,7 @@
 //! Usage:
 //!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE
 //!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE --output /tmp/out --res 20
+//!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE --model MOD1 --aot-mode fixed
 
 use acolite_rs::core::BandData;
 use acolite_rs::ac::{gas_lut, dsf};
@@ -23,15 +24,17 @@ fn main() {
     let file = get_arg(&args, "--file");
     let output_dir = get_arg(&args, "--output").unwrap_or_else(|| "/tmp/acolite_s2".into());
     let target_res: u32 = get_arg(&args, "--res").and_then(|s| s.parse().ok()).unwrap_or(20);
+    let model = get_arg(&args, "--model").unwrap_or_else(|| "auto".into());
+    let aot_mode = get_arg(&args, "--aot-mode").unwrap_or_else(|| "tiled".into());
 
     if let Some(safe_dir) = file {
-        process_real(Path::new(&safe_dir), &output_dir, target_res);
+        process_real(Path::new(&safe_dir), &output_dir, target_res, &model, &aot_mode);
     } else {
-        println!("Usage: process_sentinel2_ac --file /path/to/S2*.SAFE [--output /tmp/out] [--res 20]");
+        println!("Usage: process_sentinel2_ac --file /path/to/S2*.SAFE [--output /tmp/out] [--res 20] [--model auto|MOD1|MOD2] [--aot-mode tiled|fixed]");
     }
 }
 
-fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32) {
+fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32, model: &str, aot_mode: &str) {
     println!("→ Loading scene: {:?} (target {}m)", safe_dir, target_res);
     let start = std::time::Instant::now();
 
@@ -67,16 +70,29 @@ fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32) {
     #[cfg(feature = "full-io")]
     let luts = {
         let pressures = vec![500.0, 750.0, 1013.0, 1100.0];
-        acolite_rs::ac::aerlut::load_acolite_luts(&data_dir, sensor_lut, &pressures)
-            .expect("Failed to load aerosol LUTs")
+        if model == "auto" {
+            acolite_rs::ac::aerlut::load_acolite_luts(&data_dir, sensor_lut, &pressures)
+                .expect("Failed to load aerosol LUTs")
+        } else {
+            acolite_rs::ac::aerlut::load_single_lut(&data_dir, sensor_lut, model, &pressures)
+                .expect("Failed to load aerosol LUT")
+        }
     };
     #[cfg(feature = "full-io")]
-    println!("  Loaded {} aerosol models", luts.len());
+    println!("  Loaded {} aerosol model(s)", luts.len());
 
     // ── Step 3: Convert DN to TOA reflectance ──
-    // S2 L1C: DN / 10000 = TOA reflectance (already divided by cos(sza) in L1C)
+    // S2 L1C: (DN + RADIO_ADD_OFFSET) / QUANTIFICATION_VALUE = TOA reflectance
+    let quant = scene.quantification_value;
     let cos_sza = sza.to_radians().cos();
-    println!("  Calibration: DN/10000, cos(sza)={:.4}", cos_sza);
+    println!("  Calibration: (DN+offset)/{}, cos(sza)={:.4}", quant, cos_sza);
+
+    // Band name -> band_id for RADIO_ADD_OFFSET lookup
+    let band_id_map: std::collections::HashMap<&str, &str> = [
+        ("B01","0"),("B02","1"),("B03","2"),("B04","3"),("B05","4"),
+        ("B06","5"),("B07","6"),("B08","7"),("B8A","8"),("B09","9"),
+        ("B10","10"),("B11","11"),("B12","12"),
+    ].iter().copied().collect();
 
     // Filter to AC bands only
     let ac_band_set: std::collections::HashSet<&str> = S2_AC_BANDS.iter().copied().collect();
@@ -86,10 +102,14 @@ fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32) {
             if !ac_band_set.contains(b.name.as_str()) { return None; }
             scene.lut_band_map.iter().find(|(rn, _)| *rn == b.name)
                 .map(|(_, lut_bn)| {
+                    let offset = band_id_map.get(b.name.as_str())
+                        .and_then(|bid| scene.radio_add_offset.get(*bid))
+                        .copied()
+                        .unwrap_or(0.0);
                     let toa = b.data.mapv(|v| {
                         let dn = v as f64;
                         if dn == 0.0 { return f64::NAN; }
-                        dn / 10000.0
+                        (dn + offset) / quant
                     });
                     (b.name.clone(), lut_bn.to_string(), b.wavelength, toa)
                 })
@@ -115,6 +135,14 @@ fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32) {
 
     let mut dsf_config = dsf::DsfConfig::default();
     dsf_config.dark_method = dsf::DarkSpectrumMethod::Intercept(200);
+    // Match Python S2 default: dsf_wave_range=400,900 (exclude SWIR from AOT estimation)
+    dsf_config.wave_range = (400.0, 900.0);
+    if model != "auto" {
+        dsf_config.fixed_model = Some(model.to_string());
+    }
+    if aot_mode == "fixed" {
+        dsf_config.mode = dsf::DsfMode::Fixed;
+    }
 
     let pressure = 1013.0;
     let vaa = metadata.view_azimuth.unwrap_or(100.0);
@@ -126,30 +154,49 @@ fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32) {
     println!("  Geometry: SZA={:.2}, VZA={:.2}, RAA={:.2}, pressure={:.0}", ths, thv, raa, pressure);
 
     #[cfg(feature = "full-io")]
-    let tiled_result = dsf::optimize_aot_tiled(
-        &luts, &toa_gc_arrays, &band_names_lut, &wavelengths, &tt_gas_vec,
-        pressure, raa, thv, ths, &dsf_config, (200, 200),
-    );
-    #[cfg(feature = "full-io")]
-    {
-        let vals: Vec<f64> = tiled_result.aot_grid.iter().flatten().copied().filter(|v| v.is_finite()).collect();
-        let mean_aot = if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 };
-        println!("  Tiled DSF: model={}, tiles={}×{}, mean AOT={:.4}",
-            tiled_result.model_name, tiled_result.ni, tiled_result.nj, mean_aot);
-    }
+    let (dsf_result_fixed, tiled_result) = match dsf_config.mode {
+        dsf::DsfMode::Fixed => {
+            let result = dsf::optimize_aot_fixed(
+                &luts, &toa_gc_arrays, &band_names_lut, &wavelengths, &tt_gas_vec,
+                pressure, raa, thv, ths, &dsf_config,
+            );
+            println!("  Fixed DSF: model={}, AOT={:.4}, RMSD={:.6}",
+                result.model_name, result.aot, result.rmsd);
+            (Some(result), None)
+        }
+        dsf::DsfMode::Tiled(tr, tc) => {
+            let tr = dsf::optimize_aot_tiled(
+                &luts, &toa_gc_arrays, &band_names_lut, &wavelengths, &tt_gas_vec,
+                pressure, raa, thv, ths, &dsf_config, (tr, tc),
+            );
+            let vals: Vec<f64> = tr.aot_grid.iter().flatten().copied().filter(|v| v.is_finite()).collect();
+            let mean_aot = if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 };
+            println!("  Tiled DSF: model={}, tiles={}×{}, mean AOT={:.4}",
+                tr.model_name, tr.ni, tr.nj, mean_aot);
+            (None, Some(tr))
+        }
+    };
 
     // ── Step 5: Apply atmospheric correction ──
     #[cfg(feature = "full-io")]
-    let selected_lut = &luts[tiled_result.model_idx];
+    let selected_lut = if let Some(ref r) = dsf_result_fixed {
+        &luts[r.model_idx]
+    } else {
+        &luts[tiled_result.as_ref().unwrap().model_idx]
+    };
 
     let mut result_bands: Vec<BandData<f64>> = Vec::new();
     for (i, (rust_name, lut_bn, wl, toa)) in toa_bands.iter().enumerate() {
         let tt = tt_gas_vec[i];
 
         #[cfg(feature = "full-io")]
-        let corrected = dsf::dsf_correct_band_tiled(
-            toa, selected_lut, lut_bn, tt, &tiled_result, pressure, raa, thv, ths,
-        );
+        let corrected = if let Some(ref r) = dsf_result_fixed {
+            dsf::dsf_correct_band(toa, selected_lut, lut_bn, tt, r.aot, pressure, raa, thv, ths)
+        } else {
+            dsf::dsf_correct_band_tiled(
+                toa, selected_lut, lut_bn, tt, tiled_result.as_ref().unwrap(), pressure, raa, thv, ths,
+            )
+        };
         #[cfg(not(feature = "full-io"))]
         let corrected = toa.clone();
 

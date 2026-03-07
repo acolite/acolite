@@ -3,6 +3,7 @@
 //! Usage:
 //!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_*
 //!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_* --output /tmp/out
+//!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_* --model MOD1 --aot-mode fixed
 
 use acolite_rs::core::{BandData, GeoTransform, Metadata, Projection};
 use acolite_rs::ac::gas_lut;
@@ -22,15 +23,17 @@ fn main() {
 
     let file = get_arg(&args, "--file");
     let output_dir = get_arg(&args, "--output").unwrap_or_else(|| "/tmp/acolite_landsat".into());
+    let model = get_arg(&args, "--model").unwrap_or_else(|| "auto".into());
+    let aot_mode = get_arg(&args, "--aot-mode").unwrap_or_else(|| "tiled".into());
 
     if let Some(scene_dir) = file {
-        process_real(Path::new(&scene_dir), &output_dir);
+        process_real(Path::new(&scene_dir), &output_dir, &model, &aot_mode);
     } else {
-        println!("Usage: process_landsat --file /path/to/LC08_* [--output /tmp/out]");
+        println!("Usage: process_landsat --file /path/to/LC08_* [--output /tmp/out] [--model auto|MOD1|MOD2] [--aot-mode tiled|fixed]");
     }
 }
 
-fn process_real(scene_dir: &Path, output_dir: &str) {
+fn process_real(scene_dir: &Path, output_dir: &str, model: &str, aot_mode: &str) {
     use acolite_rs::{load_landsat_scene, sensors::parse_mtl};
 
     println!("→ Loading scene: {:?}", scene_dir);
@@ -84,11 +87,16 @@ fn process_real(scene_dir: &Path, output_dir: &str) {
     #[cfg(feature = "full-io")]
     let luts = {
         let pressures = vec![500.0, 750.0, 1013.0, 1100.0];
-        acolite_rs::ac::aerlut::load_acolite_luts(&data_dir, sensor_lut, &pressures)
-            .expect("Failed to load aerosol LUTs")
+        if model == "auto" {
+            acolite_rs::ac::aerlut::load_acolite_luts(&data_dir, sensor_lut, &pressures)
+                .expect("Failed to load aerosol LUTs")
+        } else {
+            acolite_rs::ac::aerlut::load_single_lut(&data_dir, sensor_lut, model, &pressures)
+                .expect("Failed to load aerosol LUT")
+        }
     };
     #[cfg(feature = "full-io")]
-    println!("  Loaded {} aerosol models", luts.len());
+    println!("  Loaded {} aerosol model(s)", luts.len());
 
     // ── Step 3: Convert DN to TOA reflectance ──
     // Landsat Collection 2: rhot = DN * MULT + ADD, then / cos(sza)
@@ -130,6 +138,12 @@ fn process_real(scene_dir: &Path, output_dir: &str) {
     let mut dsf_config = dsf::DsfConfig::default();
     // Use intercept method matching Python's dsf_spectrum_option=intercept
     dsf_config.dark_method = dsf::DarkSpectrumMethod::Intercept(200);
+    if model != "auto" {
+        dsf_config.fixed_model = Some(model.to_string());
+    }
+    if aot_mode == "fixed" {
+        dsf_config.mode = dsf::DsfMode::Fixed;
+    }
 
     // Compute relative azimuth from MTL corner coordinates
     let pressure = 1013.0;
@@ -138,34 +152,51 @@ fn process_real(scene_dir: &Path, output_dir: &str) {
     let ths = sza;
     println!("  Geometry: SZA={:.2}, VZA={:.2}, RAA={:.2}, pressure={:.0}", ths, thv, azi, pressure);
 
-    // Tiled AOT estimation (matching Python dsf_aot_estimate=tiled, 200×200 tiles)
+    // AOT estimation based on configured mode
     #[cfg(feature = "full-io")]
-    let tiled_result = dsf::optimize_aot_tiled(
-        &luts, &toa_gc_arrays, &band_names_lut, &wavelengths, &tt_gas_vec,
-        pressure, azi, thv, ths, &dsf_config, (200, 200),
-    );
-    #[cfg(feature = "full-io")]
-    {
-        let mean_aot: f64 = {
-            let vals: Vec<f64> = tiled_result.aot_grid.iter().flatten().copied().filter(|v| v.is_finite()).collect();
-            if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 }
-        };
-        println!("  Tiled DSF: model={}, tiles={}×{}, mean AOT={:.4}",
-            tiled_result.model_name, tiled_result.ni, tiled_result.nj, mean_aot);
-    }
+    let (dsf_result_fixed, tiled_result) = match dsf_config.mode {
+        dsf::DsfMode::Fixed => {
+            let result = dsf::optimize_aot_fixed(
+                &luts, &toa_gc_arrays, &band_names_lut, &wavelengths, &tt_gas_vec,
+                pressure, azi, thv, ths, &dsf_config,
+            );
+            println!("  Fixed DSF: model={}, AOT={:.4}, RMSD={:.6}",
+                result.model_name, result.aot, result.rmsd);
+            (Some(result), None)
+        }
+        dsf::DsfMode::Tiled(tr, tc) => {
+            let tr = dsf::optimize_aot_tiled(
+                &luts, &toa_gc_arrays, &band_names_lut, &wavelengths, &tt_gas_vec,
+                pressure, azi, thv, ths, &dsf_config, (tr, tc),
+            );
+            let vals: Vec<f64> = tr.aot_grid.iter().flatten().copied().filter(|v| v.is_finite()).collect();
+            let mean_aot = if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 };
+            println!("  Tiled DSF: model={}, tiles={}×{}, mean AOT={:.4}",
+                tr.model_name, tr.ni, tr.nj, mean_aot);
+            (None, Some(tr))
+        }
+    };
 
     // ── Step 5: Apply atmospheric correction ──
     #[cfg(feature = "full-io")]
-    let selected_lut = &luts[tiled_result.model_idx];
+    let selected_lut = if let Some(ref r) = dsf_result_fixed {
+        &luts[r.model_idx]
+    } else {
+        &luts[tiled_result.as_ref().unwrap().model_idx]
+    };
 
     let mut result_bands: Vec<BandData<f64>> = Vec::new();
     for (i, (rust_name, lut_bn, wl, toa)) in toa_bands.iter().enumerate() {
         let tt = tt_gas_vec[i];
 
         #[cfg(feature = "full-io")]
-        let corrected = dsf::dsf_correct_band_tiled(
-            toa, selected_lut, lut_bn, tt, &tiled_result, pressure, azi, thv, ths,
-        );
+        let corrected = if let Some(ref r) = dsf_result_fixed {
+            dsf::dsf_correct_band(toa, selected_lut, lut_bn, tt, r.aot, pressure, azi, thv, ths)
+        } else {
+            dsf::dsf_correct_band_tiled(
+                toa, selected_lut, lut_bn, tt, tiled_result.as_ref().unwrap(), pressure, azi, thv, ths,
+            )
+        };
         #[cfg(not(feature = "full-io"))]
         let corrected = toa.clone();
 

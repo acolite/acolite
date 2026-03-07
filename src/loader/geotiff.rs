@@ -17,7 +17,10 @@ pub fn read_geotiff_band(path: &Path) -> Result<BandData<u16>> {
         .map_err(|e| AcoliteError::Gdal(format!("GT: {}", e)))?;
 
     let mut data = Array2::zeros((h as usize, w as usize));
-    rb.read_into_slice((0, 0), (w, h), (w, h), data.as_slice_mut().unwrap(), None)
+    rb.read_into_slice((0, 0), (w, h), (w, h),
+        data.as_slice_mut()
+            .ok_or_else(|| AcoliteError::Processing("Non-contiguous array".into()))?,
+        None)
         .map_err(|e| AcoliteError::Gdal(format!("Read: {}", e)))?;
 
     Ok(BandData::new(

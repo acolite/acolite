@@ -22,6 +22,15 @@ pub enum DarkSpectrumMethod {
     Intercept(usize),
 }
 
+/// DSF AOT estimation mode (matches Python's dsf_aot_estimate setting)
+#[derive(Debug, Clone)]
+pub enum DsfMode {
+    /// Single scene-wide dark spectrum → one AOT for the whole image
+    Fixed,
+    /// Per-tile dark spectrum → spatially varying AOT grid
+    Tiled(usize, usize),
+}
+
 /// DSF configuration
 #[derive(Debug, Clone)]
 pub struct DsfConfig {
@@ -31,6 +40,10 @@ pub struct DsfConfig {
     pub dsf_nbands_fit: usize,
     pub aot_compute: AotCompute,
     pub wave_range: (f64, f64),
+    /// If set, skip model voting and use only the LUT whose name ends with this suffix (e.g. "MOD1")
+    pub fixed_model: Option<String>,
+    /// AOT estimation mode: Fixed (whole-scene) or Tiled(rows, cols)
+    pub mode: DsfMode,
 }
 
 /// How to compute the selected AOT from per-band AOTs
@@ -51,6 +64,8 @@ impl Default for DsfConfig {
             dsf_nbands_fit: 2,
             aot_compute: AotCompute::Min,
             wave_range: (400.0, 2500.0),
+            fixed_model: None,
+            mode: DsfMode::Tiled(200, 200),
         }
     }
 }
@@ -80,7 +95,7 @@ pub fn estimate_dark_spectrum(
             .filter(|v| v.is_finite() && *v > 0.0)
             .collect();
         if values.is_empty() { return f64::NAN; }
-        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         match method {
             DarkSpectrumMethod::Percentile(pct) => {
@@ -128,7 +143,8 @@ fn invert_aot(
 
     // Interpolate: find tau where romix == rhot_dark
     // romix is monotonically increasing with tau
-    if rhot_dark <= romix_vals[0] { return tau_steps[0]; }
+    // Return NaN if out of range (matches Python np.interp with left=nan, right=nan)
+    if rhot_dark <= romix_vals[0] { return f64::NAN; }
     if rhot_dark >= romix_vals[romix_vals.len() - 1] { return f64::NAN; }
 
     for i in 0..romix_vals.len() - 1 {
@@ -194,7 +210,7 @@ pub fn optimize_aot(
         if band_aots.is_empty() { continue; }
 
         // Sort by AOT ascending
-        band_aots.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        band_aots.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
         // Select AOT based on config
         let selected_aot = match config.aot_compute {
@@ -219,6 +235,8 @@ pub fn optimize_aot(
             sum_sq += (rhot_dark - romix_model).powi(2);
         }
         let rmsd = (sum_sq / n_fit as f64).sqrt();
+
+        log::info!("Model {} RMSD={:.6} AOT={:.4}", lut.name, rmsd, selected_aot);
 
         if rmsd < best.rmsd {
             best = DsfResult {
@@ -263,6 +281,29 @@ pub fn dsf_correct_band(
         if denom <= 0.0 { return f64::NAN; }
         rhot_noatm / denom
     })
+}
+
+/// Fixed (whole-scene) DSF: extract one dark spectrum from the full image,
+/// invert AOT once, return a single scene-wide result.
+/// Matches Python's `dsf_aot_estimate=fixed` behavior.
+#[cfg(feature = "full-io")]
+pub fn optimize_aot_fixed(
+    luts: &[AerosolLut],
+    toa_gc_bands: &[Array2<f64>],
+    band_names: &[String],
+    wavelengths: &[f64],
+    tt_gas: &[f64],
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+    config: &DsfConfig,
+) -> DsfResult {
+    let dark_spectrum = estimate_dark_spectrum(toa_gc_bands, &config.dark_method);
+    optimize_aot(
+        luts, &dark_spectrum, band_names, wavelengths, tt_gas,
+        pressure, azi, thv, ths, config,
+    )
 }
 
 /// Result of tiled DSF estimation
@@ -351,10 +392,21 @@ pub fn optimize_aot_tiled(
     }
 
     // Select most common model (matching Python dsf_aot_most_common_model)
-    let best_model_idx = model_votes.iter().enumerate()
-        .max_by_key(|(_, &v)| v)
-        .map(|(i, _)| i)
-        .unwrap_or(0);
+    // If fixed_model is set, find the matching LUT index instead of voting
+    let best_model_idx = if let Some(ref model_name) = config.fixed_model {
+        luts.iter().position(|l| l.name.ends_with(model_name))
+            .unwrap_or(0)
+    } else {
+        model_votes.iter().enumerate()
+            .max_by_key(|(_, &v)| v)
+            .map(|(i, _)| i)
+            .unwrap_or(0)
+    };
+
+    log::info!("Model votes: {}", model_votes.iter().enumerate()
+        .map(|(i, v)| format!("{}={}", luts.get(i).map(|l| l.name.as_str()).unwrap_or("?"), v))
+        .collect::<Vec<_>>().join(", "));
+    log::info!("Selected model: {} (idx={})", luts[best_model_idx].name, best_model_idx);
 
     // Now rebuild AOT grid using only the selected model
     // Re-run per-tile DSF with only the selected model
@@ -391,7 +443,7 @@ pub fn optimize_aot_tiled(
                 }
             }
             if band_aots.is_empty() { continue; }
-            band_aots.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            band_aots.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
             aot_grid[ti][tj] = match config.aot_compute {
                 AotCompute::Min => band_aots[0],
@@ -405,6 +457,16 @@ pub fn optimize_aot_tiled(
 
     // Fill NaN tiles with nearest valid value (matching Python's distance_transform_edt fill)
     fill_nan_nearest(&mut aot_grid, ni, nj);
+
+    {
+        let mut vals: Vec<f64> = aot_grid.iter().flatten().copied().filter(|v| v.is_finite()).collect();
+        if !vals.is_empty() {
+            let mean = vals.iter().sum::<f64>() / vals.len() as f64;
+            vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let median = vals[vals.len() / 2];
+            log::info!("AOT grid ({}×{}): mean={:.4}, median={:.4}, n_valid={}", ni, nj, mean, median, vals.len());
+        }
+    }
 
     TiledDsfResult {
         aot_grid,

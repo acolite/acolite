@@ -101,6 +101,7 @@ def _run_python_full(label):
         "dsf_spectrum_option=intercept\n"
         "dsf_intercept_pixels=200\n"
         "dsf_interface_reflectance=False\n"
+        "dsf_fixed_lut=ACOLITE-LUT-202110-MOD2\n"
         "l2w_parameters=\n"
         "rgb_rhot=False\n"
         "rgb_rhos=False\n"
@@ -138,7 +139,7 @@ def _run_python_full(label):
 def _run_rust_full(binary, label):
     cfg = SCENES[label]
     safe_dir = CACHE / cfg["safe"]
-    out_dir = CACHE / f"rust_full_{label}"
+    out_dir = CACHE / f"rust_fixed_{label}"
 
     if not safe_dir.exists():
         pytest.skip(f"No cached {label} scene")
@@ -154,7 +155,8 @@ def _run_rust_full(binary, label):
 
     t0 = time.time()
     r = subprocess.run(
-        [str(binary), "--file", str(safe_dir), "--output", str(out_dir), "--res", "20"],
+        [str(binary), "--file", str(safe_dir), "--output", str(out_dir), "--res", "20",
+         "--aot-mode", "fixed", "--model", "auto"],
         capture_output=True, text=True, timeout=300,
         env={**os.environ, "RUST_LOG": "info"},
     )
@@ -366,3 +368,114 @@ class TestS2BenchmarkSummary:
         print(f"\n{'='*78}")
         print("  END BENCHMARK")
         print(f"{'='*78}")
+
+
+# ── Tiled-vs-Tiled comparison ────────────────────────────────────────────
+
+def _run_python_tiled(label):
+    """Run Python ACOLITE with dsf_aot_estimate=tiled."""
+    cfg = SCENES[label]
+    safe_dir = CACHE / cfg["safe"]
+    out_dir = CACHE / f"py_tiled_{label}"
+
+    if not safe_dir.exists():
+        pytest.skip(f"No cached {label} scene")
+
+    l2r_nc = list(out_dir.glob("*_L2R.nc")) if out_dir.exists() else []
+    if l2r_nc:
+        return {"nc": l2r_nc[0], "out_dir": out_dir, "cached": True}
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    settings = out_dir / "settings.txt"
+    settings.write_text(
+        f"inputfile={safe_dir}\n"
+        f"output={out_dir}\n"
+        "dsf_aot_estimate=tiled\n"
+        "dsf_spectrum_option=intercept\n"
+        "dsf_intercept_pixels=200\n"
+        "dsf_interface_reflectance=False\n"
+        "l2w_parameters=\n"
+        "rgb_rhot=False\n"
+        "rgb_rhos=False\n"
+        "map_l2w=False\n"
+        "s2_target_res=20\n"
+        "geometry_type=grids\n"
+        "output_geometry=False\n"
+        "resolved_geometry=False\n"
+    )
+
+    r = subprocess.run(
+        [sys.executable, "-c",
+         f"import sys; sys.path.insert(0,'{REPO}'); "
+         f"import acolite; acolite.acolite.acolite_run(settings='{settings}')"],
+        capture_output=True, text=True, timeout=600, cwd=str(REPO),
+    )
+    if r.returncode != 0:
+        pytest.fail(f"Python tiled {label} failed:\n{r.stderr[:500]}")
+
+    l2r_nc = list(out_dir.glob("*_L2R.nc"))
+    if not l2r_nc:
+        pytest.fail(f"No L2R produced for tiled {label}")
+    return {"nc": l2r_nc[0], "out_dir": out_dir, "cached": False}
+
+
+def _run_rust_tiled(binary, label):
+    """Run Rust with --aot-mode=tiled --model=auto."""
+    cfg = SCENES[label]
+    safe_dir = CACHE / cfg["safe"]
+    out_dir = CACHE / f"rust_tiled_{label}"
+
+    if not safe_dir.exists():
+        pytest.skip(f"No cached {label} scene")
+
+    stem = cfg["stem"]
+    tifs = sorted(out_dir.glob(f"{stem}_corrected_B*.tif")) if out_dir.exists() else []
+    if len(tifs) >= 11:
+        return {"tifs": tifs, "out_dir": out_dir, "cached": True}
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run(
+        [str(binary), "--file", str(safe_dir), "--output", str(out_dir), "--res", "20",
+         "--aot-mode", "tiled", "--model", "auto"],
+        capture_output=True, text=True, timeout=300,
+        env={**os.environ, "RUST_LOG": "info"},
+    )
+    if r.returncode != 0:
+        pytest.fail(f"Rust tiled {label} failed:\n{r.stderr[:500]}")
+
+    tifs = sorted(out_dir.glob(f"{stem}_corrected_B*.tif"))
+    return {"tifs": tifs, "out_dir": out_dir, "cached": False}
+
+
+class TestS2TiledMode:
+    """Tiled-vs-tiled comparison: both Python and Rust use dsf_aot_estimate=tiled."""
+
+    @pytest.mark.parametrize("label", ["S2A", "S2B"])
+    def test_s2_tiled_mode(self, label, rust_binary):
+        py = _run_python_tiled(label)
+        rust = _run_rust_tiled(rust_binary, label)
+        cfg = SCENES[label]
+
+        print(f"\n  {label} Tiled-vs-Tiled (5490×5490 at 20m):")
+        print(f"  {'Band':<6} {'R':>10} {'RMSE':>10} {'Bias':>10} {'%<0.05':>8}")
+        print(f"  {'─'*6} {'─'*10} {'─'*10} {'─'*10} {'─'*8}")
+
+        all_r = []
+        for tif in rust["tifs"]:
+            bname = tif.stem.split("_")[-1]
+            wl = cfg["band_map"].get(bname)
+            if not wl:
+                continue
+            py_data = _read_python_band(py["nc"], wl)
+            if py_data is None:
+                continue
+            rust_data = _read_rust_band(tif)
+            m = _compare(rust_data, py_data)
+            if m is None:
+                continue
+            print(f"  {bname:<6} {m['pearson_r']:>10.6f} {m['rmse']:>10.6f} "
+                  f"{m['bias']:>10.6f} {m['pct_within_0.05']:>7.1f}%")
+            all_r.append(m["pearson_r"])
+
+        assert len(all_r) >= 5, f"Only {len(all_r)} bands compared"
+        assert np.mean(all_r) > 0.90, f"Mean R={np.mean(all_r):.4f} too low"

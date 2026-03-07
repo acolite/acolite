@@ -152,9 +152,12 @@ pub fn load_sensor_lut(
             let stride_thv = nths * 1 * ntau;
             let stride_ths = 1 * ntau;
 
-            let romix_v = band_romix.get_mut(band).unwrap();
-            let astot_v = band_astot.get_mut(band).unwrap();
-            let dutott_v = band_dutott.get_mut(band).unwrap();
+            let romix_v = band_romix.get_mut(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Missing romix for band {}", band)))?;
+            let astot_v = band_astot.get_mut(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Missing astot for band {}", band)))?;
+            let dutott_v = band_dutott.get_mut(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Missing dutott for band {}", band)))?;
 
             for ia in 0..nazi {
                 for iv in 0..nthv {
@@ -181,15 +184,18 @@ pub fn load_sensor_lut(
         let axes = vec![pres_axis.clone(), azi.clone(), thv.clone(), ths.clone(), tau.clone()];
         band_rgi.insert(
             (band.clone(), PAR_ROMIX),
-            RegularGridInterpolator::new(axes.clone(), band_romix.remove(band).unwrap()),
+            RegularGridInterpolator::new(axes.clone(), band_romix.remove(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Missing romix data for {}", band)))?),
         );
         band_rgi.insert(
             (band.clone(), PAR_ASTOT),
-            RegularGridInterpolator::new(axes.clone(), band_astot.remove(band).unwrap()),
+            RegularGridInterpolator::new(axes.clone(), band_astot.remove(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Missing astot data for {}", band)))?),
         );
         band_rgi.insert(
             (band.clone(), PAR_DUTOTT),
-            RegularGridInterpolator::new(axes, band_dutott.remove(band).unwrap()),
+            RegularGridInterpolator::new(axes, band_dutott.remove(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Missing dutott data for {}", band)))?),
         );
     }
 
@@ -243,4 +249,19 @@ pub fn load_acolite_luts(
         return Err(AcoliteError::Processing("No aerosol LUTs loaded".into()));
     }
     Ok(luts)
+}
+
+/// Load a single aerosol model LUT (e.g. "MOD1" or "MOD2")
+#[cfg(feature = "full-io")]
+pub fn load_single_lut(
+    data_dir: &Path,
+    sensor: &str,
+    model: &str,
+    pressures: &[f64],
+) -> Result<Vec<AerosolLut>> {
+    let lut_dir = data_dir.join("LUT");
+    let full_name = format!("ACOLITE-LUT-202110-{}", model);
+    let lut = load_sensor_lut(&lut_dir, &full_name, sensor, pressures)?;
+    log::info!("Loaded single LUT {} for {}", full_name, sensor);
+    Ok(vec![lut])
 }

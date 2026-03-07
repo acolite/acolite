@@ -32,7 +32,7 @@ impl RegularGridInterpolator {
             let ax = &self.axes[d];
             let v = point[d].clamp(ax[0], ax[ax.len() - 1]);
             // binary search
-            let mut i = match ax.binary_search_by(|a| a.partial_cmp(&v).unwrap()) {
+            let mut i = match ax.binary_search_by(|a| a.partial_cmp(&v).unwrap_or(std::cmp::Ordering::Equal)) {
                 Ok(i) => i,
                 Err(i) => if i == 0 { 0 } else { i - 1 },
             };

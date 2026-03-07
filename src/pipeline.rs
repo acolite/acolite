@@ -79,10 +79,10 @@ impl Pipeline {
         }
         
         // Step 4: Aerosol correction (DSF)
-        let corrected = if self.config.apply_aerosol && self.aot.is_some() {
+        let corrected = if let (true, Some(aot)) = (self.config.apply_aerosol, self.aot) {
             dsf_correction_simple(
                 &toa,
-                self.aot.unwrap(),
+                aot,
                 band.wavelength,
                 self.metadata.sun_zenith,
                 self.metadata.view_zenith.unwrap_or(0.0),
@@ -123,9 +123,9 @@ impl Pipeline {
                 self.metadata.view_zenith.unwrap_or(0.0), 1013.25,
             )?;
         }
-        let corrected = if self.config.apply_aerosol && self.aot.is_some() {
+        let corrected = if let (true, Some(aot)) = (self.config.apply_aerosol, self.aot) {
             dsf_correction_simple(
-                &toa, self.aot.unwrap(), band.wavelength,
+                &toa, aot, band.wavelength,
                 self.metadata.sun_zenith, self.metadata.view_zenith.unwrap_or(0.0),
             )
         } else {

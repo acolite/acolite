@@ -89,7 +89,7 @@ fn rsr_convolve(spec_wave: &[f64], spec_data: &[f64], rsr: &BandRsr) -> f64 {
 fn interp_1d(x: f64, xs: &[f64], ys: &[f64]) -> f64 {
     if x <= xs[0] { return ys[0]; }
     if x >= xs[xs.len() - 1] { return ys[ys.len() - 1]; }
-    let i = match xs.binary_search_by(|a| a.partial_cmp(&x).unwrap()) {
+    let i = match xs.binary_search_by(|a| a.partial_cmp(&x).unwrap_or(std::cmp::Ordering::Equal)) {
         Ok(i) => return ys[i],
         Err(i) => if i == 0 { 0 } else { i - 1 },
     };
