@@ -26,3 +26,6 @@ pub use dsf::{optimize_aot_generic, optimize_aot_fixed_generic, optimize_aot_til
 pub use dsf::{optimize_aot_simple, dsf_correction_simple};
 pub use gas_lut::{compute_gas_transmittance, read_rsr, read_ko3, GasTransmittance, BandRsr};
 pub use gas_lut::{compute_wv_transmittance as compute_gas_transmittance_wv, compute_other_gas_transmittance as compute_gas_transmittance_other};
+pub use gas_lut::{compute_gas_transmittance_hyper, HyperGasTransmittance};
+#[cfg(feature = "full-io")]
+pub use gas_lut::{load_wv_lut, load_gas_lut, WvLut, GasLut};

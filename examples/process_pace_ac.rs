@@ -80,43 +80,15 @@ fn process(path: &Path, output_dir: &str, model: &str, aot_mode: &str, limit: Op
     let wavelengths: Vec<f64> = scene.bands.iter().map(|b| b.wavelength).collect();
     let bandwidths: Vec<f64> = scene.bands.iter().map(|b| b.bandwidth).collect();
 
-    // ── Gas transmittance (per-band, using Gaussian RSR) ──
-    println!("\n→ Computing gas transmittance...");
-    let mu0 = ths.to_radians().cos();
-    let muv = if thv.abs() < 0.01 { 1.0 } else { thv.to_radians().cos() };
+    // ── Gas transmittance (per-band, LUT-based matching Python ACOLITE) ──
+    println!("\n→ Computing gas transmittance (LUT-based)...");
 
-    // Read ko3 data for ozone transmittance
-    let (ko3_wave, ko3_data) = gas_lut::read_ko3(&data_dir).expect("Failed to read ko3");
+    let hyper_tg = gas_lut::compute_gas_transmittance_hyper(
+        &data_dir, &wavelengths, &bandwidths, ths, thv, pressure, uoz, uwv,
+    ).expect("Failed to compute gas transmittance");
 
-    let tt_gas_vec: Vec<f64> = wavelengths.iter().zip(bandwidths.iter()).map(|(&wl, &bw)| {
-        // Ozone: convolve ko3 with Gaussian RSR
-        let center_um = wl / 1000.0;
-        let sigma = (bw / 1000.0) / (2.0 * (2.0_f64.ln()).sqrt() * 2.0);
-        let half_width = 1.5 * bw / 1000.0;
-
-        let mut sum_ko3 = 0.0_f64;
-        let mut sum_resp = 0.0_f64;
-        for (i, &w_nm) in ko3_wave.iter().enumerate() {
-            let w_um = w_nm / 1000.0;
-            if (w_um - center_um).abs() > half_width { continue; }
-            let resp = (-(w_um - center_um).powi(2) / (2.0 * sigma * sigma)).exp();
-            if resp < 0.0025 { continue; }
-            sum_ko3 += ko3_data[i] * resp;
-            sum_resp += resp;
-        }
-        let ko3_band = if sum_resp > 0.0 { sum_ko3 / sum_resp } else { 0.0 };
-        let tau_o3 = ko3_band * uoz;
-        let tt_o3 = (-tau_o3 / mu0).exp() * (-tau_o3 / muv).exp();
-
-        // Water vapour (simplified)
-        let tt_h2o = gas_lut::compute_wv_transmittance(wl, uwv, mu0, muv);
-        // Other gases
-        let tt_other = gas_lut::compute_other_gas_transmittance(wl, mu0, muv);
-
-        tt_o3 * tt_h2o * tt_other
-    }).collect();
-
-    println!("  Gas transmittance computed for {} bands", tt_gas_vec.len());
+    let tt_gas_vec = hyper_tg.tt_gas;
+    println!("  Gas transmittance computed for {} bands (LUT-based)", tt_gas_vec.len());
 
     // ── Load generic aerosol LUTs ──
     println!("\n→ Loading generic aerosol LUTs...");
@@ -149,9 +121,10 @@ fn process(path: &Path, output_dir: &str, model: &str, aot_mode: &str, limit: Op
     let ac_start = std::time::Instant::now();
 
     let mut dsf_config = dsf::DsfConfig::default();
-    dsf_config.dark_method = dsf::DarkSpectrumMethod::Intercept(200);
-    // Match Python PACE default: use visible bands for AOT (exclude strong absorption)
-    dsf_config.wave_range = (400.0, 900.0);
+    dsf_config.dark_method = dsf::DarkSpectrumMethod::Intercept(1000);
+    // Match Python ACOLITE defaults: use full spectral range, skip bands with tgas < 0.85
+    dsf_config.wave_range = (400.0, 2500.0);
+    dsf_config.min_tgas_aot = 0.85;
     if model != "auto" {
         dsf_config.fixed_model = Some(model.to_string());
     }

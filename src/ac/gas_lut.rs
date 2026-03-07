@@ -7,6 +7,7 @@
 
 use crate::ac::interp::RegularGridInterpolator;
 use crate::{AcoliteError, Result};
+use ndarray::ArrayD;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -15,6 +16,40 @@ use std::path::Path;
 pub struct GasTransmittance {
     /// Band name → total two-way gas transmittance
     pub tt_gas: HashMap<String, f64>,
+}
+
+/// Hyperspectral gas transmittance: per-wavelength values
+#[derive(Debug, Clone)]
+pub struct HyperGasTransmittance {
+    /// Per-band total two-way gas transmittance (indexed by band index)
+    pub tt_gas: Vec<f64>,
+    pub tt_o3: Vec<f64>,
+    pub tt_h2o: Vec<f64>,
+    pub tt_o2: Vec<f64>,
+    pub tt_co2: Vec<f64>,
+    pub tt_n2o: Vec<f64>,
+    pub tt_ch4: Vec<f64>,
+}
+
+/// Water vapour LUT loaded from WV_201710C.nc
+/// Shape: (ths=6, thv=6, wv=9, par=3, wave=901)
+pub struct WvLut {
+    pub rgi: RegularGridInterpolator,
+    pub wave: Vec<f64>, // wavelengths in microns
+    pub ths: Vec<f64>,
+    pub thv: Vec<f64>,
+    pub wv: Vec<f64>,
+}
+
+/// Gas LUT loaded from Gas_202106F.nc
+/// Shape: (pressure=3, par=4, wave=901, vza=19, sza=19)
+pub struct GasLut {
+    pub rgi: RegularGridInterpolator,
+    pub wave: Vec<f64>,
+    pub pressure: Vec<f64>,
+    pub sza: Vec<f64>,
+    pub vza: Vec<f64>,
+    pub par_names: Vec<String>, // ttdica, ttoxyg, ttniox, ttmeth
 }
 
 /// RSR (Relative Spectral Response) for a single band
@@ -239,4 +274,238 @@ pub fn compute_other_gas_transmittance(wave_nm: f64, mu0: f64, muv: f64) -> f64 
     };
 
     (-k_co2 * airmass).exp() * (-k_o2 * airmass).exp()
+}
+
+// ── LUT-based gas transmittance (matching Python ACOLITE exactly) ──
+
+fn read_nc_attr_f64_vec(ds: &netcdf::File, name: &str) -> Result<Vec<f64>> {
+    use netcdf::AttributeValue;
+    let attr = ds.attribute(name)
+        .ok_or_else(|| AcoliteError::Processing(format!("Missing attribute '{}'", name)))?;
+    match attr.value().map_err(|e| AcoliteError::Processing(format!("Read attr '{}': {}", name, e)))? {
+        AttributeValue::Doubles(v) => Ok(v),
+        AttributeValue::Floats(v) => Ok(v.iter().map(|&x| x as f64).collect()),
+        AttributeValue::Ints(v) => Ok(v.iter().map(|&x| x as f64).collect()),
+        AttributeValue::Shorts(v) => Ok(v.iter().map(|&x| x as f64).collect()),
+        other => Err(AcoliteError::Processing(format!("Unexpected type for '{}': {:?}", name, other))),
+    }
+}
+
+/// Load the water vapour LUT (WV_201710C.nc)
+/// LUT shape: (ths=6, thv=6, wv=9, par=3, wave=901)
+/// Axes: ths, thv, wv, par_index, wave
+pub fn load_wv_lut(data_dir: &Path) -> Result<WvLut> {
+    let path = data_dir.join("LUT/WV/WV_201710C.nc");
+    if !path.exists() {
+        let url = "https://raw.githubusercontent.com/acolite/acolite_luts/main/WV/WV_201710C.nc";
+        std::fs::create_dir_all(path.parent().unwrap()).ok();
+        log::info!("Downloading WV LUT from {}", url);
+        let resp = reqwest::blocking::get(url)
+            .map_err(|e| AcoliteError::Processing(format!("Download WV LUT: {}", e)))?;
+        std::fs::write(&path, resp.bytes().map_err(|e| AcoliteError::Processing(e.to_string()))?)
+            .map_err(|e| AcoliteError::Processing(e.to_string()))?;
+    }
+
+    let ds = netcdf::open(&path)
+        .map_err(|e| AcoliteError::Processing(format!("Open WV LUT: {}", e)))?;
+
+    let wave = read_nc_attr_f64_vec(&ds, "wave")?;
+    let ths = read_nc_attr_f64_vec(&ds, "ths")?;
+    let thv = read_nc_attr_f64_vec(&ds, "thv")?;
+    let wv = read_nc_attr_f64_vec(&ds, "wv")?;
+
+    let var = ds.variable("lut")
+        .ok_or_else(|| AcoliteError::Processing("No 'lut' variable in WV LUT".into()))?;
+    let data: ArrayD<f64> = var.get::<f64, _>(..)
+        .map_err(|e| AcoliteError::Processing(format!("Read WV LUT: {}", e)))?;
+    let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+
+    // Shape: (ths, thv, wv, par, wave) — par has 3 values, we want index 2 (ttwava)
+    let par_indices: Vec<f64> = (0..3).map(|i| i as f64).collect();
+    let axes = vec![ths.clone(), thv.clone(), wv.clone(), par_indices, wave.clone()];
+    let rgi = RegularGridInterpolator::new(axes, data_f32);
+
+    Ok(WvLut { rgi, wave, ths, thv, wv })
+}
+
+/// Load the gas LUT (Gas_202106F.nc)
+/// LUT shape: (pressure=3, par=4, wave=901, vza=19, sza=19)
+pub fn load_gas_lut(data_dir: &Path) -> Result<GasLut> {
+    let path = data_dir.join("LUT/Gas/Gas_202106F.nc");
+    if !path.exists() {
+        let url = "https://raw.githubusercontent.com/acolite/acolite_luts/main/Gas/Gas_202106F.nc";
+        std::fs::create_dir_all(path.parent().unwrap()).ok();
+        log::info!("Downloading Gas LUT from {}", url);
+        let resp = reqwest::blocking::get(url)
+            .map_err(|e| AcoliteError::Processing(format!("Download Gas LUT: {}", e)))?;
+        std::fs::write(&path, resp.bytes().map_err(|e| AcoliteError::Processing(e.to_string()))?)
+            .map_err(|e| AcoliteError::Processing(e.to_string()))?;
+    }
+
+    let ds = netcdf::open(&path)
+        .map_err(|e| AcoliteError::Processing(format!("Open Gas LUT: {}", e)))?;
+
+    let wave = read_nc_attr_f64_vec(&ds, "wave")?;
+    let sza = read_nc_attr_f64_vec(&ds, "sza")?;
+    let vza = read_nc_attr_f64_vec(&ds, "vza")?;
+    let pressure = read_nc_attr_f64_vec(&ds, "pressure")?;
+
+    let par_attr = ds.attribute("par")
+        .ok_or_else(|| AcoliteError::Processing("Missing 'par' attribute".into()))?;
+    let par_str: String = match par_attr.value().map_err(|e| AcoliteError::Processing(e.to_string()))? {
+        netcdf::AttributeValue::Str(s) => s,
+        other => format!("{:?}", other),
+    };
+    let par_names: Vec<String> = par_str.split(',').map(|s| s.trim().to_string()).collect();
+
+    let var = ds.variable("lut")
+        .ok_or_else(|| AcoliteError::Processing("No 'lut' variable in Gas LUT".into()))?;
+    let data: ArrayD<f64> = var.get::<f64, _>(..)
+        .map_err(|e| AcoliteError::Processing(format!("Read Gas LUT: {}", e)))?;
+    let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+
+    // Shape: (pressure, par, wave, vza, sza)
+    let par_indices: Vec<f64> = (0..par_names.len()).map(|i| i as f64).collect();
+    let axes = vec![pressure.clone(), par_indices, wave.clone(), vza.clone(), sza.clone()];
+    let rgi = RegularGridInterpolator::new(axes, data_f32);
+
+    Ok(GasLut { rgi, wave, pressure, sza, vza, par_names })
+}
+
+/// Compute hyperspectral gas transmittance using LUTs (matching Python ACOLITE exactly).
+///
+/// For each band wavelength, computes O₃ (from ko3 coefficients), H₂O (from WV LUT),
+/// and O₂/CO₂/N₂O/CH₄ (from Gas LUT), convolved with Gaussian RSR.
+pub fn compute_gas_transmittance_hyper(
+    data_dir: &Path,
+    wavelengths: &[f64],   // nm
+    bandwidths: &[f64],    // nm
+    sza: f64,
+    vza: f64,
+    pressure: f64,
+    uoz: f64,
+    uwv: f64,
+) -> Result<HyperGasTransmittance> {
+    let (ko3_wave, ko3_data) = read_ko3(data_dir)?;
+    let wv_lut = load_wv_lut(data_dir)?;
+    let gas_lut = load_gas_lut(data_dir)?;
+
+    let mu0 = sza.to_radians().cos();
+    let muv = if vza.abs() < 0.01 { 1.0 } else { vza.to_radians().cos() };
+
+    // ── Build fine wavelength grid from ko3 (1nm step, ~2352 points) ──
+    let ko3_wave_um: Vec<f64> = ko3_wave.iter().map(|&w| w / 1000.0).collect();
+
+    // ── Compute O₃ transmittance on ko3 grid ──
+    let tt_o3_hyper: Vec<f64> = ko3_data.iter().map(|&k| {
+        let tau = k * uoz;
+        (-tau / mu0).exp() * (-tau / muv).exp()
+    }).collect();
+
+    // ── Compute WV transmittance on WV LUT grid, then interpolate to ko3 grid ──
+    let wv_par_id = 2.0_f64;
+    let wv_on_lut: Vec<f64> = wv_lut.wave.iter().map(|&w| {
+        wv_lut.rgi.interpolate(&[sza, vza, uwv, wv_par_id, w])
+    }).collect();
+    // Interpolate to ko3 grid
+    let tt_wv_hyper: Vec<f64> = ko3_wave_um.iter().map(|&w| {
+        interp_1d(w, &wv_lut.wave, &wv_on_lut)
+    }).collect();
+
+    // ── Compute other gas transmittances on Gas LUT grid, then interpolate to ko3 grid ──
+    let par_idx: HashMap<&str, usize> = gas_lut.par_names.iter().enumerate()
+        .map(|(i, n)| (n.as_str(), i)).collect();
+
+    let gas_pars = ["ttdica", "ttoxyg", "ttniox", "ttmeth"];
+    let mut gas_on_ko3: HashMap<&str, Vec<f64>> = HashMap::new();
+    for &par in &gas_pars {
+        let pidx = *par_idx.get(par).unwrap_or(&0) as f64;
+        // Evaluate on Gas LUT grid
+        let vals_on_lut: Vec<f64> = gas_lut.wave.iter().map(|&w| {
+            gas_lut.rgi.interpolate(&[pressure, pidx, w, vza, sza])
+        }).collect();
+        // Interpolate to ko3 grid
+        let vals_on_ko3: Vec<f64> = ko3_wave_um.iter().map(|&w| {
+            interp_1d(w, &gas_lut.wave, &vals_on_lut)
+        }).collect();
+        gas_on_ko3.insert(par, vals_on_ko3);
+    }
+
+    // ── Convolve with Gaussian RSR per band (matching Python rsr_hyper step=0.1, factor=1.5) ──
+    // All spectra are now on the ko3 grid (1nm step) for accurate narrow-band convolution
+    let nbands = wavelengths.len();
+    let mut tt_o3 = vec![0.0; nbands];
+    let mut tt_h2o = vec![0.0; nbands];
+    let mut tt_o2 = vec![0.0; nbands];
+    let mut tt_co2 = vec![0.0; nbands];
+    let mut tt_n2o = vec![0.0; nbands];
+    let mut tt_ch4 = vec![0.0; nbands];
+    let mut tt_gas = vec![0.0; nbands];
+
+    for (i, (&wl_nm, &bw_nm)) in wavelengths.iter().zip(bandwidths.iter()).enumerate() {
+        let center_um = wl_nm / 1000.0;
+        let fwhm_um = bw_nm / 1000.0;
+        let sigma = fwhm_um / (2.0 * (2.0_f64.ln()).sqrt() * 2.0);
+        let half_width = 1.5 * fwhm_um;
+
+        // Generate RSR at 0.1nm (0.0001µm) step, matching Python rsr_hyper
+        let step_um = 0.0001;
+        let n_rsr = ((2.0 * half_width / step_um).ceil() as usize).max(1);
+        let rsr_start = center_um - half_width;
+
+        // Build RSR wavelengths and responses
+        let mut rsr_waves: Vec<f64> = Vec::with_capacity(n_rsr + 1);
+        let mut rsr_resps: Vec<f64> = Vec::with_capacity(n_rsr + 1);
+        for k in 0..=n_rsr {
+            let w = rsr_start + k as f64 * step_um;
+            let r = (-(w - center_um).powi(2) / (2.0 * sigma * sigma)).exp();
+            if r >= 0.0025 {
+                rsr_waves.push(w);
+                rsr_resps.push(r);
+            }
+        }
+
+        // ── O₃: interpolate to RSR wavelengths and convolve ──
+        let mut sum_val = 0.0_f64;
+        let mut sum_r = 0.0_f64;
+        for (k, &w) in rsr_waves.iter().enumerate() {
+            let v = interp_1d(w, &ko3_wave_um, &tt_o3_hyper);
+            sum_val += v * rsr_resps[k];
+            sum_r += rsr_resps[k];
+        }
+        tt_o3[i] = if sum_r > 0.0 { sum_val / sum_r } else { 1.0 };
+
+        // ── H₂O: interpolate to RSR wavelengths and convolve ──
+        let mut sum_wv = 0.0_f64;
+        sum_r = 0.0;
+        for (k, &w) in rsr_waves.iter().enumerate() {
+            let v = interp_1d(w, &ko3_wave_um, &tt_wv_hyper);
+            sum_wv += v * rsr_resps[k];
+            sum_r += rsr_resps[k];
+        }
+        tt_h2o[i] = if sum_r > 0.0 { sum_wv / sum_r } else { 1.0 };
+
+        // ── Other gases: interpolate to RSR wavelengths and convolve ──
+        let gas_pairs: [(&str, &mut Vec<f64>); 4] = [
+            ("ttoxyg", &mut tt_o2),
+            ("ttdica", &mut tt_co2),
+            ("ttniox", &mut tt_n2o),
+            ("ttmeth", &mut tt_ch4),
+        ];
+        for (par, tt_vec) in gas_pairs {
+            let hyper = &gas_on_ko3[par];
+            let mut sum_g = 0.0_f64;
+            let mut sum_rr = 0.0_f64;
+            for (k, &w) in rsr_waves.iter().enumerate() {
+                let v = interp_1d(w, &ko3_wave_um, hyper);
+                sum_g += v * rsr_resps[k];
+                sum_rr += rsr_resps[k];
+            }
+            tt_vec[i] = if sum_rr > 0.0 { sum_g / sum_rr } else { 1.0 };
+        }
+
+        tt_gas[i] = tt_o3[i] * tt_h2o[i] * tt_o2[i] * tt_co2[i] * tt_n2o[i] * tt_ch4[i];
+    }
+
+    Ok(HyperGasTransmittance { tt_gas, tt_o3, tt_h2o, tt_o2, tt_co2, tt_n2o, tt_ch4 })
 }

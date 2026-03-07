@@ -47,7 +47,7 @@ src/
 | Sensor | Bands | Status |
 |--------|-------|--------|
 | Tanager | 420 | Not started |
-| PACE OCI | 286 | ✅ Loader + search + GeoZarr writer |
+| PACE OCI | 286 | ✅ Full DSF pipeline + LUT gas transmittance |
 | EMIT | 285 | Not started |
 | HYPERION | 242 | Not started |
 | PRISMA | 239 | Not started |
@@ -92,7 +92,7 @@ src/
 
 1. **Landsat 8/9** — ✅ Full LUT-DSF pipeline, validated
 2. **Sentinel-2 MSI** — ✅ Full LUT-DSF pipeline, physics-equivalent (RMSE < 0.002)
-3. **PACE OCI** — ✅ Loader + search + GeoZarr writer
+3. **PACE OCI** — ✅ Full generic-LUT DSF pipeline with LUT-based gas transmittance
 4. **Sentinel-3 OLCI** — Sensor def exists, needs NetCDF loader
 5. **PRISMA/DESIS/EnMAP** — Share HDF5 loader pattern
 6. **EMIT** — NetCDF, similar to PACE
@@ -109,7 +109,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
 
-### Python ↔ Rust Regression Tests (107 total)
+### Python ↔ Rust Regression Tests (131 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
@@ -121,7 +121,18 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | test_s2_benchmark_rust_vs_python.py | Sentinel-2 | 9 | `pytest tests/regression/test_s2_benchmark_rust_vs_python.py -v -s` |
 | test_pace_regression.py | PACE OCI | 17 | `pytest tests/regression/test_pace_regression.py -v` |
 | test_pace_rust_vs_python.py | PACE OCI | 14 | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
+| test_pace_dsf_rust_vs_python.py | PACE OCI (Chesapeake) | 12 | `pytest tests/regression/test_pace_dsf_rust_vs_python.py -v` |
+| test_pace_sa_dsf_rust_vs_python.py | PACE OCI (South Australia) | 12 | `pytest tests/regression/test_pace_sa_dsf_rust_vs_python.py -v` |
 | conftest.py | — | — | Shared pytest config, tolerances, CLI options |
+
+### Performance Benchmarks
+
+| Sensor | Scene | Rust | Python | Speedup |
+|--------|-------|------|--------|---------|
+| Landsat 8 | Full scene | ~3s | ~30s | 10× |
+| Sentinel-2 | Full scene | ~8s | ~120s | 15× |
+| PACE OCI | ROI 108×57 | 22s | 145s | 6.8× |
+| PACE OCI | Full 1710×1272 | 115s (AC) | >1800s (timeout) | >15× |
 
 ### Quick Commands
 

@@ -19,6 +19,8 @@ tests/
 │   ├── conftest.py                # Pytest fixtures (build Rust, temp dirs, tolerance)
 │   ├── test_pace_regression.py    # PACE-specific Python↔Rust comparison (17 tests)
 │   ├── test_pace_rust_vs_python.py # PACE Rust vs Python full AC (14 tests)
+│   ├── test_pace_dsf_rust_vs_python.py # PACE DSF Chesapeake Bay (12 tests)
+│   ├── test_pace_sa_dsf_rust_vs_python.py # PACE DSF South Australia + full scene benchmark (12 tests)
 │   ├── test_landsat_regression.py # Landsat 8/9 Python↔Rust comparison (13 tests)
 │   ├── test_landsat_rust_vs_python.py # Landsat Rust vs Python full AC (13 tests)
 │   ├── test_benchmark_rust_vs_python.py # Landsat full-scene benchmark (7 tests)
