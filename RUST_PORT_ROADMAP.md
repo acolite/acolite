@@ -152,6 +152,100 @@ pytest tests/regression/ -v --runslow \
 - **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02
 - **No unwrap() in library code** (all replaced with proper error propagation)
 
+## Porting Methodology — Multi-Agent Orchestration
+
+The Rust port uses an AI-assisted workflow where two coding agents collaborate
+via the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/):
+
+```mermaid
+flowchart TB
+    subgraph Orchestrator["tools/agent_harness.py"]
+        direction TB
+        Task["User provides --task"] --> Kiro
+
+        subgraph Kiro["Kiro CLI — Executor"]
+            K1["kiro-cli acp --agent NAME"]
+        end
+
+        subgraph Copilot["Copilot CLI — Proposer"]
+            C1["copilot --acp --stdio"]
+        end
+
+        Kiro -- "ACP session/update\n(streamed output)" --> Loop
+        Loop["Proposal Loop"] -- "Kiro output as context" --> Copilot
+        Copilot -- "ACTION: proposals" --> Loop
+        Loop -- "Display proposals" --> Human["Human Console\n(approve / reject)"]
+        Human -- "Approved actions" --> Kiro
+    end
+
+    Kiro <-. "JSON-RPC 2.0\nNDJSON / stdio" .-> ACP["Agent Client Protocol\ninitialize → session/new → session/prompt\n↕ session/update notifications"]
+    Copilot <-. "JSON-RPC 2.0\nNDJSON / stdio" .-> ACP
+
+    style Orchestrator fill:#1a1a2e,stroke:#e94560,color:#eee
+    style Kiro fill:#0f3460,stroke:#e94560,color:#eee
+    style Copilot fill:#0f3460,stroke:#16213e,color:#eee
+    style Human fill:#533483,stroke:#e94560,color:#eee
+    style ACP fill:#16213e,stroke:#0f3460,color:#eee
+```
+
+**Data flow:**
+1. User sends `--task` → Orchestrator → Kiro (ACP prompt)
+2. Kiro streams output ← `session/update` chunks
+3. Kiro output → Copilot (ACP prompt for review)
+4. Copilot proposes `ACTION:` lines
+5. Human approves → approved actions → Kiro
+6. Repeat 2–5 until `DONE` or max cycles
+
+### Workflow per Sensor
+
+```bash
+# Example: port a new sensor loader
+python tools/agent_harness.py \
+    --task "Port acolite/sentinel3/ to src/loader/sentinel3.rs following the
+            Landsat and Sentinel-2 patterns. Read JP2/NetCDF bands, parse
+            geometry XML, and produce BandData arrays." \
+    --kiro-agent rust-developer \
+    --workdir /path/to/acolite
+
+# Example: fix regression failures
+python tools/agent_harness.py \
+    --task "The Sentinel-3 OLCI regression test has RMSE=0.05.
+            Investigate gas transmittance differences and fix." \
+    --auto-approve
+```
+
+### Agent Roles
+
+| Agent | CLI | Role | ACP Launch |
+|-------|-----|------|------------|
+| **Kiro** | `kiro-cli acp` | Executor — writes code, runs tests, reads files | `kiro-cli acp --agent rust-developer` |
+| **Copilot** | `copilot --acp --stdio` | Proposer — reviews progress, suggests next steps | `copilot --acp --stdio` |
+| **Human** | terminal | Approver — filters proposals before dispatch | Interactive prompt |
+
+### Protocol Details
+
+Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
+
+- **`initialize`** — negotiate capabilities (Kiro: `protocolVersion: 1`, Copilot: `"2025-07-09"`)
+- **`session/new`** — create a workspace-scoped session with `cwd`
+- **`session/prompt`** — send a user message (Kiro uses `content` field, Copilot uses `prompt` field)
+- **`session/update`** — streamed notifications: `agent_message_chunk`, `tool_call`, `turn_end`
+- **`session/cancel`** — interrupt processing
+
+### When to Use the Harness
+
+- **New sensor port**: Kiro writes the loader + example + tests, Copilot cross-checks against Python source
+- **Regression debugging**: Kiro investigates numerical differences, Copilot proposes diagnostic steps
+- **Bulk porting**: Chain multiple `--task` invocations for loader → AC → writer per sensor
+- **Code review**: Copilot can review Kiro's output against project conventions (`.github/copilot-instructions.md`)
+
+### Files
+
+- **`tools/agent_harness.py`** — Orchestrator script (652 lines)
+- **`.github/copilot-instructions.md`** — Project conventions fed to both agents
+- **`.github/skills/rust-porting/SKILL.md`** — Porting knowledge base
+- **`.github/skills/regression-testing/SKILL.md`** — Test writing knowledge base
+
 ## Completed ✅
 
 ### Phase A: Architecture
