@@ -30,6 +30,11 @@ fn main() {
     let end = get_arg(&args, "--end");
     let do_download = args.contains(&"--download".to_string());
     let output_dir = get_arg(&args, "--output").unwrap_or_else(|| "/tmp/acolite_pace".into());
+    let limit: Option<[f64; 4]> = get_arg(&args, "--limit").map(|s| {
+        let v: Vec<f64> = s.split(',').map(|x| x.parse().expect("invalid --limit value")).collect();
+        assert!(v.len() == 4, "--limit needs 4 values: south,west,north,east");
+        [v[0], v[1], v[2], v[3]]
+    });
 
     // Determine input file(s)
     let input_files: Vec<PathBuf> = if let Some(f) = file {
@@ -72,7 +77,7 @@ fn main() {
     // Process each file
     for input in &input_files {
         println!("\n→ Processing {:?}", input);
-        process_pace_file(input, &output_dir);
+        process_pace_file(input, &output_dir, limit.as_ref());
     }
 }
 
@@ -98,12 +103,12 @@ fn download_granules(granules: &[CmrGranule], output_dir: &str) -> Vec<PathBuf> 
 }
 
 #[cfg(feature = "netcdf")]
-fn process_pace_file(path: &Path, output_dir: &str) {
+fn process_pace_file(path: &Path, output_dir: &str, limit: Option<&[f64; 4]>) {
     use acolite_rs::load_pace_l1b;
     use acolite_rs::parallel::process_bands_parallel_f32;
 
     let start = std::time::Instant::now();
-    let scene = load_pace_l1b(path, None).expect("Failed to load PACE L1B");
+    let scene = load_pace_l1b(path, limit).expect("Failed to load PACE L1B");
     let load_time = start.elapsed();
 
     let (nrows, ncols) = (scene.lat.nrows(), scene.lat.ncols());
@@ -157,7 +162,7 @@ fn process_pace_file(path: &Path, output_dir: &str) {
 }
 
 #[cfg(not(feature = "netcdf"))]
-fn process_pace_file(_path: &Path, _output_dir: &str) {
+fn process_pace_file(_path: &Path, _output_dir: &str, _limit: Option<&[f64; 4]>) {
     eprintln!("Error: netcdf feature required. Build with: cargo run --features netcdf --example process_pace");
 }
 

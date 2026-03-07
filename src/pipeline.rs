@@ -1,8 +1,7 @@
 //! Processing pipeline
 
 use crate::{Result, core::{BandData, Metadata}};
-use crate::ac::{gas_correction, rayleigh_correction, dsf_correction};
-use ndarray::Array2;
+use crate::ac::{gas_correction, rayleigh_correction, dsf_correction_simple};
 
 /// Processing configuration
 #[derive(Debug, Clone)]
@@ -81,7 +80,7 @@ impl Pipeline {
         
         // Step 4: Aerosol correction (DSF)
         let corrected = if self.config.apply_aerosol && self.aot.is_some() {
-            dsf_correction(
+            dsf_correction_simple(
                 &toa,
                 self.aot.unwrap(),
                 band.wavelength,
@@ -125,7 +124,7 @@ impl Pipeline {
             )?;
         }
         let corrected = if self.config.apply_aerosol && self.aot.is_some() {
-            dsf_correction(
+            dsf_correction_simple(
                 &toa, self.aot.unwrap(), band.wavelength,
                 self.metadata.sun_zenith, self.metadata.view_zenith.unwrap_or(0.0),
             )

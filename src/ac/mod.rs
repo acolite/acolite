@@ -5,9 +5,21 @@ pub mod calibration;
 pub mod lut;
 pub mod gas;
 pub mod dsf;
+pub mod interp;
+pub mod aerlut;
+pub mod gas_lut;
 
 pub use rayleigh::{rayleigh_correction, rayleigh_optical_thickness};
 pub use calibration::{dn_to_radiance, dn_to_reflectance, earth_sun_distance};
 pub use lut::{LutManager, interp_lut_1d, interp_lut_2d};
 pub use gas::{gas_correction, ozone_transmittance, water_vapor_transmittance};
-pub use dsf::{DsfConfig, estimate_dark_spectrum, optimize_aot, dsf_correction};
+pub use dsf::{DsfConfig, DarkSpectrumMethod, AotCompute, estimate_dark_spectrum};
+pub use interp::RegularGridInterpolator;
+
+// LUT-based exports (require full-io feature)
+#[cfg(feature = "full-io")]
+pub use aerlut::{AerosolLut, load_acolite_luts, load_sensor_lut};
+#[cfg(feature = "full-io")]
+pub use dsf::{optimize_aot, dsf_correct_band, DsfResult, optimize_aot_tiled, dsf_correct_band_tiled, TiledDsfResult};
+pub use dsf::{optimize_aot_simple, dsf_correction_simple};
+pub use gas_lut::{compute_gas_transmittance, read_rsr, read_ko3, GasTransmittance, BandRsr};

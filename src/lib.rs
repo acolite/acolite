@@ -26,4 +26,10 @@ pub use sensors::{LandsatSensor, Sentinel2Sensor, Sentinel3Sensor, PaceOciSensor
 pub use resample::{resample, ResampleMethod};
 pub use loader::source::cmr::{search_pace_l1b, search_pace_scene, CmrGranule};
 
+// LUT-based atmospheric correction
+#[cfg(feature = "full-io")]
+pub use ac::{AerosolLut, load_acolite_luts, optimize_aot, dsf_correct_band, DsfResult, optimize_aot_tiled, dsf_correct_band_tiled, TiledDsfResult};
+pub use ac::{DsfConfig, DarkSpectrumMethod, AotCompute, estimate_dark_spectrum, RegularGridInterpolator};
+pub use ac::{compute_gas_transmittance, GasTransmittance};
+
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

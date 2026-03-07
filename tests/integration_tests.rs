@@ -2,7 +2,7 @@
 
 use acolite_rs::{Pipeline, ProcessingConfig, ResampleMethod, resample};
 use acolite_rs::core::{Metadata, BandData, Projection, GeoTransform};
-use acolite_rs::ac::{estimate_dark_spectrum, optimize_aot};
+use acolite_rs::ac::{estimate_dark_spectrum, optimize_aot_simple, DarkSpectrumMethod};
 use acolite_rs::parallel::process_bands_parallel;
 use acolite_rs::sensors::{Sensor, Sentinel2Sensor};
 use ndarray::Array2;
@@ -35,8 +35,8 @@ fn test_full_atmospheric_correction_pipeline() {
         Array2::from_elem((100, 100), 0.01),
     ];
     
-    let dark_spectrum = estimate_dark_spectrum(&dark_bands, 5.0);
-    let aot = optimize_aot(&dark_spectrum, &[865.0, 1609.0, 2201.0], 30.0, 0.0);
+    let dark_spectrum = estimate_dark_spectrum(&dark_bands, &DarkSpectrumMethod::Percentile(5.0));
+    let aot = optimize_aot_simple(&dark_spectrum, &[865.0, 1609.0, 2201.0], 30.0, 0.0);
     pipeline.set_aot(aot);
     
     // Create test bands

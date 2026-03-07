@@ -93,13 +93,19 @@ pub fn write_geozarr(
     data_array.store_metadata()
         .map_err(|e| AcoliteError::Processing(format!("Zarr data metadata: {}", e)))?;
 
-    // Write each band
-    for (bi, band) in bands.iter().enumerate() {
-        let chunk_data: Vec<f32> = band.data.iter().map(|&v| v as f32).collect();
-        data_array.store_array_subset(
-            &[bi as u64..bi as u64 + 1, 0..nrows as u64, 0..ncols as u64],
-            &chunk_data,
-        ).map_err(|e| AcoliteError::Processing(format!("Write band {}: {}", bi, e)))?;
+    // Write bands in parallel using rayon
+    {
+        use rayon::prelude::*;
+        let write_errors: Vec<_> = bands.par_iter().enumerate().filter_map(|(bi, band)| {
+            let chunk_data: Vec<f32> = band.data.iter().map(|&v| v as f32).collect();
+            data_array.store_array_subset(
+                &[bi as u64..bi as u64 + 1, 0..nrows as u64, 0..ncols as u64],
+                &chunk_data,
+            ).err().map(|e| (bi, e))
+        }).collect();
+        if let Some((bi, e)) = write_errors.into_iter().next() {
+            return Err(AcoliteError::Processing(format!("Write band {}: {}", bi, e)));
+        }
     }
 
     // Wavelengths 1D array

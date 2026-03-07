@@ -3,7 +3,7 @@
 use acolite_rs::{Pipeline, ProcessingConfig, ResampleMethod, resample};
 use acolite_rs::core::{Metadata, BandData, Projection, GeoTransform};
 use acolite_rs::sensors::{Sensor, Sentinel2Sensor};
-use acolite_rs::ac::{estimate_dark_spectrum, optimize_aot};
+use acolite_rs::ac::{estimate_dark_spectrum, optimize_aot_simple, DarkSpectrumMethod};
 use acolite_rs::parallel::process_bands_parallel;
 use ndarray::Array2;
 use chrono::Utc;
@@ -49,8 +49,8 @@ fn main() {
         Array2::from_elem((500, 500), 0.01),  // B12
     ];
     
-    let dark_spectrum = estimate_dark_spectrum(&dark_bands, 5.0);
-    let aot = optimize_aot(&dark_spectrum, &[1613.7, 2202.4], 25.0, 0.0);
+    let dark_spectrum = estimate_dark_spectrum(&dark_bands, &DarkSpectrumMethod::Percentile(5.0));
+    let aot = optimize_aot_simple(&dark_spectrum, &[1613.7, 2202.4], 25.0, 0.0);
     pipeline.set_aot(aot);
     println!("  AOT = {:.4}", aot);
     
