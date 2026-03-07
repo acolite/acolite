@@ -40,7 +40,7 @@ benches/
 | Rust unit tests | 26 | ✅ All pass |
 | Rust integration tests | 8 | ✅ All pass |
 | Rust E2E tests | 14 (+1 pre-existing COG failure) | ✅ |
-| Python regression (total) | 107 | ✅ All pass |
+| Python regression (total) | 141 | ✅ All pass |
 
 ### Python Test Breakdown
 
@@ -54,6 +54,7 @@ benches/
 | test_s2_benchmark_rust_vs_python.py | 9 | Sentinel-2 | Full-scene + tiled benchmark |
 | test_pace_regression.py | 17 | PACE OCI | Synthetic + real data |
 | test_pace_rust_vs_python.py | 14 | PACE OCI | Rust vs Python comparison |
+| test_pace_sa_fullscene_benchmark.py | 12 | PACE OCI | Full-scene benchmark (SA) |
 
 ## Test Tiers
 
@@ -253,6 +254,57 @@ resampling differences between Rust (GDAL nearest) and Python (ACOLITE internal)
 | Spectral correlation (TOA vs corrected) | r = 0.9995 |
 | Bands where ρs ≤ ρt | 289/289 (100%) |
 
+## Phase 1g: PACE OCI Full-Scene Benchmark (South Australia)
+
+**Status: Implemented ✓**
+
+Full-scene fixed-mode DSF atmospheric correction on PACE OCI over open ocean
+south of Kangaroo Island, South Australia.
+
+### Test data
+
+| Property | Value |
+|----------|-------|
+| Granule | `PACE_OCI.20241231T044250.L1B.V3.nc` |
+| Location | South of Kangaroo Island, SA (-37°S, 137°E) |
+| Size | 1710×1272 pixels × 291 bands (633M band-pixels) |
+| DSF mode | Fixed (whole-scene dark spectrum) |
+
+### Performance (full scene 1710×1272 × 291 bands)
+
+| Stage | Python | Rust | Notes |
+|-------|--------|------|-------|
+| Total | 230s | **84s** | **2.7× speedup** |
+| Load | — | 12s | Bulk NetCDF reads (3 vs 291) |
+| AC | — | 34s | 18.7 Mpx/s (rayon parallel) |
+| Write | — | 35s | GeoZarr V3 + gzip |
+
+### Accuracy (per-band, 1.57M pixels each)
+
+| Band | Pearson R | RMSE | Bias | %<0.05 | %<0.01 |
+|------|-----------|------|------|--------|--------|
+| 400nm | 0.999998 | 0.0126 | +0.0105 | 100% | 22.8% |
+| 443nm | 1.000000 | 0.0064 | +0.0048 | 100% | 98.8% |
+| 490nm | 1.000000 | 0.0055 | +0.0041 | 100% | 99.7% |
+| 550nm | 1.000000 | 0.0035 | +0.0012 | 100% | 98.8% |
+| 600nm | 1.000000 | 0.0034 | -0.0006 | 100% | 97.1% |
+| 665nm | 1.000000 | 0.0012 | -0.0001 | 100% | 100% |
+| 750nm | 0.999999 | 0.0009 | +0.0004 | 100% | 100% |
+| 865nm | 1.000000 | 0.0005 | -0.0000 | 100% | 100% |
+
+**Mean R=1.0000, Mean RMSE=0.0043, 100% pixels within 0.05**
+
+### AOT and model selection
+
+| Metric | Python | Rust | Match |
+|--------|--------|------|-------|
+| Model | MOD2 | MOD2 | ✓ |
+| AOT | 0.0105 | 0.0093 | 11.4% diff |
+
+AOT difference is due to minor differences in dark spectrum extraction
+(intercept regression) over the full 1710×1272 scene. Both select the
+same aerosol model and produce near-identical surface reflectance.
+
 ## Phase 1f: Real Landsat 8 Data Regression (USGS S3)
 
 **Status: Implemented ✓**
@@ -306,7 +358,7 @@ ported to Rust, using the same 6SV radiative transfer LUTs as Python ACOLITE.
 | S2B (fixed) | 1.000 | 0.0015 | MOD2 ✓ | 0.115 ✓ | Physics-equivalent |
 | L8 (tiled) | 0.999 | 0.011 | MOD2 ✓ | ~0.59 | Full scene vs ROI |
 | L9 (tiled) | 1.000 | 0.003 | MOD2 ✓ | ~0.27 | Full scene vs ROI |
-| PACE OCI | — | — | — | — | TOA-level only |
+| PACE OCI (full, fixed) | 1.000 | 0.004 | MOD2 ✓ | 0.009/0.011 | Full scene, 291 bands |
 
 ### Remaining gaps vs Python ACOLITE
 
@@ -332,7 +384,7 @@ ported to Rust, using the same 6SV radiative transfer LUTs as Python ACOLITE.
 
 | Sensor | Loader | AC | Writer | Regression |
 |--------|--------|----|--------|------------|
-| PACE OCI | ✅ | ✅ (basic) | ✅ GeoZarr | ✅ 31 tests |
+| PACE OCI | ✅ | ✅ Full DSF (fixed+tiled) | ✅ GeoZarr | ✅ 43 tests (ROI + full scene) |
 | Landsat 8/9 | ✅ | ✅ LUT-DSF | ✅ COG | ✅ 33 tests |
 | Sentinel-2 | ✅ | ✅ LUT-DSF | ✅ COG | ✅ 43 tests |
 | Sentinel-3 OLCI | ✅ (sensor def) | ✅ (basic) | — | — |
@@ -428,13 +480,44 @@ jobs:
 
 | Metric | S2A Python | S2A Rust | Speedup | S2B Python | S2B Rust | Speedup |
 |--------|------------|----------|---------|------------|----------|---------|
-| Total | 182.4s | 66.1s | **2.8×** | 173.0s | 65.5s | **2.6×** |
+| Total | 182.3s | 52.0s | **3.5×** | 173.0s | 64.2s | **2.7×** |
 
 ### PACE OCI ROI (291 bands, 21×15 pixels)
 
 | Stage | Python | Rust | Speedup |
 |-------|--------|------|---------|
 | Total | 16.7s | 0.31s | **54.7×** |
+
+### PACE OCI Full-Scene (291 bands, 1710×1272 pixels, fixed DSF)
+
+| Stage | Python | Rust | Notes |
+|-------|--------|------|-------|
+| Total | 230s | **84s** | **2.7× speedup** |
+| Load | — | 12s | Bulk NetCDF reads |
+| AC | — | 34s | 18.7 Mpx/s (rayon) |
+| Write | — | 35s | GeoZarr V3 |
+
+| Accuracy | Value |
+|----------|-------|
+| Mean Pearson R | **1.0000** |
+| Mean RMSE | **0.0043** |
+| All pixels within 0.05 | **100%** |
+| Model match | MOD2 ✓ |
+
+---
+
+## Consolidated Cross-Sensor Benchmark (South Australia, all water scenes)
+
+| Sensor | Scene Size | Python | Rust | Speedup | Mean R | Mean RMSE | Model |
+|--------|-----------|--------|------|---------|--------|-----------|-------|
+| Landsat 8 | 62M px × 7 bands | 180s | 66s | **2.7×** | 0.999 | 0.011 | MOD2 ✓ |
+| Landsat 9 | 62M px × 7 bands | 180s | 56s | **3.2×** | 1.000 | 0.003 | MOD2 ✓ |
+| Sentinel-2A | 30M px × 11 bands | 182s | 52s | **3.5×** | 1.000 | 0.001 | MOD1 ✓ |
+| Sentinel-2B | 30M px × 11 bands | 173s | 64s | **2.7×** | 1.000 | 0.001 | MOD2 ✓ |
+| PACE OCI | 2.2M px × 291 bands | 230s | 84s | **2.7×** | 1.000 | 0.004 | MOD2 ✓ |
+
+All scenes over water, South Australia (Gulf St Vincent / south of Kangaroo Island).
+All use fixed DSF mode for deterministic comparison.
 
 ---
 
@@ -447,4 +530,4 @@ jobs:
 | AOT | 0.001 | — | S2 fixed-mode matches to 4 sig figs |
 | Pearson R | > 0.999 | — | S2 achieves 1.000 |
 | Lat/Lon | 1e-8 | — | Must be exact |
-| Wavelength | 0.01 nm | — | Must match file metadata |
+| Wavelength | 0.01 nm | �

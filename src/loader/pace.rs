@@ -122,7 +122,7 @@ pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene>
             vec![5.0; wavelengths.len()]
         };
 
-        // rhot is 3D: (nbands, nrows_full, ncols_full)
+        // Bulk-read entire 3D detector array at once (matching Python's approach)
         let rhot_var = obs.variable(&rhot_name)
             .ok_or_else(|| AcoliteError::NetCdf(format!("Missing {}", rhot_name)))?;
         let dims = rhot_var.dimensions();
@@ -133,22 +133,29 @@ pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene>
         let full_rows = dims[1].len();
         let full_cols = dims[2].len();
 
+        let (r_start, r_end, c_start, c_end) = if let Some(s) = &sub {
+            (s.0, s.0 + s.2, s.1, s.1 + s.3)
+        } else {
+            (0, full_rows, 0, full_cols)
+        };
+        let sub_rows = r_end - r_start;
+        let sub_cols = c_end - c_start;
+
+        // Single bulk read of all bands for this detector
+        let all_data: Vec<f32> = rhot_var
+            .get_values((0..nbands_det, r_start..r_end, c_start..c_end))
+            .map_err(|e| AcoliteError::NetCdf(format!("Bulk read {}: {}", rhot_name, e)))?;
+
+        let pixels_per_band = sub_rows * sub_cols;
         for wi in 0..nbands_det {
             if wi >= wavelengths.len() { break; }
             let wave = wavelengths[wi];
             if !wave.is_finite() { continue; }
             let bw = if wi < bandwidths.len() { bandwidths[wi] } else { 5.0 };
 
-            // Read single band slice [wi, :, :] or [wi, sub_rows, sub_cols]
-            let (r_start, r_end, c_start, c_end) = if let Some(s) = &sub {
-                (s.0, s.0 + s.2, s.1, s.1 + s.3)
-            } else {
-                (0, full_rows, 0, full_cols)
-            };
-
-            let band_data: Vec<f32> = rhot_var
-                .get_values((wi..wi + 1, r_start..r_end, c_start..c_end))
-                .map_err(|e| AcoliteError::NetCdf(format!("Read {}[{}]: {}", rhot_name, wi, e)))?;
+            // Slice from bulk array
+            let offset = wi * pixels_per_band;
+            let band_data = all_data[offset..offset + pixels_per_band].to_vec();
 
             let data = Array2::from_shape_vec((nrows, ncols), band_data)
                 .map_err(|e| AcoliteError::Processing(format!("Shape: {}", e)))?;

@@ -10,6 +10,7 @@ use acolite_rs::core::BandData;
 use acolite_rs::loader::pace::load_pace_l1b;
 use acolite_rs::writer::write_auto;
 use ndarray::Array2;
+use rayon::prelude::*;
 use std::path::Path;
 
 fn get_arg(args: &[String], flag: &str) -> Option<String> {
@@ -106,9 +107,9 @@ fn process(path: &Path, output_dir: &str, model: &str, aot_mode: &str, limit: Op
     };
     println!("  Loaded {} model(s) in {:.2?}", luts.len(), start.elapsed());
 
-    // ── Convert f32 TOA to f64 and gas-correct ──
+    // ── Convert f32 TOA to f64 and gas-correct (parallel) ──
     println!("\n→ Gas-correcting TOA reflectance...");
-    let toa_gc_bands: Vec<Array2<f64>> = scene.bands.iter().enumerate().map(|(i, band)| {
+    let toa_gc_bands: Vec<Array2<f64>> = scene.bands.par_iter().enumerate().map(|(i, band)| {
         let tt = tt_gas_vec[i];
         band.data.mapv(|v| {
             let v = v as f64;
@@ -155,15 +156,14 @@ fn process(path: &Path, output_dir: &str, model: &str, aot_mode: &str, limit: Op
         }
     };
 
-    // ── Apply correction to all bands ──
+    // ── Apply correction to all bands (parallel with rayon) ──
     let selected_lut = if let Some(ref r) = dsf_result_fixed {
         &luts[r.model_idx]
     } else {
         &luts[tiled_result.as_ref().unwrap().model_idx]
     };
 
-    let mut result_bands: Vec<BandData<f64>> = Vec::new();
-    for (i, band) in scene.bands.iter().enumerate() {
+    let result_bands: Vec<BandData<f64>> = scene.bands.par_iter().enumerate().map(|(i, band)| {
         let tt = tt_gas_vec[i];
         let toa_f64 = band.data.mapv(|v| v as f64);
 
@@ -179,11 +179,11 @@ fn process(path: &Path, output_dir: &str, model: &str, aot_mode: &str, limit: Op
             )
         };
 
-        result_bands.push(BandData::new(
+        BandData::new(
             corrected, band.wavelength, band.bandwidth, band.name.clone(),
             band.projection.clone(), band.geotransform.clone(),
-        ));
-    }
+        )
+    }).collect();
 
     let ac_time = ac_start.elapsed();
     let mpx = (nrows * ncols * result_bands.len()) as f64 / ac_time.as_secs_f64() / 1e6;

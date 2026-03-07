@@ -47,7 +47,7 @@ src/
 | Sensor | Bands | Status |
 |--------|-------|--------|
 | Tanager | 420 | Not started |
-| PACE OCI | 286 | ✅ Full DSF pipeline + LUT gas transmittance |
+| PACE OCI | 286 | ✅ Full DSF pipeline + LUT gas transmittance + full-scene validated |
 | EMIT | 285 | Not started |
 | HYPERION | 242 | Not started |
 | PRISMA | 239 | Not started |
@@ -109,7 +109,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
 
-### Python ↔ Rust Regression Tests (131 total)
+### Python ↔ Rust Regression Tests (141 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
@@ -122,17 +122,25 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | test_pace_regression.py | PACE OCI | 17 | `pytest tests/regression/test_pace_regression.py -v` |
 | test_pace_rust_vs_python.py | PACE OCI | 14 | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
 | test_pace_dsf_rust_vs_python.py | PACE OCI (Chesapeake) | 12 | `pytest tests/regression/test_pace_dsf_rust_vs_python.py -v` |
-| test_pace_sa_dsf_rust_vs_python.py | PACE OCI (South Australia) | 12 | `pytest tests/regression/test_pace_sa_dsf_rust_vs_python.py -v` |
+| test_pace_sa_dsf_rust_vs_python.py | PACE OCI (SA ROI) | 12 | `pytest tests/regression/test_pace_sa_dsf_rust_vs_python.py -v` |
+| test_pace_sa_fullscene_benchmark.py | PACE OCI (SA full scene) | 10 | `pytest tests/regression/test_pace_sa_fullscene_benchmark.py -v -s` |
 | conftest.py | — | — | Shared pytest config, tolerances, CLI options |
 
 ### Performance Benchmarks
 
-| Sensor | Scene | Rust | Python | Speedup |
-|--------|-------|------|--------|---------|
-| Landsat 8 | Full scene | ~3s | ~30s | 10× |
-| Sentinel-2 | Full scene | ~8s | ~120s | 15× |
-| PACE OCI | ROI 108×57 | 22s | 145s | 6.8× |
-| PACE OCI | Full 1710×1272 | 115s (AC) | >1800s (timeout) | >15× |
+| Sensor | Scene | Rust | Python | Speedup | Notes |
+|--------|-------|------|--------|---------|-------|
+| Landsat 8 | Full scene (62M px × 7 bands) | 66s | 180s | 2.7× | |
+| Landsat 9 | Full scene (62M px × 7 bands) | 56s | 180s | 3.2× | |
+| Sentinel-2 A | Full scene (30M px × 11 bands) | 52s | 182s | **3.5×** | |
+| Sentinel-2 B | Full scene (30M px × 11 bands) | 64s | 173s | 2.7× | |
+| PACE OCI | ROI 108×57 (fixed) | 22s | 145s | 6.8× | |
+| PACE OCI | Full 1710×1272 (fixed) | **84s** | 230s | **2.7×** | Load=12s, AC=34s, Write=35s |
+
+**Optimizations applied:**
+- PACE: Bulk NetCDF reads (3 detector reads vs 291 per-band) + rayon parallel AC
+- All sensors: rayon parallel band correction
+- Accuracy: Mean R≥0.999 across all sensors, 100% pixels within 0.05
 
 ### Quick Commands
 
@@ -156,12 +164,13 @@ pytest tests/regression/ -v --runslow \
 ## Current State
 
 - **48 Rust tests** (26 unit + 8 integration + 14 e2e)
-- **107 Python regression tests**
+- **141 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
-- **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02
+- **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02, PACE full-scene R=1.0000
 - **No unwrap() in library code** (all replaced with proper error propagation)
+- **PACE full-scene validated**: 1710×1272 × 291 bands, Mean RMSE=0.004, 100% within 0.05
 
 ## Porting Methodology — Multi-Agent Orchestration
 
