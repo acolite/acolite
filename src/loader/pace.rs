@@ -196,6 +196,24 @@ fn read_geo_f32(group: &netcdf::Group, name: &str, sub: &Option<SubsetSpec>) -> 
     let dims = var.dimensions();
     let (full_rows, full_cols) = (dims[0].len(), dims[1].len());
 
+    // Read scale_factor and add_offset if present
+    let scale: f32 = var.attribute("scale_factor")
+        .and_then(|a| a.value().ok())
+        .map(|v| match v {
+            netcdf::AttributeValue::Float(f) => f,
+            netcdf::AttributeValue::Double(d) => d as f32,
+            _ => 1.0,
+        })
+        .unwrap_or(1.0);
+    let offset: f32 = var.attribute("add_offset")
+        .and_then(|a| a.value().ok())
+        .map(|v| match v {
+            netcdf::AttributeValue::Float(f) => f,
+            netcdf::AttributeValue::Double(d) => d as f32,
+            _ => 0.0,
+        })
+        .unwrap_or(0.0);
+
     let (data, nrows, ncols) = if let Some(s) = sub {
         let d: Vec<f32> = var.get_values((s.0..s.0 + s.2, s.1..s.1 + s.3))
             .map_err(|e| AcoliteError::NetCdf(format!("Read {}: {}", name, e)))?;
@@ -204,6 +222,13 @@ fn read_geo_f32(group: &netcdf::Group, name: &str, sub: &Option<SubsetSpec>) -> 
         let d: Vec<f32> = var.get_values((0..full_rows, 0..full_cols))
             .map_err(|e| AcoliteError::NetCdf(format!("Read {}: {}", name, e)))?;
         (d, full_rows, full_cols)
+    };
+
+    // Apply scale and offset
+    let data: Vec<f32> = if scale != 1.0 || offset != 0.0 {
+        data.into_iter().map(|v| v * scale + offset).collect()
+    } else {
+        data
     };
 
     Array2::from_shape_vec((nrows, ncols), data)

@@ -40,6 +40,7 @@ env_logger = "0.11"
 dirs = "5.0"
 zeroize = "1.8"
 zarrs = { version = "0.23.5", features = ["filesystem"] }
+bzip2 = "0.5"
 
 [features]
 default = []

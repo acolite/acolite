@@ -165,7 +165,7 @@ pub fn compute_gas_transmittance(
 
 /// Simplified water vapour transmittance model
 /// Based on absorption features at specific wavelength ranges
-fn compute_wv_transmittance(wave_nm: f64, uwv: f64, mu0: f64, muv: f64) -> f64 {
+pub fn compute_wv_transmittance(wave_nm: f64, uwv: f64, mu0: f64, muv: f64) -> f64 {
     // Water vapour absorption bands centered around 720, 820, 940, 1140, 1380, 1900 nm
     // Simplified Gaussian absorption model calibrated to match Python ACOLITE output
     let airmass = 1.0 / mu0 + 1.0 / muv;
@@ -217,7 +217,7 @@ fn compute_wv_transmittance(wave_nm: f64, uwv: f64, mu0: f64, muv: f64) -> f64 {
 }
 
 /// Simplified other gas transmittance (O2, CO2, N2O, CH4)
-fn compute_other_gas_transmittance(wave_nm: f64, mu0: f64, muv: f64) -> f64 {
+pub fn compute_other_gas_transmittance(wave_nm: f64, mu0: f64, muv: f64) -> f64 {
     let airmass = 1.0 / mu0 + 1.0 / muv;
 
     // CO2 absorption around 1600nm and 2000nm

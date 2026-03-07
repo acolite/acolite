@@ -12,6 +12,8 @@ use std::collections::HashMap;
 
 #[cfg(feature = "full-io")]
 use crate::ac::aerlut::AerosolLut;
+#[cfg(feature = "full-io")]
+use crate::ac::aerlut::{GenericAerosolLut, rsr_convolve_gauss};
 
 /// Dark spectrum extraction method
 #[derive(Debug, Clone)]
@@ -577,6 +579,310 @@ pub fn dsf_correct_band_tiled(
 }
 
 // Keep the simple non-LUT versions for when full-io is not available
+
+/// Invert AOT from observed dark reflectance using a generic (wavelength-indexed) LUT.
+/// Convolves romix spectrum with Gaussian RSR for the given band, then interpolates.
+#[cfg(feature = "full-io")]
+fn invert_aot_generic(
+    lut: &GenericAerosolLut,
+    center_nm: f64,
+    fwhm_nm: f64,
+    rhot_dark: f64,
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+) -> f64 {
+    let tau_steps = &lut.meta.tau;
+    let romix_vals: Vec<f64> = tau_steps.iter()
+        .map(|&tau| {
+            let spectrum = lut.romix_spectrum(pressure, azi, thv, ths, tau);
+            rsr_convolve_gauss(&lut.wave_um, &spectrum, center_nm, fwhm_nm)
+        })
+        .collect();
+
+    if rhot_dark <= romix_vals[0] { return f64::NAN; }
+    if rhot_dark >= romix_vals[romix_vals.len() - 1] { return f64::NAN; }
+
+    for i in 0..romix_vals.len() - 1 {
+        if rhot_dark >= romix_vals[i] && rhot_dark <= romix_vals[i + 1] {
+            let t = (rhot_dark - romix_vals[i]) / (romix_vals[i + 1] - romix_vals[i]);
+            return tau_steps[i] * (1.0 - t) + tau_steps[i + 1] * t;
+        }
+    }
+    f64::NAN
+}
+
+/// Run DSF AOT estimation using generic (hyperspectral) LUTs.
+///
+/// Same algorithm as `optimize_aot` but uses wavelength-indexed LUTs with RSR convolution.
+#[cfg(feature = "full-io")]
+pub fn optimize_aot_generic(
+    luts: &[GenericAerosolLut],
+    dark_spectrum: &[f64],       // per-band dark rhot (gas-corrected)
+    wavelengths: &[f64],         // per-band center wavelength in nm
+    bandwidths: &[f64],          // per-band FWHM in nm
+    tt_gas: &[f64],
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+    config: &DsfConfig,
+) -> DsfResult {
+    let mut best = DsfResult {
+        aot: 0.01,
+        model_idx: 0,
+        model_name: String::new(),
+        rmsd: f64::MAX,
+        band_aots: HashMap::new(),
+    };
+
+    for (li, lut) in luts.iter().enumerate() {
+        let mut band_aots: Vec<(usize, f64)> = Vec::new();
+        for bi in 0..wavelengths.len() {
+            if wavelengths[bi] < config.wave_range.0 || wavelengths[bi] > config.wave_range.1 { continue; }
+            if tt_gas[bi] < config.min_tgas_aot { continue; }
+            if !dark_spectrum[bi].is_finite() || dark_spectrum[bi] <= 0.0 { continue; }
+
+            let aot = invert_aot_generic(lut, wavelengths[bi], bandwidths[bi], dark_spectrum[bi],
+                                          pressure, azi, thv, ths);
+            if aot.is_finite() {
+                band_aots.push((bi, aot));
+            }
+        }
+
+        if band_aots.is_empty() { continue; }
+        band_aots.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        let selected_aot = match config.aot_compute {
+            AotCompute::Min => band_aots[0].1,
+            AotCompute::MeanNLowest => {
+                let n = config.dsf_nbands.min(band_aots.len());
+                band_aots[..n].iter().map(|x| x.1).sum::<f64>() / n as f64
+            }
+        };
+
+        let n_fit = config.dsf_nbands_fit.min(band_aots.len());
+        let mut sum_sq = 0.0;
+        let mut ba_map = HashMap::new();
+        for &(bi, aot_bi) in &band_aots {
+            ba_map.insert(format!("{}", bi), aot_bi);
+        }
+        for &(bi, _) in &band_aots[..n_fit] {
+            let romix_spectrum = lut.romix_spectrum(pressure, azi, thv, ths, selected_aot);
+            let romix_model = rsr_convolve_gauss(&lut.wave_um, &romix_spectrum, wavelengths[bi], bandwidths[bi]);
+            sum_sq += (dark_spectrum[bi] - romix_model).powi(2);
+        }
+        let rmsd = (sum_sq / n_fit as f64).sqrt();
+
+        log::info!("Generic model {} RMSD={:.6} AOT={:.4}", lut.name, rmsd, selected_aot);
+
+        if rmsd < best.rmsd {
+            best = DsfResult {
+                aot: selected_aot,
+                model_idx: li,
+                model_name: lut.name.clone(),
+                rmsd,
+                band_aots: ba_map,
+            };
+        }
+    }
+
+    best
+}
+
+/// Fixed (whole-scene) DSF using generic LUTs for hyperspectral sensors.
+#[cfg(feature = "full-io")]
+pub fn optimize_aot_fixed_generic(
+    luts: &[GenericAerosolLut],
+    toa_gc_bands: &[Array2<f64>],
+    wavelengths: &[f64],
+    bandwidths: &[f64],
+    tt_gas: &[f64],
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+    config: &DsfConfig,
+) -> DsfResult {
+    let dark_spectrum = estimate_dark_spectrum(toa_gc_bands, &config.dark_method);
+    optimize_aot_generic(luts, &dark_spectrum, wavelengths, bandwidths, tt_gas,
+                          pressure, azi, thv, ths, config)
+}
+
+/// Tiled DSF using generic LUTs for hyperspectral sensors.
+#[cfg(feature = "full-io")]
+pub fn optimize_aot_tiled_generic(
+    luts: &[GenericAerosolLut],
+    toa_gc_bands: &[Array2<f64>],
+    wavelengths: &[f64],
+    bandwidths: &[f64],
+    tt_gas: &[f64],
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+    config: &DsfConfig,
+    tile_size: (usize, usize),
+) -> TiledDsfResult {
+    let (rows, cols) = toa_gc_bands[0].dim();
+    let ni = (rows + tile_size.0 - 1) / tile_size.0;
+    let nj = (cols + tile_size.1 - 1) / tile_size.1;
+
+    // Phase 1: vote on best model across tiles
+    let mut model_votes = vec![0usize; luts.len()];
+    for ti in 0..ni {
+        let r0 = ti * tile_size.0;
+        let r1 = ((ti + 1) * tile_size.0).min(rows);
+        for tj in 0..nj {
+            let c0 = tj * tile_size.1;
+            let c1 = ((tj + 1) * tile_size.1).min(cols);
+
+            let tile_bands: Vec<Array2<f64>> = toa_gc_bands.iter()
+                .map(|b| b.slice(ndarray::s![r0..r1, c0..c1]).to_owned())
+                .collect();
+
+            let total_pixels = (r1 - r0) * (c1 - c0);
+            let valid_count = tile_bands[0].iter().filter(|v| v.is_finite() && **v > 0.0).count();
+            if (valid_count as f64) < total_pixels as f64 * 0.1 { continue; }
+
+            let dark_spectrum = estimate_dark_spectrum(&tile_bands, &config.dark_method);
+            let result = optimize_aot_generic(luts, &dark_spectrum, wavelengths, bandwidths, tt_gas,
+                                               pressure, azi, thv, ths, config);
+            if result.rmsd < f64::MAX && result.aot.is_finite() && result.aot >= 0.001 && result.aot <= 1.5 {
+                model_votes[result.model_idx] += 1;
+            }
+        }
+    }
+
+    let best_model_idx = if let Some(ref model_name) = config.fixed_model {
+        luts.iter().position(|l| l.name.ends_with(model_name)).unwrap_or(0)
+    } else {
+        model_votes.iter().enumerate().max_by_key(|(_, &v)| v).map(|(i, _)| i).unwrap_or(0)
+    };
+
+    log::info!("Generic tiled: selected model {} (idx={})", luts[best_model_idx].name, best_model_idx);
+
+    // Phase 2: rebuild AOT grid with selected model
+    let mut aot_grid = vec![vec![f64::NAN; nj]; ni];
+    let single_lut = std::slice::from_ref(&luts[best_model_idx]);
+
+    for ti in 0..ni {
+        let r0 = ti * tile_size.0;
+        let r1 = ((ti + 1) * tile_size.0).min(rows);
+        for tj in 0..nj {
+            let c0 = tj * tile_size.1;
+            let c1 = ((tj + 1) * tile_size.1).min(cols);
+
+            let tile_bands: Vec<Array2<f64>> = toa_gc_bands.iter()
+                .map(|b| b.slice(ndarray::s![r0..r1, c0..c1]).to_owned())
+                .collect();
+
+            let total_pixels = (r1 - r0) * (c1 - c0);
+            let valid_count = tile_bands[0].iter().filter(|v| v.is_finite() && **v > 0.0).count();
+            if (valid_count as f64) < total_pixels as f64 * 0.1 { continue; }
+
+            let dark_spectrum = estimate_dark_spectrum(&tile_bands, &config.dark_method);
+            let result = optimize_aot_generic(single_lut, &dark_spectrum, wavelengths, bandwidths, tt_gas,
+                                               pressure, azi, thv, ths, config);
+            if result.aot.is_finite() && result.aot >= 0.001 && result.aot <= 1.5 {
+                aot_grid[ti][tj] = result.aot;
+            }
+        }
+    }
+
+    fill_nan_nearest(&mut aot_grid, ni, nj);
+
+    TiledDsfResult {
+        aot_grid,
+        model_idx: best_model_idx,
+        model_name: luts[best_model_idx].name.clone(),
+        tile_rows: tile_size.0,
+        tile_cols: tile_size.1,
+        ni,
+        nj,
+    }
+}
+
+/// Apply atmospheric correction to a single band using a generic LUT.
+/// Convolves LUT parameters with Gaussian RSR for the band.
+#[cfg(feature = "full-io")]
+pub fn dsf_correct_band_generic(
+    rhot: &Array2<f64>,
+    lut: &GenericAerosolLut,
+    center_nm: f64,
+    fwhm_nm: f64,
+    tt_gas: f64,
+    aot: f64,
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+) -> Array2<f64> {
+    let (romix_spec, astot_spec, dutott_spec) = lut.params_spectrum(pressure, azi, thv, ths, aot);
+    let romix = rsr_convolve_gauss(&lut.wave_um, &romix_spec, center_nm, fwhm_nm);
+    let astot = rsr_convolve_gauss(&lut.wave_um, &astot_spec, center_nm, fwhm_nm);
+    let dutott = rsr_convolve_gauss(&lut.wave_um, &dutott_spec, center_nm, fwhm_nm);
+
+    rhot.mapv(|v| {
+        if !v.is_finite() || v <= 0.0 { return f64::NAN; }
+        let rhot_gc = v / tt_gas;
+        let rhot_noatm = rhot_gc - romix;
+        let denom = dutott + astot * rhot_noatm;
+        if denom <= 0.0 { return f64::NAN; }
+        rhot_noatm / denom
+    })
+}
+
+/// Apply atmospheric correction with tiled AOT using a generic LUT.
+#[cfg(feature = "full-io")]
+pub fn dsf_correct_band_tiled_generic(
+    rhot: &Array2<f64>,
+    lut: &GenericAerosolLut,
+    center_nm: f64,
+    fwhm_nm: f64,
+    tt_gas: f64,
+    tiled: &TiledDsfResult,
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+) -> Array2<f64> {
+    let (rows, cols) = rhot.dim();
+
+    // Pre-compute LUT parameters per tile
+    let mut romix_grid = vec![vec![0.0f64; tiled.nj]; tiled.ni];
+    let mut astot_grid = vec![vec![0.0f64; tiled.nj]; tiled.ni];
+    let mut dutott_grid = vec![vec![0.0f64; tiled.nj]; tiled.ni];
+
+    for ti in 0..tiled.ni {
+        for tj in 0..tiled.nj {
+            let aot = tiled.aot_grid[ti][tj];
+            let (romix_spec, astot_spec, dutott_spec) = lut.params_spectrum(pressure, azi, thv, ths, aot);
+            romix_grid[ti][tj] = rsr_convolve_gauss(&lut.wave_um, &romix_spec, center_nm, fwhm_nm);
+            astot_grid[ti][tj] = rsr_convolve_gauss(&lut.wave_um, &astot_spec, center_nm, fwhm_nm);
+            dutott_grid[ti][tj] = rsr_convolve_gauss(&lut.wave_um, &dutott_spec, center_nm, fwhm_nm);
+        }
+    }
+
+    Array2::from_shape_fn((rows, cols), |(r, c)| {
+        let v = rhot[(r, c)];
+        if !v.is_finite() || v <= 0.0 { return f64::NAN; }
+
+        let romix = interp_tile_nearest(&romix_grid, tiled.ni, tiled.nj, r, c,
+                                         tiled.tile_rows, tiled.tile_cols, rows, cols);
+        let astot = interp_tile_nearest(&astot_grid, tiled.ni, tiled.nj, r, c,
+                                         tiled.tile_rows, tiled.tile_cols, rows, cols);
+        let dutott = interp_tile_nearest(&dutott_grid, tiled.ni, tiled.nj, r, c,
+                                          tiled.tile_rows, tiled.tile_cols, rows, cols);
+
+        let rhot_gc = v / tt_gas;
+        let rhot_noatm = rhot_gc - romix;
+        let denom = dutott + astot * rhot_noatm;
+        if denom <= 0.0 { return f64::NAN; }
+        rhot_noatm / denom
+    })
+}
 
 /// Simplified AOT estimation (no LUT)
 pub fn optimize_aot_simple(
