@@ -479,6 +479,14 @@ Rust processes the full scene (62M pixels) — 56× more pixels.
 
 ### Tests
 
+| Test file | Tests | What it validates |
+|-----------|-------|-------------------|
+| test_landsat_rust_vs_python.py | 13 | ROI accuracy: Rust tiled vs Python tiled ROI |
+| test_benchmark_rust_vs_python.py | 7 | Full-scene benchmark: timing + accuracy |
+| test_landsat_regression.py | varies | Landsat unit/integration tests |
+| test_sentinel2_regression.py | varies | Sentinel-2 unit/integration tests |
+| test_pace_regression.py | varies | PACE unit/integration tests |
+
 | Test | What it validates |
 |------|-------------------|
 | 7 bands output | All bands processed |
@@ -604,6 +612,47 @@ jobs:
       - run: pip install pytest
       - run: pytest tests/regression/ -v
 ```
+
+---
+
+## Performance Benchmarks
+
+### Full-Scene Processing (7931×7891 pixels, ~62M pixels)
+
+South Australia, Gulf St Vincent — Landsat 8 & 9 Collection 2 Level 1.
+
+| Metric | L8 Python | L8 Rust | L8 Speedup | L9 Python | L9 Rust | L9 Speedup |
+|--------|-----------|---------|------------|-----------|---------|------------|
+| Total wall-clock | 179.5s | 66.1s | **2.7x** | 180.1s | 56.3s | **3.2x** |
+| Load | — | 3.6s | — | — | 3.3s | — |
+| Atmospheric correction | — | 41.8s | — | — | 32.2s | — |
+| Write (COG) | — | 14.6s | — | — | 15.0s | — |
+
+Notes:
+- Python uses `dsf_aot_estimate=fixed` (single AOT for whole scene) because tiled
+  estimation fails on full scenes with deep ocean tiles (dark spectrum below LUT minimum).
+- Rust uses `dsf_aot_estimate=tiled` (200×200 tiles) which handles deep ocean tiles
+  gracefully by filtering and NaN-filling.
+- Python timing includes L1R conversion + L2R + L2W + flagging.
+- Rust timing includes GeoTIFF load + tiled DSF + COG write.
+- Both run on the same machine, single-threaded AC, parallel COG write.
+
+### Full-Scene Accuracy (Rust tiled vs Python fixed, same scene)
+
+| Metric | L8 | L9 |
+|--------|-----|-----|
+| Mean Pearson R | 0.999 | 0.998 |
+| Mean RMSE | 0.019 | 0.010 |
+| Mean %<0.05 | 95.5% | 100.0% |
+
+### ROI Accuracy (Rust tiled full-scene vs Python tiled ROI)
+
+| Metric | L8 | L9 |
+|--------|-----|-----|
+| Mean Pearson R | 0.998 | 0.9996 |
+| Mean RMSE | 0.011 | 0.003 |
+| Mean %<0.05 | 99.9% | 100.0% |
+| Mean %<0.01 | 71.1% | 98.1% |
 
 ---
 
