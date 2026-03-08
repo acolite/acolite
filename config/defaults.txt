@@ -169,6 +169,7 @@ fci_lon_0_default=0.0
 ## Himawari settings
 ahi_target_res=2.0
 ahi_lon_0_default=140.7
+ahi_segment_check=True
 
 ## GOES settings
 abi_target_res=1.0
