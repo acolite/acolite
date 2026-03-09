@@ -105,6 +105,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
             ## load angles
             vaa, vza = ac.seviri.geom(lon_0 = lon_0, ssd = ssd, instrument = 'AHI', geolocation = False, geometry = True, sub = sub)
+            target_shape = vaa.shape
 
             ## run through dates for current sensor
             for date_idx, date in enumerate(fd[platform]):
@@ -274,7 +275,7 @@ def l1_convert(inputfile, output = None, settings = None):
                     mask = np.vstack(mask_data)
 
                     ## check shape
-                    if (band_data.shape[0] == 0) | (band_data.shape[1] == 0):
+                    if (band_data.shape[0] != target_shape[0]) | (band_data.shape[1] != target_shape[1]):
                         print('Incomplete data for band {}'.format(band))
                         continue
 
