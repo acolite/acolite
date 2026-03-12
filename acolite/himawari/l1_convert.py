@@ -7,6 +7,7 @@
 ##                2025-05-22 (QV) only delete lon, lat, vaa, vza if last scene for the sensor
 ##                                get observation time from (sub)scene centre
 ##                2025-07-07 (QV) add try/except to segment parsing
+##                2026-03-08 (QV) added ahi_segment_check
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -104,6 +105,7 @@ def l1_convert(inputfile, output = None, settings = None):
 
             ## load angles
             vaa, vza = ac.seviri.geom(lon_0 = lon_0, ssd = ssd, instrument = 'AHI', geolocation = False, geometry = True, sub = sub)
+            target_shape = vaa.shape
 
             ## run through dates for current sensor
             for date_idx, date in enumerate(fd[platform]):
@@ -124,7 +126,7 @@ def l1_convert(inputfile, output = None, settings = None):
                     seg_i = [int(di[1:3]) for fi, di in enumerate(fd[platform][date][band_name])]
                     seg_n = [int(di[3:]) for fi, di in enumerate(fd[platform][date][band_name])]
 
-                    if len(seg_i) != seg_n[0]:
+                    if (setu['ahi_segment_check']) & (len(seg_i) != seg_n[0]):
                         print('Not enough segments for band {}: {}'.format(band_name, ','.join([str(v) for v in seg_i])))
                         continue
 
@@ -271,6 +273,11 @@ def l1_convert(inputfile, output = None, settings = None):
                     ## reconstruct image
                     band_data = np.vstack(band_data)
                     mask = np.vstack(mask_data)
+
+                    ## check shape
+                    if (band_data.shape[0] != target_shape[0]) | (band_data.shape[1] != target_shape[1]):
+                        print('Incomplete data for band {}'.format(band))
+                        continue
 
                     ## get radiance conversion
                     slope = header[5]['slope_for_count_radiance_conversion']

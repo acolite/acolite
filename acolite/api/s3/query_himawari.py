@@ -57,6 +57,7 @@ def query_himawari(start_date, end_date = None, local_directory = None, time_ran
     for di, dt in enumerate(dates):
         files = fs.glob('{}{}/{}/{}/{}/{}/{}/*'.format(url_base, satellite_index, product, dt['year'], dt['month'], dt['day'], dt['time']))
         print('Found {} files for date {}'.format(len(files), dt['datetime'].isoformat()))
+        files.sort()
 
         ## run through files
         for file in files:
