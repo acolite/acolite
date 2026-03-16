@@ -122,25 +122,27 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 
 | Suite | Tests | Command |
 |-------|-------|---------|
-| Unit tests | 34 | `cargo test --lib` |
+| Unit tests | 35 | `cargo test --lib` |
 | Integration tests | 8 | `cargo test --test integration_tests` |
-| E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
+| Landsat E2E | 15 | `cargo test --test landsat_e2e` |
+| PACE E2E | 5 | `cargo test --test pace_e2e` |
+| Sentinel-2 E2E | 18 | `cargo test --test sentinel2_e2e` |
 | Sentinel-3 E2E | 27 | `cargo test --test sentinel3_e2e` |
 | Sentinel-3 proptest | 12 | `cargo test --test sentinel3_proptest` |
 | All-sensors proptest | 15 | `cargo test --test all_sensors_proptest` |
 
-### Python ↔ Rust Regression Tests (240 total)
+### Python ↔ Rust Regression Tests (184 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
 | test_landsat_regression.py | Landsat 8/9 | 28 | `pytest tests/regression/test_landsat_regression.py -v` |
-| test_landsat_rust_vs_python.py | Landsat 8/9 | 13 | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
-| test_benchmark_rust_vs_python.py | Landsat 8/9 | 7 | `pytest tests/regression/test_benchmark_rust_vs_python.py -v -s` |
+| test_landsat_rust_vs_python.py | Landsat 8/9 | 7 | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
+| test_benchmark_rust_vs_python.py | Landsat 8/9 | 6 | `pytest tests/regression/test_benchmark_rust_vs_python.py -v -s` |
 | test_sentinel2_regression.py | Sentinel-2 | 19 | `pytest tests/regression/test_sentinel2_regression.py -v` |
-| test_s2_rust_vs_python.py | Sentinel-2 | 15 | `pytest tests/regression/test_s2_rust_vs_python.py -v -s` |
-| test_s2_benchmark_rust_vs_python.py | Sentinel-2 | 9 | `pytest tests/regression/test_s2_benchmark_rust_vs_python.py -v -s` |
+| test_s2_rust_vs_python.py | Sentinel-2 | 8 | `pytest tests/regression/test_s2_rust_vs_python.py -v -s` |
+| test_s2_benchmark_rust_vs_python.py | Sentinel-2 | 7 | `pytest tests/regression/test_s2_benchmark_rust_vs_python.py -v -s` |
 | test_s2_atcor_perf.py | Sentinel-2 | 20 | `pytest tests/regression/test_s2_atcor_perf.py -v -s [--runslow]` |
-| test_s3_rust_vs_python.py | Sentinel-3 | 55 | `pytest tests/regression/test_s3_rust_vs_python.py -v` |
+| test_s3_rust_vs_python.py | Sentinel-3 | 15 | `pytest tests/regression/test_s3_rust_vs_python.py -v` |
 | test_s3_benchmark_rust_vs_python.py | Sentinel-3 | 9 | `pytest tests/regression/test_s3_benchmark_rust_vs_python.py -v -s` |
 | test_pace_regression.py | PACE OCI | 17 | `pytest tests/regression/test_pace_regression.py -v` |
 | test_pace_rust_vs_python.py | PACE OCI | 14 | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
@@ -157,14 +159,15 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | Landsat 9 | Full scene (62M px × 7 bands) | 56s | 180s | 3.2× | |
 | Sentinel-2 A | Full scene (30M px × 11 bands) | 20s | 148s | **7.3×** | Real S2A T54HTF, fixed DSF |
 | Sentinel-2 B | Full scene (30M px × 11 bands) | 64s | 173s | 2.7× | |
-| Sentinel-3 OLCI | Subset 213×205 × 21 bands | 8.7s | 7.8s | 0.9× | Full DSF, first-run LUT load ~50s |
+| Sentinel-3 OLCI | Subset 213×205 × 21 bands | 3.2s | 7.8s | **2.5×** | Subset reads + RSR convolution fix; first-run LUT load ~50s |
 | PACE OCI | ROI 108×57 (fixed) | 22s | 145s | 6.8× | |
 | PACE OCI | Full 1710×1272 (fixed) | **84s** | 230s | **2.7×** | Load=12s, AC=34s, Write=35s |
 
 **Optimizations applied:**
 - PACE: Bulk NetCDF reads (3 detector reads vs 291 per-band) + rayon parallel AC
+- Sentinel-3: Direct subset NetCDF reads (avoid full-array-then-slice) + RSR convolution + TPG fix
 - All sensors: rayon parallel band correction
-- Accuracy: Mean R≥0.999 across all sensors, 100% pixels within 0.05
+- Accuracy: S2/Landsat/PACE R≥0.999; S3 R=0.983 (AOT gap under investigation — see Phase C notes)
 
 ### S2A Real Data Regression (T54HTF, 2024-03-21, fixed DSF)
 
@@ -209,12 +212,12 @@ pytest tests/regression/ -v --runslow \
 
 ## Current State
 
-- **110 Rust tests** (34 unit + 8 integration + 14 e2e + 27 S3 e2e + 12 S3 proptest + 15 all-sensors proptest)
-- **240 Python regression tests**
+- **135 Rust tests** (35 unit + 8 integration + 15 Landsat e2e + 5 PACE e2e + 18 S2 e2e + 27 S3 e2e + 12 S3 proptest + 15 all-sensors proptest)
+- **184 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
-- **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02, PACE full-scene R=1.0000
+- **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02, PACE full-scene R=1.0000; S3 R=0.983 (AOT gap: 0.076 Rust vs 0.057 Python — under investigation)
 - **Auto-download**: Sensor-specific aerosol LUTs fetched on first use from GitHub
 - **No unwrap() in library code** (all replaced with proper error propagation)
 - **PACE full-scene validated**: 1710×1272 × 291 bands, Mean RMSE=0.004, 100% within 0.05
@@ -350,7 +353,7 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [x] Landsat 8/9 Rust vs Python — R>0.998, RMSE<0.02
 - [x] Sentinel-2 A/B Rust vs Python — R=1.000, RMSE<0.002 (physics-equivalent)
 - [x] PACE OCI Rust vs Python — r=0.9995
-- [x] Sentinel-3 OLCI Rust vs Python — R=0.983, RMSE=0.0011 (full DSF, real data)
+- [x] Sentinel-3 OLCI Rust vs Python — R=0.983, RMSE=0.0011 (full DSF, real data; **below R>0.999 target** — known AOT gap: 0.076 Rust vs 0.057 Python from RegularGridInterpolator vs scipy RGI differences)
 
 ### Phase E: Production Hardening (partial)
 - [x] Remove all `unwrap()` from library code (proper error propagation)
@@ -370,12 +373,12 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [x] Ancillary data download (OBPG ozone/met via EarthData)
 - [x] Ancillary-aware ProcessingConfig (pressure, ozone, water vapour from downloads)
 - [x] Auto-download sensor-specific aerosol LUTs from GitHub
-- [ ] Ancillary data interpolation (HDF/NetCDF spatial+temporal interp)
-- [ ] DEM-derived pressure
-- [ ] Glint correction
+- [ ] **S3 OLCI accuracy** — close AOT gap (0.076 Rust vs 0.057 Python); push R from 0.983 to >0.999
+- [ ] Ancillary data interpolation — spatial+temporal bilinear interp of MERRA2 to scene centre
+- [ ] DEM-derived pressure — barometric formula from SRTM elevation at scene centre
 - [ ] Streaming processing for large scenes
 - [ ] CLI matching Python ACOLITE settings files
-- [ ] NetCDF L2R output matching Python format
+- [ ] NetCDF L2R output matching Python ACOLITE format (unblocks Phase F)
 
 ### Phase F — Water Products (L2W)
 - [ ] Port `acolite_l2w.py` parameter computation

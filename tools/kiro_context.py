@@ -13,11 +13,13 @@ Usage
     python tools/kiro_context.py
 
     # Target the next priority task explicitly
-    python tools/kiro_context.py --next sentinel3
-    python tools/kiro_context.py --next roi
-    python tools/kiro_context.py --next ancillary
+    python tools/kiro_context.py --next s3-aot-fix
     python tools/kiro_context.py --next l2r-output
+    python tools/kiro_context.py --next ancillary-interp
+    python tools/kiro_context.py --next dem-pressure
+    python tools/kiro_context.py --next settings-file
     python tools/kiro_context.py --next l2w
+    python tools/kiro_context.py --next emit
     python tools/kiro_context.py --next perf-ci
 
     # Pipe directly into the agent harness
@@ -78,12 +80,12 @@ def detect_state() -> dict:
         "landsat":   _file_exists("src/loader/landsat.rs"),
         "sentinel2": _file_exists("src/loader/sentinel2.rs"),
         "pace":      _file_exists("src/loader/pace.rs"),
-        "sentinel3": _file_exists("src/loader/sentinel3.rs"),  # stub sensor def only
+        "sentinel3": _file_exists("src/loader/sentinel3.rs"),
         "emit":      _file_exists("src/loader/emit.rs"),
         "prisma":    _file_exists("src/loader/prisma.rs"),
     }
 
-    # sentinel3 loader check: sensor def exists but loader is a placeholder
+    # sentinel3 loader check: stub sensor def only when file is tiny
     s3_loader_real = loaders["sentinel3"] and _line_count("src/loader/sentinel3.rs") > 30
     loaders["sentinel3"] = s3_loader_real
 
@@ -95,10 +97,15 @@ def detect_state() -> dict:
         "rayleigh":     _file_exists("src/ac/rayleigh.rs"),
         "calibration":  _file_exists("src/ac/calibration.rs"),
         "ancillary":    _file_exists("src/ac/ancillary.rs"),
+        "glint":        _file_exists("src/ac/glint.rs"),
     }
 
     ancillary_wired = ac_modules["ancillary"] and bool(
         _grep_count(r"ancillary", "src/pipeline.rs")
+    )
+    # ancillary spatial interpolation: check for bilinear interp logic in ancillary.rs
+    ancillary_interp_done = ac_modules["ancillary"] and bool(
+        _grep_count(r"interp_gmao|bilinear|spatial_interp|RegularGrid", "src/ac/ancillary.rs")
     )
 
     writers = {
@@ -110,21 +117,34 @@ def detect_state() -> dict:
     rust_tests   = _grep_count(r"#\[test\]", "src/**/*.rs", "tests/*.rs")
     python_tests = _grep_count(r"def test_", "tests/regression/**/*.py")
 
-    # Pipeline feature flags from pipeline.rs
-    roi_wired = bool(_grep_count(r"\blimit\b", "src/pipeline.rs"))
+    # ROI: all 4 loaders now accept a limit parameter — check each loader file
+    roi_wired = all(
+        bool(_grep_count(r"\blimit\b", f"src/loader/{sensor}.rs"))
+        for sensor in ("landsat", "sentinel2", "pace", "sentinel3")
+        if _file_exists(f"src/loader/{sensor}.rs")
+    )
+
     l2w_exists = _file_exists("src/ac/l2w.rs")
     perf_ci    = _file_exists(".github/workflows/perf.yml")
+    dem_pressure = bool(_grep_count(r"pressure_from_elevation|pressure_elevation", "src/ac/ancillary.rs"))
+    settings_file = bool(_grep_count(r"settings.txt|settings_file|from_settings", "src/main.rs"))
+    # S3 AOT gap: check if the RGI fix has landed (compare_rgi test or aot_gap comment)
+    s3_aot_fixed = bool(_grep_count(r"aot_gap|compare_rgi|s3_aot", "src/ac/interp.rs", "tests/sentinel3_e2e.rs"))
 
     return {
-        "loaders":          loaders,
-        "ac_modules":       ac_modules,
-        "ancillary_wired":  ancillary_wired,
-        "writers":          writers,
-        "roi_wired":        roi_wired,
-        "l2w_exists":       l2w_exists,
-        "perf_ci":          perf_ci,
-        "rust_tests":       rust_tests,
-        "python_tests":     python_tests,
+        "loaders":               loaders,
+        "ac_modules":            ac_modules,
+        "ancillary_wired":       ancillary_wired,
+        "ancillary_interp_done": ancillary_interp_done,
+        "writers":               writers,
+        "roi_wired":             roi_wired,
+        "l2w_exists":            l2w_exists,
+        "perf_ci":               perf_ci,
+        "dem_pressure":          dem_pressure,
+        "settings_file":         settings_file,
+        "s3_aot_fixed":          s3_aot_fixed,
+        "rust_tests":            rust_tests,
+        "python_tests":          python_tests,
     }
 
 
@@ -133,99 +153,152 @@ def detect_state() -> dict:
 # ---------------------------------------------------------------------------
 
 NEXT_TASKS = {
-    "sentinel3": {
-        "short": "Port Sentinel-3 OLCI NetCDF loader",
+    "s3-aot-fix": {
+        "short": "Fix S3 OLCI AOT gap — push R from 0.983 to >0.999",
         "detail": (
-            "Port acolite/sentinel3/l1_convert.py → src/loader/sentinel3.rs. "
-            "Sensor def exists at src/sensors/sentinel3.rs (has band names + wavelengths, stub metadata). "
-            "Follow src/loader/pace.rs for NetCDF reading (feature='full-io'). "
-            "Parse xfdumanifest.xml for scene datetime/geometry; "
-            "read Oa01_radiance.nc … Oa21_radiance.nc (21 bands); "
-            "apply tie-point geometry from geo_coordinates.nc. "
-            "Produce BandData arrays; hook into pipeline.rs sensor dispatch. "
-            "Output: per-band COG (21 bands ≤ 50). "
-            "Add tests/sentinel3_e2e.rs with a synthetic NetCDF fixture. "
-            "Add tests/regression/test_sentinel3_regression.py (Tier 1 synthetic tests)."
-        ),
-    },
-    "roi": {
-        "short": "Implement limit=[S,W,N,E] ROI subsetting for all loaders",
-        "detail": (
-            "Add limit=[S,W,N,E] parameter to all three loaders and to src/main.rs CLI. "
-            "Landsat/S2 (GeoTIFF): use GDAL windowed reads — compute pixel window from "
-            "bounding box and pass as GdalReadWindow to geotiff.rs read calls. "
-            "PACE (NetCDF): slice latitude/longitude arrays to find row/col index range, "
-            "then read only that subarray from each band variable. "
-            "Add --limit S,W,N,E CLI arg parsed as four f64 values. "
-            "Regression: compare Rust ROI-limited output vs Python ACOLITE with same limit."
-        ),
-    },
-    "ancillary": {
-        "short": "Wire ancillary data (ozone/pressure/wind) into pipeline",
-        "detail": (
-            "src/ac/ancillary.rs (180 lines) exists but is never called from src/pipeline.rs. "
-            "Integrate: at AC start, call ancillary::fetch(datetime, lat, lon, credentials) "
-            "using the scene centre coordinates from loader Metadata. "
-            "Pass returned Ancillary{uoz, uwv, pressure, wind} into dsf::run() replacing "
-            "hardcoded defaults (uoz=0.3, uwv=1.5, pressure=1013.25). "
-            "Add --no-ancillary CLI flag to skip download and use defaults. "
-            "Test: assert that a non-default ozone value changes rhos by a measurable amount."
+            "S3 OLCI achieves R=0.983, below the R>0.999 target. Root cause: AOT 0.076 (Rust) "
+            "vs 0.057 (Python) from differences between src/ac/interp.rs RegularGridInterpolator "
+            "and scipy's RGI on the 5-D aerosol LUT. "
+            "Investigate: (1) add a pytest test feeding identical grid points to both Rust RGI and "
+            "scipy.interpolate.RegularGridInterpolator to isolate the gap; "
+            "(2) verify axes are sorted ascending in src/ac/interp.rs (scipy requires this); "
+            "(3) check DSF dark-spectrum percentile uses the same pixel count across all bands jointly "
+            "(n=200 darkest pixels joint, not per-band); "
+            "(4) compare per-band romix and dark spectrum values via a --debug flag in dsf.rs. "
+            "Target: R>0.999, RMSE<0.002 for S3 OLCI matching other sensors. "
+            "Run: cargo test --test sentinel3_e2e && pytest tests/regression/test_s3_rust_vs_python.py -v -s"
         ),
     },
     "l2r-output": {
         "short": "Add NetCDF L2R output writer matching Python ACOLITE format",
         "detail": (
             "Create src/writer/netcdf_l2r.rs behind #[cfg(feature='full-io')]. "
-            "Schema: global attrs (sensor, datetime, acolite_version, limit), "
-            "dimensions (y, x), variables (lat f64, lon f64, rhos_NNN f32 per band, "
-            "rhot_NNN f32 per band, wavelength f32). "
-            "Match Python ACOLITE's variable naming exactly: rhos_443, rhot_443 etc. "
+            "Schema must match Python ACOLITE gem.gem() reader exactly: "
+            "global attrs (sensor, isodate, acolite_version, limit), "
+            "dimensions (y, x), variables (lat f64, lon f64, rhos_NNN f32, rhot_NNN f32 per band). "
+            "Variable naming: rhos_443, rhot_443 etc (integer wavelength in nm). "
+            "Compression: zlib level 4, chunked 256x256. "
             "Add write_netcdf_l2r() to src/writer/mod.rs dispatch. "
-            "Round-trip test: Python netCDF4 can open and read the Rust output."
+            "Add --output-format netcdf CLI arg. "
+            "Round-trip test: Python netCDF4 opens Rust output and reads rhos_ variables within 1e-4."
+        ),
+    },
+    "ancillary-interp": {
+        "short": "Port ancillary spatial+temporal interpolation (interp_gmao.py)",
+        "detail": (
+            "src/ac/ancillary.rs downloads files but uses scene-level defaults, not spatially "
+            "interpolated values. Python uses acolite/ac/ancillary/interp_gmao.py (63 lines): "
+            "bilinear RGI on lon/lat grid, linear temporal between two 6-hourly MERRA2 files. "
+            "Port to Rust: fn interp_gmao(files: &[PathBuf], lon: f64, lat: f64, isodate: &str) -> Result<Ancillary>. "
+            "Steps: (1) read lon/lat grid + time_coverage_start from each GMAO NetCDF; "
+            "(2) bilinear spatial interp at (lon, lat) using src/ac/interp.rs RGI on 2D lon/lat grid; "
+            "(3) linear temporal interp between two bracketing 6-hourly files. "
+            "Variables: PS (pressure hPa), TO3 (ozone DU), TQV (water vapour g/cm2), "
+            "U10M + V10M (wind components, compute speed = sqrt(u^2+v^2)). "
+            "Wire into ancillary::fetch() in pipeline.rs. "
+            "Test: known MERRA2 file -> assert interpolated values within 1% of Python reference."
+        ),
+    },
+    "dem-pressure": {
+        "short": "Port DEM-derived surface pressure (pressure_elevation.py)",
+        "detail": (
+            "Port acolite/ac/pressure_elevation.py (33 lines) to src/ac/ancillary.rs. "
+            "Standard atmosphere barometric formula: "
+            "p = 101325 * exp(-h / h0) / 100 [hPa] where h0 = (R*T0)/(M*g) = 8434.5 m. "
+            "Constants: p0=101325 Pa, T0=288.15 K, g=9.80665 m/s2, M=0.0289644 kg/mol, R=8.31447 J/mol/K. "
+            "Add fn pressure_from_elevation(elevation_m: f64) -> f64. "
+            "Source elevation from SRTM DEM if available at scene centre lat/lon, else fall back to "
+            "GMAO PS field, else 1013.25 hPa default. "
+            "Add --dem-pressure CLI flag. "
+            "Tests: 0m -> 1013.25 hPa, 1000m -> ~899 hPa, 2000m -> ~795 hPa (4 sig figs)."
+        ),
+    },
+    "settings-file": {
+        "short": "Add Python ACOLITE-compatible settings file CLI",
+        "detail": (
+            "Python ACOLITE is driven by flat key=value settings files. Rust only takes CLI flags. "
+            "Add --settings /path/to/settings.txt to src/main.rs. "
+            "Parse format: one 'key = value' or 'key=value' per line, # comments. "
+            "Map Python keys to Rust ProcessingConfig: inputfile, output, limit (S,W,N,E), "
+            "l2w_parameters (list), dsf_aot_compute (min|fixed), glint_correction (bool), "
+            "ancillary_data (bool), dem_pressure (bool). "
+            "Precedence: CLI flags override settings file. "
+            "Test: write minimal settings.txt, run Rust with --settings, assert ProcessingConfig matches. "
+            "Add examples/from_settings_file.rs demonstrating the workflow."
         ),
     },
     "l2w": {
-        "short": "Port first water product: chlorophyll-a OC3",
+        "short": "Port chlorophyll-a OC3 water product (first L2W product)",
         "detail": (
-            "Port OC3 chlorophyll-a from acolite/ac/parameters/chlorophyll.py → src/ac/l2w.rs. "
-            "Function signature: fn chl_oc3(rhos: &HashMap<u32, Array2<f32>>) -> Array2<f32>. "
-            "Band ratio: R = log10(max(rhos_443, rhos_490) / rhos_560). "
-            "OC3 polynomial: chl = 10^(a0 + a1*R + a2*R^2 + a3*R^3 + a4*R^4) with "
-            "NASA OC3 coefficients [0.2515, -2.3798, 1.5317, -0.1428, -0.9822]. "
-            "Add --l2w-parameters chl_oc3 CLI flag. "
-            "Write output as raster band in COG/GeoZarr with units='mg m-3'. "
-            "Regression tests: known rhos values → expected Chl-a within 1e-4."
+            "Port OC3 chlorophyll-a from acolite/acolite/acolite_l2w.py to src/ac/l2w.rs. "
+            "fn chl_oc3(rhos: &HashMap<u32, Array2<f32>>) -> Result<Array2<f32>>. "
+            "Band ratio: R = log10(max(rhos[443], rhos[490]) / rhos[560]). "
+            "Polynomial: chl = 10^(0.2515 - 2.3798*R + 1.5317*R^2 - 0.1428*R^3 - 0.9822*R^4). "
+            "Edge cases: rhos <= 0 or missing bands -> f32::NAN (not an error). "
+            "For sensors without exact 443/490/560nm bands, use nearest within 15nm. "
+            "Wire via --l2w-parameters chl_oc3 CLI flag. Output as extra band with units='mg m-3'. "
+            "Tests: known rhos -> expected Chl within 1e-4; all-NaN input -> all-NaN output (no panic)."
+        ),
+    },
+    "emit": {
+        "short": "Port EMIT L1B hyperspectral loader",
+        "detail": (
+            "Port EMIT to src/loader/emit.rs following src/loader/pace.rs. "
+            "File: EMIT_L1B_RAD_*_RDN_*.nc. "
+            "Variable: 'radiance' shape (lines, samples, bands) — 285 bands 380-2500nm. "
+            "Wavelengths: sensor_band_parameters/wavelengths (1D, 285 values). "
+            "FWHM: sensor_band_parameters/fwhm (for RSR Gaussian convolution). "
+            "Geometry: location/lat (lines, samples), location/lon, location/elev. "
+            "Bad bands: sensor_band_parameters/good_wavelengths (bool array). "
+            "DN to TOA reflectance: rhot = (radiance * pi * d^2) / (irradiance * cos(sza)). "
+            "Sensor definition: src/sensors/emit.rs, 285 bands, emit_NNN naming. "
+            "Download via LP DAAC CMR search (EMITL1BRAD_001) using existing cmr.rs pattern. "
+            "Output: GeoZarr V3 (285 bands > 50 threshold). "
+            "Add tests/emit_e2e.rs with synthetic fixture."
         ),
     },
     "perf-ci": {
         "short": "Add GitHub Actions performance regression gate",
         "detail": (
             "Create .github/workflows/perf.yml: trigger on push to main and PR. "
-            "Steps: checkout → cargo bench --bench performance -- --output-format bencher | tee bench.txt. "
+            "Steps: checkout -> cargo bench --bench performance 2>&1 | tee bench.txt. "
             "Store baselines in benches/performance_baseline.json: "
             "{\"landsat_mpx_s\": 940000, \"s2_mpx_s\": 576000, \"pace_mpx_s\": 18700000}. "
             "Parse bench.txt, compare to baseline, fail if any metric drops >10%. "
-            "On main-branch merge: update baseline JSON and commit via bot. "
-            "Also add memory check: /usr/bin/time -v cargo run … 2>&1 | grep 'Maximum resident'."
+            "On main-branch merge: update baseline JSON and commit via github-actions bot. "
+            "Also add memory check: /usr/bin/time -v cargo run 2>&1 | grep 'Maximum resident'."
         ),
     },
 }
 
-# Priority order for --auto
-PRIORITY = ["sentinel3", "roi", "ancillary", "l2r-output", "l2w", "perf-ci"]
+# Priority order for --auto (highest priority first)
+PRIORITY = [
+    "s3-aot-fix",       # accuracy gap: R=0.983 below R>0.999 target
+    "l2r-output",       # unblocks Python L2W consumption of Rust output
+    "ancillary-interp", # spatial+temporal MERRA2 interpolation
+    "dem-pressure",     # barometric pressure from SRTM elevation
+    "settings-file",    # Python-compatible settings file CLI
+    "l2w",              # chlorophyll-a OC3 (first water product)
+    "emit",             # EMIT hyperspectral loader
+    "perf-ci",          # CI performance regression gate
+]
 
 
 def is_done(key: str, state: dict) -> bool:
-    if key == "sentinel3":
-        return state["loaders"].get("sentinel3", False)
-    if key == "roi":
-        return state["roi_wired"]
-    if key == "ancillary":
-        return state["ancillary_wired"]
+    if key == "s3-aot-fix":
+        return state["s3_aot_fixed"]
     if key == "l2r-output":
         return state["writers"].get("netcdf_l2r", False)
+    if key == "ancillary-interp":
+        return state["ancillary_interp_done"]
+    if key == "dem-pressure":
+        return state["dem_pressure"]
+    if key == "settings-file":
+        return state["settings_file"]
     if key == "l2w":
         return state["l2w_exists"]
+    if key == "emit":
+        return state["loaders"].get("emit", False)
     if key == "perf-ci":
         return state["perf_ci"]
     return False
@@ -292,6 +365,12 @@ def build_done_block(state: dict) -> str:
         extras.append("ancillary-wired")
     if state["roi_wired"]:
         extras.append("roi-limit")
+    if state["ancillary_interp_done"]:
+        extras.append("ancillary-interp")
+    if state["dem_pressure"]:
+        extras.append("dem-pressure")
+    if state["settings_file"]:
+        extras.append("settings-file")
     if state["l2w_exists"]:
         extras.append("l2w-chl_oc3")
     if state["perf_ci"]:
@@ -328,6 +407,9 @@ def build_compact_prompt(state: dict) -> str:
     extras = []
     if state["ancillary_wired"]: extras.append("ancillary_wired")
     if state["roi_wired"]:       extras.append("roi_limit")
+    if state["ancillary_interp_done"]: extras.append("ancillary_interp")
+    if state["dem_pressure"]:    extras.append("dem_pressure")
+    if state["settings_file"]:   extras.append("settings_file")
     if state["l2w_exists"]:      extras.append("l2w_chl_oc3")
     if state["perf_ci"]:         extras.append("perf_ci")
 

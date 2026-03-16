@@ -37,25 +37,34 @@ benches/
 
 | Suite | Tests | Status |
 |-------|-------|--------|
-| Rust unit tests | 34 | ✅ All pass |
+| Rust unit tests | 35 | ✅ All pass |
 | Rust integration tests | 8 | ✅ All pass |
-| Rust E2E tests | 14 (+1 pre-existing COG failure) | ✅ |
-| Python regression (total) | 240 | ✅ All pass |
+| Rust Landsat E2E | 15 | ✅ All pass |
+| Rust PACE E2E | 5 | ✅ All pass |
+| Rust Sentinel-2 E2E | 18 | ✅ All pass |
+| Rust Sentinel-3 E2E | 27 | ✅ All pass |
+| Rust Sentinel-3 proptest | 12 | ✅ All pass |
+| Rust all-sensors proptest | 15 | ✅ All pass |
+| Python regression (total) | 184 | ✅ All pass |
 
 ### Python Test Breakdown
 
 | Test file | Tests | Sensor | Mode |
 |-----------|-------|--------|------|
 | test_landsat_regression.py | 28 | Landsat 8/9 | Synthetic + unit + ancillary + ATCOR + glint |
-| test_landsat_rust_vs_python.py | 13 | Landsat 8/9 | ROI pixel comparison |
-| test_benchmark_rust_vs_python.py | 7 | Landsat 8/9 | Full-scene benchmark |
+| test_landsat_rust_vs_python.py | 7 | Landsat 8/9 | ROI pixel comparison |
+| test_benchmark_rust_vs_python.py | 6 | Landsat 8/9 | Full-scene benchmark |
 | test_sentinel2_regression.py | 19 | Sentinel-2 | Synthetic + unit |
-| test_s2_rust_vs_python.py | 15 | Sentinel-2 | Fixed-mode pixel comparison |
-| test_s2_benchmark_rust_vs_python.py | 9 | Sentinel-2 | Full-scene + tiled benchmark |
+| test_s2_rust_vs_python.py | 8 | Sentinel-2 | Fixed-mode pixel comparison |
+| test_s2_benchmark_rust_vs_python.py | 7 | Sentinel-2 | Full-scene + tiled benchmark |
 | test_s2_atcor_perf.py | 20 | Sentinel-2 | Synthetic + real data perf/accuracy |
+| test_s3_rust_vs_python.py | 15 | Sentinel-3 OLCI | Rust vs Python comparison |
+| test_s3_benchmark_rust_vs_python.py | 9 | Sentinel-3 OLCI | Full-scene benchmark |
 | test_pace_regression.py | 17 | PACE OCI | Synthetic + real data |
 | test_pace_rust_vs_python.py | 14 | PACE OCI | Rust vs Python comparison |
-| test_pace_sa_fullscene_benchmark.py | 12 | PACE OCI | Full-scene benchmark (SA) |
+| test_pace_dsf_rust_vs_python.py | 12 | PACE OCI | DSF Chesapeake Bay |
+| test_pace_sa_dsf_rust_vs_python.py | 12 | PACE OCI | DSF South Australia ROI |
+| test_pace_sa_fullscene_benchmark.py | 10 | PACE OCI | Full-scene benchmark (SA) |
 
 ## Test Tiers
 
@@ -515,10 +524,16 @@ jobs:
 | Landsat 9 | 62M px × 7 bands | 180s | 56s | **3.2×** | 1.000 | 0.003 | MOD2 ✓ |
 | Sentinel-2A | 30M px × 11 bands | 182s | 52s | **3.5×** | 1.000 | 0.001 | MOD1 ✓ |
 | Sentinel-2B | 30M px × 11 bands | 173s | 64s | **2.7×** | 1.000 | 0.001 | MOD2 ✓ |
+| Sentinel-3 OLCI | 213×205 × 21 bands | 7.8s | 3.2s | **2.5×** | 0.983 | 0.0011 | MOD2 (AOT gap: see note) |
 | PACE OCI | 2.2M px × 291 bands | 230s | 84s | **2.7×** | 1.000 | 0.004 | MOD2 ✓ |
 
 All scenes over water, South Australia (Gulf St Vincent / south of Kangaroo Island).
 All use fixed DSF mode for deterministic comparison.
+
+> **Note — S3 OLCI accuracy gap**: R=0.983 is below the R>0.999 target. Root cause is a
+> discrepancy between Rust's `RegularGridInterpolator` (src/ac/interp.rs) and SciPy's RGI
+> in the 5-D aerosol LUT, producing AOT 0.076 (Rust) vs 0.057 (Python). Under active
+> investigation — see Phase E Next Steps in RUST_PORT_ROADMAP.md.
 
 ---
 
