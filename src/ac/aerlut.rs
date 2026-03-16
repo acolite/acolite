@@ -443,6 +443,61 @@ fn download_generic_lut(lut_subdir: &Path, base_name: &str, pressures: &[f64]) -
     Ok(())
 }
 
+/// Download sensor-specific LUT files (plain .nc, not bz2) from the ACOLITE LUT repository
+#[cfg(feature = "full-io")]
+fn download_sensor_lut(
+    sensor_dir: &Path,
+    base_name: &str,
+    sensor: &str,
+    pressures: &[f64],
+) -> Result<()> {
+    use std::io::Write;
+
+    let lut_base_url = "https://raw.githubusercontent.com/acolite/acolite_luts/main";
+    let lut_family = base_name.rsplitn(2, '-').nth(1).unwrap_or(base_name);
+
+    std::fs::create_dir_all(sensor_dir)
+        .map_err(|e| AcoliteError::Processing(format!("Create dir: {}", e)))?;
+
+    let client = reqwest::blocking::Client::new();
+
+    for &pres in pressures {
+        let lutid = format!("{}-{:04}mb_{}", base_name, pres as i32, sensor);
+        let nc_path = sensor_dir.join(format!("{}.nc", lutid));
+        if nc_path.exists() {
+            continue;
+        }
+
+        let url = format!("{}/{}/{}/{}.nc", lut_base_url, lut_family, sensor, lutid);
+        log::info!("Downloading sensor LUT: {}", url);
+
+        let response = client
+            .get(&url)
+            .send()
+            .map_err(|e| AcoliteError::Processing(format!("Download LUT: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(AcoliteError::Processing(format!(
+                "Download sensor LUT failed: HTTP {} for {}",
+                response.status(),
+                url
+            )));
+        }
+
+        let data = response
+            .bytes()
+            .map_err(|e| AcoliteError::Processing(format!("Read LUT: {}", e)))?;
+
+        let mut f = std::fs::File::create(&nc_path)
+            .map_err(|e| AcoliteError::Processing(format!("Create file: {}", e)))?;
+        f.write_all(&data)
+            .map_err(|e| AcoliteError::Processing(format!("Write file: {}", e)))?;
+
+        log::info!("Saved sensor LUT: {}", nc_path.display());
+    }
+    Ok(())
+}
+
 /// Load both MOD1 and MOD2 generic LUTs
 #[cfg(feature = "full-io")]
 pub fn load_generic_luts(data_dir: &Path, pressures: &[f64]) -> Result<Vec<GenericAerosolLut>> {
@@ -488,10 +543,7 @@ pub fn load_sensor_lut(
     let first_id = format!("{}-{:04}mb_{}", base_name, pressures[0] as i32, sensor);
     let first_path = sensor_dir.join(format!("{}.nc", first_id));
     if !first_path.exists() {
-        return Err(AcoliteError::Processing(format!(
-            "LUT not found: {}",
-            first_path.display()
-        )));
+        download_sensor_lut(&sensor_dir, base_name, sensor, pressures)?;
     }
 
     let nc = netcdf::open(&first_path)

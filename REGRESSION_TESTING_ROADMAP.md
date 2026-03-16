@@ -40,7 +40,7 @@ benches/
 | Rust unit tests | 26 | ✅ All pass |
 | Rust integration tests | 8 | ✅ All pass |
 | Rust E2E tests | 14 (+1 pre-existing COG failure) | ✅ |
-| Python regression (total) | 141 | ✅ All pass |
+| Python regression (total) | 161 | ✅ All pass |
 
 ### Python Test Breakdown
 
@@ -52,6 +52,7 @@ benches/
 | test_sentinel2_regression.py | 19 | Sentinel-2 | Synthetic + unit |
 | test_s2_rust_vs_python.py | 15 | Sentinel-2 | Fixed-mode pixel comparison |
 | test_s2_benchmark_rust_vs_python.py | 9 | Sentinel-2 | Full-scene + tiled benchmark |
+| test_s2_atcor_perf.py | 20 | Sentinel-2 | Synthetic + real data perf/accuracy |
 | test_pace_regression.py | 17 | PACE OCI | Synthetic + real data |
 | test_pace_rust_vs_python.py | 14 | PACE OCI | Rust vs Python comparison |
 | test_pace_sa_fullscene_benchmark.py | 12 | PACE OCI | Full-scene benchmark (SA) |

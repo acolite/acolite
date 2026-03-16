@@ -301,13 +301,30 @@ def _run_python_real():
         "l2w_parameters=\nrgb_rhot=False\nrgb_rhos=False\nmap_l2w=False\n"
         "s2_target_res=20\noutput_geometry=False\nresolved_geometry=False\n"
     )
+    # Monkey-patch GDAL ReadAsArray for Python 3.14 compat (gdal_array missing)
+    patch_code = (
+        "import numpy as np; from osgeo import gdal; gdal.UseExceptions();\n"
+        "gdal.Band.ReadAsArray = lambda self,*a,**k: "
+        "np.frombuffer(self.ReadRaster(0,0,self.XSize,self.YSize,buf_type=gdal.GDT_Float64),"
+        "dtype=np.float64).reshape(self.YSize,self.XSize);\n"
+        "gdal.Dataset.ReadAsArray = lambda self,*a,**k: "
+        "np.stack([self.GetRasterBand(i+1).ReadAsArray() for i in range(self.RasterCount)]) "
+        "if self.RasterCount>1 else self.GetRasterBand(1).ReadAsArray();\n"
+    )
     t0 = time.time()
     r = subprocess.run(
         [sys.executable, "-c",
+         patch_code +
          f"import sys; sys.path.insert(0,'{REPO}'); "
          f"import acolite; acolite.acolite.acolite_run(settings='{out}/settings.txt')"],
         capture_output=True, text=True, timeout=600, cwd=str(REPO),
     )
+    elapsed = time.time() - t0
+    if r.returncode != 0:
+        pytest.fail(f"Python failed:\n{r.stderr[:500]}")
+    timing_f.write_text(f"{elapsed:.2f}")
+    found = list(out.glob("*_L2R.nc"))
+    return {"nc": found[0], "time": elapsed} if found else pytest.fail("No L2R")
     elapsed = time.time() - t0
     if r.returncode != 0:
         pytest.fail(f"Python failed:\n{r.stderr[:500]}")
@@ -384,6 +401,19 @@ class TestRealPerformance:
         assert rust["time"] < py["time"]
 
 
+def _read_rust_band(tif_path):
+    """Read a Rust COG band using GDAL ReadRaster (avoids gdal_array)."""
+    from osgeo import gdal
+    gdal.UseExceptions()
+    ds = gdal.Open(str(tif_path))
+    band = ds.GetRasterBand(1)
+    w, h = ds.RasterXSize, ds.RasterYSize
+    buf = band.ReadRaster(0, 0, w, h, buf_type=gdal.GDT_Float64)
+    data = np.frombuffer(buf, dtype=np.float64).reshape(h, w).copy()
+    ds = None
+    return data
+
+
 @pytest.mark.slow
 class TestRealAccuracy:
     def test_per_band_correlation(self, rust_binary):
@@ -403,9 +433,7 @@ class TestRealAccuracy:
             wl = REAL["band_map"].get(bname)
             if not wl or f"rhos_{wl}" not in ds.variables:
                 continue
-            gds = gdal.Open(str(tif))
-            rd = gds.GetRasterBand(1).ReadAsArray().astype(np.float64)
-            gds = None
+            rd = _read_rust_band(tif)
             pd = ds.variables[f"rhos_{wl}"][:].astype(np.float64)
             h, w = min(rd.shape[0], pd.shape[0]), min(rd.shape[1], pd.shape[1])
             m = pixel_metrics(rd[:h, :w], pd[:h, :w])
@@ -414,17 +442,60 @@ class TestRealAccuracy:
         ds.close()
 
         assert len(all_m) >= 5
-        print(f"\n  {'Band':<6} {'R':>10} {'RMSE':>10} {'Bias':>10} {'%<0.05':>8}")
-        print(f"  {'─'*6} {'─'*10} {'─'*10} {'─'*10} {'─'*8}")
+        print(f"\n  {'Band':<6} {'R':>10} {'RMSE':>10} {'Bias':>10} {'%<0.01':>8} {'%<0.05':>8}")
+        print(f"  {'─'*6} {'─'*10} {'─'*10} {'─'*10} {'─'*8} {'─'*8}")
         for b in AC_BANDS:
             if b not in all_m:
                 continue
             v = all_m[b]
             print(f"  {b:<6} {v['pearson_r']:>10.6f} {v['rmse']:>10.6f} "
-                  f"{v['bias']:>10.6f} {v['pct_within_0.05']:>7.1f}%")
+                  f"{v['bias']:>+10.6f} {v['pct_within_0.01']:>7.1f}% {v['pct_within_0.05']:>7.1f}%")
         mean_r = np.mean([v["pearson_r"] for v in all_m.values()])
-        print(f"\n  Mean R = {mean_r:.4f}")
-        assert mean_r > 0.85
+        mean_rmse = np.mean([v["rmse"] for v in all_m.values()])
+        print(f"\n  Mean R = {mean_r:.6f}, Mean RMSE = {mean_rmse:.6f}")
+        assert mean_r > 0.999, f"Mean R={mean_r:.6f} below 0.999"
+
+    def test_all_bands_within_tolerance(self, rust_binary):
+        """Every band must have 100% pixels within 0.05 reflectance."""
+        py = _run_python_real()
+        rust = _run_rust_real(rust_binary)
+        try:
+            import netCDF4
+        except ImportError:
+            pytest.skip("netCDF4 not available")
+
+        ds = netCDF4.Dataset(str(py["nc"]))
+        for tif in rust["tifs"]:
+            bname = tif.stem.split("_")[-1]
+            wl = REAL["band_map"].get(bname)
+            if not wl or f"rhos_{wl}" not in ds.variables:
+                continue
+            rd = _read_rust_band(tif)
+            pd = ds.variables[f"rhos_{wl}"][:].astype(np.float64)
+            h, w = min(rd.shape[0], pd.shape[0]), min(rd.shape[1], pd.shape[1])
+            m = pixel_metrics(rd[:h, :w], pd[:h, :w])
+            if m:
+                assert m["pct_within_0.05"] == 100.0, f"{bname}: {m['pct_within_0.05']:.1f}% < 100%"
+        ds.close()
+
+    def test_model_and_aot_match(self, rust_binary):
+        """Rust must select same model and AOT as Python."""
+        rust = _run_rust_real(rust_binary)
+        # Parse Rust stdout for model/AOT (cached in timing dir)
+        out = CACHE / "sentinel2_sa" / "rust_atcor_perf"
+        # Re-run to capture stdout if needed
+        safe = CACHE / "sentinel2_sa" / REAL["safe"]
+        r = subprocess.run(
+            [str(rust_binary), "--file", str(safe), "--output", str(out),
+             "--res", "20", "--aot-mode", "fixed", "--model", "auto"],
+            capture_output=True, text=True, timeout=300,
+            env={**os.environ, "RUST_LOG": "info"},
+        )
+        assert "MOD1" in r.stdout, "Rust should select MOD1"
+        m = re.search(r"AOT=([\d.]+)", r.stdout)
+        if m:
+            aot = float(m.group(1))
+            assert abs(aot - 0.011) < 0.002, f"AOT={aot} too far from Python 0.011"
 
 
 # ── Report ───────────────────────────────────────────────────────────────
@@ -445,6 +516,10 @@ class TestReport:
                 },
             },
         }
+        # Append real data results if cached
+        pixel_report = CACHE / "s2a_real_pixel_report.json"
+        if pixel_report.exists():
+            report["real_data"] = json.loads(pixel_report.read_text())
         out = CACHE / "s2_atcor_perf_report.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(report, indent=2))

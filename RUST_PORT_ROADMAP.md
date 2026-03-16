@@ -110,7 +110,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
 
-### Python ↔ Rust Regression Tests (151 total)
+### Python ↔ Rust Regression Tests (171 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
@@ -120,6 +120,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | test_sentinel2_regression.py | Sentinel-2 | 19 | `pytest tests/regression/test_sentinel2_regression.py -v` |
 | test_s2_rust_vs_python.py | Sentinel-2 | 15 | `pytest tests/regression/test_s2_rust_vs_python.py -v -s` |
 | test_s2_benchmark_rust_vs_python.py | Sentinel-2 | 9 | `pytest tests/regression/test_s2_benchmark_rust_vs_python.py -v -s` |
+| test_s2_atcor_perf.py | Sentinel-2 | 20 | `pytest tests/regression/test_s2_atcor_perf.py -v -s [--runslow]` |
 | test_pace_regression.py | PACE OCI | 17 | `pytest tests/regression/test_pace_regression.py -v` |
 | test_pace_rust_vs_python.py | PACE OCI | 14 | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
 | test_pace_dsf_rust_vs_python.py | PACE OCI (Chesapeake) | 12 | `pytest tests/regression/test_pace_dsf_rust_vs_python.py -v` |
@@ -133,7 +134,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 |--------|-------|------|--------|---------|-------|
 | Landsat 8 | Full scene (62M px × 7 bands) | 66s | 180s | 2.7× | |
 | Landsat 9 | Full scene (62M px × 7 bands) | 56s | 180s | 3.2× | |
-| Sentinel-2 A | Full scene (30M px × 11 bands) | 52s | 182s | **3.5×** | |
+| Sentinel-2 A | Full scene (30M px × 11 bands) | 20s | 148s | **7.3×** | Real S2A T54HTF, fixed DSF |
 | Sentinel-2 B | Full scene (30M px × 11 bands) | 64s | 173s | 2.7× | |
 | PACE OCI | ROI 108×57 (fixed) | 22s | 145s | 6.8× | |
 | PACE OCI | Full 1710×1272 (fixed) | **84s** | 230s | **2.7×** | Load=12s, AC=34s, Write=35s |
@@ -142,6 +143,28 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 - PACE: Bulk NetCDF reads (3 detector reads vs 291 per-band) + rayon parallel AC
 - All sensors: rayon parallel band correction
 - Accuracy: Mean R≥0.999 across all sensors, 100% pixels within 0.05
+
+### S2A Real Data Regression (T54HTF, 2024-03-21, fixed DSF)
+
+Per-pixel comparison against Python ACOLITE (25M pixels per band):
+
+| Band | λ nm | Pearson R | RMSE | Bias | %<0.01 | %<0.05 |
+|------|------|-----------|------|------|--------|--------|
+| B01 | 443 | 1.000000 | 0.000013 | +0.000013 | 100.0% | 100.0% |
+| B02 | 492 | 1.000000 | 0.000015 | +0.000015 | 100.0% | 100.0% |
+| B03 | 560 | 1.000000 | 0.000202 | -0.000183 | 100.0% | 100.0% |
+| B04 | 665 | 1.000000 | 0.000397 | +0.000294 | 100.0% | 100.0% |
+| B05 | 704 | 1.000000 | 0.001000 | -0.000686 | 100.0% | 100.0% |
+| B06 | 740 | 1.000000 | 0.001416 | -0.000898 | 100.0% | 100.0% |
+| B07 | 783 | 1.000000 | 0.001320 | -0.000799 | 100.0% | 100.0% |
+| B08 | 833 | 1.000000 | 0.007184 | -0.004201 | 75.7% | 100.0% |
+| B8A | 865 | 1.000000 | 0.000023 | -0.000012 | 100.0% | 100.0% |
+| B11 | 1614 | 1.000000 | 0.000240 | -0.000120 | 100.0% | 100.0% |
+| B12 | 2202 | 1.000000 | 0.001887 | -0.000935 | 100.0% | 100.0% |
+
+**Mean R=1.000000, Mean RMSE=0.001245, 100% pixels within 0.05**
+Model: MOD1 ✓, AOT: 0.0110 ✓ (exact match)
+Rust: 20.3s (Load 2.6s + AC 8.8s + Write 7.7s), Python: 147.9s → **7.3× speedup**
 
 ### Quick Commands
 
@@ -165,13 +188,15 @@ pytest tests/regression/ -v --runslow \
 ## Current State
 
 - **51 Rust tests** (29 unit + 8 integration + 14 e2e)
-- **151 Python regression tests**
+- **171 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
 - **Physics-equivalent**: S2 RMSE < 0.002, Landsat RMSE < 0.02, PACE full-scene R=1.0000
+- **Auto-download**: Sensor-specific aerosol LUTs fetched on first use from GitHub
 - **No unwrap() in library code** (all replaced with proper error propagation)
 - **PACE full-scene validated**: 1710×1272 × 291 bands, Mean RMSE=0.004, 100% within 0.05
+- **S2A real-data validated**: 5490×5490 × 11 bands, Mean R=1.000, Mean RMSE=0.001, 7.3× speedup
 
 ## Porting Methodology — Multi-Agent Orchestration
 
@@ -317,6 +342,7 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [ ] Interface reflectance (rsky)
 - [x] Ancillary data download (OBPG ozone/met via EarthData)
 - [x] Ancillary-aware ProcessingConfig (pressure, ozone, water vapour from downloads)
+- [x] Auto-download sensor-specific aerosol LUTs from GitHub
 - [ ] Ancillary data interpolation (HDF/NetCDF spatial+temporal interp)
 - [ ] DEM-derived pressure
 - [ ] Glint correction
