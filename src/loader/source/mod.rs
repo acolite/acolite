@@ -6,4 +6,4 @@ pub mod stac;
 
 pub use cmr::{search_cmr, search_pace_l1b, search_pace_scene, CmrGranule};
 pub use download::download_file;
-pub use stac::StacClient;
+pub use stac::{download_cdse_sentinel2, download_stac_sentinel2, StacClient};

@@ -9,6 +9,9 @@ use crate::{AcoliteError, Result};
 use std::path::PathBuf;
 use zeroize::Zeroize;
 
+// serde_json needed for CDSE token parsing
+use serde_json;
+
 /// Credential source
 #[derive(Debug, Clone, PartialEq)]
 pub enum CredentialSource {
@@ -150,6 +153,81 @@ impl std::fmt::Debug for Credentials {
             .field("token", &self.token.as_ref().map(|_| "[REDACTED]"))
             .field("source", &self.source)
             .finish()
+    }
+}
+
+/// CDSE (Copernicus Data Space Ecosystem) credentials.
+/// Sources: CDSE_u/CDSE_p env vars, or 'machine cdse' in .netrc.
+pub struct CdseCredentials {
+    pub username: String,
+    password: String,
+}
+
+impl Drop for CdseCredentials {
+    fn drop(&mut self) {
+        self.password.zeroize();
+    }
+}
+
+impl CdseCredentials {
+    pub fn load() -> Result<Self> {
+        Self::from_env().or_else(|_| Self::from_netrc())
+    }
+
+    pub fn password(&self) -> &str {
+        &self.password
+    }
+
+    /// Obtain a short-lived CDSE access token via OAuth2 password grant.
+    pub fn access_token(&self) -> Result<String> {
+        let client = reqwest::blocking::Client::new();
+        let resp = client
+            .post("https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token")
+            .form(&[
+                ("client_id", "cdse-public"),
+                ("grant_type", "password"),
+                ("username", &self.username),
+                ("password", &self.password),
+            ])
+            .send()
+            .map_err(|e| AcoliteError::Processing(format!("CDSE token request: {}", e)))?;
+        let json: serde_json::Value = resp
+            .json()
+            .map_err(|e| AcoliteError::Processing(format!("CDSE token parse: {}", e)))?;
+        json["access_token"]
+            .as_str()
+            .map(String::from)
+            .ok_or_else(|| AcoliteError::Config("No access_token in CDSE response".into()))
+    }
+
+    fn from_env() -> Result<Self> {
+        Ok(Self {
+            username: std::env::var("CDSE_u").map_err(|_| AcoliteError::Config("".into()))?,
+            password: std::env::var("CDSE_p").map_err(|_| AcoliteError::Config("".into()))?,
+        })
+    }
+
+    fn from_netrc() -> Result<Self> {
+        let path = dirs::home_dir()
+            .ok_or_else(|| AcoliteError::Config("no home".into()))?
+            .join(".netrc");
+        let content =
+            std::fs::read_to_string(&path).map_err(|_| AcoliteError::Config("no .netrc".into()))?;
+        let mut found = false;
+        let (mut user, mut pass) = (None, None);
+        let mut tokens = content.split_whitespace();
+        while let Some(tok) = tokens.next() {
+            match tok {
+                "machine" => found = tokens.next() == Some("cdse"),
+                "login" if found => user = tokens.next().map(String::from),
+                "password" if found => pass = tokens.next().map(String::from),
+                _ => {}
+            }
+        }
+        Ok(Self {
+            username: user.ok_or_else(|| AcoliteError::Config("no cdse login".into()))?,
+            password: pass.ok_or_else(|| AcoliteError::Config("no cdse password".into()))?,
+        })
     }
 }
 

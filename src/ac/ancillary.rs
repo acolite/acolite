@@ -139,14 +139,107 @@ pub fn get(dt: &DateTime<Utc>, _lon: f64, _lat: f64, local_dir: Option<&Path>) -
         return Ancillary::default();
     }
 
-    // For now return defaults — full HDF/NetCDF interpolation requires pyhdf-equivalent
-    // which is out of scope. The download infrastructure is in place for when
-    // netcdf-based interpolation is added.
-    log::info!(
-        "Ancillary files downloaded ({}); using default interpolation values",
-        files.len()
-    );
+    // Try to interpolate from downloaded GMAO MET NetCDF files
+    #[cfg(feature = "netcdf")]
+    {
+        let met_files: Vec<&PathBuf> = files.iter().filter(|f| {
+            f.to_string_lossy().contains("GMAO_MERRA2") && f.to_string_lossy().ends_with(".nc")
+        }).collect();
+        if let Some(anc) = interpolate_met(&met_files, _lon, _lat, dt) {
+            return anc;
+        }
+    }
+
+    log::info!("Ancillary files downloaded ({}); using default values", files.len());
     Ancillary::default()
+}
+
+/// Interpolate ancillary values from GMAO MERRA2 MET NetCDF files at a given lon/lat/time.
+/// Reads PS (surface pressure), TQV (water vapour), TO3 (ozone), U10M/V10M (wind).
+#[cfg(feature = "netcdf")]
+fn interpolate_met(
+    met_files: &[&PathBuf],
+    lon: f64,
+    lat: f64,
+    dt: &DateTime<Utc>,
+) -> Option<Ancillary> {
+    if met_files.is_empty() {
+        return None;
+    }
+
+    // Read the first available MET file and do nearest-neighbour lookup
+    let nc = netcdf::open(met_files[0]).ok()?;
+
+    let lons = read_1d_f64(&nc, "lon")?;
+    let lats = read_1d_f64(&nc, "lat")?;
+
+    let ix = nearest_idx(&lons, lon);
+    let iy = nearest_idx(&lats, lat);
+
+    let pressure = read_2d_val(&nc, "PS", iy, ix).map(|v| v / 100.0)?; // Pa → hPa
+    let uwv = read_2d_val(&nc, "TQV", iy, ix).unwrap_or(1.5); // kg/m² ≈ g/cm² (close enough)
+    let uoz = read_2d_val(&nc, "TO3", iy, ix).map(|v| v / 1000.0).unwrap_or(0.3); // DU → cm-atm
+
+    let u10 = read_2d_val(&nc, "U10M", iy, ix).unwrap_or(0.0);
+    let v10 = read_2d_val(&nc, "V10M", iy, ix).unwrap_or(0.0);
+    let wind = (u10 * u10 + v10 * v10).sqrt();
+
+    // If we have a second bracketing file, average the two
+    if met_files.len() >= 2 {
+        if let Some(nc2) = netcdf::open(met_files[1]).ok() {
+            let p2 = read_2d_val(&nc2, "PS", iy, ix).map(|v| v / 100.0);
+            let w2 = read_2d_val(&nc2, "TQV", iy, ix);
+            let o2 = read_2d_val(&nc2, "TO3", iy, ix).map(|v| v / 1000.0);
+            let u2 = read_2d_val(&nc2, "U10M", iy, ix).unwrap_or(0.0);
+            let v2_val = read_2d_val(&nc2, "V10M", iy, ix).unwrap_or(0.0);
+            let wind2 = (u2 * u2 + v2_val * v2_val).sqrt();
+
+            let _ = dt; // time weighting could be added; for now simple average
+            return Some(Ancillary {
+                pressure: avg(pressure, p2.unwrap_or(pressure)),
+                uwv: avg(uwv, w2.unwrap_or(uwv)),
+                uoz: avg(uoz, o2.unwrap_or(uoz)),
+                wind: avg(wind, wind2),
+            });
+        }
+    }
+
+    Some(Ancillary { uoz, uwv, pressure, wind })
+}
+
+#[cfg(feature = "netcdf")]
+fn avg(a: f64, b: f64) -> f64 {
+    (a + b) * 0.5
+}
+
+#[cfg(feature = "netcdf")]
+fn nearest_idx(arr: &[f64], val: f64) -> usize {
+    arr.iter()
+        .enumerate()
+        .min_by(|(_, a), (_, b)| {
+            (*a - val).abs().partial_cmp(&(*b - val).abs()).unwrap()
+        })
+        .map(|(i, _)| i)
+        .unwrap_or(0)
+}
+
+#[cfg(feature = "netcdf")]
+fn read_1d_f64(nc: &netcdf::File, name: &str) -> Option<Vec<f64>> {
+    let var = nc.variable(name)?;
+    var.get_values::<f64, _>(..).ok()
+}
+
+#[cfg(feature = "netcdf")]
+fn read_2d_val(nc: &netcdf::File, name: &str, iy: usize, ix: usize) -> Option<f64> {
+    let var = nc.variable(name)?;
+    // GMAO MET shape is typically (1, lat, lon) or (lat, lon)
+    let ndim = var.dimensions().len();
+    let vals: Vec<f64> = if ndim == 3 {
+        var.get_values::<f64, _>((0..1, iy..iy + 1, ix..ix + 1)).ok()?
+    } else {
+        var.get_values::<f64, _>((iy..iy + 1, ix..ix + 1)).ok()?
+    };
+    vals.into_iter().next()
 }
 
 #[cfg(test)]

@@ -39,13 +39,15 @@ log = "0.4"
 env_logger = "0.11"
 dirs = "5.0"
 zeroize = "1.8"
-zarrs = { version = "0.23.5", features = ["filesystem"] }
+zarrs = { version = "0.23.5", features = ["filesystem"], optional = true }
 bzip2 = "0.5"
+zip = "2.1"
 
 [features]
 default = []
 full-io = ["netcdf", "hdf5"]
 gdal-support = ["gdal"]
+zarr = ["zarrs"]
 
 [dev-dependencies]
 criterion = "0.5"

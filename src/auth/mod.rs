@@ -2,4 +2,4 @@
 
 pub mod credentials;
 
-pub use credentials::{aws_profile, CredentialSource, Credentials};
+pub use credentials::{aws_profile, CdseCredentials, CredentialSource, Credentials};
