@@ -58,11 +58,13 @@ fn process_synthetic(output_dir: &str) {
         apply_rayleigh: true,
         apply_gas: true,
         apply_aerosol: true,
+        apply_glint: false,
         output_reflectance: true,
         parallel: true,
         ozone: 0.3,
         water_vapor: 2.5,
         pressure: 1013.25,
+        wind: 2.0,
     };
 
     let mut pipeline = Pipeline::new(metadata, config);

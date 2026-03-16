@@ -348,8 +348,6 @@ pub fn load_olci_scene(
     sen3_dir: &Path,
     limit: Option<&[f64; 4]>,
 ) -> Result<OlciScene> {
-    use ndarray::s;
-
     // Find manifest
     let manifest = sen3_dir.join("xfdumanifest.xml");
     if !manifest.exists() {
@@ -389,7 +387,7 @@ pub fn load_olci_scene(
         (tpg, instrument, data_shape)
     };
 
-    // Load radiance bands
+    // Load radiance bands — read only the subset region directly from NetCDF
     let mut radiance = HashMap::new();
     for (_i, (name, _, _, _)) in OLCI_BANDS.iter().enumerate() {
         let nc_name = format!("{}_radiance.nc", name);
@@ -397,16 +395,16 @@ pub fn load_olci_scene(
         if !nc_path.exists() { continue; }
 
         let ds_name = format!("{}_radiance", name);
-        match read_nc_scaled(&nc_path, &ds_name) {
-            Ok(data) => {
-                let data = if let Some((r0, c0, nr, nc)) = sub {
-                    data.slice(s![r0..r0+nr, c0..c0+nc]).to_owned()
-                } else {
-                    data
-                };
-                radiance.insert(name.to_string(), data);
+        if let Some((r0, c0, nr, nc)) = sub {
+            match read_nc_scaled_subset(&nc_path, &ds_name, r0, c0, nr, nc) {
+                Ok(data) => { radiance.insert(name.to_string(), data); }
+                Err(e) => log::warn!("Failed to read {}: {}", nc_name, e),
             }
-            Err(e) => log::warn!("Failed to read {}: {}", nc_name, e),
+        } else {
+            match read_nc_scaled(&nc_path, &ds_name) {
+                Ok(data) => { radiance.insert(name.to_string(), data); }
+                Err(e) => log::warn!("Failed to read {}: {}", nc_name, e),
+            }
         }
     }
 
@@ -445,21 +443,25 @@ fn load_tpg(sen3_dir: &Path, _limit: Option<&[f64; 4]>) -> Result<OlciTpg> {
     let full_cols = di_var.dimensions()[1].len();
     drop(nc_inst);
 
-    // Interpolate TPGs to full resolution using nearest-neighbor
-    // (matching Python's RegularGridInterpolator behavior for coarse grids)
-    let sza = interp_tpg_to_full(&sza_tp, full_rows, full_cols);
-    let oza = interp_tpg_to_full(&oza_tp, full_rows, full_cols);
-    let saa = interp_tpg_to_full(&saa_tp, full_rows, full_cols);
-    let oaa = interp_tpg_to_full(&oaa_tp, full_rows, full_cols);
-    let latitude = interp_tpg_to_full(&lat_tp, full_rows, full_cols);
-    let longitude = interp_tpg_to_full(&lon_tp, full_rows, full_cols);
+    // Read subsampling factors from a radiance file (OLCI standard: ac=64, al=1)
+    let (ac_sub, al_sub) = read_subsampling_factors(sen3_dir).unwrap_or((64, 1));
+
+    // Interpolate TPGs to full resolution using bilinear interpolation
+    // matching Python's RegularGridInterpolator with proper subsampling factors
+    // and half-pixel offset (pixel centres)
+    let sza = interp_tpg_to_full(&sza_tp, full_rows, full_cols, ac_sub, al_sub);
+    let oza = interp_tpg_to_full(&oza_tp, full_rows, full_cols, ac_sub, al_sub);
+    let saa = interp_tpg_to_full(&saa_tp, full_rows, full_cols, ac_sub, al_sub);
+    let oaa = interp_tpg_to_full(&oaa_tp, full_rows, full_cols, ac_sub, al_sub);
+    let latitude = interp_tpg_to_full(&lat_tp, full_rows, full_cols, ac_sub, al_sub);
+    let longitude = interp_tpg_to_full(&lon_tp, full_rows, full_cols, ac_sub, al_sub);
 
     let total_ozone = read_nc_2d_f64(&met_file, "total_ozone")
-        .ok().map(|tp| interp_tpg_to_full(&tp, full_rows, full_cols));
+        .ok().map(|tp| interp_tpg_to_full(&tp, full_rows, full_cols, ac_sub, al_sub));
     let total_columnar_water_vapour = read_nc_2d_f64(&met_file, "total_columnar_water_vapour")
-        .ok().map(|tp| interp_tpg_to_full(&tp, full_rows, full_cols));
+        .ok().map(|tp| interp_tpg_to_full(&tp, full_rows, full_cols, ac_sub, al_sub));
     let sea_level_pressure = read_nc_2d_f64(&met_file, "sea_level_pressure")
-        .ok().map(|tp| interp_tpg_to_full(&tp, full_rows, full_cols));
+        .ok().map(|tp| interp_tpg_to_full(&tp, full_rows, full_cols, ac_sub, al_sub));
 
     Ok(OlciTpg {
         sza, oza, saa, oaa, latitude, longitude,
@@ -467,27 +469,62 @@ fn load_tpg(sen3_dir: &Path, _limit: Option<&[f64; 4]>) -> Result<OlciTpg> {
     })
 }
 
+/// Read ac/al subsampling factors from a radiance NetCDF file.
+fn read_subsampling_factors(sen3_dir: &Path) -> Option<(usize, usize)> {
+    let p = sen3_dir.join("Oa01_radiance.nc");
+    let nc = netcdf::open(&p).ok()?;
+    let ac = nc.attribute("ac_subsampling_factor")
+        .and_then(|a| a.value().ok())
+        .and_then(|v| match v {
+            netcdf::AttributeValue::Int(i) => Some(i as usize),
+            netcdf::AttributeValue::Short(i) => Some(i as usize),
+            _ => None,
+        })?;
+    let al = nc.attribute("al_subsampling_factor")
+        .and_then(|a| a.value().ok())
+        .and_then(|v| match v {
+            netcdf::AttributeValue::Int(i) => Some(i as usize),
+            netcdf::AttributeValue::Short(i) => Some(i as usize),
+            _ => None,
+        })?;
+    Some((ac, al))
+}
+
 /// Bilinear interpolation of a tie-point grid to full resolution.
-fn interp_tpg_to_full(tpg: &Array2<f64>, full_rows: usize, full_cols: usize) -> Array2<f64> {
+///
+/// Matches Python ACOLITE's RegularGridInterpolator approach:
+///   tpx = arange(tp_cols) * ac_sub
+///   tpy = arange(tp_rows) * al_sub
+///   evaluate at (pixel + 0.5) for each full-res pixel
+fn interp_tpg_to_full(
+    tpg: &Array2<f64>, full_rows: usize, full_cols: usize,
+    ac_sub: usize, al_sub: usize,
+) -> Array2<f64> {
     let (tp_rows, tp_cols) = tpg.dim();
     let mut out = Array2::zeros((full_rows, full_cols));
+    let ac_sub_f = ac_sub as f64;
+    let al_sub_f = al_sub as f64;
+    let tp_rows_m1 = (tp_rows - 1) as f64;
+    let tp_cols_m1 = (tp_cols - 1) as f64;
 
     for r in 0..full_rows {
-        let ry = r as f64 * (tp_rows - 1) as f64 / (full_rows - 1).max(1) as f64;
+        // Python: suby = r + 0.5, tpy = arange(tp_rows) * al_sub
+        // Normalised: ry = (r + 0.5) / al_sub
+        let ry = (r as f64 + 0.5) / al_sub_f;
+        let ry = ry.clamp(0.0, tp_rows_m1);
         let ry0 = (ry as usize).min(tp_rows - 2);
-        let ry1 = ry0 + 1;
         let fy = ry - ry0 as f64;
 
         for c in 0..full_cols {
-            let cx = c as f64 * (tp_cols - 1) as f64 / (full_cols - 1).max(1) as f64;
+            let cx = (c as f64 + 0.5) / ac_sub_f;
+            let cx = cx.clamp(0.0, tp_cols_m1);
             let cx0 = (cx as usize).min(tp_cols - 2);
-            let cx1 = cx0 + 1;
             let fx = cx - cx0 as f64;
 
             let v00 = tpg[[ry0, cx0]];
-            let v01 = tpg[[ry0, cx1]];
-            let v10 = tpg[[ry1, cx0]];
-            let v11 = tpg[[ry1, cx1]];
+            let v01 = tpg[[ry0, cx0 + 1]];
+            let v10 = tpg[[ry0 + 1, cx0]];
+            let v11 = tpg[[ry0 + 1, cx0 + 1]];
 
             out[[r, c]] = v00 * (1.0 - fx) * (1.0 - fy)
                         + v01 * fx * (1.0 - fy)
@@ -638,6 +675,63 @@ fn read_nc_scaled(path: &Path, var_name: &str) -> Result<Array2<f64>> {
     let data: Vec<f64> = var.get_values(..)
         .map_err(|e| AcoliteError::NetCdf(format!("Cannot read {}: {}", var_name, e)))?;
     Array2::from_shape_vec((rows, cols), data)
+        .map_err(|e| AcoliteError::Processing(e.to_string()))
+}
+
+/// Read a 2D subset from a NetCDF variable, applying scale_factor and add_offset.
+/// Reads only the requested region [r0..r0+nr, c0..c0+nc] from disk.
+#[cfg(feature = "netcdf")]
+fn read_nc_scaled_subset(
+    path: &Path, var_name: &str,
+    r0: usize, c0: usize, nr: usize, nc_count: usize,
+) -> Result<Array2<f64>> {
+    let nc = netcdf::open(path)
+        .map_err(|e| AcoliteError::NetCdf(format!("{}: {}", path.display(), e)))?;
+    let var = nc.variable(var_name)
+        .ok_or_else(|| AcoliteError::NetCdf(format!("No variable {} in {}", var_name, path.display())))?;
+
+    let scale: f64 = var.attribute("scale_factor")
+        .and_then(|a| a.value().ok())
+        .map(|v| match v {
+            netcdf::AttributeValue::Float(f) => f as f64,
+            netcdf::AttributeValue::Double(d) => d,
+            _ => 1.0,
+        })
+        .unwrap_or(1.0);
+    let offset: f64 = var.attribute("add_offset")
+        .and_then(|a| a.value().ok())
+        .map(|v| match v {
+            netcdf::AttributeValue::Float(f) => f as f64,
+            netcdf::AttributeValue::Double(d) => d,
+            _ => 0.0,
+        })
+        .unwrap_or(0.0);
+
+    let extent = ndarray::s![r0..r0+nr, c0..c0+nc_count];
+
+    if let Ok(data) = var.get_values::<u16, _>(extent) {
+        let fill: u16 = 65535;
+        let f64_data: Vec<f64> = data.iter().map(|&v| {
+            if v == fill { f64::NAN } else { v as f64 * scale + offset }
+        }).collect();
+        return Array2::from_shape_vec((nr, nc_count), f64_data)
+            .map_err(|e| AcoliteError::Processing(e.to_string()));
+    }
+    if let Ok(data) = var.get_values::<i16, _>(extent) {
+        let f64_data: Vec<f64> = data.iter().map(|&v| v as f64 * scale + offset).collect();
+        return Array2::from_shape_vec((nr, nc_count), f64_data)
+            .map_err(|e| AcoliteError::Processing(e.to_string()));
+    }
+    if let Ok(data) = var.get_values::<f32, _>(extent) {
+        let f64_data: Vec<f64> = data.iter().map(|&v| {
+            if v.is_nan() { f64::NAN } else { v as f64 * scale + offset }
+        }).collect();
+        return Array2::from_shape_vec((nr, nc_count), f64_data)
+            .map_err(|e| AcoliteError::Processing(e.to_string()));
+    }
+    let data: Vec<f64> = var.get_values(extent)
+        .map_err(|e| AcoliteError::NetCdf(format!("Cannot read {}: {}", var_name, e)))?;
+    Array2::from_shape_vec((nr, nc_count), data)
         .map_err(|e| AcoliteError::Processing(e.to_string()))
 }
 

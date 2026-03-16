@@ -539,8 +539,8 @@ pub fn compute_gas_transmittance_hyper(
         gas_on_ko3.insert(par, vals_on_ko3);
     }
 
-    // ── Convolve with Gaussian RSR per band (matching Python rsr_hyper step=0.1, factor=1.5) ──
-    // All spectra are now on the ko3 grid (1nm step) for accurate narrow-band convolution
+    // ── Convolve with RSR per band ──
+    // Use actual sensor RSR if provided, otherwise Gaussian approximation
     let nbands = wavelengths.len();
     let mut tt_o3 = vec![0.0; nbands];
     let mut tt_h2o = vec![0.0; nbands];
@@ -624,4 +624,90 @@ pub fn compute_gas_transmittance_hyper(
         tt_n2o,
         tt_ch4,
     })
+}
+
+/// Compute gas transmittance using actual sensor RSR curves instead of Gaussian approximation.
+/// `band_rsr` maps band name → (wavelengths_nm, response).
+#[cfg(feature = "full-io")]
+pub fn compute_gas_transmittance_sensor(
+    data_dir: &Path,
+    band_names: &[&str],
+    band_rsr: &std::collections::HashMap<String, (Vec<f64>, Vec<f64>)>,
+    sza: f64,
+    vza: f64,
+    pressure: f64,
+    uoz: f64,
+    uwv: f64,
+) -> Result<HyperGasTransmittance> {
+    let (ko3_wave, ko3_data) = read_ko3(data_dir)?;
+    let wv_lut = load_wv_lut(data_dir)?;
+    let gas_lut = load_gas_lut(data_dir)?;
+
+    let mu0 = sza.to_radians().cos();
+    let muv = if vza.abs() < 0.01 { 1.0 } else { vza.to_radians().cos() };
+    let ko3_wave_um: Vec<f64> = ko3_wave.iter().map(|&w| w / 1000.0).collect();
+
+    let tt_o3_hyper: Vec<f64> = ko3_data.iter()
+        .map(|&k| { let tau = k * uoz; (-tau / mu0).exp() * (-tau / muv).exp() }).collect();
+
+    let wv_par_id = 2.0_f64;
+    let wv_on_lut: Vec<f64> = wv_lut.wave.iter()
+        .map(|&w| wv_lut.rgi.interpolate(&[sza, vza, uwv, wv_par_id, w])).collect();
+    let tt_wv_hyper: Vec<f64> = ko3_wave_um.iter()
+        .map(|&w| interp_1d(w, &wv_lut.wave, &wv_on_lut)).collect();
+
+    let par_idx: std::collections::HashMap<&str, usize> = gas_lut.par_names.iter()
+        .enumerate().map(|(i, n)| (n.as_str(), i)).collect();
+    let gas_pars = ["ttdica", "ttoxyg", "ttniox", "ttmeth"];
+    let mut gas_on_ko3: std::collections::HashMap<&str, Vec<f64>> = std::collections::HashMap::new();
+    for &par in &gas_pars {
+        let pidx = *par_idx.get(par).unwrap_or(&0) as f64;
+        let vals_on_lut: Vec<f64> = gas_lut.wave.iter()
+            .map(|&w| gas_lut.rgi.interpolate(&[pressure, pidx, w, vza, sza])).collect();
+        let vals_on_ko3: Vec<f64> = ko3_wave_um.iter()
+            .map(|&w| interp_1d(w, &gas_lut.wave, &vals_on_lut)).collect();
+        gas_on_ko3.insert(par, vals_on_ko3);
+    }
+
+    let nbands = band_names.len();
+    let mut tt_o3 = vec![1.0; nbands];
+    let mut tt_h2o = vec![1.0; nbands];
+    let mut tt_o2 = vec![1.0; nbands];
+    let mut tt_co2 = vec![1.0; nbands];
+    let mut tt_n2o = vec![1.0; nbands];
+    let mut tt_ch4 = vec![1.0; nbands];
+    let mut tt_gas = vec![1.0; nbands];
+
+    for (i, &name) in band_names.iter().enumerate() {
+        let (rsr_wave_nm, rsr_resp) = match band_rsr.get(name) {
+            Some(r) => r,
+            None => continue,
+        };
+        // Convert RSR wavelengths to µm for interpolation on ko3 grid
+        let rsr_wave_um: Vec<f64> = rsr_wave_nm.iter().map(|&w| w / 1000.0).collect();
+
+        // Convolve each gas spectrum with actual RSR
+        let convolve = |hyper: &[f64]| -> f64 {
+            let mut sum_v = 0.0_f64;
+            let mut sum_r = 0.0_f64;
+            for (k, &wu) in rsr_wave_um.iter().enumerate() {
+                let r = rsr_resp[k];
+                if r <= 0.0 { continue; }
+                let v = interp_1d(wu, &ko3_wave_um, hyper);
+                sum_v += v * r;
+                sum_r += r;
+            }
+            if sum_r > 0.0 { sum_v / sum_r } else { 1.0 }
+        };
+
+        tt_o3[i] = convolve(&tt_o3_hyper);
+        tt_h2o[i] = convolve(&tt_wv_hyper);
+        tt_o2[i] = convolve(&gas_on_ko3["ttoxyg"]);
+        tt_co2[i] = convolve(&gas_on_ko3["ttdica"]);
+        tt_n2o[i] = convolve(&gas_on_ko3["ttniox"]);
+        tt_ch4[i] = convolve(&gas_on_ko3["ttmeth"]);
+        tt_gas[i] = tt_o3[i] * tt_h2o[i] * tt_o2[i] * tt_co2[i] * tt_n2o[i] * tt_ch4[i];
+    }
+
+    Ok(HyperGasTransmittance { tt_gas, tt_o3, tt_h2o, tt_o2, tt_co2, tt_n2o, tt_ch4 })
 }

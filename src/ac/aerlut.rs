@@ -204,6 +204,85 @@ pub fn rsr_convolve_gauss(
     }
 }
 
+/// Per-band RSR (relative spectral response) loaded from ACOLITE RSR text files.
+#[derive(Debug, Clone)]
+pub struct SensorRsr {
+    /// Band name → (wavelengths_nm, response)
+    pub bands: HashMap<String, (Vec<f64>, Vec<f64>)>,
+}
+
+impl SensorRsr {
+    /// Load RSR from an ACOLITE RSR text file (e.g. `data/RSR/S3B_OLCI.txt`).
+    pub fn load(path: &std::path::Path) -> crate::Result<Self> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| crate::AcoliteError::Processing(format!("RSR read: {}", e)))?;
+        let mut bands = HashMap::new();
+        let mut cur_band = String::new();
+        let mut cur_wave = Vec::new();
+        let mut cur_resp = Vec::new();
+
+        for line in text.lines() {
+            if line.starts_with(";; BAND ") {
+                if !cur_band.is_empty() {
+                    bands.insert(cur_band.clone(), (cur_wave.clone(), cur_resp.clone()));
+                }
+                cur_band = line[8..].trim().to_string();
+                cur_wave.clear();
+                cur_resp.clear();
+            } else if line.starts_with(";;") || line.is_empty() {
+                continue;
+            } else if let Some((w, r)) = line.split_once('\t') {
+                if let (Ok(wv), Ok(rv)) = (w.trim().parse::<f64>(), r.trim().parse::<f64>()) {
+                    cur_wave.push(wv); // nm
+                    cur_resp.push(rv);
+                }
+            }
+        }
+        if !cur_band.is_empty() {
+            bands.insert(cur_band, (cur_wave, cur_resp));
+        }
+        Ok(Self { bands })
+    }
+}
+
+/// Convolve a spectrum (at LUT wavelengths in µm) with an actual sensor RSR band.
+/// `rsr_wave_nm` and `rsr_response` are the band's RSR curve.
+/// `lut_wave_um` and `values` are the LUT spectrum.
+pub fn rsr_convolve_sensor(
+    lut_wave_um: &[f64],
+    values: &[f64],
+    rsr_wave_nm: &[f64],
+    rsr_response: &[f64],
+) -> f64 {
+    // Interpolate LUT values to RSR wavelengths, then weighted average
+    let mut sum_weighted = 0.0_f64;
+    let mut sum_response = 0.0_f64;
+    for (i, &wn) in rsr_wave_nm.iter().enumerate() {
+        let r = rsr_response[i];
+        if r <= 0.0 { continue; }
+        let wu = wn / 1000.0; // nm → µm
+        // Linear interpolation in LUT
+        let val = interp_1d(lut_wave_um, values, wu);
+        if val.is_finite() {
+            sum_weighted += val * r;
+            sum_response += r;
+        }
+    }
+    if sum_response > 0.0 { sum_weighted / sum_response } else { f64::NAN }
+}
+
+fn interp_1d(xs: &[f64], ys: &[f64], x: f64) -> f64 {
+    if x <= xs[0] { return ys[0]; }
+    if x >= xs[xs.len() - 1] { return ys[ys.len() - 1]; }
+    for i in 0..xs.len() - 1 {
+        if x >= xs[i] && x <= xs[i + 1] {
+            let t = (x - xs[i]) / (xs[i + 1] - xs[i]);
+            return ys[i] * (1.0 - t) + ys[i + 1] * t;
+        }
+    }
+    f64::NAN
+}
+
 /// Load a generic (non-sensor-specific) aerosol LUT for hyperspectral processing.
 ///
 /// Generic LUTs have wavelength as a dimension instead of band names.

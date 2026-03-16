@@ -13,7 +13,7 @@ use std::collections::HashMap;
 #[cfg(feature = "full-io")]
 use crate::ac::aerlut::AerosolLut;
 #[cfg(feature = "full-io")]
-use crate::ac::aerlut::{rsr_convolve_gauss, GenericAerosolLut};
+use crate::ac::aerlut::{rsr_convolve_gauss, rsr_convolve_sensor, GenericAerosolLut};
 
 /// Dark spectrum extraction method
 #[derive(Debug, Clone)]
@@ -729,12 +729,31 @@ fn invert_aot_generic(
     thv: f64,
     ths: f64,
 ) -> f64 {
+    invert_aot_generic_rsr(lut, center_nm, fwhm_nm, None, rhot_dark, pressure, azi, thv, ths)
+}
+
+/// Invert AOT from dark reflectance, optionally using actual sensor RSR.
+fn invert_aot_generic_rsr(
+    lut: &GenericAerosolLut,
+    center_nm: f64,
+    fwhm_nm: f64,
+    rsr: Option<(&[f64], &[f64])>, // (wave_nm, response)
+    rhot_dark: f64,
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+) -> f64 {
     let tau_steps = &lut.meta.tau;
     let romix_vals: Vec<f64> = tau_steps
         .iter()
         .map(|&tau| {
             let spectrum = lut.romix_spectrum(pressure, azi, thv, ths, tau);
-            rsr_convolve_gauss(&lut.wave_um, &spectrum, center_nm, fwhm_nm)
+            if let Some((rw, rr)) = rsr {
+                rsr_convolve_sensor(&lut.wave_um, &spectrum, rw, rr)
+            } else {
+                rsr_convolve_gauss(&lut.wave_um, &spectrum, center_nm, fwhm_nm)
+            }
         })
         .collect();
 
@@ -885,6 +904,79 @@ pub fn optimize_aot_fixed_generic(
         ths,
         config,
     )
+}
+
+/// Fixed DSF using generic LUTs with actual sensor RSR for convolution.
+#[cfg(feature = "full-io")]
+pub fn optimize_aot_fixed_sensor_rsr(
+    luts: &[GenericAerosolLut],
+    toa_gc_bands: &[Array2<f64>],
+    wavelengths: &[f64],
+    bandwidths: &[f64],
+    tt_gas: &[f64],
+    band_rsr: &[Option<(&[f64], &[f64])>], // per-band RSR (wave_nm, response)
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+    config: &DsfConfig,
+) -> DsfResult {
+    let dark_spectrum = estimate_dark_spectrum(toa_gc_bands, &config.dark_method);
+
+    let mut best = DsfResult {
+        aot: 0.01, model_idx: 0, model_name: String::new(),
+        rmsd: f64::MAX, band_aots: HashMap::new(),
+    };
+
+    for (li, lut) in luts.iter().enumerate() {
+        let mut band_aots: Vec<(usize, f64)> = Vec::new();
+        for bi in 0..wavelengths.len() {
+            if wavelengths[bi] < config.wave_range.0 || wavelengths[bi] > config.wave_range.1 { continue; }
+            if tt_gas[bi] < config.min_tgas_aot { continue; }
+            if !dark_spectrum[bi].is_finite() || dark_spectrum[bi] <= 0.0 { continue; }
+
+            let aot = invert_aot_generic_rsr(
+                lut, wavelengths[bi], bandwidths[bi],
+                band_rsr.get(bi).and_then(|r| *r),
+                dark_spectrum[bi], pressure, azi, thv, ths,
+            );
+            if aot.is_finite() { band_aots.push((bi, aot)); }
+        }
+        if band_aots.is_empty() { continue; }
+        band_aots.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        let selected_aot = match config.aot_compute {
+            AotCompute::Min => band_aots[0].1,
+            AotCompute::MeanNLowest => {
+                let n = config.dsf_nbands.min(band_aots.len());
+                band_aots[..n].iter().map(|x| x.1).sum::<f64>() / n as f64
+            }
+        };
+
+        let n_fit = config.dsf_nbands_fit.min(band_aots.len());
+        let mut sum_sq = 0.0;
+        let mut ba_map = HashMap::new();
+        for &(bi, aot_bi) in &band_aots { ba_map.insert(format!("{}", bi), aot_bi); }
+        for &(bi, _) in &band_aots[..n_fit] {
+            let romix_spectrum = lut.romix_spectrum(pressure, azi, thv, ths, selected_aot);
+            let romix_model = if let Some(Some((rw, rr))) = band_rsr.get(bi) {
+                rsr_convolve_sensor(&lut.wave_um, &romix_spectrum, rw, rr)
+            } else {
+                rsr_convolve_gauss(&lut.wave_um, &romix_spectrum, wavelengths[bi], bandwidths[bi])
+            };
+            sum_sq += (dark_spectrum[bi] - romix_model).powi(2);
+        }
+        let rmsd = (sum_sq / n_fit as f64).sqrt();
+        log::info!("Sensor-RSR model {} RMSD={:.6} AOT={:.4}", lut.name, rmsd, selected_aot);
+
+        if rmsd < best.rmsd {
+            best = DsfResult {
+                aot: selected_aot, model_idx: li, model_name: lut.name.clone(),
+                rmsd, band_aots: ba_map,
+            };
+        }
+    }
+    best
 }
 
 /// Tiled DSF using generic LUTs for hyperspectral sensors.
@@ -1043,21 +1135,41 @@ pub fn dsf_correct_band_generic(
     thv: f64,
     ths: f64,
 ) -> Array2<f64> {
+    dsf_correct_band_generic_rsr(rhot, lut, center_nm, fwhm_nm, None, tt_gas, aot, pressure, azi, thv, ths)
+}
+
+/// Apply atmospheric correction using a generic LUT, optionally with actual sensor RSR.
+#[cfg(feature = "full-io")]
+pub fn dsf_correct_band_generic_rsr(
+    rhot: &Array2<f64>,
+    lut: &GenericAerosolLut,
+    center_nm: f64,
+    fwhm_nm: f64,
+    rsr: Option<(&[f64], &[f64])>,
+    tt_gas: f64,
+    aot: f64,
+    pressure: f64,
+    azi: f64,
+    thv: f64,
+    ths: f64,
+) -> Array2<f64> {
     let (romix_spec, astot_spec, dutott_spec) = lut.params_spectrum(pressure, azi, thv, ths, aot);
-    let romix = rsr_convolve_gauss(&lut.wave_um, &romix_spec, center_nm, fwhm_nm);
-    let astot = rsr_convolve_gauss(&lut.wave_um, &astot_spec, center_nm, fwhm_nm);
-    let dutott = rsr_convolve_gauss(&lut.wave_um, &dutott_spec, center_nm, fwhm_nm);
+    let (romix, astot, dutott) = if let Some((rw, rr)) = rsr {
+        (rsr_convolve_sensor(&lut.wave_um, &romix_spec, rw, rr),
+         rsr_convolve_sensor(&lut.wave_um, &astot_spec, rw, rr),
+         rsr_convolve_sensor(&lut.wave_um, &dutott_spec, rw, rr))
+    } else {
+        (rsr_convolve_gauss(&lut.wave_um, &romix_spec, center_nm, fwhm_nm),
+         rsr_convolve_gauss(&lut.wave_um, &astot_spec, center_nm, fwhm_nm),
+         rsr_convolve_gauss(&lut.wave_um, &dutott_spec, center_nm, fwhm_nm))
+    };
 
     rhot.mapv(|v| {
-        if !v.is_finite() || v <= 0.0 {
-            return f64::NAN;
-        }
+        if !v.is_finite() || v <= 0.0 { return f64::NAN; }
         let rhot_gc = v / tt_gas;
         let rhot_noatm = rhot_gc - romix;
         let denom = dutott + astot * rhot_noatm;
-        if denom <= 0.0 {
-            return f64::NAN;
-        }
+        if denom <= 0.0 { return f64::NAN; }
         rhot_noatm / denom
     })
 }
