@@ -51,6 +51,7 @@ zarr = ["zarrs"]
 
 [dev-dependencies]
 criterion = "0.5"
+proptest = "1.4"
 tempfile = "3.8"
 walkdir = "2.4"
 

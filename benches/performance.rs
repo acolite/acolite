@@ -172,5 +172,56 @@ criterion_group!(benches,
     benchmark_landsat_full_scene,
     benchmark_s2_multi_resolution,
     benchmark_resample,
+    benchmark_olci_pipeline,
 );
 criterion_main!(benches);
+
+fn benchmark_olci_pipeline(c: &mut Criterion) {
+    use acolite_rs::loader::sentinel3::OLCI_BANDS;
+
+    let mut group = c.benchmark_group("olci_pipeline");
+
+    let mut metadata = Metadata::new("S3A_OLCI".to_string(), Utc::now());
+    metadata.set_geometry(35.0, 140.0);
+    metadata.view_zenith = Some(15.0);
+
+    let config = ProcessingConfig {
+        apply_rayleigh: true,
+        apply_gas: true,
+        apply_aerosol: true,
+        output_reflectance: true,
+        parallel: true,
+        ozone: 0.3,
+        water_vapor: 2.5,
+        pressure: 1013.25,
+    };
+    let mut pipeline = Pipeline::new(metadata, config);
+    pipeline.set_aot(0.15);
+
+    let proj = Projection::from_epsg(4326);
+    let geotrans = GeoTransform::new(3.0, 0.003, 51.0, -0.003);
+
+    for size in [200, 500, 1000].iter() {
+        let bands: Vec<BandData<u16>> = OLCI_BANDS.iter().map(|(name, wl, bw, _)| {
+            let dn = (800.0 + 400.0 * (400.0 / wl)) as u16;
+            BandData::new(
+                Array2::from_elem((*size, *size), dn),
+                *wl, *bw, name.to_string(),
+                proj.clone(), geotrans.clone(),
+            )
+        }).collect();
+
+        group.bench_with_input(
+            BenchmarkId::new("olci_21band_par", size),
+            size,
+            |b, _| b.iter(|| process_bands_parallel(&pipeline, bands.clone())),
+        );
+        group.bench_with_input(
+            BenchmarkId::new("olci_21band_seq", size),
+            size,
+            |b, _| b.iter(|| process_bands_sequential(&pipeline, bands.clone())),
+        );
+    }
+
+    group.finish();
+}

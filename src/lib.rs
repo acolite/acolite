@@ -26,6 +26,9 @@ pub use loader::{load_landsat_bands, load_landsat_scene};
 #[cfg(feature = "netcdf")]
 pub use loader::{load_pace_l1b, PaceScene};
 pub use loader::{S2Scene, S2_AC_BANDS};
+pub use loader::{OlciScene, OLCI_BANDS, parse_s3_manifest};
+#[cfg(feature = "netcdf")]
+pub use loader::load_olci_scene;
 pub use pipeline::{Pipeline, ProcessingConfig};
 pub use resample::{resample, ResampleMethod};
 pub use sensors::{LandsatSensor, PaceOciSensor, Sentinel2Sensor, Sentinel3Sensor};
