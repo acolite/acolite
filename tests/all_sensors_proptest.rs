@@ -220,6 +220,120 @@ proptest! {
     }
 }
 
+// ─── Subset processing properties ────────────────────────────────────────
+
+proptest! {
+    /// Geographic CRS subset: pixel bounds must be strictly inside the image.
+    #[test]
+    fn prop_geographic_subset_within_image(
+        x_origin in -180.0..170.0f64,
+        y_origin in -80.0..80.0f64,
+        pixel_size in 0.001..0.1f64,
+        rows in 100usize..2000,
+        cols in 100usize..2000,
+        // limit is a sub-box strictly inside the image
+        r_frac_min in 0.1..0.4f64,
+        r_frac_max in 0.6..0.9f64,
+        c_frac_min in 0.1..0.4f64,
+        c_frac_max in 0.6..0.9f64,
+    ) {
+        let pixel_height = -pixel_size; // north-up
+        let south = y_origin + pixel_height * (r_frac_max * rows as f64);
+        let north = y_origin + pixel_height * (r_frac_min * rows as f64);
+        let west  = x_origin + pixel_size  * (c_frac_min * cols as f64);
+        let east  = x_origin + pixel_size  * (c_frac_max * cols as f64);
+        let limit = [south, west, north, east];
+
+        let result = acolite_rs::loader::latlon_limit_to_pixel_subset(
+            x_origin, pixel_size, y_origin, pixel_height,
+            rows, cols, &limit, None,
+        );
+        let (r0, c0, nr, nc) = result.expect("Should find subset inside image");
+        prop_assert!(r0 + nr <= rows, "Row subset exceeds image: {}+{} > {}", r0, nr, rows);
+        prop_assert!(c0 + nc <= cols, "Col subset exceeds image: {}+{} > {}", c0, nc, cols);
+        prop_assert!(nr > 0 && nc > 0, "Subset must be non-empty");
+    }
+
+    /// Subset of full image returns the full image (or close to it).
+    #[test]
+    fn prop_full_image_limit_returns_full(
+        x_origin in -180.0..170.0f64,
+        y_origin in -80.0..80.0f64,
+        pixel_size in 0.001..0.1f64,
+        rows in 50usize..500,
+        cols in 50usize..500,
+    ) {
+        let pixel_height = -pixel_size;
+        let south = y_origin + pixel_height * rows as f64 - pixel_size;
+        let north = y_origin + pixel_size;
+        let west  = x_origin - pixel_size;
+        let east  = x_origin + pixel_size * cols as f64 + pixel_size;
+        let limit = [south, west, north, east];
+
+        let result = acolite_rs::loader::latlon_limit_to_pixel_subset(
+            x_origin, pixel_size, y_origin, pixel_height,
+            rows, cols, &limit, None,
+        );
+        let (_, _, nr, nc) = result.expect("Full-image limit should always find subset");
+        prop_assert!(nr > 0 && nc > 0);
+        // Should cover most of the image (within 2 pixels of edge)
+        prop_assert!(nr >= rows.saturating_sub(2), "nr={} should be ≈ rows={}", nr, rows);
+        prop_assert!(nc >= cols.saturating_sub(2), "nc={} should be ≈ cols={}", nc, cols);
+    }
+
+    /// Limit outside image returns None.
+    #[test]
+    fn prop_disjoint_limit_returns_none(
+        x_origin in 0.0..100.0f64,
+        y_origin in 0.0..50.0f64,
+        pixel_size in 0.01..0.1f64,
+        rows in 100usize..500,
+        cols in 100usize..500,
+    ) {
+        let pixel_height = -pixel_size;
+        // Limit entirely to the right of the image
+        let image_east = x_origin + pixel_size * cols as f64;
+        let limit = [y_origin - 10.0, image_east + 1.0, y_origin - 5.0, image_east + 5.0];
+
+        let result = acolite_rs::loader::latlon_limit_to_pixel_subset(
+            x_origin, pixel_size, y_origin, pixel_height,
+            rows, cols, &limit, None,
+        );
+        prop_assert!(result.is_none(), "Disjoint limit should return None");
+    }
+
+    /// UTM subset: corners of a 0.5°×0.5° box in UTM zone 54S (South Australia)
+    /// should produce a non-empty subset when the image covers that area.
+    #[test]
+    fn prop_utm_subset_sa_region(
+        // Simulate a UTM zone 54S image covering Gulf St Vincent area
+        // UTM 54S: easting ~300000–500000, northing ~6100000–6300000
+        e_origin in 300_000.0..400_000.0f64,
+        n_origin in 6_200_000.0..6_300_000.0f64,
+        pixel_m in 10.0..100.0f64,
+        rows in 500usize..2000,
+        cols in 500usize..2000,
+    ) {
+        let pixel_height = -pixel_m;
+        // Limit: Gulf St Vincent area [-35.0, 138.0, -34.5, 138.7]
+        let limit = [-35.0_f64, 138.0, -34.5, 138.7];
+        // WKT hinting UTM zone 54
+        let wkt = r#"PROJCS["WGS 84 / UTM zone 54S",GEOGCS["WGS 84"],PROJECTION["Transverse_Mercator"],PARAMETER["central_meridian",141],AUTHORITY["EPSG","32754"]]"#;
+
+        let result = acolite_rs::loader::latlon_limit_to_pixel_subset(
+            e_origin, pixel_m, n_origin, pixel_height,
+            rows, cols, &limit, Some(wkt),
+        );
+        // If the image covers the limit area, we should get a subset
+        // (we can't assert non-None since the synthetic image may not overlap)
+        if let Some((r0, c0, nr, nc)) = result {
+            prop_assert!(r0 + nr <= rows, "Row subset out of bounds");
+            prop_assert!(c0 + nc <= cols, "Col subset out of bounds");
+            prop_assert!(nr > 0 && nc > 0);
+        }
+    }
+}
+
 // ─── Sensor-specific wavelength coverage ─────────────────────────────────
 
 #[test]

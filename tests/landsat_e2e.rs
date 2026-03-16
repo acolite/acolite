@@ -65,6 +65,7 @@ fn make_pipeline(metadata: Metadata, bands: &[BandData<u16>]) -> Pipeline {
         parallel: true,
         ozone: 0.3,
         water_vapor: 1.5,
+        ..ProcessingConfig::default()
     };
     let mut pipeline = Pipeline::new(metadata, config);
 
@@ -321,7 +322,12 @@ fn test_throughput_megapixels_per_second() {
 
 #[test]
 fn test_landsat_cog_output() {
-    use acolite_rs::writer::write_auto;
+    use acolite_rs::writer::{cog_available, write_auto};
+
+    if !cog_available() {
+        eprintln!("Skipping COG test: gdal-support not available");
+        return;
+    }
 
     let (metadata, bands) = make_landsat_bands("L8_OLI", 50);
     let pipeline = make_pipeline(metadata.clone(), &bands);
@@ -334,8 +340,8 @@ fn test_landsat_cog_output() {
     let out = tmp.path().join("landsat_test");
     write_auto(out.to_str().unwrap(), &corrected, &metadata).unwrap();
 
-    // Should produce a .tif (COG or fallback GeoTIFF)
-    let tif = tmp.path().join("landsat_test.tif");
+    // Should produce per-band .tif files (COG)
+    let tif = tmp.path().join("landsat_test_B1.tif");
     assert!(tif.exists(), "COG/GeoTIFF not created");
     assert!(std::fs::metadata(&tif).unwrap().len() > 0);
 }

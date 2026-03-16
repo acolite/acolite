@@ -787,6 +787,222 @@ pub fn load_sensor_lut(
     })
 }
 
+/// Load sensor-specific aerosol LUT with sky reflectance (romix+rsky_t).
+/// Combines the aerosol LUT with the RSKY LUT to match Python's dsf_interface_reflectance=True.
+/// romix_combined = romix + (utott * dtott * rsky) / (1 - rsky * astot)
+#[cfg(feature = "full-io")]
+pub fn load_sensor_lut_with_rsky(
+    lut_dir: &Path,
+    base_name: &str,
+    sensor: &str,
+    pressures: &[f64],
+    wind: f64,
+) -> Result<AerosolLut> {
+    use netcdf::AttributeValue;
+
+    // Load base aerosol LUT (has romix, astot, utott, dtott, dutott per band)
+    let model_num = base_name.chars().last().unwrap_or('1');
+    let rsky_base = format!("ACOLITE-RSKY-202102-82W-MOD{}", model_num);
+    let rsky_path = lut_dir.join("RSKY-202102").join(sensor).join(format!("{}_{}.nc", rsky_base, sensor));
+
+    if !rsky_path.exists() {
+        // No RSKY LUT available, fall back to plain sensor LUT
+        return load_sensor_lut(lut_dir, base_name, sensor, pressures);
+    }
+
+    // Load RSKY LUT: per-band arrays of shape (nazi, nthv, nths, nwnd, ntau)
+    let rsky_nc = netcdf::open(&rsky_path)
+        .map_err(|e| AcoliteError::Processing(format!("RSKY open: {}", e)))?;
+    let rsky_azi = read_f64_attr_nc(&rsky_nc, "azi")?;
+    let rsky_thv = read_f64_attr_nc(&rsky_nc, "thv")?;
+    let rsky_ths = read_f64_attr_nc(&rsky_nc, "ths")?;
+    let rsky_wind = read_f64_attr_nc(&rsky_nc, "wind")?;
+    let rsky_tau = read_f64_attr_nc(&rsky_nc, "tau")?;
+
+    // Find wind index for interpolation
+    let wind_idx = rsky_wind.iter().position(|&w| w >= wind).unwrap_or(rsky_wind.len() - 1);
+    let wind_idx = if wind_idx > 0 && (wind - rsky_wind[wind_idx - 1]).abs() < (wind - rsky_wind[wind_idx]).abs() {
+        wind_idx - 1
+    } else {
+        wind_idx
+    };
+
+    // Build RSKY RGI per band for interpolation onto aerosol LUT grid
+    let mut rsky_rgi: HashMap<String, RegularGridInterpolator> = HashMap::new();
+    for var in rsky_nc.variables() {
+        let name = var.name().to_string();
+        if !name.starts_with("Oa") { continue; }
+        // Shape: (nazi, nthv, nths, nwnd, ntau)
+        let raw: ndarray::ArrayD<f32> = var.get::<f32, _>(..)
+            .map_err(|e| AcoliteError::Processing(format!("RSKY read {}: {}", name, e)))?;
+        let rsky_nazi = rsky_azi.len();
+        let rsky_nthv = rsky_thv.len();
+        let rsky_nths = rsky_ths.len();
+        let rsky_ntau = rsky_tau.len();
+        let rsky_nwnd = rsky_wind.len();
+        let raw = raw.into_raw_vec();
+        // Extract slice at wind_idx, build 4D array for RGI (azi, thv, ths, tau)
+        let mut vals = Vec::with_capacity(rsky_nazi * rsky_nthv * rsky_nths * rsky_ntau);
+        for ia in 0..rsky_nazi {
+            for iv in 0..rsky_nthv {
+                for is_ in 0..rsky_nths {
+                    for it in 0..rsky_ntau {
+                        let idx = ia * (rsky_nthv * rsky_nths * rsky_nwnd * rsky_ntau)
+                            + iv * (rsky_nths * rsky_nwnd * rsky_ntau)
+                            + is_ * (rsky_nwnd * rsky_ntau)
+                            + wind_idx * rsky_ntau + it;
+                        vals.push(raw[idx]);
+                    }
+                }
+            }
+        }
+        let axes = vec![rsky_azi.clone(), rsky_thv.clone(), rsky_ths.clone(), rsky_tau.clone()];
+        rsky_rgi.insert(name, RegularGridInterpolator::new(axes, vals));
+    }
+    drop(rsky_nc);
+
+    // Now load the aerosol LUT and combine
+    // We need utott, dtott, astot, romix per band per pressure
+    let lut_subdir_name = {
+        let parts: Vec<&str> = base_name.rsplitn(2, '-').collect();
+        if parts.len() == 2 { parts[1] } else { base_name }
+    };
+    let sensor_dir = lut_dir.join(lut_subdir_name).join(sensor);
+
+    let first_id = format!("{}-{:04}mb_{}", base_name, pressures[0] as i32, sensor);
+    let first_path = sensor_dir.join(format!("{}.nc", first_id));
+    if !first_path.exists() {
+        download_sensor_lut(&sensor_dir, base_name, sensor, pressures)?;
+    }
+
+    let nc = netcdf::open(&first_path)
+        .map_err(|e| AcoliteError::Processing(format!("NetCDF open: {}", e)))?;
+    let par_str: String = match nc.attribute("par").and_then(|a| a.value().ok()) {
+        Some(netcdf::AttributeValue::Str(s)) => s,
+        _ => return Err(AcoliteError::Processing("Missing 'par' attribute".into())),
+    };
+    let par_names: Vec<String> = par_str.split(',').map(|s| s.to_string()).collect();
+    let azi = read_f64_attr_nc(&nc, "azi")?;
+    let thv = read_f64_attr_nc(&nc, "thv")?;
+    let ths = read_f64_attr_nc(&nc, "ths")?;
+    let tau = read_f64_attr_nc(&nc, "tau")?;
+    let wnd = read_f64_attr_nc(&nc, "wnd").unwrap_or_else(|_| vec![2.0]);
+
+    let find_par = |name: &str| -> Result<usize> {
+        par_names.iter().position(|p| p == name)
+            .ok_or_else(|| AcoliteError::Processing(format!("'{}' not in LUT par", name)))
+    };
+    let romix_idx = find_par("romix")?;
+    let astot_idx = find_par("astot")?;
+    let utott_idx = find_par("utott")?;
+    let dtott_idx = find_par("dtott")?;
+
+    let band_names: Vec<String> = nc.variables().map(|v| v.name().to_string()).collect();
+    let npar = par_names.len();
+    let nazi = azi.len();
+    let nthv = thv.len();
+    let nths = ths.len();
+    let ntau = tau.len();
+    let npres = pressures.len();
+    drop(nc);
+
+    let vol = npres * nazi * nthv * nths * ntau;
+    let mut band_romix: HashMap<String, Vec<f32>> = HashMap::new();
+    let mut band_astot: HashMap<String, Vec<f32>> = HashMap::new();
+    let mut band_dutott: HashMap<String, Vec<f32>> = HashMap::new();
+    for b in &band_names {
+        band_romix.insert(b.clone(), Vec::with_capacity(vol));
+        band_astot.insert(b.clone(), Vec::with_capacity(vol));
+        band_dutott.insert(b.clone(), Vec::with_capacity(vol));
+    }
+
+    for &pres in pressures {
+        let lutid = format!("{}-{:04}mb_{}", base_name, pres as i32, sensor);
+        let path = sensor_dir.join(format!("{}.nc", lutid));
+        let nc = netcdf::open(&path).map_err(|e| {
+            AcoliteError::Processing(format!("NetCDF open {}: {}", path.display(), e))
+        })?;
+
+        for band in &band_names {
+            let var = nc.variable(band)
+                .ok_or_else(|| AcoliteError::Processing(format!("Band '{}' not in LUT", band)))?;
+            let raw: ndarray::ArrayD<f32> = var.get::<f32, _>(..)
+                .map_err(|e| AcoliteError::Processing(format!("Read {}: {}", band, e)))?;
+            let raw = raw.into_raw_vec();
+
+            let stride_par = nazi * nthv * nths * 1 * ntau;
+            let stride_azi = nthv * nths * 1 * ntau;
+            let stride_thv = nths * 1 * ntau;
+            let stride_ths = 1 * ntau;
+
+            let romix_v = band_romix.get_mut(band).unwrap();
+            let astot_v = band_astot.get_mut(band).unwrap();
+            let dutott_v = band_dutott.get_mut(band).unwrap();
+
+            for ia in 0..nazi {
+                for iv in 0..nthv {
+                    for is_ in 0..nths {
+                        for it in 0..ntau {
+                            let base = ia * stride_azi + iv * stride_thv + is_ * stride_ths + it;
+                            let romix = raw[romix_idx * stride_par + base];
+                            let astot = raw[astot_idx * stride_par + base];
+                            let utott = raw[utott_idx * stride_par + base];
+                            let dtott = raw[dtott_idx * stride_par + base];
+
+                            // Add rsky_toa to romix if RSKY RGI available
+                            // Interpolate RSKY at aerosol LUT grid point
+                            let romix_combined = if let Some(rsky_rgi_band) = rsky_rgi.get(band) {
+                                let rsky = rsky_rgi_band.interpolate(&[azi[ia], thv[iv], ths[is_], tau[it]]) as f32;
+                                let denom = 1.0 - rsky * astot;
+                                let rsky_toa = if denom.abs() > 1e-10 {
+                                    (utott * dtott * rsky) / denom
+                                } else {
+                                    0.0
+                                };
+                                romix + rsky_toa
+                            } else {
+                                romix
+                            };
+
+                            romix_v.push(romix_combined);
+                            astot_v.push(astot);
+                            dutott_v.push(utott * dtott);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Build interpolators
+    let pres_axis = pressures.to_vec();
+    let mut band_rgi: HashMap<(String, usize), RegularGridInterpolator> = HashMap::new();
+    for band in &band_names {
+        let axes = vec![pres_axis.clone(), azi.clone(), thv.clone(), ths.clone(), tau.clone()];
+        band_rgi.insert(
+            (band.clone(), PAR_ROMIX),
+            RegularGridInterpolator::new(axes.clone(), band_romix.remove(band).unwrap()),
+        );
+        band_rgi.insert(
+            (band.clone(), PAR_ASTOT),
+            RegularGridInterpolator::new(axes.clone(), band_astot.remove(band).unwrap()),
+        );
+        band_rgi.insert(
+            (band.clone(), PAR_DUTOTT),
+            RegularGridInterpolator::new(axes, band_dutott.remove(band).unwrap()),
+        );
+    }
+
+    Ok(AerosolLut {
+        name: base_name.to_string(),
+        meta: LutMeta { par_names, azi, thv, ths, wnd, tau },
+        pressures: pressures.to_vec(),
+        ipd: LutParIndex { romix: PAR_ROMIX, astot: PAR_ASTOT, dutott: PAR_DUTOTT },
+        band_names,
+        band_rgi,
+    })
+}
+
 #[cfg(feature = "full-io")]
 fn read_f64_attr_nc(nc: &netcdf::File, name: &str) -> Result<Vec<f64>> {
     use netcdf::AttributeValue;

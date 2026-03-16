@@ -44,7 +44,7 @@ benches/
 | Rust Sentinel-2 E2E | 18 | ✅ All pass |
 | Rust Sentinel-3 E2E | 27 | ✅ All pass |
 | Rust Sentinel-3 proptest | 12 | ✅ All pass |
-| Rust all-sensors proptest | 15 | ✅ All pass |
+| Rust all-sensors proptest | 19 | ✅ All pass (incl. 4 subset property tests) |
 | Python regression (total) | 184 | ✅ All pass |
 
 ### Python Test Breakdown
@@ -65,6 +65,7 @@ benches/
 | test_pace_dsf_rust_vs_python.py | 12 | PACE OCI | DSF Chesapeake Bay |
 | test_pace_sa_dsf_rust_vs_python.py | 12 | PACE OCI | DSF South Australia ROI |
 | test_pace_sa_fullscene_benchmark.py | 10 | PACE OCI | Full-scene benchmark (SA) |
+| test_subset_all_sensors.py | 11 | All 4 sensors | Subset/limit pixel accuracy + size |
 
 ## Test Tiers
 
@@ -397,9 +398,25 @@ ported to Rust, using the same 6SV radiative transfer LUTs as Python ACOLITE.
 | PACE OCI | ✅ | ✅ Full DSF (fixed+tiled) | ✅ GeoZarr | ✅ 43 tests (ROI + full scene) |
 | Landsat 8/9 | ✅ | ✅ LUT-DSF | ✅ COG | ✅ 33 tests |
 | Sentinel-2 | ✅ | ✅ LUT-DSF | ✅ COG | ✅ 43 tests |
-| Sentinel-3 OLCI | ✅ (sensor def) | ✅ (basic) | — | — |
+| Sentinel-3 OLCI | ✅ | ✅ Full DSF + smile | ✅ NetCDF | ✅ 24 tests |
 | PRISMA | — | — | — | — |
 | EMIT | — | — | — | — |
+
+### Subset / limit regression (test_subset_all_sensors.py — 11 tests)
+
+| Test | Sensor | What it validates |
+|------|--------|-------------------|
+| `test_landsat_subset_pixel_accuracy[L8]` | Landsat 8 | Rust --limit vs Python limit= per pixel (R≥0.98, RMSE≤0.02) |
+| `test_landsat_subset_pixel_accuracy[L9]` | Landsat 9 | Same for L9 |
+| `test_landsat_subset_size_reasonable[L8]` | Landsat 8 | Subset smaller than full 7900×7900 scene |
+| `test_landsat_subset_size_reasonable[L9]` | Landsat 9 | Same for L9 |
+| `test_s2_subset_pixel_accuracy[S2A]` | Sentinel-2 A | Rust --limit vs Python limit= per pixel (R≥0.98, RMSE≤0.02) |
+| `test_s2_subset_size_reasonable[S2A]` | Sentinel-2 A | Subset smaller than full 5490×5490 tile |
+| `test_s3_subset_pixel_accuracy` | Sentinel-3 OLCI | Rust --limit vs Python limit= per pixel |
+| `test_s3_subset_size_reasonable` | Sentinel-3 OLCI | Subset smaller than full 4865×4091 swath |
+| `test_pace_subset_pixel_accuracy` | PACE OCI | Rust --limit vs Python limit= per pixel |
+| `test_pace_subset_size_reasonable` | PACE OCI | Subset smaller than full 1710×1272 granule |
+| `test_subset_faster_than_fullscene_landsat` | Landsat 8 | Subset wall-clock < full-scene wall-clock |
 
 ## Phase 5: Performance Regression
 

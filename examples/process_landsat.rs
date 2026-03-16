@@ -2,7 +2,7 @@
 //!
 //! Usage:
 //!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_*
-//!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_* --output /tmp/out
+//!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_* --output /tmp/out --limit -35.0,138.0,-34.5,138.7
 //!   cargo run --release --features full-io --example process_landsat -- --file /path/to/LC08_* --model MOD1 --aot-mode fixed
 
 use acolite_rs::core::{BandData, GeoTransform, Metadata, Projection};
@@ -25,21 +25,29 @@ fn main() {
     let output_dir = get_arg(&args, "--output").unwrap_or_else(|| "/tmp/acolite_landsat".into());
     let model = get_arg(&args, "--model").unwrap_or_else(|| "auto".into());
     let aot_mode = get_arg(&args, "--aot-mode").unwrap_or_else(|| "tiled".into());
+    let limit: Option<[f64; 4]> = get_arg(&args, "--limit").map(|s| {
+        let v: Vec<f64> = s.split(',').map(|x| x.parse().expect("invalid --limit value")).collect();
+        assert!(v.len() == 4, "--limit needs 4 values: south,west,north,east");
+        [v[0], v[1], v[2], v[3]]
+    });
 
     if let Some(scene_dir) = file {
-        process_real(Path::new(&scene_dir), &output_dir, &model, &aot_mode);
+        process_real(Path::new(&scene_dir), &output_dir, &model, &aot_mode, limit.as_ref());
     } else {
-        println!("Usage: process_landsat --file /path/to/LC08_* [--output /tmp/out] [--model auto|MOD1|MOD2] [--aot-mode tiled|fixed]");
+        println!("Usage: process_landsat --file /path/to/LC08_* [--output /tmp/out] [--limit s,w,n,e] [--model auto|MOD1|MOD2] [--aot-mode tiled|fixed]");
     }
 }
 
-fn process_real(scene_dir: &Path, output_dir: &str, model: &str, aot_mode: &str) {
-    use acolite_rs::{load_landsat_scene, sensors::parse_mtl};
+fn process_real(scene_dir: &Path, output_dir: &str, model: &str, aot_mode: &str, limit: Option<&[f64; 4]>) {
+    use acolite_rs::{load_landsat_scene_limit, sensors::parse_mtl};
 
     println!("→ Loading scene: {:?}", scene_dir);
+    if let Some(lim) = limit {
+        println!("  Limit: [{:.3}, {:.3}, {:.3}, {:.3}]", lim[0], lim[1], lim[2], lim[3]);
+    }
     let start = std::time::Instant::now();
 
-    let (bands, _metadata) = load_landsat_scene(scene_dir).expect("Failed to load scene");
+    let (bands, _metadata) = load_landsat_scene_limit(scene_dir, limit).expect("Failed to load scene");
     let load_time = start.elapsed();
     println!("  ✓ Loaded {} bands in {:.2?}", bands.len(), load_time);
 

@@ -2,12 +2,12 @@
 //!
 //! Usage:
 //!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE
-//!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE --output /tmp/out --res 20
+//!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE --output /tmp/out --res 20 --limit -35.0,138.0,-34.5,138.7
 //!   cargo run --release --features full-io --example process_sentinel2_ac -- --file /path/to/S2*.SAFE --model MOD1 --aot-mode fixed
 
 use acolite_rs::core::BandData;
 use acolite_rs::ac::{gas_lut, dsf};
-use acolite_rs::loader::sentinel2::{load_sentinel2_scene, S2_AC_BANDS};
+use acolite_rs::loader::sentinel2::{load_sentinel2_scene_limit, S2_AC_BANDS};
 use acolite_rs::writer::write_auto;
 use ndarray::Array2;
 use std::path::Path;
@@ -26,19 +26,27 @@ fn main() {
     let target_res: u32 = get_arg(&args, "--res").and_then(|s| s.parse().ok()).unwrap_or(20);
     let model = get_arg(&args, "--model").unwrap_or_else(|| "auto".into());
     let aot_mode = get_arg(&args, "--aot-mode").unwrap_or_else(|| "tiled".into());
+    let limit: Option<[f64; 4]> = get_arg(&args, "--limit").map(|s| {
+        let v: Vec<f64> = s.split(',').map(|x| x.parse().expect("invalid --limit value")).collect();
+        assert!(v.len() == 4, "--limit needs 4 values: south,west,north,east");
+        [v[0], v[1], v[2], v[3]]
+    });
 
     if let Some(safe_dir) = file {
-        process_real(Path::new(&safe_dir), &output_dir, target_res, &model, &aot_mode);
+        process_real(Path::new(&safe_dir), &output_dir, target_res, &model, &aot_mode, limit.as_ref());
     } else {
-        println!("Usage: process_sentinel2_ac --file /path/to/S2*.SAFE [--output /tmp/out] [--res 20] [--model auto|MOD1|MOD2] [--aot-mode tiled|fixed]");
+        println!("Usage: process_sentinel2_ac --file /path/to/S2*.SAFE [--output /tmp/out] [--res 20] [--limit s,w,n,e] [--model auto|MOD1|MOD2] [--aot-mode tiled|fixed]");
     }
 }
 
-fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32, model: &str, aot_mode: &str) {
+fn process_real(safe_dir: &Path, output_dir: &str, target_res: u32, model: &str, aot_mode: &str, limit: Option<&[f64; 4]>) {
     println!("→ Loading scene: {:?} (target {}m)", safe_dir, target_res);
+    if let Some(lim) = limit {
+        println!("  Limit: [{:.3}, {:.3}, {:.3}, {:.3}]", lim[0], lim[1], lim[2], lim[3]);
+    }
     let start = std::time::Instant::now();
 
-    let scene = load_sentinel2_scene(safe_dir, target_res).expect("Failed to load S2 scene");
+    let scene = load_sentinel2_scene_limit(safe_dir, target_res, limit).expect("Failed to load S2 scene");
     let load_time = start.elapsed();
     println!("  ✓ Loaded {} bands in {:.2?}", scene.bands.len(), load_time);
 

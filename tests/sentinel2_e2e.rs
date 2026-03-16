@@ -66,6 +66,7 @@ fn make_pipeline(metadata: &Metadata, swir_bands: &[BandData<u16>]) -> Pipeline 
         parallel: true,
         ozone: 0.3,
         water_vapor: 1.5,
+        ..ProcessingConfig::default()
     };
     let mut pipeline = Pipeline::new(metadata.clone(), config);
     let swir: Vec<Array2<f64>> = swir_bands.iter()
@@ -387,7 +388,12 @@ fn test_resample_throughput() {
 
 #[test]
 fn test_s2_cog_output() {
-    use acolite_rs::writer::write_auto;
+    use acolite_rs::writer::{cog_available, write_auto};
+
+    if !cog_available() {
+        eprintln!("Skipping COG test: gdal-support not available");
+        return;
+    }
 
     let proj = Projection::from_epsg(32632);
     let mut metadata = Metadata::new("S2A_MSI".to_string(), Utc::now());
@@ -397,12 +403,12 @@ fn test_s2_cog_output() {
     let pipeline = make_pipeline(&metadata, &bands);
     let corrected = process_bands_parallel(&pipeline, bands).unwrap();
 
-    // 4 bands ≤ 50 → COG
+    // 4 bands ≤ 50 → per-band COG
     let tmp = tempfile::tempdir().unwrap();
     let out = tmp.path().join("s2_test");
     write_auto(out.to_str().unwrap(), &corrected, &metadata).unwrap();
 
-    let tif = tmp.path().join("s2_test.tif");
+    let tif = tmp.path().join("s2_test_B02.tif");
     assert!(tif.exists());
     assert!(std::fs::metadata(&tif).unwrap().len() > 0);
 }

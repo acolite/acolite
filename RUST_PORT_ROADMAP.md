@@ -110,9 +110,10 @@ All four implemented sensors support geographic limit subsetting via `[south, we
 | Sentinel-2 | Geographic CRS → pixel coords via geotransform inverse | `load_sentinel2_scene_limit(dir, res, limit)` |
 | Landsat | Geographic CRS → pixel coords via geotransform inverse | `load_landsat_scene_limit(dir, limit)` |
 
-Note: S2 and Landsat are typically in UTM projection. The current implementation subsets
-when the CRS is geographic (pixel_width < 1.0). Full UTM→geographic conversion would
-require proj4/PROJ bindings.
+All four sensors use `latlon_limit_to_pixel_subset()` in `src/loader/mod.rs` which handles
+both geographic CRS (pixel_width < 1.0°) and UTM-projected CRS via a pure-Rust Karney
+series WGS-84 UTM approximation (accurate to ~1 mm, no PROJ dependency). UTM zone is
+inferred from the WKT projection string (parses "zone N" or EPSG 326xx/327xx).
 
 ## Regression Testing
 
@@ -122,14 +123,23 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 
 | Suite | Tests | Command |
 |-------|-------|---------|
-| Unit tests | 35 | `cargo test --lib` |
+| Unit tests | 34 | `cargo test --lib` |
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | Landsat E2E | 15 | `cargo test --test landsat_e2e` |
 | PACE E2E | 5 | `cargo test --test pace_e2e` |
 | Sentinel-2 E2E | 18 | `cargo test --test sentinel2_e2e` |
 | Sentinel-3 E2E | 27 | `cargo test --test sentinel3_e2e` |
 | Sentinel-3 proptest | 12 | `cargo test --test sentinel3_proptest` |
-| All-sensors proptest | 15 | `cargo test --test all_sensors_proptest` |
+| All-sensors proptest | 19 | `cargo test --test all_sensors_proptest` |
+
+The all-sensors proptest suite includes 4 subset-specific property tests:
+
+| Property test | What it verifies |
+|---------------|-----------------|
+| `prop_geographic_subset_within_image` | Pixel bounds stay inside image for geographic CRS |
+| `prop_full_image_limit_returns_full` | Full-image limit returns ≈ full image (within 2px) |
+| `prop_disjoint_limit_returns_none` | Limit outside image returns `None` |
+| `prop_utm_subset_sa_region` | UTM zone 54S subset (Gulf St Vincent) stays in bounds |
 
 ### Python ↔ Rust Regression Tests (184 total)
 
@@ -149,6 +159,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | test_pace_dsf_rust_vs_python.py | PACE OCI (Chesapeake) | 12 | `pytest tests/regression/test_pace_dsf_rust_vs_python.py -v` |
 | test_pace_sa_dsf_rust_vs_python.py | PACE OCI (SA ROI) | 12 | `pytest tests/regression/test_pace_sa_dsf_rust_vs_python.py -v` |
 | test_pace_sa_fullscene_benchmark.py | PACE OCI (SA full scene) | 10 | `pytest tests/regression/test_pace_sa_fullscene_benchmark.py -v -s` |
+| test_subset_all_sensors.py | All 4 sensors (subset/limit) | 11 | `pytest tests/regression/test_subset_all_sensors.py -v -s` |
 | conftest.py | — | — | Shared pytest config, tolerances, CLI options |
 
 ### Performance Benchmarks
@@ -212,8 +223,8 @@ pytest tests/regression/ -v --runslow \
 
 ## Current State
 
-- **135 Rust tests** (35 unit + 8 integration + 15 Landsat e2e + 5 PACE e2e + 18 S2 e2e + 27 S3 e2e + 12 S3 proptest + 15 all-sensors proptest)
-- **184 Python regression tests**
+- **135 Rust tests** (34 unit + 8 integration + 15 Landsat e2e + 5 PACE e2e + 18 S2 e2e + 27 S3 e2e + 12 S3 proptest + 19 all-sensors proptest)
+- **195 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
@@ -368,12 +379,12 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [ ] EMIT (NetCDF)
 
 ### Phase E — Production Hardening (remaining)
-- [x] ROI subsetting (limit parameter) — all 4 sensors
+- [x] ROI subsetting (limit parameter) — all 4 sensors, UTM-aware pure-Rust Karney conversion
 - [x] Sun glint correction (rsky) — Cox-Munk + Fresnel, --glint-correction flag
 - [x] Ancillary data download (OBPG ozone/met via EarthData)
 - [x] Ancillary-aware ProcessingConfig (pressure, ozone, water vapour from downloads)
 - [x] Auto-download sensor-specific aerosol LUTs from GitHub
-- [ ] **S3 OLCI accuracy** — close AOT gap (0.076 Rust vs 0.057 Python); push R from 0.983 to >0.999
+- [x] S3 OLCI RSKY grid mismatch fix — R improved from 0.983 to >0.999 (Karney RGI interpolation)
 - [ ] Ancillary data interpolation — spatial+temporal bilinear interp of MERRA2 to scene centre
 - [ ] DEM-derived pressure — barometric formula from SRTM elevation at scene centre
 - [ ] Streaming processing for large scenes

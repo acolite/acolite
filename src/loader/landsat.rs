@@ -60,8 +60,13 @@ pub fn load_landsat_scene_limit(
 
     if let Some(lim) = limit {
         if let Some(first) = bands.first() {
-            if let Some(sub) = compute_pixel_subset_projected(&first.geotransform, first.data.dim(), lim) {
-                let (r0, c0, nr, nc) = sub;
+            let gt = &first.geotransform;
+            let (rows, cols) = first.data.dim();
+            let wkt = first.projection.wkt.as_deref();
+            if let Some((r0, c0, nr, nc)) = crate::loader::latlon_limit_to_pixel_subset(
+                gt.x_origin, gt.pixel_width, gt.y_origin, gt.pixel_height,
+                rows, cols, lim, wkt,
+            ) {
                 for band in &mut bands {
                     use ndarray::s;
                     band.data = band.data.slice(s![r0..r0+nr, c0..c0+nc]).to_owned();
@@ -78,36 +83,6 @@ pub fn load_landsat_scene_limit(
     }
 
     Ok((bands, metadata))
-}
-
-/// Convert geographic limit [south, west, north, east] to pixel subset for projected data.
-/// Uses a simple affine inverse — assumes UTM or similar projection where
-/// x≈easting, y≈northing. For proper reprojection, GDAL would be needed.
-fn compute_pixel_subset_projected(
-    gt: &GeoTransform,
-    (rows, cols): (usize, usize),
-    limit: &[f64; 4],
-) -> Option<(usize, usize, usize, usize)> {
-    let (south, west, north, east) = (limit[0], limit[1], limit[2], limit[3]);
-
-    // For UTM projections, we need to approximate lat/lon → UTM.
-    // Simple approach: scan corners and edges to find bounding pixel box.
-    // If the geotransform origin is in geographic coords (EPSG:4326), use directly.
-    let is_geographic = gt.pixel_width.abs() < 1.0; // geographic coords have small pixel sizes
-
-    if is_geographic {
-        // Direct pixel computation for geographic CRS
-        let c_min = ((west - gt.x_origin) / gt.pixel_width).floor().max(0.0) as usize;
-        let c_max = ((east - gt.x_origin) / gt.pixel_width).ceil().min(cols as f64) as usize;
-        // pixel_height is negative for north-up
-        let r_min = ((north - gt.y_origin) / gt.pixel_height).floor().max(0.0) as usize;
-        let r_max = ((south - gt.y_origin) / gt.pixel_height).ceil().min(rows as f64) as usize;
-        if r_max > r_min && c_max > c_min {
-            return Some((r_min, c_min, r_max - r_min, c_max - c_min));
-        }
-    }
-    // For projected CRS (UTM), skip subsetting — would need proj4 transform
-    None
 }
 
 /// Load specific Landsat bands by number

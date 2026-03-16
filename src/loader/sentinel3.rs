@@ -375,7 +375,7 @@ pub fn load_olci_scene(
     let data_shape = (instrument.detector_index.nrows(), instrument.detector_index.ncols());
 
     // Determine subset if limit provided
-    let sub = limit.and_then(|lim| compute_subset(&tpg, lim));
+    let sub = limit.and_then(|lim| compute_subset(sen3_dir, &tpg, lim));
 
     // Subset TPGs and instrument data if limit applied
     let (tpg, instrument, data_shape) = if let Some((r0, c0, nr, nc)) = sub {
@@ -736,17 +736,60 @@ fn read_nc_scaled_subset(
         .map_err(|e| AcoliteError::Processing(e.to_string()))
 }
 
-fn compute_subset(tpg: &OlciTpg, limit: &[f64; 4]) -> Option<(usize, usize, usize, usize)> {
+fn compute_subset(sen3_dir: &Path, tpg: &OlciTpg, limit: &[f64; 4]) -> Option<(usize, usize, usize, usize)> {
     let (south, west, north, east) = (limit[0], limit[1], limit[2], limit[3]);
+
+    // Try full-resolution geo_coordinates.nc first (matches Python use_tpg=False default)
+    let geo_path = sen3_dir.join("geo_coordinates.nc");
+    if let Ok(nc) = netcdf::open(&geo_path) {
+        if let (Some(lat_var), Some(lon_var)) = (nc.variable("latitude"), nc.variable("longitude")) {
+            // Read as i32 and apply scale_factor (stored as scaled integers)
+            let scale = |var: &netcdf::Variable| -> Option<(f64, ndarray::ArrayD<i32>)> {
+                let sf = var.attribute("scale_factor")
+                    .and_then(|a| a.value().ok())
+                    .and_then(|v| match v {
+                        netcdf::AttributeValue::Double(d) => Some(d),
+                        netcdf::AttributeValue::Float(f) => Some(f as f64),
+                        _ => None,
+                    })
+                    .unwrap_or(1.0);
+                var.get::<i32, _>(..).ok().map(|arr| (sf, arr))
+            };
+            if let (Some((lat_sf, lat_raw)), Some((lon_sf, lon_raw))) = (scale(&lat_var), scale(&lon_var)) {
+                let (rows, cols) = (lat_raw.shape()[0], lat_raw.shape()[1]);
+                let mut r_min = rows;
+                let mut r_max = 0usize;
+                let mut c_min = cols;
+                let mut c_max = 0usize;
+                for r in 0..rows {
+                    for c in 0..cols {
+                        let la = lat_raw[[r, c]] as f64 * lat_sf;
+                        let lo = lon_raw[[r, c]] as f64 * lon_sf;
+                        if la >= south && la <= north && lo >= west && lo <= east {
+                            r_min = r_min.min(r);
+                            r_max = r_max.max(r);
+                            c_min = c_min.min(c);
+                            c_max = c_max.max(c);
+                        }
+                    }
+                }
+                if r_max > r_min && c_max > c_min {
+                    // Match Python geolocation_sub: returns (max - min), not (max - min + 1)
+                    return Some((r_min, c_min, r_max - r_min, c_max - c_min));
+                }
+                return None;
+            }
+        }
+    }
+
+    // Fallback: use interpolated TPG
     let lat = &tpg.latitude;
     let lon = &tpg.longitude;
     let (rows, cols) = lat.dim();
-
     let mut r_min = rows;
     let mut r_max = 0usize;
     let mut c_min = cols;
     let mut c_max = 0usize;
-
     for r in 0..rows {
         for c in 0..cols {
             let la = lat[[r, c]];
@@ -759,9 +802,8 @@ fn compute_subset(tpg: &OlciTpg, limit: &[f64; 4]) -> Option<(usize, usize, usiz
             }
         }
     }
-
     if r_max > r_min && c_max > c_min {
-        Some((r_min, c_min, r_max - r_min + 1, c_max - c_min + 1))
+        Some((r_min, c_min, r_max - r_min, c_max - c_min))
     } else {
         None
     }

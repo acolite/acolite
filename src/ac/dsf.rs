@@ -46,6 +46,8 @@ pub struct DsfConfig {
     pub fixed_model: Option<String>,
     /// AOT estimation mode: Fixed (whole-scene) or Tiled(rows, cols)
     pub mode: DsfMode,
+    /// Band names to exclude from DSF optimization (e.g. ["Oa01", "Oa02"])
+    pub exclude_bands: Vec<String>,
 }
 
 /// How to compute the selected AOT from per-band AOTs
@@ -68,6 +70,7 @@ impl Default for DsfConfig {
             wave_range: (400.0, 2500.0),
             fixed_model: None,
             mode: DsfMode::Tiled(200, 200),
+            exclude_bands: Vec::new(),
         }
     }
 }
@@ -206,6 +209,9 @@ pub fn optimize_aot(
         // Filter bands by wavelength range and gas transmittance
         let mut band_aots: Vec<(usize, f64)> = Vec::new();
         for (bi, bname) in band_names.iter().enumerate() {
+            if config.exclude_bands.iter().any(|e| e == bname) {
+                continue;
+            }
             if wavelengths[bi] < config.wave_range.0 || wavelengths[bi] > config.wave_range.1 {
                 continue;
             }

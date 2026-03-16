@@ -87,6 +87,7 @@ fn test_pace_e2e_parallel_ac_to_geozarr() {
         parallel: true,
         ozone: 0.3,
         water_vapor: 2.5,
+        ..ProcessingConfig::default()
     };
     let mut pipeline = Pipeline::new(metadata.clone(), config);
 
@@ -185,6 +186,7 @@ fn test_pace_parallel_determinism() {
         parallel: true,
         ozone: 0.3,
         water_vapor: 2.0,
+        ..ProcessingConfig::default()
     };
     let pipeline = Pipeline::new(metadata, config);
 

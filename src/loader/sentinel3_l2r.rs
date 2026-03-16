@@ -131,39 +131,29 @@ fn process_olci_dsf(
     let thv = vza.max(0.001);
     let ths = sza;
 
-    // Collect band info
     let wavelengths: Vec<f64> = OLCI_BANDS.iter().map(|(_, wl, _, _)| *wl).collect();
     let bandwidths: Vec<f64> = OLCI_BANDS.iter().map(|(_, _, bw, _)| *bw).collect();
+    let band_names: Vec<String> = OLCI_BANDS.iter().map(|(n, _, _, _)| n.to_string()).collect();
 
-    // Load actual sensor RSR if available
+    // Determine sensor tag for RSR and sensor-specific LUT
     let sensor_tag = if scene.sensor.contains("S3A") { "S3A_OLCI" } else { "S3B_OLCI" };
+
+    // Gas transmittance — use sensor RSR if available
     let rsr_path = data_dir.join("RSR").join(format!("{}.txt", sensor_tag));
     let sensor_rsr = aerlut::SensorRsr::load(&rsr_path).ok();
-    if sensor_rsr.is_some() {
-        log::info!("Using actual {} RSR for LUT convolution", sensor_tag);
-    }
-
-    // Gas transmittance — use sensor RSR if available for accurate convolution
     let band_names_str: Vec<&str> = OLCI_BANDS.iter().map(|(n, _, _, _)| *n).collect();
     let tt_gas_vec = if let Some(ref rsr) = sensor_rsr {
-        let hyper_tg = gas_lut::compute_gas_transmittance_sensor(
+        gas_lut::compute_gas_transmittance_sensor(
             data_dir, &band_names_str, &rsr.bands, ths, thv, pressure, uoz, uwv,
-        ).map_err(|e| crate::AcoliteError::Processing(format!("Gas LUT: {}", e)))?;
-        hyper_tg.tt_gas
+        ).map_err(|e| crate::AcoliteError::Processing(format!("Gas LUT: {}", e)))?.tt_gas
     } else {
-        let hyper_tg = gas_lut::compute_gas_transmittance_hyper(
+        gas_lut::compute_gas_transmittance_hyper(
             data_dir, &wavelengths, &bandwidths, ths, thv, pressure, uoz, uwv,
-        ).map_err(|e| crate::AcoliteError::Processing(format!("Gas LUT: {}", e)))?;
-        hyper_tg.tt_gas
+        ).map_err(|e| crate::AcoliteError::Processing(format!("Gas LUT: {}", e)))?.tt_gas
     };
 
     log::info!("DSF: sza={:.4} vza={:.4} raa={:.4} p={:.1} uoz={:.3} uwv={:.3}",
         ths, thv, raa, pressure, uoz, uwv);
-
-    // Load generic aerosol LUTs
-    let pressures = vec![500.0, 750.0, 1013.0, 1100.0];
-    let luts = aerlut::load_generic_luts(data_dir, &pressures)
-        .map_err(|e| crate::AcoliteError::Processing(format!("Aerosol LUT: {}", e)))?;
 
     // Gas-correct TOA
     let toa_gc_bands: Vec<Array2<f64>> = OLCI_BANDS.iter().enumerate().map(|(i, (name, _, _, _))| {
@@ -173,18 +163,66 @@ fn process_olci_dsf(
         }).unwrap_or_else(|| Array2::zeros((1, 1)))
     }).collect();
 
-    // DSF optimization
     let mut dsf_config = config.dsf.clone();
     if dsf_config.wave_range == (400.0, 2500.0) {
-        dsf_config.wave_range = (400.0, 900.0); // OLCI only goes to ~1020nm
+        dsf_config.wave_range = (400.0, 900.0);
     }
-    // Force fixed mode when sensor RSR is available (matching Python default for OLCI)
-    if sensor_rsr.is_some() {
-        dsf_config.mode = DsfMode::Fixed;
+    // Match Python default: exclude Oa01/Oa02 from DSF for OLCI
+    if dsf_config.exclude_bands.is_empty() {
+        dsf_config.exclude_bands = vec!["Oa01".into(), "Oa02".into()];
     }
 
-    // Build per-band RSR references for sensor-RSR-aware DSF
-    let band_names: Vec<String> = OLCI_BANDS.iter().map(|(n, _, _, _)| n.to_string()).collect();
+    let pressures = vec![500.0, 750.0, 1013.0, 1100.0];
+    let lut_dir = data_dir.join("LUT");
+
+    // Try sensor-specific pre-convolved LUTs with sky reflectance (matches Python exactly)
+    let sensor_luts: Option<Vec<aerlut::AerosolLut>> = ["ACOLITE-LUT-202110-MOD1", "ACOLITE-LUT-202110-MOD2"]
+        .iter()
+        .map(|name| aerlut::load_sensor_lut_with_rsky(&lut_dir, name, sensor_tag, &pressures, 2.0).ok())
+        .collect();
+
+    if let Some(ref sluts) = sensor_luts {
+        log::info!("Using pre-convolved {} sensor LUTs", sensor_tag);
+        dsf_config.mode = DsfMode::Fixed;
+
+        // Debug: log dark spectrum
+        {
+            let ds = dsf::estimate_dark_spectrum(&toa_gc_bands, &dsf_config.dark_method);
+            for (i, (name, wl, _, _)) in OLCI_BANDS.iter().enumerate() {
+                if ds[i].is_finite() && *wl >= dsf_config.wave_range.0 && *wl <= dsf_config.wave_range.1
+                    && tt_gas_vec[i] >= dsf_config.min_tgas_aot {
+                    log::info!("  dark {} ({:.1}nm): {:.6}", name, wl, ds[i]);
+                }
+            }
+        }
+
+        let dsf_result = dsf::optimize_aot_fixed(
+            sluts, &toa_gc_bands, &band_names, &wavelengths, &tt_gas_vec,
+            pressure, raa, thv, ths, &dsf_config,
+        );
+
+        let selected_lut = &sluts[dsf_result.model_idx];
+        let mut rhos = HashMap::new();
+        for (i, (name, _, _, _)) in OLCI_BANDS.iter().enumerate() {
+            if let Some(toa) = rhot.get(&name.to_string()) {
+                let corrected = dsf::dsf_correct_band(
+                    toa, selected_lut, &name.to_string(), tt_gas_vec[i],
+                    dsf_result.aot, pressure, raa, thv, ths,
+                );
+                rhos.insert(name.to_string(), corrected);
+            }
+        }
+
+        return Ok(OlciL2rResult {
+            rhos, metadata: scene.metadata.clone(),
+            aot: dsf_result.aot, model_name: dsf_result.model_name,
+        });
+    }
+
+    // Fallback: generic LUTs with runtime RSR convolution
+    let luts = aerlut::load_generic_luts(data_dir, &pressures)
+        .map_err(|e| crate::AcoliteError::Processing(format!("Aerosol LUT: {}", e)))?;
+
     let band_rsr_data: Vec<Option<(&[f64], &[f64])>> = if let Some(ref rsr) = sensor_rsr {
         band_names.iter().map(|name| {
             rsr.bands.get(name).map(|(w, r)| (w.as_slice(), r.as_slice()))
@@ -193,67 +231,28 @@ fn process_olci_dsf(
         vec![None; OLCI_BANDS.len()]
     };
 
-    let (dsf_result, tiled_result) = match dsf_config.mode {
-        DsfMode::Fixed => {
-            let result = if sensor_rsr.is_some() {
-                dsf::optimize_aot_fixed_sensor_rsr(
-                    &luts, &toa_gc_bands, &wavelengths, &bandwidths, &tt_gas_vec,
-                    &band_rsr_data, pressure, raa, thv, ths, &dsf_config,
-                )
-            } else {
-                dsf::optimize_aot_fixed_generic(
-                    &luts, &toa_gc_bands, &wavelengths, &bandwidths, &tt_gas_vec,
-                    pressure, raa, thv, ths, &dsf_config,
-                )
-            };
-            (Some(result), None)
-        }
-        DsfMode::Tiled(tr, tc) => {
-            let tr = dsf::optimize_aot_tiled_generic(
-                &luts, &toa_gc_bands, &wavelengths, &bandwidths, &tt_gas_vec,
-                pressure, raa, thv, ths, &dsf_config, (tr, tc),
-            );
-            (None, Some(tr))
-        }
-    };
+    dsf_config.mode = DsfMode::Fixed;
+    let dsf_result = dsf::optimize_aot_fixed_sensor_rsr(
+        &luts, &toa_gc_bands, &wavelengths, &bandwidths, &tt_gas_vec,
+        &band_rsr_data, pressure, raa, thv, ths, &dsf_config,
+    );
 
-    let selected_lut = if let Some(ref r) = dsf_result {
-        &luts[r.model_idx]
-    } else {
-        &luts[tiled_result.as_ref().unwrap().model_idx]
-    };
-
-    let aot = dsf_result.as_ref().map(|r| r.aot)
-        .unwrap_or_else(|| {
-            let vals: Vec<f64> = tiled_result.as_ref().unwrap().aot_grid.iter()
-                .flatten().copied().filter(|v| v.is_finite()).collect();
-            if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 }
-        });
-    let model_name = dsf_result.as_ref().map(|r| r.model_name.clone())
-        .unwrap_or_else(|| tiled_result.as_ref().unwrap().model_name.clone());
-
-    // Apply correction to all bands
+    let selected_lut = &luts[dsf_result.model_idx];
     let mut rhos = HashMap::new();
     for (i, (name, wl, bw, _)) in OLCI_BANDS.iter().enumerate() {
         if let Some(toa) = rhot.get(&name.to_string()) {
-            let tt = tt_gas_vec[i];
             let rsr_band = band_rsr_data.get(i).and_then(|r| *r);
-            let corrected = if let Some(ref r) = dsf_result {
-                dsf::dsf_correct_band_generic_rsr(toa, selected_lut, *wl, *bw, rsr_band, tt, r.aot, pressure, raa, thv, ths)
-            } else {
-                dsf::dsf_correct_band_tiled_generic(
-                    toa, selected_lut, *wl, *bw, tt, tiled_result.as_ref().unwrap(), pressure, raa, thv, ths,
-                )
-            };
+            let corrected = dsf::dsf_correct_band_generic_rsr(
+                toa, selected_lut, *wl, *bw, rsr_band, tt_gas_vec[i],
+                dsf_result.aot, pressure, raa, thv, ths,
+            );
             rhos.insert(name.to_string(), corrected);
         }
     }
 
     Ok(OlciL2rResult {
-        rhos,
-        metadata: scene.metadata.clone(),
-        aot,
-        model_name,
+        rhos, metadata: scene.metadata.clone(),
+        aot: dsf_result.aot, model_name: dsf_result.model_name,
     })
 }
 
