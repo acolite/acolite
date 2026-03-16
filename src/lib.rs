@@ -20,9 +20,12 @@ pub use error::{AcoliteError, Result};
 pub use loader::landsat::{find_mtl, parse_reflectance_coeffs, ReflectanceCoeffs};
 #[cfg(feature = "gdal-support")]
 pub use loader::load_sentinel2_scene;
+#[cfg(feature = "gdal-support")]
+pub use loader::load_sentinel2_scene_limit;
 pub use loader::source::cmr::{search_landsat, search_pace_l1b, search_pace_scene, CmrGranule};
 pub use loader::source::stac::{download_cdse_sentinel2, download_stac_sentinel2};
 pub use loader::{load_landsat_bands, load_landsat_scene};
+pub use loader::load_landsat_scene_limit;
 #[cfg(feature = "netcdf")]
 pub use loader::{load_pace_l1b, PaceScene};
 pub use loader::{S2Scene, S2_AC_BANDS};

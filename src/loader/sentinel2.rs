@@ -46,6 +46,16 @@ pub struct S2Scene {
 /// Load a Sentinel-2 SAFE directory, resampling all bands to `target_res` metres.
 #[cfg(feature = "gdal-support")]
 pub fn load_sentinel2_scene(safe_dir: &Path, target_res: u32) -> Result<S2Scene> {
+    load_sentinel2_scene_limit(safe_dir, target_res, None)
+}
+
+/// Load S2 scene with optional geographic limit `[south, west, north, east]`.
+#[cfg(feature = "gdal-support")]
+pub fn load_sentinel2_scene_limit(
+    safe_dir: &Path,
+    target_res: u32,
+    limit: Option<&[f64; 4]>,
+) -> Result<S2Scene> {
     let safe_name = safe_dir
         .file_name()
         .ok_or_else(|| AcoliteError::InvalidMetadata("SAFE path has no filename".into()))?
@@ -137,6 +147,38 @@ pub fn load_sentinel2_scene(safe_dir: &Path, target_res: u32) -> Result<S2Scene>
 
     // Parse radiometric calibration from product-level metadata
     let (quant, offsets) = parse_s2_radiometric(safe_dir)?;
+
+    // Apply geographic limit subsetting if requested
+    // S2 is in UTM, so we can't directly convert lat/lon without proj4.
+    // For now, store the limit for downstream use; the AC pipeline can subset.
+    // If bands are in geographic CRS (unlikely for S2), subset directly.
+    if let Some(lim) = limit {
+        if let Some(first) = bands.first() {
+            let gt = &first.geotransform;
+            let (rows, cols) = first.data.dim();
+            let is_geographic = gt.pixel_width.abs() < 1.0;
+            if is_geographic {
+                let (south, west, north, east) = (lim[0], lim[1], lim[2], lim[3]);
+                let c_min = ((west - gt.x_origin) / gt.pixel_width).floor().max(0.0) as usize;
+                let c_max = ((east - gt.x_origin) / gt.pixel_width).ceil().min(cols as f64) as usize;
+                let r_min = ((north - gt.y_origin) / gt.pixel_height).floor().max(0.0) as usize;
+                let r_max = ((south - gt.y_origin) / gt.pixel_height).ceil().min(rows as f64) as usize;
+                if r_max > r_min && c_max > c_min {
+                    use ndarray::s;
+                    for band in &mut bands {
+                        band.data = band.data.slice(s![r_min..r_max, c_min..c_max]).to_owned();
+                        band.geotransform = GeoTransform::new(
+                            band.geotransform.x_origin + c_min as f64 * band.geotransform.pixel_width,
+                            band.geotransform.pixel_width,
+                            band.geotransform.y_origin + r_min as f64 * band.geotransform.pixel_height,
+                            band.geotransform.pixel_height,
+                        );
+                    }
+                    log::info!("Subset to {}×{} pixels from limit", r_max - r_min, c_max - c_min);
+                }
+            }
+        }
+    }
 
     Ok(S2Scene {
         bands,

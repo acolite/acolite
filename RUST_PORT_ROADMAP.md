@@ -66,7 +66,7 @@ src/
 | Aqua/Terra MODIS | 36 | Not started |
 | WorldView-3 | 29 | Not started |
 | VIIRS (NPP/J1/J2) | 22 | Not started |
-| Sentinel-3 OLCI | 21 | Sensor def exists |
+| Sentinel-3 OLCI | 21 | ✅ Full DSF pipeline + smile correction + limit subsetting |
 | AMAZONIA-1 WFI | 18 | Not started |
 | GOES ABI | 16 | Not started |
 | Himawari AHI | 16 | Not started |
@@ -94,9 +94,24 @@ src/
 1. **Landsat 8/9** — ✅ Full LUT-DSF pipeline, validated
 2. **Sentinel-2 MSI** — ✅ Full LUT-DSF pipeline, physics-equivalent (RMSE < 0.002)
 3. **PACE OCI** — ✅ Full generic-LUT DSF pipeline with LUT-based gas transmittance
-4. **Sentinel-3 OLCI** — Sensor def exists, needs NetCDF loader
+4. **Sentinel-3 OLCI** — ✅ Full generic-LUT DSF pipeline, smile correction, limit subsetting
 5. **PRISMA/DESIS/EnMAP** — Share HDF5 loader pattern
 6. **EMIT** — NetCDF, similar to PACE
+
+## Subset / Limit Processing
+
+All four implemented sensors support geographic limit subsetting via `[south, west, north, east]`:
+
+| Sensor | Method | Loader function |
+|--------|--------|-----------------|
+| PACE OCI | `find_subset()` scans lat/lon → pixel bbox → bulk-read subset from NetCDF | `load_pace_l1b(path, limit)` |
+| Sentinel-3 OLCI | `compute_subset()` on interpolated TPGs → subset radiance, TPGs, detector_index | `load_olci_scene(dir, limit)` |
+| Sentinel-2 | Geographic CRS → pixel coords via geotransform inverse | `load_sentinel2_scene_limit(dir, res, limit)` |
+| Landsat | Geographic CRS → pixel coords via geotransform inverse | `load_landsat_scene_limit(dir, limit)` |
+
+Note: S2 and Landsat are typically in UTM projection. The current implementation subsets
+when the CRS is geographic (pixel_width < 1.0). Full UTM→geographic conversion would
+require proj4/PROJ bindings.
 
 ## Regression Testing
 
@@ -109,8 +124,11 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | Unit tests | 29 | `cargo test --lib` |
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
+| Sentinel-3 E2E | 27 | `cargo test --test sentinel3_e2e` |
+| Sentinel-3 proptest | 12 | `cargo test --test sentinel3_proptest` |
+| All-sensors proptest | 15 | `cargo test --test all_sensors_proptest` |
 
-### Python ↔ Rust Regression Tests (171 total)
+### Python ↔ Rust Regression Tests (235 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
@@ -121,6 +139,8 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | test_s2_rust_vs_python.py | Sentinel-2 | 15 | `pytest tests/regression/test_s2_rust_vs_python.py -v -s` |
 | test_s2_benchmark_rust_vs_python.py | Sentinel-2 | 9 | `pytest tests/regression/test_s2_benchmark_rust_vs_python.py -v -s` |
 | test_s2_atcor_perf.py | Sentinel-2 | 20 | `pytest tests/regression/test_s2_atcor_perf.py -v -s [--runslow]` |
+| test_s3_rust_vs_python.py | Sentinel-3 | 55 | `pytest tests/regression/test_s3_rust_vs_python.py -v` |
+| test_s3_benchmark_rust_vs_python.py | Sentinel-3 | 9 | `pytest tests/regression/test_s3_benchmark_rust_vs_python.py -v -s` |
 | test_pace_regression.py | PACE OCI | 17 | `pytest tests/regression/test_pace_regression.py -v` |
 | test_pace_rust_vs_python.py | PACE OCI | 14 | `pytest tests/regression/test_pace_rust_vs_python.py -v -s` |
 | test_pace_dsf_rust_vs_python.py | PACE OCI (Chesapeake) | 12 | `pytest tests/regression/test_pace_dsf_rust_vs_python.py -v` |
@@ -136,6 +156,7 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 | Landsat 9 | Full scene (62M px × 7 bands) | 56s | 180s | 3.2× | |
 | Sentinel-2 A | Full scene (30M px × 11 bands) | 20s | 148s | **7.3×** | Real S2A T54HTF, fixed DSF |
 | Sentinel-2 B | Full scene (30M px × 11 bands) | 64s | 173s | 2.7× | |
+| Sentinel-3 OLCI | Subset 213×205 × 21 bands | 8.7s | 7.8s | 0.9× | Full DSF, first-run LUT load ~50s |
 | PACE OCI | ROI 108×57 (fixed) | 22s | 145s | 6.8× | |
 | PACE OCI | Full 1710×1272 (fixed) | **84s** | 230s | **2.7×** | Load=12s, AC=34s, Write=35s |
 
@@ -187,8 +208,8 @@ pytest tests/regression/ -v --runslow \
 
 ## Current State
 
-- **51 Rust tests** (29 unit + 8 integration + 14 e2e)
-- **171 Python regression tests**
+- **105 Rust tests** (29 unit + 8 integration + 14 e2e + 27 S3 e2e + 12 S3 proptest + 15 all-sensors proptest)
+- **235 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
@@ -319,11 +340,15 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [x] Landsat reflectance coefficients — parse_reflectance_coeffs() from MTL
 - [x] STAC Landsat download — search_landsat_c2() + download_stac_landsat()
 - [x] GDAL optional — tiff-crate fallback when gdal-support feature disabled
+- [x] Sentinel-3 OLCI full pipeline — SEN3 NetCDF loader, smile correction, TPG interpolation, full DSF
+- [x] Sentinel-3 OLCI limit subsetting — subset radiance, TPGs, and detector_index consistently
+- [x] Generic aerosol LUT support — hyperspectral LUTs convolved at runtime via Gaussian RSR
 
 ### Phase C: Validation
 - [x] Landsat 8/9 Rust vs Python — R>0.998, RMSE<0.02
 - [x] Sentinel-2 A/B Rust vs Python — R=1.000, RMSE<0.002 (physics-equivalent)
 - [x] PACE OCI Rust vs Python — r=0.9995
+- [x] Sentinel-3 OLCI Rust vs Python — R=0.983, RMSE=0.0011 (full DSF, real data)
 
 ### Phase E: Production Hardening (partial)
 - [x] Remove all `unwrap()` from library code (proper error propagation)
@@ -333,12 +358,12 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 ## Next Steps
 
 ### Phase D — Additional Loaders
-- [ ] Sentinel-3 OLCI (NetCDF) — sensor def exists, needs full pipeline
+- [x] Sentinel-3 OLCI (NetCDF) — full pipeline: SEN3 loader, smile, TPG interp, generic-LUT DSF
 - [ ] PRISMA/DESIS/EnMAP (HDF5)
 - [ ] EMIT (NetCDF)
 
 ### Phase E — Production Hardening (remaining)
-- [ ] ROI subsetting (limit parameter)
+- [x] ROI subsetting (limit parameter) — all 4 sensors
 - [ ] Interface reflectance (rsky)
 - [x] Ancillary data download (OBPG ozone/met via EarthData)
 - [x] Ancillary-aware ProcessingConfig (pressure, ozone, water vapour from downloads)

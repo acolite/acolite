@@ -1,8 +1,9 @@
 //! Sentinel-3 OLCI processing example
 //!
 //! Usage:
-//!   cargo run --example process_sentinel3 -- --scene /path/to/S3A_OL_1_EFR.SEN3 --output /tmp/s3_out
-//!   cargo run --example process_sentinel3  # runs with synthetic data
+//!   cargo run --release --features netcdf --example process_sentinel3 -- --scene /path/to/S3A_OL_1_EFR.SEN3
+//!   cargo run --release --features full-io --example process_sentinel3 -- --scene /path/to/S3A_OL_1_EFR.SEN3 --data-dir ./data
+//!   cargo run --release --features full-io --example process_sentinel3 -- --scene /path/to/S3A_OL_1_EFR.SEN3 --limit -35.0,138.0,-34.5,138.7
 
 use acolite_rs::core::{BandData, GeoTransform, Metadata, Projection};
 use acolite_rs::loader::sentinel3::{OlciScene, OLCI_BANDS};
@@ -19,13 +20,19 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let scene_dir = get_arg(&args, "--scene");
     let output_dir = get_arg(&args, "--output").unwrap_or_else(|| "/tmp/s3_output".into());
+    let limit: Option<[f64; 4]> = get_arg(&args, "--limit").map(|s| {
+        let v: Vec<f64> = s.split(',').map(|x| x.parse().expect("invalid --limit")).collect();
+        assert!(v.len() == 4, "--limit needs 4 values: south,west,north,east");
+        [v[0], v[1], v[2], v[3]]
+    });
+    let data_dir = get_arg(&args, "--data-dir");
 
     println!("ACOLITE-RS: Sentinel-3 OLCI Processing\n");
 
     if let Some(ref _dir) = scene_dir {
         #[cfg(feature = "netcdf")]
         {
-            process_real(std::path::Path::new(_dir), &output_dir);
+            process_real(std::path::Path::new(_dir), &output_dir, limit.as_ref(), data_dir.as_deref());
         }
         #[cfg(not(feature = "netcdf"))]
         {
@@ -64,12 +71,10 @@ fn process_synthetic(output_dir: &str) {
     let proj = Projection::from_epsg(4326);
     let geotrans = GeoTransform::new(3.0, 0.003, 51.0, -0.003);
 
-    // Create synthetic bands simulating turbid coastal water
     let size = 300;
     let bands: Vec<BandData<u16>> = OLCI_BANDS
         .iter()
         .map(|(name, wl, bw, _)| {
-            // Simulate: high in blue (Rayleigh), moderate green (SPM), low NIR
             let base = (1200.0 * (400.0 / wl).powf(2.0) + 300.0) as u16;
             BandData::new(
                 Array2::from_elem((size, size), base),
@@ -99,12 +104,21 @@ fn process_synthetic(output_dir: &str) {
 }
 
 #[cfg(feature = "netcdf")]
-fn process_real(scene_dir: &std::path::Path, output_dir: &str) {
+fn process_real(
+    scene_dir: &std::path::Path,
+    output_dir: &str,
+    limit: Option<&[f64; 4]>,
+    data_dir: Option<&str>,
+) {
     use acolite_rs::loader::sentinel3::load_olci_scene;
     use acolite_rs::loader::sentinel3_l2r::{process_olci_l2r, OlciProcessingConfig};
 
     println!("Loading scene: {}", scene_dir.display());
-    let mut scene = match load_olci_scene(scene_dir, None) {
+    if let Some(lim) = limit {
+        println!("  Limit: [{:.2}, {:.2}, {:.2}, {:.2}]", lim[0], lim[1], lim[2], lim[3]);
+    }
+
+    let mut scene = match load_olci_scene(scene_dir, limit) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Failed to load scene: {}", e);
@@ -115,11 +129,29 @@ fn process_real(scene_dir: &std::path::Path, output_dir: &str) {
     println!("  Sensor: {}", scene.sensor);
     println!("  Shape: {}×{}", scene.data_shape.0, scene.data_shape.1);
     println!("  Bands loaded: {}", scene.radiance.len());
-    if let Some(ref pt) = scene.product_type {
-        println!("  Product type: {}", pt);
+
+    let mut olci_config = OlciProcessingConfig::default();
+    if let Some(dd) = data_dir {
+        olci_config.data_dir = Some(std::path::PathBuf::from(dd));
+    } else {
+        // Try to find data dir automatically
+        let mut p = std::env::current_dir().unwrap_or_default();
+        for _ in 0..5 {
+            let d = p.join("data");
+            if d.join("RSR").exists() && d.join("LUT").exists() {
+                olci_config.data_dir = Some(d);
+                break;
+            }
+            if !p.pop() { break; }
+        }
     }
 
-    let olci_config = OlciProcessingConfig::default();
+    if olci_config.data_dir.is_some() {
+        println!("  Data dir: {:?} (full DSF)", olci_config.data_dir.as_ref().unwrap());
+    } else {
+        println!("  No data dir found — using simplified Rayleigh correction");
+    }
+
     let pipeline_config = ProcessingConfig::default();
 
     println!("\n→ Running atmospheric correction...");

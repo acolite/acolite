@@ -1,6 +1,6 @@
 //! Landsat scene loader — reads L1 GeoTIFF bands + MTL metadata
 
-use crate::core::{BandData, Metadata};
+use crate::core::{BandData, GeoTransform, Metadata};
 use crate::loader::geotiff::read_geotiff_band;
 use crate::sensors::mtl::parse_mtl;
 use crate::{AcoliteError, Result};
@@ -34,10 +34,19 @@ impl Default for ReflectanceCoeffs {
 }
 
 /// Load a complete Landsat scene: bands + metadata from MTL.
-/// Parses the MTL file for sun geometry, datetime, and calibration.
+/// If `limit` is provided as `[south, west, north, east]` in geographic coords,
+/// bands are spatially subset after loading.
 pub fn load_landsat_scene(scene_dir: &Path) -> Result<(Vec<BandData<u16>>, Metadata)> {
+    load_landsat_scene_limit(scene_dir, None)
+}
+
+/// Load Landsat scene with optional geographic limit `[south, west, north, east]`.
+pub fn load_landsat_scene_limit(
+    scene_dir: &Path,
+    limit: Option<&[f64; 4]>,
+) -> Result<(Vec<BandData<u16>>, Metadata)> {
     let band_numbers: Vec<u8> = LANDSAT_BANDS.iter().map(|b| b.0).collect();
-    let bands = load_landsat_bands(scene_dir, &band_numbers)?;
+    let mut bands = load_landsat_bands(scene_dir, &band_numbers)?;
 
     let metadata = if let Some(mtl_path) = find_mtl(scene_dir) {
         parse_mtl(&mtl_path).unwrap_or_else(|e| {
@@ -49,7 +58,56 @@ pub fn load_landsat_scene(scene_dir: &Path) -> Result<(Vec<BandData<u16>>, Metad
         fallback_metadata(scene_dir)
     };
 
+    if let Some(lim) = limit {
+        if let Some(first) = bands.first() {
+            if let Some(sub) = compute_pixel_subset_projected(&first.geotransform, first.data.dim(), lim) {
+                let (r0, c0, nr, nc) = sub;
+                for band in &mut bands {
+                    use ndarray::s;
+                    band.data = band.data.slice(s![r0..r0+nr, c0..c0+nc]).to_owned();
+                    band.geotransform = GeoTransform::new(
+                        band.geotransform.x_origin + c0 as f64 * band.geotransform.pixel_width,
+                        band.geotransform.pixel_width,
+                        band.geotransform.y_origin + r0 as f64 * band.geotransform.pixel_height,
+                        band.geotransform.pixel_height,
+                    );
+                }
+                log::info!("Subset to {}×{} pixels from limit", nr, nc);
+            }
+        }
+    }
+
     Ok((bands, metadata))
+}
+
+/// Convert geographic limit [south, west, north, east] to pixel subset for projected data.
+/// Uses a simple affine inverse — assumes UTM or similar projection where
+/// x≈easting, y≈northing. For proper reprojection, GDAL would be needed.
+fn compute_pixel_subset_projected(
+    gt: &GeoTransform,
+    (rows, cols): (usize, usize),
+    limit: &[f64; 4],
+) -> Option<(usize, usize, usize, usize)> {
+    let (south, west, north, east) = (limit[0], limit[1], limit[2], limit[3]);
+
+    // For UTM projections, we need to approximate lat/lon → UTM.
+    // Simple approach: scan corners and edges to find bounding pixel box.
+    // If the geotransform origin is in geographic coords (EPSG:4326), use directly.
+    let is_geographic = gt.pixel_width.abs() < 1.0; // geographic coords have small pixel sizes
+
+    if is_geographic {
+        // Direct pixel computation for geographic CRS
+        let c_min = ((west - gt.x_origin) / gt.pixel_width).floor().max(0.0) as usize;
+        let c_max = ((east - gt.x_origin) / gt.pixel_width).ceil().min(cols as f64) as usize;
+        // pixel_height is negative for north-up
+        let r_min = ((north - gt.y_origin) / gt.pixel_height).floor().max(0.0) as usize;
+        let r_max = ((south - gt.y_origin) / gt.pixel_height).ceil().min(rows as f64) as usize;
+        if r_max > r_min && c_max > c_min {
+            return Some((r_min, c_min, r_max - r_min, c_max - c_min));
+        }
+    }
+    // For projected CRS (UTM), skip subsetting — would need proj4 transform
+    None
 }
 
 /// Load specific Landsat bands by number

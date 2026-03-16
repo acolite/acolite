@@ -75,6 +75,19 @@ pub struct OlciInstrumentData {
     pub detector_index: Array2<u32>,
 }
 
+impl OlciInstrumentData {
+    /// Subset detector_index to a pixel window (lambda0/solar_flux/fwhm are per-detector, not spatial)
+    pub fn subset(&self, r0: usize, c0: usize, nr: usize, nc: usize) -> Self {
+        use ndarray::s;
+        Self {
+            lambda0: self.lambda0.clone(),
+            solar_flux: self.solar_flux.clone(),
+            fwhm: self.fwhm.clone(),
+            detector_index: self.detector_index.slice(s![r0..r0+nr, c0..c0+nc]).to_owned(),
+        }
+    }
+}
+
 /// Tie-point grids interpolated to full resolution
 #[derive(Debug, Clone)]
 pub struct OlciTpg {
@@ -90,6 +103,20 @@ pub struct OlciTpg {
 }
 
 impl OlciTpg {
+    /// Subset all TPG arrays to a pixel window
+    pub fn subset(&self, r0: usize, c0: usize, nr: usize, nc: usize) -> Self {
+        use ndarray::s;
+        let sub = |a: &Array2<f64>| a.slice(s![r0..r0+nr, c0..c0+nc]).to_owned();
+        Self {
+            sza: sub(&self.sza), oza: sub(&self.oza),
+            saa: sub(&self.saa), oaa: sub(&self.oaa),
+            latitude: sub(&self.latitude), longitude: sub(&self.longitude),
+            total_ozone: self.total_ozone.as_ref().map(|a| sub(a)),
+            total_columnar_water_vapour: self.total_columnar_water_vapour.as_ref().map(|a| sub(a)),
+            sea_level_pressure: self.sea_level_pressure.as_ref().map(|a| sub(a)),
+        }
+    }
+
     /// Compute relative azimuth angle
     pub fn raa(&self) -> Array2<f64> {
         let mut raa = &self.saa - &self.oaa;
@@ -351,6 +378,16 @@ pub fn load_olci_scene(
 
     // Determine subset if limit provided
     let sub = limit.and_then(|lim| compute_subset(&tpg, lim));
+
+    // Subset TPGs and instrument data if limit applied
+    let (tpg, instrument, data_shape) = if let Some((r0, c0, nr, nc)) = sub {
+        let sub_tpg = tpg.subset(r0, c0, nr, nc);
+        let sub_inst = instrument.subset(r0, c0, nr, nc);
+        let shape = (nr, nc);
+        (sub_tpg, sub_inst, shape)
+    } else {
+        (tpg, instrument, data_shape)
+    };
 
     // Load radiance bands
     let mut radiance = HashMap::new();
