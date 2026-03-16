@@ -290,6 +290,50 @@ def build_pending_block(state: dict) -> str:
     return " | ".join(lines)
 
 
+def build_compact_prompt(state: dict) -> str:
+    """Build a /compact slash-command prompt preserving critical roadmap state.
+
+    Paste the output directly into a Kiro chat session when the context
+    window is getting full.  The preservation instruction is ~400 tokens
+    so it survives any compaction budget.
+    """
+    loaders_done = [s for s, v in state["loaders"].items() if v]
+    ac_done      = [m for m, v in state["ac_modules"].items() if v]
+    writers_done = [w for w, v in state["writers"].items() if v]
+
+    extras = []
+    if state["ancillary_wired"]: extras.append("ancillary-wired")
+    if state["roi_wired"]:       extras.append("roi-limit")
+    if state["l2w_exists"]:      extras.append("l2w-chl_oc3")
+    if state["perf_ci"]:         extras.append("perf-ci")
+
+    done_line = (
+        f"loaders({','.join(loaders_done) or 'none'}) | "
+        f"ac({','.join(ac_done) or 'none'}) | "
+        f"writers({','.join(writers_done) or 'none'}) | "
+        f"{','.join(extras) or 'no-extras'} | "
+        f"{state['rust_tests']}Rust+{state['python_tests']}Py tests"
+    )
+
+    pending = [k for k in PRIORITY if not is_done(k, state)]
+    next_lines = []
+    for i, key in enumerate(pending[:5], 1):
+        t = NEXT_TASKS[key]
+        next_lines.append(f"NEXT[{i}] {key}: {t['short']}.")
+
+    lines = [
+        "/compact Keep:",
+        f"ACOLITE-RS Rust port of Python ACOLITE atmospheric correction.",
+        f"DONE: {done_line}",
+        f"PHYSICS: {PHYSICS}",
+        f"CONVENTIONS: {CONVENTIONS}",
+        f"TOLERANCES: {TOLERANCES}",
+    ] + next_lines + [
+        f"VERIFY: cargo test --features full-io && pytest tests/regression/ -v",
+    ]
+    return "\n".join(lines)
+
+
 def build_context(state: dict, next_key: str | None = None) -> str:
     """Build the full compact context string for Kiro."""
     done_block    = build_done_block(state)
@@ -350,6 +394,10 @@ def main():
         "--auto", action="store_true",
         help="Automatically select the highest-priority incomplete task",
     )
+    group.add_argument(
+        "--compact", action="store_true",
+        help="Emit a /compact slash-command prompt to paste into Kiro chat",
+    )
     parser.add_argument(
         "--list", action="store_true",
         help="List all tasks with their current completion status and exit",
@@ -368,6 +416,10 @@ def main():
         done_count = sum(1 for k in PRIORITY if is_done(k, state))
         print(f"  {done_count}/{len(PRIORITY)} phase-D/E/F tasks complete")
         print(f"  Tests: {state['rust_tests']} Rust, {state['python_tests']} Python")
+        return
+
+    if args.compact:
+        print(build_compact_prompt(state))
         return
 
     next_key = args.next
