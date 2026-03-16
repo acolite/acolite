@@ -1,7 +1,7 @@
 //! Processing pipeline
 
 use crate::ac::ancillary::Ancillary;
-use crate::ac::{dsf_correction_simple, gas_correction, rayleigh_correction};
+use crate::ac::{dsf_correction_simple, gas_correction, glint_correct, rayleigh_correction};
 use crate::{
     core::{BandData, Metadata},
     Result,
@@ -13,11 +13,13 @@ pub struct ProcessingConfig {
     pub apply_rayleigh: bool,
     pub apply_gas: bool,
     pub apply_aerosol: bool,
+    pub apply_glint: bool,
     pub output_reflectance: bool,
     pub parallel: bool,
     pub ozone: f64,
     pub water_vapor: f64,
     pub pressure: f64,
+    pub wind: f64,
 }
 
 impl Default for ProcessingConfig {
@@ -26,11 +28,13 @@ impl Default for ProcessingConfig {
             apply_rayleigh: true,
             apply_gas: true,
             apply_aerosol: true,
+            apply_glint: false,
             output_reflectance: true,
             parallel: true,
             ozone: 0.3,        // cm-atm
             water_vapor: 1.5,  // g/cm²
             pressure: 1013.25, // hPa
+            wind: 2.0,         // m/s
         }
     }
 }
@@ -42,6 +46,7 @@ impl ProcessingConfig {
             ozone: anc.uoz,
             water_vapor: anc.uwv,
             pressure: anc.pressure,
+            wind: anc.wind,
             ..Self::default()
         }
     }
@@ -97,7 +102,7 @@ impl Pipeline {
         }
 
         // Step 4: Aerosol correction (DSF)
-        let corrected = if let (true, Some(aot)) = (self.config.apply_aerosol, self.aot) {
+        let mut corrected = if let (true, Some(aot)) = (self.config.apply_aerosol, self.aot) {
             dsf_correction_simple(
                 &toa,
                 aot,
@@ -108,6 +113,21 @@ impl Pipeline {
         } else {
             toa
         };
+
+        // Step 5: Glint correction
+        if self.config.apply_glint {
+            let mut rhos_f32 = corrected.mapv(|v| v as f32);
+            let raa = (self.metadata.sun_azimuth - self.metadata.view_azimuth.unwrap_or(0.0)).abs();
+            glint_correct(
+                &mut rhos_f32,
+                self.config.wind as f32,
+                self.metadata.sun_zenith as f32,
+                self.metadata.view_zenith.unwrap_or(0.0) as f32,
+                raa as f32,
+                band.wavelength as u32,
+            )?;
+            corrected = rhos_f32.mapv(|v| v as f64);
+        }
 
         // Create output band
         Ok(BandData::new(
@@ -148,7 +168,7 @@ impl Pipeline {
                 self.config.pressure,
             )?;
         }
-        let corrected = if let (true, Some(aot)) = (self.config.apply_aerosol, self.aot) {
+        let mut corrected = if let (true, Some(aot)) = (self.config.apply_aerosol, self.aot) {
             dsf_correction_simple(
                 &toa,
                 aot,
@@ -159,6 +179,21 @@ impl Pipeline {
         } else {
             toa
         };
+
+        // Glint correction
+        if self.config.apply_glint {
+            let mut rhos_f32 = corrected.mapv(|v| v as f32);
+            let raa = (self.metadata.sun_azimuth - self.metadata.view_azimuth.unwrap_or(0.0)).abs();
+            glint_correct(
+                &mut rhos_f32,
+                self.config.wind as f32,
+                self.metadata.sun_zenith as f32,
+                self.metadata.view_zenith.unwrap_or(0.0) as f32,
+                raa as f32,
+                band.wavelength as u32,
+            )?;
+            corrected = rhos_f32.mapv(|v| v as f64);
+        }
 
         Ok(BandData::new(
             corrected,

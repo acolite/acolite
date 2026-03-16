@@ -20,6 +20,7 @@ src/
 │   ├── aerlut.rs   # Aerosol LUT reader (sensor-specific 6SV NetCDF)
 │   ├── dsf.rs      # DSF: dark spectrum, AOT inversion, model selection, correction
 │   ├── gas_lut.rs  # Gas transmittance (O₃, H₂O, CO₂, O₂ from LUTs + RSR)
+│   ├── glint.rs    # Sun glint correction (Cox-Munk + Fresnel)
 │   ├── interp.rs   # N-dimensional regular grid interpolator
 │   ├── calibration.rs, rayleigh.rs, gas.rs, lut.rs
 ├── writer/         # OUTPUT: Write results
@@ -121,18 +122,18 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 
 | Suite | Tests | Command |
 |-------|-------|---------|
-| Unit tests | 29 | `cargo test --lib` |
+| Unit tests | 34 | `cargo test --lib` |
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
 | Sentinel-3 E2E | 27 | `cargo test --test sentinel3_e2e` |
 | Sentinel-3 proptest | 12 | `cargo test --test sentinel3_proptest` |
 | All-sensors proptest | 15 | `cargo test --test all_sensors_proptest` |
 
-### Python ↔ Rust Regression Tests (235 total)
+### Python ↔ Rust Regression Tests (240 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
-| test_landsat_regression.py | Landsat 8/9 | 23 | `pytest tests/regression/test_landsat_regression.py -v` |
+| test_landsat_regression.py | Landsat 8/9 | 28 | `pytest tests/regression/test_landsat_regression.py -v` |
 | test_landsat_rust_vs_python.py | Landsat 8/9 | 13 | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
 | test_benchmark_rust_vs_python.py | Landsat 8/9 | 7 | `pytest tests/regression/test_benchmark_rust_vs_python.py -v -s` |
 | test_sentinel2_regression.py | Sentinel-2 | 19 | `pytest tests/regression/test_sentinel2_regression.py -v` |
@@ -208,8 +209,8 @@ pytest tests/regression/ -v --runslow \
 
 ## Current State
 
-- **105 Rust tests** (29 unit + 8 integration + 14 e2e + 27 S3 e2e + 12 S3 proptest + 15 all-sensors proptest)
-- **235 Python regression tests**
+- **110 Rust tests** (34 unit + 8 integration + 14 e2e + 27 S3 e2e + 12 S3 proptest + 15 all-sensors proptest)
+- **240 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
@@ -340,6 +341,7 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [x] Landsat reflectance coefficients — parse_reflectance_coeffs() from MTL
 - [x] STAC Landsat download — search_landsat_c2() + download_stac_landsat()
 - [x] GDAL optional — tiff-crate fallback when gdal-support feature disabled
+- [x] Sun glint correction — Cox-Munk + Fresnel model (compute_rsky, glint_correct)
 - [x] Sentinel-3 OLCI full pipeline — SEN3 NetCDF loader, smile correction, TPG interpolation, full DSF
 - [x] Sentinel-3 OLCI limit subsetting — subset radiance, TPGs, and detector_index consistently
 - [x] Generic aerosol LUT support — hyperspectral LUTs convolved at runtime via Gaussian RSR
@@ -364,7 +366,7 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 
 ### Phase E — Production Hardening (remaining)
 - [x] ROI subsetting (limit parameter) — all 4 sensors
-- [ ] Interface reflectance (rsky)
+- [x] Sun glint correction (rsky) — Cox-Munk + Fresnel, --glint-correction flag
 - [x] Ancillary data download (OBPG ozone/met via EarthData)
 - [x] Ancillary-aware ProcessingConfig (pressure, ozone, water vapour from downloads)
 - [x] Auto-download sensor-specific aerosol LUTs from GitHub

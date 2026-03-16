@@ -21,7 +21,7 @@ tests/
 │   ├── test_pace_rust_vs_python.py # PACE Rust vs Python full AC (14 tests)
 │   ├── test_pace_dsf_rust_vs_python.py # PACE DSF Chesapeake Bay (12 tests)
 │   ├── test_pace_sa_dsf_rust_vs_python.py # PACE DSF South Australia + full scene benchmark (12 tests)
-│   ├── test_landsat_regression.py # Landsat 8/9 Python↔Rust comparison (13 tests)
+│   ├── test_landsat_regression.py # Landsat 8/9 Python↔Rust comparison (28 tests)
 │   ├── test_landsat_rust_vs_python.py # Landsat Rust vs Python full AC (13 tests)
 │   ├── test_benchmark_rust_vs_python.py # Landsat full-scene benchmark (7 tests)
 │   ├── test_sentinel2_regression.py # Sentinel-2 Python↔Rust comparison (19 tests)
@@ -37,16 +37,16 @@ benches/
 
 | Suite | Tests | Status |
 |-------|-------|--------|
-| Rust unit tests | 26 | ✅ All pass |
+| Rust unit tests | 34 | ✅ All pass |
 | Rust integration tests | 8 | ✅ All pass |
 | Rust E2E tests | 14 (+1 pre-existing COG failure) | ✅ |
-| Python regression (total) | 161 | ✅ All pass |
+| Python regression (total) | 240 | ✅ All pass |
 
 ### Python Test Breakdown
 
 | Test file | Tests | Sensor | Mode |
 |-----------|-------|--------|------|
-| test_landsat_regression.py | 13 | Landsat 8/9 | Synthetic + unit |
+| test_landsat_regression.py | 28 | Landsat 8/9 | Synthetic + unit + ancillary + ATCOR + glint |
 | test_landsat_rust_vs_python.py | 13 | Landsat 8/9 | ROI pixel comparison |
 | test_benchmark_rust_vs_python.py | 7 | Landsat 8/9 | Full-scene benchmark |
 | test_sentinel2_regression.py | 19 | Sentinel-2 | Synthetic + unit |
@@ -531,4 +531,4 @@ All use fixed DSF mode for deterministic comparison.
 | AOT | 0.001 | — | S2 fixed-mode matches to 4 sig figs |
 | Pearson R | > 0.999 | — | S2 achieves 1.000 |
 | Lat/Lon | 1e-8 | — | Must be exact |
-| Wavelength | 0.01 nm | �
+| Wavelength | 0.01 nm | 

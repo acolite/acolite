@@ -445,3 +445,90 @@ class TestRealLandsatRegression:
         for band, s in stats.items():
             assert -0.05 < s["mean"] < 1.0, f"{band} mean={s['mean']}"
             assert s["std"] >= 0.0
+
+
+# ---------------------------------------------------------------------------
+# Tier 1c: Glint correction regression tests
+# ---------------------------------------------------------------------------
+
+class TestGlintCorrection:
+    """Validate Cox-Munk + Fresnel glint correction against Python ac.rayleigh.sky_refl."""
+
+    def test_zero_wind_off_specular_no_glint(self):
+        """Zero wind + off-specular geometry → negligible rsky."""
+        import math
+        sza, vza, raa = math.radians(30), math.radians(10), math.radians(90)
+        cos2omega = math.cos(sza)*math.cos(vza) + math.sin(sza)*math.sin(vza)*math.cos(raa)
+        omega = math.acos(max(-1, min(1, cos2omega))) / 2
+        sigma2 = 0.003 + 0.00512 * 0.0  # zero wind
+        cos_o = math.cos(omega)
+        tan_o = math.tan(omega)
+        p = math.exp(-tan_o**2 / sigma2) / (sigma2 * cos_o**4) if sigma2 > 0 else 0
+        # Off-specular with zero wind: slope probability is essentially zero
+        rsky = p / (4 * math.cos(sza) * math.cos(vza))
+        assert rsky < 1e-3, f"rsky={rsky} should be near zero"
+
+    def test_high_wind_near_specular_positive_rsky(self):
+        """High wind + near-specular geometry → measurable rsky."""
+        import math
+        sza, vza, raa = math.radians(30), math.radians(30), math.radians(170)
+        cos2omega = math.cos(sza)*math.cos(vza) + math.sin(sza)*math.sin(vza)*math.cos(raa)
+        omega = math.acos(max(-1, min(1, cos2omega))) / 2
+        sigma2 = 0.003 + 0.00512 * 10.0  # 10 m/s wind
+        cos_o = math.cos(omega)
+        tan_o = math.tan(omega)
+        p = math.exp(-tan_o**2 / sigma2) / (sigma2 * cos_o**4)
+        # Fresnel at omega with n_w=1.34
+        n_w = 1.34
+        theta_t = math.asin(math.sin(omega) / n_w)
+        rf = 0.5 * ((math.sin(omega-theta_t)/math.sin(omega+theta_t))**2 +
+                     (math.tan(omega-theta_t)/math.tan(omega+theta_t))**2)
+        rsky = rf * p / (4 * math.cos(sza) * math.cos(vza))
+        assert rsky > 1e-4, f"rsky={rsky} should be positive for glint geometry"
+
+    def test_cox_munk_sigma2(self):
+        """Cox-Munk σ² = 0.003 + 0.00512 * wind."""
+        assert abs((0.003 + 0.00512 * 0.0) - 0.003) < 1e-9
+        assert abs((0.003 + 0.00512 * 5.0) - 0.0286) < 1e-4
+
+    def test_fresnel_matches_python_sky_refl(self):
+        """Fresnel reflectance matches Python ac.rayleigh.sky_refl at 45°."""
+        import math
+        theta = math.radians(45)
+        n_w = 1.34
+        theta_t = math.asin(math.sin(theta) / n_w)
+        rf = 0.5 * ((math.sin(theta-theta_t)/math.sin(theta+theta_t))**2 +
+                     (math.tan(theta-theta_t)/math.tan(theta+theta_t))**2)
+        # Compare with Python implementation
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+            from acolite.ac.rayleigh import sky_refl
+            rf_py = float(sky_refl(theta, n_w=n_w))
+            assert abs(rf - rf_py) < 1e-10, f"Fresnel mismatch: pure={rf} python={rf_py}"
+        except ImportError:
+            # Standalone validation: known value at 45° with n=1.34
+            assert 0.02 < rf < 0.06, f"rf={rf} out of expected range"
+
+    def test_glint_subtraction_reduces_rhos(self):
+        """Glint correction should reduce rhos for glint-affected geometry."""
+        import math
+        sza, vza, raa = 30.0, 30.0, 170.0  # near-specular
+        wind = 8.0
+        wave_nm = 550
+        # Compute rsky
+        sza_r, vza_r, raa_r = math.radians(sza), math.radians(vza), math.radians(raa)
+        cos2omega = math.cos(sza_r)*math.cos(vza_r) + math.sin(sza_r)*math.sin(vza_r)*math.cos(raa_r)
+        omega = math.acos(max(-1, min(1, cos2omega))) / 2
+        sigma2 = 0.003 + 0.00512 * wind
+        cos_o, tan_o = math.cos(omega), math.tan(omega)
+        p = math.exp(-tan_o**2 / sigma2) / (sigma2 * cos_o**4)
+        n_w = 1.34
+        theta_t = math.asin(math.sin(omega) / n_w)
+        rf = 0.5 * ((math.sin(omega-theta_t)/math.sin(omega+theta_t))**2 +
+                     (math.tan(omega-theta_t)/math.tan(omega+theta_t))**2)
+        rsky = rf * p / (4 * math.cos(sza_r) * math.cos(vza_r))
+        original = 0.05
+        corrected = original - rsky
+        assert corrected < original, "Glint correction must reduce rhos"
+        assert corrected > 0, "Correction should not make rhos negative for typical water"

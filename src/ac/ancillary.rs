@@ -142,15 +142,21 @@ pub fn get(dt: &DateTime<Utc>, _lon: f64, _lat: f64, local_dir: Option<&Path>) -
     // Try to interpolate from downloaded GMAO MET NetCDF files
     #[cfg(feature = "netcdf")]
     {
-        let met_files: Vec<&PathBuf> = files.iter().filter(|f| {
-            f.to_string_lossy().contains("GMAO_MERRA2") && f.to_string_lossy().ends_with(".nc")
-        }).collect();
+        let met_files: Vec<&PathBuf> = files
+            .iter()
+            .filter(|f| {
+                f.to_string_lossy().contains("GMAO_MERRA2") && f.to_string_lossy().ends_with(".nc")
+            })
+            .collect();
         if let Some(anc) = interpolate_met(&met_files, _lon, _lat, dt) {
             return anc;
         }
     }
 
-    log::info!("Ancillary files downloaded ({}); using default values", files.len());
+    log::info!(
+        "Ancillary files downloaded ({}); using default values",
+        files.len()
+    );
     Ancillary::default()
 }
 
@@ -178,7 +184,9 @@ fn interpolate_met(
 
     let pressure = read_2d_val(&nc, "PS", iy, ix).map(|v| v / 100.0)?; // Pa → hPa
     let uwv = read_2d_val(&nc, "TQV", iy, ix).unwrap_or(1.5); // kg/m² ≈ g/cm² (close enough)
-    let uoz = read_2d_val(&nc, "TO3", iy, ix).map(|v| v / 1000.0).unwrap_or(0.3); // DU → cm-atm
+    let uoz = read_2d_val(&nc, "TO3", iy, ix)
+        .map(|v| v / 1000.0)
+        .unwrap_or(0.3); // DU → cm-atm
 
     let u10 = read_2d_val(&nc, "U10M", iy, ix).unwrap_or(0.0);
     let v10 = read_2d_val(&nc, "V10M", iy, ix).unwrap_or(0.0);
@@ -204,7 +212,12 @@ fn interpolate_met(
         }
     }
 
-    Some(Ancillary { uoz, uwv, pressure, wind })
+    Some(Ancillary {
+        uoz,
+        uwv,
+        pressure,
+        wind,
+    })
 }
 
 #[cfg(feature = "netcdf")]
@@ -216,9 +229,7 @@ fn avg(a: f64, b: f64) -> f64 {
 fn nearest_idx(arr: &[f64], val: f64) -> usize {
     arr.iter()
         .enumerate()
-        .min_by(|(_, a), (_, b)| {
-            (*a - val).abs().partial_cmp(&(*b - val).abs()).unwrap()
-        })
+        .min_by(|(_, a), (_, b)| (*a - val).abs().partial_cmp(&(*b - val).abs()).unwrap())
         .map(|(i, _)| i)
         .unwrap_or(0)
 }
@@ -235,7 +246,8 @@ fn read_2d_val(nc: &netcdf::File, name: &str, iy: usize, ix: usize) -> Option<f6
     // GMAO MET shape is typically (1, lat, lon) or (lat, lon)
     let ndim = var.dimensions().len();
     let vals: Vec<f64> = if ndim == 3 {
-        var.get_values::<f64, _>((0..1, iy..iy + 1, ix..ix + 1)).ok()?
+        var.get_values::<f64, _>((0..1, iy..iy + 1, ix..ix + 1))
+            .ok()?
     } else {
         var.get_values::<f64, _>((iy..iy + 1, ix..ix + 1)).ok()?
     };
