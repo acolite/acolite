@@ -149,7 +149,7 @@ NEXT_TASKS = {
         ),
     },
     "roi": {
-        "short": "Implement --limit ROI subsetting for all loaders",
+        "short": "Implement limit=[S,W,N,E] ROI subsetting for all loaders",
         "detail": (
             "Add limit=[S,W,N,E] parameter to all three loaders and to src/main.rs CLI. "
             "Landsat/S2 (GeoTIFF): use GDAL windowed reads — compute pixel window from "
@@ -258,6 +258,30 @@ COMMANDS = (
     "cargo bench --bench performance"
 )
 
+# Dash-free versions for /compact output (Kiro rejects - and -- in the prompt)
+PHYSICS_COMPACT = (
+    "rhos=(rhot/tt_gas minus romix)/(dutott+astot*(rhot/tt_gas minus romix)) | "
+    "DSF=intercept(200px darkest) | wave_range=(400,900)nm | tgas_min=0.85 | "
+    "AOT=min RMSD model selection | NaN when ds<romix(tau_min)"
+)
+
+CONVENTIONS_COMPACT = (
+    "thiserror errors; no unwrap() in lib; rayon parallel (deterministic); "
+    "f32 pipeline; feature=full_io gates NetCDF; "
+    "COG(50 bands or fewer) / GeoZarr V3(more than 50 bands); "
+    "band naming: rhot_443 / rhos_443 (nm suffix)"
+)
+
+TOLERANCES_COMPACT = (
+    "rho_t exact(1e-6) | rho_s<0.002 | AOT<0.001 | Pearson R>0.999 | lat/lon exact(1e-8)"
+)
+
+COMMANDS_COMPACT = (
+    "cargo test (features=full_io) | "
+    "pytest tests/regression/ | "
+    "cargo bench"
+)
+
 
 def build_done_block(state: dict) -> str:
     loaders_done = [s for s, v in state["loaders"].items() if v]
@@ -294,24 +318,28 @@ def build_compact_prompt(state: dict) -> str:
     """Build a /compact slash-command prompt preserving critical roadmap state.
 
     Paste the output directly into a Kiro chat session when the context
-    window is getting full.  The preservation instruction is ~400 tokens
-    so it survives any compaction budget.
+    window is getting full.  All dashes are removed from the preservation
+    block because Kiro's /compact command rejects - and -- in the prompt.
     """
     loaders_done = [s for s, v in state["loaders"].items() if v]
     ac_done      = [m for m, v in state["ac_modules"].items() if v]
     writers_done = [w for w, v in state["writers"].items() if v]
 
     extras = []
-    if state["ancillary_wired"]: extras.append("ancillary-wired")
-    if state["roi_wired"]:       extras.append("roi-limit")
-    if state["l2w_exists"]:      extras.append("l2w-chl_oc3")
-    if state["perf_ci"]:         extras.append("perf-ci")
+    if state["ancillary_wired"]: extras.append("ancillary_wired")
+    if state["roi_wired"]:       extras.append("roi_limit")
+    if state["l2w_exists"]:      extras.append("l2w_chl_oc3")
+    if state["perf_ci"]:         extras.append("perf_ci")
+
+    # Replace any residual hyphens in sensor/module names with underscores
+    def nodash(s: str) -> str:
+        return s.replace("-", "_")
 
     done_line = (
-        f"loaders({','.join(loaders_done) or 'none'}) | "
-        f"ac({','.join(ac_done) or 'none'}) | "
-        f"writers({','.join(writers_done) or 'none'}) | "
-        f"{','.join(extras) or 'no-extras'} | "
+        f"loaders({','.join(nodash(s) for s in loaders_done) or 'none'}) | "
+        f"ac({','.join(nodash(m) for m in ac_done) or 'none'}) | "
+        f"writers({','.join(nodash(w) for w in writers_done) or 'none'}) | "
+        f"{','.join(extras) or 'no_extras'} | "
         f"{state['rust_tests']}Rust+{state['python_tests']}Py tests"
     )
 
@@ -319,17 +347,17 @@ def build_compact_prompt(state: dict) -> str:
     next_lines = []
     for i, key in enumerate(pending[:5], 1):
         t = NEXT_TASKS[key]
-        next_lines.append(f"NEXT[{i}] {key}: {t['short']}.")
+        next_lines.append(f"NEXT[{i}] {nodash(key)}: {t['short']}.")
 
     lines = [
         "/compact Keep:",
-        f"ACOLITE-RS Rust port of Python ACOLITE atmospheric correction.",
+        "ACOLITE-RS Rust port of Python ACOLITE atmospheric correction.",
         f"DONE: {done_line}",
-        f"PHYSICS: {PHYSICS}",
-        f"CONVENTIONS: {CONVENTIONS}",
-        f"TOLERANCES: {TOLERANCES}",
+        f"PHYSICS: {PHYSICS_COMPACT}",
+        f"CONVENTIONS: {CONVENTIONS_COMPACT}",
+        f"TOLERANCES: {TOLERANCES_COMPACT}",
     ] + next_lines + [
-        f"VERIFY: cargo test --features full-io && pytest tests/regression/ -v",
+        f"VERIFY: cargo test (features=full_io) && pytest tests/regression/",
     ]
     return "\n".join(lines)
 
