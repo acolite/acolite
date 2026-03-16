@@ -32,28 +32,30 @@ pub type SubsetSpec = (usize, usize, usize, usize);
 /// Optionally subset with `limit` as [south, west, north, east].
 #[cfg(feature = "netcdf")]
 pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene> {
-    let file = netcdf::open(path)
-        .map_err(|e| AcoliteError::NetCdf(format!("Open {:?}: {}", path, e)))?;
+    let file =
+        netcdf::open(path).map_err(|e| AcoliteError::NetCdf(format!("Open {:?}: {}", path, e)))?;
 
     // Read global attributes for sensor/time
     let platform = read_attr_string(&file, "platform").unwrap_or_else(|| "PACE".into());
     let instrument = read_attr_string(&file, "instrument").unwrap_or_else(|| "OCI".into());
     let sensor = format!("{}_{}", platform, instrument);
-    let isodate = read_attr_string(&file, "time_coverage_start")
-        .unwrap_or_else(|| Utc::now().to_rfc3339());
+    let isodate =
+        read_attr_string(&file, "time_coverage_start").unwrap_or_else(|| Utc::now().to_rfc3339());
     let datetime = chrono::DateTime::parse_from_rfc3339(&isodate)
         .map(|dt| dt.with_timezone(&Utc))
         .unwrap_or_else(|_| Utc::now());
 
     let processing_level = read_attr_string(&file, "processing_level").unwrap_or_default();
     if processing_level != "L1B" {
-        return Err(AcoliteError::Processing(
-            format!("Expected L1B, got '{}'", processing_level),
-        ));
+        return Err(AcoliteError::Processing(format!(
+            "Expected L1B, got '{}'",
+            processing_level
+        )));
     }
 
     // Read geolocation group
-    let geo = file.group("geolocation_data")
+    let geo = file
+        .group("geolocation_data")
         .map_err(|e| AcoliteError::NetCdf(format!("geolocation_data: {}", e)))?
         .ok_or_else(|| AcoliteError::NetCdf("No geolocation_data group".into()))?;
 
@@ -96,16 +98,26 @@ pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene>
     let proj = Projection::from_epsg(4326);
     let geotrans = GeoTransform::new(
         lon[[0, 0]],
-        if ncols > 1 { (lon[[0, ncols - 1]] - lon[[0, 0]]) / ncols as f64 } else { 0.01 },
+        if ncols > 1 {
+            (lon[[0, ncols - 1]] - lon[[0, 0]]) / ncols as f64
+        } else {
+            0.01
+        },
         lat[[0, 0]],
-        if nrows > 1 { (lat[[nrows - 1, 0]] - lat[[0, 0]]) / nrows as f64 } else { -0.01 },
+        if nrows > 1 {
+            (lat[[nrows - 1, 0]] - lat[[0, 0]]) / nrows as f64
+        } else {
+            -0.01
+        },
     );
 
     // Read band data from all three detectors
-    let obs = file.group("observation_data")
+    let obs = file
+        .group("observation_data")
         .map_err(|e| AcoliteError::NetCdf(format!("observation_data: {}", e)))?
         .ok_or_else(|| AcoliteError::NetCdf("No observation_data group".into()))?;
-    let bp = file.group("sensor_band_parameters")
+    let bp = file
+        .group("sensor_band_parameters")
         .map_err(|e| AcoliteError::NetCdf(format!("sensor_band_parameters: {}", e)))?
         .ok_or_else(|| AcoliteError::NetCdf("No sensor_band_parameters group".into()))?;
 
@@ -123,7 +135,8 @@ pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene>
         };
 
         // Bulk-read entire 3D detector array at once (matching Python's approach)
-        let rhot_var = obs.variable(&rhot_name)
+        let rhot_var = obs
+            .variable(&rhot_name)
             .ok_or_else(|| AcoliteError::NetCdf(format!("Missing {}", rhot_name)))?;
         let dims = rhot_var.dimensions();
         if dims.len() != 3 {
@@ -148,10 +161,18 @@ pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene>
 
         let pixels_per_band = sub_rows * sub_cols;
         for wi in 0..nbands_det {
-            if wi >= wavelengths.len() { break; }
+            if wi >= wavelengths.len() {
+                break;
+            }
             let wave = wavelengths[wi];
-            if !wave.is_finite() { continue; }
-            let bw = if wi < bandwidths.len() { bandwidths[wi] } else { 5.0 };
+            if !wave.is_finite() {
+                continue;
+            }
+            let bw = if wi < bandwidths.len() {
+                bandwidths[wi]
+            } else {
+                5.0
+            };
 
             // Slice from bulk array
             let offset = wi * pixels_per_band;
@@ -162,14 +183,35 @@ pub fn load_pace_l1b(path: &Path, limit: Option<&[f64; 4]>) -> Result<PaceScene>
             let data = flip_ud_f32(&data);
 
             let name = format!("rhot_{}_{:.0}", det, wave);
-            bands.push(BandData::new(data, wave as f64, bw as f64, name, proj.clone(), geotrans.clone()));
+            bands.push(BandData::new(
+                data,
+                wave as f64,
+                bw as f64,
+                name,
+                proj.clone(),
+                geotrans.clone(),
+            ));
         }
         log::info!("Read {} bands from {} detector", nbands_det, det);
     }
 
-    log::info!("Loaded PACE OCI: {} bands, {}×{} pixels", bands.len(), nrows, ncols);
+    log::info!(
+        "Loaded PACE OCI: {} bands, {}×{} pixels",
+        bands.len(),
+        nrows,
+        ncols
+    );
 
-    Ok(PaceScene { metadata, bands, lat, lon, sza, saa, vza, vaa })
+    Ok(PaceScene {
+        metadata,
+        bands,
+        lat,
+        lon,
+        sza,
+        saa,
+        vza,
+        vaa,
+    })
 }
 
 // --- Helper functions ---
@@ -186,25 +228,33 @@ fn read_attr_string(file: &netcdf::File, name: &str) -> Option<String> {
 
 #[cfg(feature = "netcdf")]
 fn read_2d_f64(group: &netcdf::Group, name: &str) -> Result<Array2<f64>> {
-    let var = group.variable(name)
+    let var = group
+        .variable(name)
         .ok_or_else(|| AcoliteError::NetCdf(format!("Missing {}", name)))?;
     let dims = var.dimensions();
     let (nrows, ncols) = (dims[0].len(), dims[1].len());
-    let data: Vec<f64> = var.get_values(..)
+    let data: Vec<f64> = var
+        .get_values(..)
         .map_err(|e| AcoliteError::NetCdf(format!("Read {}: {}", name, e)))?;
     Array2::from_shape_vec((nrows, ncols), data)
         .map_err(|e| AcoliteError::Processing(format!("Shape {}: {}", name, e)))
 }
 
 #[cfg(feature = "netcdf")]
-fn read_geo_f32(group: &netcdf::Group, name: &str, sub: &Option<SubsetSpec>) -> Result<Array2<f32>> {
-    let var = group.variable(name)
+fn read_geo_f32(
+    group: &netcdf::Group,
+    name: &str,
+    sub: &Option<SubsetSpec>,
+) -> Result<Array2<f32>> {
+    let var = group
+        .variable(name)
         .ok_or_else(|| AcoliteError::NetCdf(format!("Missing {}", name)))?;
     let dims = var.dimensions();
     let (full_rows, full_cols) = (dims[0].len(), dims[1].len());
 
     // Read scale_factor and add_offset if present
-    let scale: f32 = var.attribute("scale_factor")
+    let scale: f32 = var
+        .attribute("scale_factor")
         .and_then(|a| a.value().ok())
         .map(|v| match v {
             netcdf::AttributeValue::Float(f) => f,
@@ -212,7 +262,8 @@ fn read_geo_f32(group: &netcdf::Group, name: &str, sub: &Option<SubsetSpec>) -> 
             _ => 1.0,
         })
         .unwrap_or(1.0);
-    let offset: f32 = var.attribute("add_offset")
+    let offset: f32 = var
+        .attribute("add_offset")
         .and_then(|a| a.value().ok())
         .map(|v| match v {
             netcdf::AttributeValue::Float(f) => f,
@@ -222,11 +273,13 @@ fn read_geo_f32(group: &netcdf::Group, name: &str, sub: &Option<SubsetSpec>) -> 
         .unwrap_or(0.0);
 
     let (data, nrows, ncols) = if let Some(s) = sub {
-        let d: Vec<f32> = var.get_values((s.0..s.0 + s.2, s.1..s.1 + s.3))
+        let d: Vec<f32> = var
+            .get_values((s.0..s.0 + s.2, s.1..s.1 + s.3))
             .map_err(|e| AcoliteError::NetCdf(format!("Read {}: {}", name, e)))?;
         (d, s.2, s.3)
     } else {
-        let d: Vec<f32> = var.get_values((0..full_rows, 0..full_cols))
+        let d: Vec<f32> = var
+            .get_values((0..full_rows, 0..full_cols))
             .map_err(|e| AcoliteError::NetCdf(format!("Read {}: {}", name, e)))?;
         (d, full_rows, full_cols)
     };
@@ -244,7 +297,8 @@ fn read_geo_f32(group: &netcdf::Group, name: &str, sub: &Option<SubsetSpec>) -> 
 
 #[cfg(feature = "netcdf")]
 fn read_1d_f32(group: &netcdf::Group, name: &str) -> Result<Vec<f32>> {
-    let var = group.variable(name)
+    let var = group
+        .variable(name)
         .ok_or_else(|| AcoliteError::NetCdf(format!("Missing {}", name)))?;
     var.get_values(..)
         .map_err(|e| AcoliteError::NetCdf(format!("Read {}: {}", name, e)))
@@ -275,14 +329,17 @@ fn find_subset(lat: &Array2<f64>, lon: &Array2<f64>, limit: &[f64; 4]) -> Option
 }
 
 fn subset_2d(arr: &Array2<f64>, sub: &SubsetSpec) -> Array2<f64> {
-    arr.slice(ndarray::s![sub.0..sub.0 + sub.2, sub.1..sub.1 + sub.3]).to_owned()
+    arr.slice(ndarray::s![sub.0..sub.0 + sub.2, sub.1..sub.1 + sub.3])
+        .to_owned()
 }
 
 fn flip_ud(arr: &Array2<f64>) -> Array2<f64> {
     let n = arr.nrows();
     let mut out = arr.clone();
     for i in 0..n / 2 {
-        for j in 0..out.ncols() { out.swap([i, j], [n - 1 - i, j]); }
+        for j in 0..out.ncols() {
+            out.swap([i, j], [n - 1 - i, j]);
+        }
     }
     out
 }
@@ -291,7 +348,9 @@ fn flip_ud_f32(arr: &Array2<f32>) -> Array2<f32> {
     let n = arr.nrows();
     let mut out = arr.clone();
     for i in 0..n / 2 {
-        for j in 0..out.ncols() { out.swap([i, j], [n - 1 - i, j]); }
+        for j in 0..out.ncols() {
+            out.swap([i, j], [n - 1 - i, j]);
+        }
     }
     out
 }

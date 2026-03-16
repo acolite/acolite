@@ -1,8 +1,8 @@
 //! Gas correction (ozone and water vapor)
 
-use ndarray::Array2;
-use crate::Result;
 use crate::ac::lut::interp_lut_1d;
+use crate::Result;
+use ndarray::Array2;
 
 /// Ozone absorption coefficient (k_o3) from Anderson et al.
 const K_O3_WAVELENGTHS: [f64; 7] = [400.0, 450.0, 500.0, 550.0, 600.0, 650.0, 700.0];
@@ -35,24 +35,24 @@ pub fn gas_correction(
     view_zenith: f64,
 ) -> Array2<f64> {
     let airmass = 1.0 / sun_zenith.to_radians().cos() + 1.0 / view_zenith.to_radians().cos();
-    
+
     let t_o3 = ozone_transmittance(wavelength, ozone, airmass);
     let t_wv = water_vapor_transmittance(wavelength, water_vapor, airmass);
     let t_gas = t_o3 * t_wv;
-    
+
     toa.mapv(|v| v / t_gas)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_ozone_transmittance() {
         let t = ozone_transmittance(500.0, 0.3, 2.0);
         assert!(t > 0.0 && t <= 1.0);
     }
-    
+
     #[test]
     fn test_water_vapor_transmittance() {
         let t = water_vapor_transmittance(940.0, 2.0, 2.0);

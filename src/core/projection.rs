@@ -17,7 +17,7 @@ impl Projection {
             proj4: None,
         }
     }
-    
+
     pub fn from_wkt(wkt: String) -> Self {
         Self {
             epsg: None,
@@ -25,12 +25,12 @@ impl Projection {
             proj4: None,
         }
     }
-    
+
     pub fn to_wkt(&self) -> String {
         if let Some(ref wkt) = self.wkt {
             return wkt.clone();
         }
-        
+
         if let Some(epsg) = self.epsg {
             // Simple WKT for common EPSG codes
             match epsg {
@@ -41,7 +41,7 @@ impl Projection {
             String::new()
         }
     }
-    
+
     pub fn is_geographic(&self) -> bool {
         self.epsg.map(|e| e == 4326).unwrap_or(false)
     }

@@ -1,7 +1,7 @@
 //! Band data structures
 
-use ndarray::Array2;
 use crate::core::Projection;
+use ndarray::Array2;
 
 #[derive(Debug, Clone)]
 pub struct GeoTransform {
@@ -24,7 +24,7 @@ impl GeoTransform {
             pixel_height,
         }
     }
-    
+
     pub fn pixel_to_geo(&self, x: usize, y: usize) -> (f64, f64) {
         let geo_x = self.x_origin + (x as f64) * self.pixel_width;
         let geo_y = self.y_origin + (y as f64) * self.pixel_height;
@@ -60,15 +60,15 @@ impl<T: Clone> BandData<T> {
             geotransform,
         }
     }
-    
+
     pub fn shape(&self) -> (usize, usize) {
         (self.data.nrows(), self.data.ncols())
     }
-    
+
     pub fn width(&self) -> usize {
         self.data.ncols()
     }
-    
+
     pub fn height(&self) -> usize {
         self.data.nrows()
     }

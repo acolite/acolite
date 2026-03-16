@@ -1,7 +1,7 @@
 //! File download — single implementation supporting EarthData and AWS
 
-use crate::{Result, AcoliteError};
 use crate::auth::Credentials;
+use crate::{AcoliteError, Result};
 use std::path::Path;
 
 /// Download a file with EarthData authentication
@@ -21,7 +21,9 @@ pub fn download_file(url: &str, output: &Path, creds: &Credentials) -> Result<()
     let request = if let Some(token) = creds.token() {
         client.get(url).bearer_auth(token)
     } else {
-        client.get(url).basic_auth(&creds.username, Some(creds.password()))
+        client
+            .get(url)
+            .basic_auth(&creds.username, Some(creds.password()))
     };
 
     let response = request
@@ -29,7 +31,10 @@ pub fn download_file(url: &str, output: &Path, creds: &Credentials) -> Result<()
         .map_err(|e| AcoliteError::Processing(format!("Download failed: {}", e)))?;
 
     if !response.status().is_success() {
-        return Err(AcoliteError::Processing(format!("HTTP {}", response.status())));
+        return Err(AcoliteError::Processing(format!(
+            "HTTP {}",
+            response.status()
+        )));
     }
 
     let bytes = response
@@ -48,11 +53,7 @@ pub fn download_file(url: &str, output: &Path, creds: &Credentials) -> Result<()
 }
 
 /// Download from AWS S3 using CLI (for Requester Pays buckets)
-pub fn download_s3_requester_pays(
-    s3_url: &str,
-    output: &Path,
-    profile: &str,
-) -> Result<()> {
+pub fn download_s3_requester_pays(s3_url: &str, output: &Path, profile: &str) -> Result<()> {
     if output.exists() {
         log::info!("Cached: {:?}", output);
         return Ok(());
@@ -64,17 +65,23 @@ pub fn download_s3_requester_pays(
 
     let status = std::process::Command::new("aws")
         .args([
-            "s3", "cp",
+            "s3",
+            "cp",
             s3_url,
             output.to_str().unwrap_or_default(),
-            "--request-payer", "requester",
-            "--profile", profile,
+            "--request-payer",
+            "requester",
+            "--profile",
+            profile,
         ])
         .status()
         .map_err(|e| AcoliteError::Processing(format!("aws cli: {}", e)))?;
 
     if !status.success() {
-        return Err(AcoliteError::Processing(format!("aws s3 cp failed for {}", s3_url)));
+        return Err(AcoliteError::Processing(format!(
+            "aws s3 cp failed for {}",
+            s3_url
+        )));
     }
 
     let size = std::fs::metadata(output).map_err(AcoliteError::Io)?.len();

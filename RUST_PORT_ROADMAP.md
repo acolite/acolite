@@ -7,8 +7,8 @@ src/
 ├── auth/           # Secure credentials (.netrc, env vars, config)
 │   └── credentials.rs
 ├── loader/         # INPUT: Read satellite data
-│   ├── geotiff.rs  # GDAL-based GeoTIFF reader
-│   ├── landsat.rs  # Landsat L1 scene loader
+│   ├── geotiff.rs  # GDAL/tiff GeoTIFF reader (GDAL optional)
+│   ├── landsat.rs  # Landsat L1 scene loader + MTL integration
 │   ├── sentinel2.rs # S2 SAFE JP2 loader + radiometric calibration
 │   ├── pace.rs     # PACE OCI L1B NetCDF reader
 │   └── source/     # Remote data access
@@ -16,6 +16,7 @@ src/
 │       ├── stac.rs     # STAC search
 │       └── download.rs # Download (EarthData + AWS S3)
 ├── ac/             # PROCESSING: Atmospheric correction
+│   ├── ancillary.rs # OBPG ancillary download (ozone, met, pressure, wind)
 │   ├── aerlut.rs   # Aerosol LUT reader (sensor-specific 6SV NetCDF)
 │   ├── dsf.rs      # DSF: dark spectrum, AOT inversion, model selection, correction
 │   ├── gas_lut.rs  # Gas transmittance (O₃, H₂O, CO₂, O₂ from LUTs + RSR)
@@ -105,15 +106,15 @@ Full regression strategy is documented in [REGRESSION_TESTING_ROADMAP.md](REGRES
 
 | Suite | Tests | Command |
 |-------|-------|---------|
-| Unit tests | 26 | `cargo test --features full-io` |
+| Unit tests | 29 | `cargo test --lib` |
 | Integration tests | 8 | `cargo test --test integration_tests` |
 | E2E tests | 14 (+1 pre-existing failure) | `cargo test --features full-io` |
 
-### Python ↔ Rust Regression Tests (141 total)
+### Python ↔ Rust Regression Tests (151 total)
 
 | Test file | Sensor | Tests | Command |
 |-----------|--------|-------|---------|
-| test_landsat_regression.py | Landsat 8/9 | 13 | `pytest tests/regression/test_landsat_regression.py -v` |
+| test_landsat_regression.py | Landsat 8/9 | 23 | `pytest tests/regression/test_landsat_regression.py -v` |
 | test_landsat_rust_vs_python.py | Landsat 8/9 | 13 | `pytest tests/regression/test_landsat_rust_vs_python.py -v -s` |
 | test_benchmark_rust_vs_python.py | Landsat 8/9 | 7 | `pytest tests/regression/test_benchmark_rust_vs_python.py -v -s` |
 | test_sentinel2_regression.py | Sentinel-2 | 19 | `pytest tests/regression/test_sentinel2_regression.py -v` |
@@ -163,8 +164,8 @@ pytest tests/regression/ -v --runslow \
 
 ## Current State
 
-- **48 Rust tests** (26 unit + 8 integration + 14 e2e)
-- **141 Python regression tests**
+- **51 Rust tests** (29 unit + 8 integration + 14 e2e)
+- **151 Python regression tests**
 - **6 examples** (Landsat, Landsat AWS, PACE, Sentinel-2, Sentinel-2 AC, Sentinel-3)
 - **Clean architecture**: loader → ac → writer
 - **Dual output**: GeoZarr (hyperspectral) + COG (multi/superspectral)
@@ -287,6 +288,12 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 - [x] Fixed DSF — whole-scene dark spectrum, single AOT
 - [x] Surface reflectance correction — `rhos = (rhot/tt_gas - romix) / (dutott + astot*(rhot/tt_gas - romix))`
 - [x] Multi-model selection — MOD1 (Continental) + MOD2 (Maritime), min RMSD
+- [x] Ancillary data download — OBPG ozone + GMAO MERRA2 MET via EarthData
+- [x] Ancillary-aware pipeline — ProcessingConfig.from_ancillary() with pressure/ozone/wv
+- [x] Landsat MTL integration — load_landsat_scene() auto-parses MTL for geometry
+- [x] Landsat reflectance coefficients — parse_reflectance_coeffs() from MTL
+- [x] STAC Landsat download — search_landsat_c2() + download_stac_landsat()
+- [x] GDAL optional — tiff-crate fallback when gdal-support feature disabled
 
 ### Phase C: Validation
 - [x] Landsat 8/9 Rust vs Python — R>0.998, RMSE<0.02
@@ -308,7 +315,9 @@ Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 ### Phase E — Production Hardening (remaining)
 - [ ] ROI subsetting (limit parameter)
 - [ ] Interface reflectance (rsky)
-- [ ] Ancillary data (NCEP ozone/pressure/wind)
+- [x] Ancillary data download (OBPG ozone/met via EarthData)
+- [x] Ancillary-aware ProcessingConfig (pressure, ozone, water vapour from downloads)
+- [ ] Ancillary data interpolation (HDF/NetCDF spatial+temporal interp)
 - [ ] DEM-derived pressure
 - [ ] Glint correction
 - [ ] Streaming processing for large scenes

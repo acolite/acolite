@@ -5,7 +5,7 @@
 //! 2. .netrc file (Python ACOLITE standard)
 //! 3. Config file (~/.acolite/credentials.txt)
 
-use crate::{Result, AcoliteError};
+use crate::{AcoliteError, Result};
 use std::path::PathBuf;
 use zeroize::Zeroize;
 
@@ -39,14 +39,21 @@ impl Credentials {
         Self::from_env()
             .or_else(|_| Self::from_netrc())
             .or_else(|_| Self::from_config())
-            .map_err(|_| AcoliteError::Config(
-                "No EarthData credentials found. Set EARTHDATA_u/EARTHDATA_p, \
-                 add 'machine earthdata' to ~/.netrc, or create ~/.acolite/credentials.txt".into()
-            ))
+            .map_err(|_| {
+                AcoliteError::Config(
+                    "No EarthData credentials found. Set EARTHDATA_u/EARTHDATA_p, \
+                 add 'machine earthdata' to ~/.netrc, or create ~/.acolite/credentials.txt"
+                        .into(),
+                )
+            })
     }
 
-    pub fn password(&self) -> &str { &self.password }
-    pub fn token(&self) -> Option<&str> { self.token.as_deref() }
+    pub fn password(&self) -> &str {
+        &self.password
+    }
+    pub fn token(&self) -> Option<&str> {
+        self.token.as_deref()
+    }
 
     fn from_env() -> Result<Self> {
         Ok(Self {
@@ -61,8 +68,8 @@ impl Credentials {
         let path = dirs::home_dir()
             .ok_or_else(|| AcoliteError::Config("no home".into()))?
             .join(".netrc");
-        let content = std::fs::read_to_string(&path)
-            .map_err(|_| AcoliteError::Config("no .netrc".into()))?;
+        let content =
+            std::fs::read_to_string(&path).map_err(|_| AcoliteError::Config("no .netrc".into()))?;
 
         let mut found = false;
         let (mut user, mut pass) = (None, None);
@@ -90,20 +97,31 @@ impl Credentials {
             dirs::home_dir().map(|h| h.join(".acolite/credentials.txt")),
             Some(PathBuf::from("config/credentials.txt")),
             dirs::home_dir().map(|h| h.join(".easi-workflows-auth.conf")),
-        ].into_iter().flatten() {
-            if let Ok(c) = Self::parse_ini(&path) { return Ok(c); }
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if let Ok(c) = Self::parse_ini(&path) {
+                return Ok(c);
+            }
         }
         Err(AcoliteError::Config("no config file".into()))
     }
 
     fn parse_ini(path: &PathBuf) -> Result<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|_| AcoliteError::Config("unreadable".into()))?;
+        let content =
+            std::fs::read_to_string(path).map_err(|_| AcoliteError::Config("unreadable".into()))?;
         let (mut user, mut pass, mut tok, mut in_sec) = (None, None, None, false);
         for line in content.lines() {
             let line = line.trim();
-            if line == "[earthdata]" { in_sec = true; continue; }
-            if line.starts_with('[') { in_sec = false; continue; }
+            if line == "[earthdata]" {
+                in_sec = true;
+                continue;
+            }
+            if line.starts_with('[') {
+                in_sec = false;
+                continue;
+            }
             if in_sec {
                 if let Some((k, v)) = line.split_once(':') {
                     match k.trim() {
@@ -147,8 +165,10 @@ mod tests {
     #[test]
     fn test_debug_redacts() {
         let c = Credentials {
-            username: "user".into(), password: "s3cretpass".into(),
-            token: Some("bearer_xyz".into()), source: CredentialSource::EnvVars,
+            username: "user".into(),
+            password: "s3cretpass".into(),
+            token: Some("bearer_xyz".into()),
+            source: CredentialSource::EnvVars,
         };
         let s = format!("{:?}", c);
         assert!(!s.contains("s3cretpass"));

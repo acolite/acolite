@@ -1,6 +1,6 @@
 //! CMR (Common Metadata Repository) search — single implementation
 
-use crate::{Result, AcoliteError};
+use crate::{AcoliteError, Result};
 
 /// A granule found via CMR search
 #[derive(Debug, Clone)]
@@ -19,11 +19,19 @@ pub fn search_cmr(
     let url = "https://cmr.earthdata.nasa.gov/search/granules.json";
     let params = [
         ("short_name", collection.to_string()),
-        ("bounding_box", format!("{},{},{},{}", bbox[0], bbox[1], bbox[2], bbox[3])),
+        (
+            "bounding_box",
+            format!("{},{},{},{}", bbox[0], bbox[1], bbox[2], bbox[3]),
+        ),
         ("temporal", format!("{},{}", start_date, end_date)),
         ("page_size", "50".into()),
     ];
-    log::info!("CMR search: {} [{} to {}]", collection, start_date, end_date);
+    log::info!(
+        "CMR search: {} [{} to {}]",
+        collection,
+        start_date,
+        end_date
+    );
     parse_cmr_response(do_cmr_query(url, &params)?)
 }
 
@@ -46,15 +54,17 @@ pub fn search_cmr_collection_id(
         ("temporal", temporal),
         ("page_size", "50".into()),
     ];
-    log::info!("CMR collection search: {} at ({},{})", collection_id, lat, lon);
+    log::info!(
+        "CMR collection search: {} at ({},{})",
+        collection_id,
+        lat,
+        lon
+    );
     parse_cmr_response(do_cmr_query(url, &params)?)
 }
 
 /// Search by collection_id + scene name (producerGranuleId)
-pub fn search_cmr_scene(
-    collection_id: &str,
-    scene: &str,
-) -> Result<Vec<CmrGranule>> {
+pub fn search_cmr_scene(collection_id: &str, scene: &str) -> Result<Vec<CmrGranule>> {
     let url = "https://cmr.earthdata.nasa.gov/search/granules.json";
     let params = [
         ("echo_collection_id", collection_id.to_string()),
@@ -67,7 +77,11 @@ pub fn search_cmr_scene(
 /// Ensure date string has ISO 8601 time component for CMR
 fn ensure_iso(date: &str) -> String {
     if date.contains('T') {
-        if date.ends_with('Z') { date.to_string() } else { format!("{}Z", date) }
+        if date.ends_with('Z') {
+            date.to_string()
+        } else {
+            format!("{}Z", date)
+        }
     } else {
         format!("{}T00:00:00Z", date)
     }
@@ -81,9 +95,14 @@ fn do_cmr_query(url: &str, params: &[(&str, String)]) -> Result<serde_json::Valu
         .send()
         .map_err(|e| AcoliteError::Processing(format!("CMR request failed: {}", e)))?;
     if !response.status().is_success() {
-        return Err(AcoliteError::Processing(format!("CMR HTTP {}", response.status())));
+        return Err(AcoliteError::Processing(format!(
+            "CMR HTTP {}",
+            response.status()
+        )));
     }
-    response.json().map_err(|e| AcoliteError::Processing(format!("CMR parse: {}", e)))
+    response
+        .json()
+        .map_err(|e| AcoliteError::Processing(format!("CMR parse: {}", e)))
 }
 
 fn parse_cmr_response(json: serde_json::Value) -> Result<Vec<CmrGranule>> {
@@ -104,7 +123,9 @@ fn parse_cmr_response(json: serde_json::Value) -> Result<Vec<CmrGranule>> {
                 .filter_map(|link| {
                     let href = link["href"].as_str()?;
                     if href.starts_with("http")
-                        && (href.ends_with(".nc") || href.ends_with(".h5") || href.ends_with(".zip"))
+                        && (href.ends_with(".nc")
+                            || href.ends_with(".h5")
+                            || href.ends_with(".zip"))
                     {
                         Some(href.to_string())
                     } else {
@@ -112,7 +133,11 @@ fn parse_cmr_response(json: serde_json::Value) -> Result<Vec<CmrGranule>> {
                     }
                 })
                 .collect();
-            if urls.is_empty() { None } else { Some(CmrGranule { id, urls }) }
+            if urls.is_empty() {
+                None
+            } else {
+                Some(CmrGranule { id, urls })
+            }
         })
         .collect();
 
@@ -134,12 +159,7 @@ pub mod pace_collections {
 }
 
 /// Search PACE OCI L1B via OBDAAC
-pub fn search_pace_l1b(
-    lat: f64,
-    lon: f64,
-    start: &str,
-    end: &str,
-) -> Result<Vec<CmrGranule>> {
+pub fn search_pace_l1b(lat: f64, lon: f64, start: &str, end: &str) -> Result<Vec<CmrGranule>> {
     search_cmr_collection_id(pace_collections::L1B_V3, lat, lon, start, end)
 }
 

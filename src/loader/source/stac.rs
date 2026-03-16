@@ -1,6 +1,6 @@
 //! STAC API client — single implementation
 
-use crate::{Result, AcoliteError};
+use crate::{AcoliteError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -68,14 +68,86 @@ impl StacClient {
             .map_err(|e| AcoliteError::Processing(format!("STAC search failed: {}", e)))?;
 
         if !response.status().is_success() {
-            return Err(AcoliteError::Processing(format!("STAC HTTP {}", response.status())));
+            return Err(AcoliteError::Processing(format!(
+                "STAC HTTP {}",
+                response.status()
+            )));
         }
 
         let result: SearchResponse = response
             .json()
             .map_err(|e| AcoliteError::Processing(format!("STAC parse failed: {}", e)))?;
 
-        log::info!("STAC: found {} items in {}", result.features.len(), collection);
+        log::info!(
+            "STAC: found {} items in {}",
+            result.features.len(),
+            collection
+        );
         Ok(result.features)
     }
+
+    /// Search Landsat Collection 2 Level-1 via USGS STAC
+    pub fn search_landsat_c2(
+        &self,
+        bbox: &[f64; 4],
+        datetime: &str,
+        limit: usize,
+    ) -> Result<Vec<StacItem>> {
+        self.search("landsat-c2l1", bbox, datetime, limit)
+    }
+}
+
+/// Download a Landsat scene's band assets from a STAC item to a local directory.
+/// Returns the local directory path containing the downloaded files.
+pub fn download_stac_landsat(
+    item: &StacItem,
+    output_dir: &std::path::Path,
+    band_keys: &[&str],
+) -> Result<std::path::PathBuf> {
+    let scene_dir = output_dir.join(&item.id);
+    std::fs::create_dir_all(&scene_dir).map_err(AcoliteError::Io)?;
+
+    let client = reqwest::blocking::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| AcoliteError::Processing(format!("HTTP client: {}", e)))?;
+
+    for key in band_keys {
+        let asset = match item.assets.get(*key) {
+            Some(a) => a,
+            None => {
+                log::warn!("Asset '{}' not found in STAC item {}", key, item.id);
+                continue;
+            }
+        };
+
+        let filename = asset.href.rsplit('/').next().unwrap_or(key);
+        let local_path = scene_dir.join(filename);
+
+        if local_path.exists() {
+            log::info!("Cached: {:?}", local_path);
+            continue;
+        }
+
+        log::info!("Downloading {} → {:?}", key, local_path);
+        let response = client
+            .get(&asset.href)
+            .send()
+            .map_err(|e| AcoliteError::Processing(format!("Download {}: {}", key, e)))?;
+
+        if !response.status().is_success() {
+            return Err(AcoliteError::Processing(format!(
+                "HTTP {} for asset {}",
+                response.status(),
+                key
+            )));
+        }
+
+        let bytes = response
+            .bytes()
+            .map_err(|e| AcoliteError::Processing(format!("Read {}: {}", key, e)))?;
+        std::fs::write(&local_path, bytes).map_err(AcoliteError::Io)?;
+    }
+
+    Ok(scene_dir)
 }

@@ -104,16 +104,22 @@ class ACPClient:
     Both implement the same core ACP methods: initialize, session/new,
     session/prompt, session/cancel. Responses and session/update notifications
     arrive as NDJSON lines on stdout.
+
+    agent_type: "copilot" sends protocolVersion as the date string "2025-07-09";
+                "kiro" sends protocolVersion as integer 1 (default).
     """
 
-    def __init__(self, process: subprocess.Popen, name: str = "agent"):
+    def __init__(self, process: subprocess.Popen, name: str = "agent",
+                 agent_type: str = "kiro"):
         self.process = process
         self.name = name
+        self.agent_type = agent_type  # "copilot" | "kiro"
         self._id_counter = 0
         self._lock = threading.Lock()
         self._pending: dict[str, threading.Event] = {}
         self._results: dict[str, dict] = {}
         self._session_id: Optional[str] = None
+        self._text_lock = threading.Lock()   # guards _streamed_text
         self._streamed_text: list[str] = []
         self._tool_calls: list[dict] = []
         self._reader_thread = threading.Thread(
@@ -205,7 +211,8 @@ class ACPClient:
                 if content.get("type") == "text":
                     text = content.get("text", "")
                     if text:
-                        self._streamed_text.append(text)
+                        with self._text_lock:
+                            self._streamed_text.append(text)
                         print(text, end="", flush=True)
 
             elif update_type == "tool_call":
@@ -222,9 +229,19 @@ class ACPClient:
                 log.debug("[%s] Turn ended", self.name)
 
         elif method == "session/request_permission":
-            # Auto-approve tool permission requests so agents can work
-            log.info("[%s] Permission request: %s", self.name,
-                     params.get("permissions", []))
+            # Grant all requested tool permissions so agents can work unblocked.
+            # ACP spec: respond with session/grant_permission notification
+            # carrying the same permissionId(s) from the request.
+            permissions = params.get("permissions", [])
+            permission_ids = [p.get("permissionId") for p in permissions
+                              if isinstance(p, dict) and p.get("permissionId")]
+            log.info("[%s] Permission request — granting: %s",
+                     self.name, permission_ids or permissions)
+            self._notify("session/grant_permission", {
+                "sessionId": params.get("sessionId") or self._session_id,
+                "permissionIds": permission_ids,
+                "granted": True,
+            })
 
         # Kiro custom extensions — log but don't act
         elif method.startswith("_kiro.dev/"):
@@ -237,10 +254,11 @@ class ACPClient:
 
         Copilot uses protocolVersion as a date string ("2025-07-09").
         Kiro uses protocolVersion as an integer (1).
-        We send both and let the agent pick what it understands.
+        The correct version is sent based on self.agent_type.
         """
+        protocol_version: Any = "2025-07-09" if self.agent_type == "copilot" else 1
         return self._send("initialize", {
-            "protocolVersion": 1,
+            "protocolVersion": protocol_version,
             "clientCapabilities": {
                 "fs": {"readTextFile": True, "writeTextFile": True},
                 "terminal": True,
@@ -284,8 +302,9 @@ class ACPClient:
 
     def drain_streamed_text(self) -> str:
         """Return and clear all text accumulated from session/update notifications."""
-        text = "".join(self._streamed_text)
-        self._streamed_text.clear()
+        with self._text_lock:
+            text = "".join(self._streamed_text)
+            self._streamed_text.clear()
         return text
 
     def drain_tool_calls(self) -> list[dict]:
@@ -348,9 +367,9 @@ def launch_kiro_acp(workdir: str,
 
 
 def init_acp_agent(proc: subprocess.Popen, name: str,
-                   workdir: str) -> ACPClient:
+                   workdir: str, agent_type: str = "kiro") -> ACPClient:
     """Create an ACPClient, initialize connection, and create a session."""
-    client = ACPClient(proc, name=name)
+    client = ACPClient(proc, name=name, agent_type=agent_type)
 
     init_resp = client.initialize(client_name="acolite-harness")
     if "error" in init_resp:
@@ -382,11 +401,13 @@ class Orchestrator:
     """
 
     def __init__(self, kiro: ACPClient, copilot: ACPClient,
-                 workdir: str, auto_approve: bool = False):
+                 workdir: str, auto_approve: bool = False,
+                 max_cycles: int = 10):
         self.kiro = kiro
         self.copilot = copilot
         self.workdir = workdir
         self.auto_approve = auto_approve
+        self.max_cycles = max_cycles
         self.event_log: list[dict] = []
         self._kiro_output: list[str] = []
 
@@ -424,9 +445,7 @@ class Orchestrator:
 
     def _proposal_loop(self, task_id: str, original_task: str):
         """Copilot proposes, human approves, Kiro executes."""
-        max_cycles = 10
-
-        for cycle in range(1, max_cycles + 1):
+        for cycle in range(1, self.max_cycles + 1):
             # Build context from Kiro's recent output
             context = "\n---\n".join(self._kiro_output[-5:])
             if not context.strip():
@@ -475,8 +494,8 @@ class Orchestrator:
                                 content=action[:100])
 
                 if "error" in kiro_resp:
-                    log.warning("Kiro action failed: %s", kiro_resp.get("error"))
-                    return
+                    log.warning("Kiro action failed: %s — continuing with remaining actions",
+                                kiro_resp.get("error"))
 
     def _extract_proposals(self) -> list[str]:
         """Parse ACTION: lines from Copilot's streamed ACP output."""
@@ -484,9 +503,9 @@ class Orchestrator:
         if not text:
             return []
 
-        # Check if Copilot says task is done
-        last_lines = text.strip().splitlines()[-3:]
-        if any("DONE" in line.upper() for line in last_lines):
+        # Check if Copilot says task is done — scan the full response, not just
+        # the last 3 lines, so DONE is never missed when buried mid-response.
+        if "DONE" in text.upper():
             return []
 
         actions = []
@@ -563,11 +582,21 @@ def main():
                         help="Kiro custom agent name (e.g. rust-developer)")
     parser.add_argument("--auto-approve", action="store_true",
                         help="Send proposals to Kiro without human approval")
-    parser.add_argument("--log-file", default="harness_events.jsonl",
-                        help="Event log output file")
+    parser.add_argument("--max-cycles", type=int, default=10,
+                        help="Maximum proposal cycles per task (default: 10)")
+    parser.add_argument("--log-file", default=None,
+                        help="Event log output file (default: ~/.acolite/logs/harness_events.jsonl)")
     args = parser.parse_args()
 
     workdir = str(Path(args.workdir).resolve())
+
+    # Default log file to ~/.acolite/logs/ to avoid polluting the repo tree
+    if args.log_file:
+        log_file = Path(args.log_file)
+    else:
+        log_dir = Path.home() / ".acolite" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "harness_events.jsonl"
 
     # -- Launch both ACP agents -------------------------------------------
     log.info("Starting ACP agents...")
@@ -575,8 +604,8 @@ def main():
     copilot_proc = launch_copilot_acp(workdir)
 
     try:
-        kiro = init_acp_agent(kiro_proc, "kiro", workdir)
-        copilot = init_acp_agent(copilot_proc, "copilot", workdir)
+        kiro = init_acp_agent(kiro_proc, "kiro", workdir, agent_type="kiro")
+        copilot = init_acp_agent(copilot_proc, "copilot", workdir, agent_type="copilot")
     except RuntimeError as e:
         log.error("%s", e)
         kiro_proc.terminate()
@@ -594,11 +623,13 @@ def main():
 ║  Copilot:  {'ACP stdio (copilot --acp --stdio)':<47s} ║
 ║  Agent:    {(args.kiro_agent or 'default'):<47s} ║
 ║  Approve:  {'auto' if args.auto_approve else 'manual':<47s} ║
+║  Cycles:   {str(args.max_cycles):<47s} ║
 ╚══════════════════════════════════════════════════════════╝
 """)
 
     # -- Run orchestration -------------------------------------------------
-    orch = Orchestrator(kiro, copilot, workdir, args.auto_approve)
+    orch = Orchestrator(kiro, copilot, workdir, args.auto_approve,
+                        max_cycles=args.max_cycles)
 
     try:
         final = orch.run(args.task)
@@ -607,7 +638,6 @@ def main():
         final = {"status": "canceled", "events": len(orch.event_log)}
     finally:
         # Write event log
-        log_file = Path(workdir) / args.log_file
         with open(log_file, "w") as f:
             for event in orch.event_log:
                 f.write(json.dumps(event) + "\n")

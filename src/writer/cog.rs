@@ -2,12 +2,17 @@
 
 use crate::core::{BandData, Metadata};
 use crate::{AcoliteError, Result};
+#[cfg(feature = "gdal-support")]
 use gdal::raster::Buffer;
+#[cfg(feature = "gdal-support")]
 use gdal::spatial_ref::SpatialRef;
+#[cfg(feature = "gdal-support")]
 use gdal::DriverManager;
+#[cfg(feature = "gdal-support")]
 use rayon::prelude::*;
 
 /// Write bands as parallel per-band Cloud Optimized GeoTIFFs via GDAL.
+#[cfg(feature = "gdal-support")]
 pub fn write_cog(output_path: &str, bands: &[BandData<f64>], _metadata: &Metadata) -> Result<()> {
     if bands.is_empty() {
         return Err(AcoliteError::Processing("No bands to write".into()));
@@ -40,7 +45,19 @@ pub fn write_cog(output_path: &str, bands: &[BandData<f64>], _metadata: &Metadat
     Ok(())
 }
 
+/// Stub when GDAL is not available
+#[cfg(not(feature = "gdal-support"))]
+pub fn write_cog(output_path: &str, bands: &[BandData<f64>], _metadata: &Metadata) -> Result<()> {
+    log::warn!(
+        "COG output requires gdal-support feature; skipping write to {}",
+        output_path
+    );
+    let _ = bands;
+    Ok(())
+}
+
 /// Write a single band as COG: MEM dataset → create_copy to COG driver.
+#[cfg(feature = "gdal-support")]
 fn write_band_cog(path: &str, band: &BandData<f64>) -> Result<()> {
     let (height, width) = band.data.dim();
 
@@ -101,5 +118,12 @@ fn write_band_cog(path: &str, band: &BandData<f64>) -> Result<()> {
 
 /// Check if GDAL COG driver is available.
 pub fn cog_available() -> bool {
-    DriverManager::get_driver_by_name("COG").is_ok()
+    #[cfg(feature = "gdal-support")]
+    {
+        gdal::DriverManager::get_driver_by_name("COG").is_ok()
+    }
+    #[cfg(not(feature = "gdal-support"))]
+    {
+        false
+    }
 }

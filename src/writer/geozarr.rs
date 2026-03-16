@@ -7,10 +7,10 @@
 use crate::core::{BandData, Metadata};
 use crate::{AcoliteError, Result};
 use std::sync::Arc;
-use zarrs::array::{ArrayBuilder, data_type};
 use zarrs::array::codec::GzipCodec;
-use zarrs::group::GroupBuilder;
+use zarrs::array::{data_type, ArrayBuilder};
 use zarrs::filesystem::FilesystemStore;
+use zarrs::group::GroupBuilder;
 
 /// Write bands as GeoZarr (Zarr V3 + geospatial metadata)
 ///
@@ -32,7 +32,13 @@ pub fn write_geozarr(
     let nbands = bands.len();
     let gt = &bands[0].geotransform;
 
-    log::info!("Writing GeoZarr: {} bands, {}×{} → {}", nbands, nrows, ncols, output_path);
+    log::info!(
+        "Writing GeoZarr: {} bands, {}×{} → {}",
+        nbands,
+        nrows,
+        ncols,
+        output_path
+    );
 
     let store_path = std::path::Path::new(output_path);
     if store_path.exists() {
@@ -40,7 +46,7 @@ pub fn write_geozarr(
     }
     let store = Arc::new(
         FilesystemStore::new(store_path)
-            .map_err(|e| AcoliteError::Processing(format!("Zarr store: {}", e)))?
+            .map_err(|e| AcoliteError::Processing(format!("Zarr store: {}", e)))?,
     );
 
     // Root group with GeoZarr attributes
@@ -56,16 +62,24 @@ pub fn write_geozarr(
     if let Some(epsg) = bands[0].projection.epsg {
         attrs.insert("proj:epsg".into(), epsg.into());
     }
-    attrs.insert("spatial:transform".into(), serde_json::json!([
-        gt.pixel_width, gt.x_rotation, gt.x_origin,
-        gt.y_rotation, gt.pixel_height, gt.y_origin
-    ]));
+    attrs.insert(
+        "spatial:transform".into(),
+        serde_json::json!([
+            gt.pixel_width,
+            gt.x_rotation,
+            gt.x_origin,
+            gt.y_rotation,
+            gt.pixel_height,
+            gt.y_origin
+        ]),
+    );
 
     let group = GroupBuilder::new()
         .attributes(attrs)
         .build(store.clone(), "/")
         .map_err(|e| AcoliteError::Processing(format!("Zarr group: {}", e)))?;
-    group.store_metadata()
+    group
+        .store_metadata()
         .map_err(|e| AcoliteError::Processing(format!("Zarr group metadata: {}", e)))?;
 
     let chunk_y = 512.min(nrows as u64);
@@ -75,7 +89,10 @@ pub fn write_geozarr(
     let mut data_attrs = serde_json::Map::new();
     data_attrs.insert("long_name".into(), "surface_reflectance".into());
     data_attrs.insert("units".into(), "dimensionless".into());
-    data_attrs.insert("_ARRAY_DIMENSIONS".into(), serde_json::json!(["band", "y", "x"]));
+    data_attrs.insert(
+        "_ARRAY_DIMENSIONS".into(),
+        serde_json::json!(["band", "y", "x"]),
+    );
 
     let data_array = ArrayBuilder::new(
         vec![nbands as u64, nrows as u64, ncols as u64],
@@ -90,31 +107,55 @@ pub fn write_geozarr(
     .attributes(data_attrs)
     .build(store.clone(), "/data")
     .map_err(|e| AcoliteError::Processing(format!("Zarr data array: {}", e)))?;
-    data_array.store_metadata()
+    data_array
+        .store_metadata()
         .map_err(|e| AcoliteError::Processing(format!("Zarr data metadata: {}", e)))?;
 
     // Write bands in parallel using rayon
     {
         use rayon::prelude::*;
-        let write_errors: Vec<_> = bands.par_iter().enumerate().filter_map(|(bi, band)| {
-            let chunk_data: Vec<f32> = band.data.iter().map(|&v| v as f32).collect();
-            data_array.store_array_subset(
-                &[bi as u64..bi as u64 + 1, 0..nrows as u64, 0..ncols as u64],
-                &chunk_data,
-            ).err().map(|e| (bi, e))
-        }).collect();
+        let write_errors: Vec<_> = bands
+            .par_iter()
+            .enumerate()
+            .filter_map(|(bi, band)| {
+                let chunk_data: Vec<f32> = band.data.iter().map(|&v| v as f32).collect();
+                data_array
+                    .store_array_subset(
+                        &[bi as u64..bi as u64 + 1, 0..nrows as u64, 0..ncols as u64],
+                        &chunk_data,
+                    )
+                    .err()
+                    .map(|e| (bi, e))
+            })
+            .collect();
         if let Some((bi, e)) = write_errors.into_iter().next() {
-            return Err(AcoliteError::Processing(format!("Write band {}: {}", bi, e)));
+            return Err(AcoliteError::Processing(format!(
+                "Write band {}: {}",
+                bi, e
+            )));
         }
     }
 
     // Wavelengths 1D array
-    write_1d_f32(&store, "/wavelengths", "center_wavelength", "nm",
-        &bands.iter().map(|b| b.wavelength as f32).collect::<Vec<_>>())?;
+    write_1d_f32(
+        &store,
+        "/wavelengths",
+        "center_wavelength",
+        "nm",
+        &bands
+            .iter()
+            .map(|b| b.wavelength as f32)
+            .collect::<Vec<_>>(),
+    )?;
 
     // Bandwidths 1D array
-    write_1d_f32(&store, "/bandwidths", "bandwidth", "nm",
-        &bands.iter().map(|b| b.bandwidth as f32).collect::<Vec<_>>())?;
+    write_1d_f32(
+        &store,
+        "/bandwidths",
+        "bandwidth",
+        "nm",
+        &bands.iter().map(|b| b.bandwidth as f32).collect::<Vec<_>>(),
+    )?;
 
     log::info!("GeoZarr written: {}", output_path);
     Ok(())
@@ -138,9 +179,11 @@ fn write_1d_f32(
         .attributes(attrs)
         .build(store.clone(), path)
         .map_err(|e| AcoliteError::Processing(format!("Zarr {}: {}", path, e)))?;
-    array.store_metadata()
+    array
+        .store_metadata()
         .map_err(|e| AcoliteError::Processing(format!("Zarr {} metadata: {}", path, e)))?;
-    array.store_chunk(&[0], data)
+    array
+        .store_chunk(&[0], data)
         .map_err(|e| AcoliteError::Processing(format!("Write {}: {}", path, e)))?;
     Ok(())
 }

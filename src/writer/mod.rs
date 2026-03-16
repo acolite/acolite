@@ -7,7 +7,7 @@
 pub mod cog;
 pub mod geozarr;
 
-pub use cog::{write_cog, cog_available};
+pub use cog::{cog_available, write_cog};
 pub use geozarr::write_geozarr;
 
 use crate::core::{BandData, Metadata};
@@ -20,11 +20,7 @@ pub const HYPERSPECTRAL_THRESHOLD: usize = 50;
 ///
 /// - >50 bands → GeoZarr (.zarr directory)
 /// - ≤50 bands → Cloud Optimized GeoTIFF (.tif)
-pub fn write_auto(
-    output_path: &str,
-    bands: &[BandData<f64>],
-    metadata: &Metadata,
-) -> Result<()> {
+pub fn write_auto(output_path: &str, bands: &[BandData<f64>], metadata: &Metadata) -> Result<()> {
     if bands.len() > HYPERSPECTRAL_THRESHOLD {
         let zarr_path = if output_path.ends_with(".zarr") {
             output_path.to_string()

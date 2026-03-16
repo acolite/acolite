@@ -1,7 +1,7 @@
 //! Parallel processing utilities
 
+use crate::{core::BandData, pipeline::Pipeline, Result};
 use rayon::prelude::*;
-use crate::{Result, core::BandData, pipeline::Pipeline};
 
 /// Process multiple bands in parallel
 pub fn process_bands_parallel(
@@ -39,31 +39,29 @@ pub fn process_bands_sequential(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{Metadata, Projection, GeoTransform};
+    use crate::core::{GeoTransform, Metadata, Projection};
     use crate::pipeline::ProcessingConfig;
-    use ndarray::Array2;
     use chrono::Utc;
-    
+    use ndarray::Array2;
+
     #[test]
     fn test_parallel_processing() {
         let metadata = Metadata::new("L8_OLI".to_string(), Utc::now());
         let config = ProcessingConfig::default();
         let pipeline = Pipeline::new(metadata, config);
-        
+
         let proj = Projection::from_epsg(32610);
         let geotrans = GeoTransform::new(0.0, 30.0, 0.0, -30.0);
-        
-        let bands = vec![
-            BandData::new(
-                Array2::zeros((10, 10)),
-                443.0,
-                16.0,
-                "B1".to_string(),
-                proj.clone(),
-                geotrans.clone(),
-            ),
-        ];
-        
+
+        let bands = vec![BandData::new(
+            Array2::zeros((10, 10)),
+            443.0,
+            16.0,
+            "B1".to_string(),
+            proj.clone(),
+            geotrans.clone(),
+        )];
+
         let result = process_bands_parallel(&pipeline, bands);
         assert!(result.is_ok());
     }

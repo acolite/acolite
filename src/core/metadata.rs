@@ -1,8 +1,8 @@
 //! Metadata handling
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Metadata {
@@ -27,12 +27,12 @@ impl Metadata {
             attributes: HashMap::new(),
         }
     }
-    
+
     pub fn set_geometry(&mut self, sun_zenith: f64, sun_azimuth: f64) {
         self.sun_zenith = sun_zenith;
         self.sun_azimuth = sun_azimuth;
     }
-    
+
     pub fn add_attribute(&mut self, key: String, value: String) {
         self.attributes.insert(key, value);
     }
