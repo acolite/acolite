@@ -52,7 +52,7 @@ ACP uses JSON-RPC 2.0 over stdin/stdout with these core methods:
   initialize → session/new → session/prompt → (session/update notifications)
 
 Key differences between the two agents:
-  - protocolVersion: Copilot "2025-07-09" (string) vs Kiro 1 (integer)
+  - protocolVersion: integer 1 for both Copilot and Kiro
   - session/prompt field: Copilot "prompt" vs Kiro "content"
   - Kiro extensions: _kiro.dev/commands/*, _kiro.dev/mcp/*
 
@@ -105,8 +105,7 @@ class ACPClient:
     session/prompt, session/cancel. Responses and session/update notifications
     arrive as NDJSON lines on stdout.
 
-    agent_type: "copilot" sends protocolVersion as the date string "2025-07-09";
-                "kiro" sends protocolVersion as integer 1 (default).
+    agent_type: "copilot" or "kiro" — both now send protocolVersion as integer 1.
     """
 
     def __init__(self, process: subprocess.Popen, name: str = "agent",
@@ -252,11 +251,9 @@ class ACPClient:
     def initialize(self, client_name: str = "acolite-harness") -> dict:
         """ACP initialize — negotiate protocol version and capabilities.
 
-        Copilot uses protocolVersion as a date string ("2025-07-09").
-        Kiro uses protocolVersion as an integer (1).
-        The correct version is sent based on self.agent_type.
+        Both Copilot and Kiro use protocolVersion as an integer (1).
         """
-        protocol_version: Any = "2025-07-09" if self.agent_type == "copilot" else 1
+        protocol_version: Any = 1
         return self._send("initialize", {
             "protocolVersion": protocol_version,
             "clientCapabilities": {

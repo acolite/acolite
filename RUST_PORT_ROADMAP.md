@@ -272,7 +272,7 @@ python tools/agent_harness.py \
 
 Both agents speak ACP (JSON-RPC 2.0 over NDJSON stdio):
 
-- **`initialize`** — negotiate capabilities (Kiro: `protocolVersion: 1`, Copilot: `"2025-07-09"`)
+- **`initialize`** — negotiate capabilities (`protocolVersion: 1` for both agents)
 - **`session/new`** — create a workspace-scoped session with `cwd`
 - **`session/prompt`** — send a user message (Kiro uses `content` field, Copilot uses `prompt` field)
 - **`session/update`** — streamed notifications: `agent_message_chunk`, `tool_call`, `turn_end`
