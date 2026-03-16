@@ -470,6 +470,7 @@ fn load_tpg(sen3_dir: &Path, _limit: Option<&[f64; 4]>) -> Result<OlciTpg> {
 }
 
 /// Read ac/al subsampling factors from a radiance NetCDF file.
+#[cfg(feature = "netcdf")]
 fn read_subsampling_factors(sen3_dir: &Path) -> Option<(usize, usize)> {
     let p = sen3_dir.join("Oa01_radiance.nc");
     let nc = netcdf::open(&p).ok()?;

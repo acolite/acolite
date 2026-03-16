@@ -733,6 +733,7 @@ fn invert_aot_generic(
 }
 
 /// Invert AOT from dark reflectance, optionally using actual sensor RSR.
+#[cfg(feature = "full-io")]
 fn invert_aot_generic_rsr(
     lut: &GenericAerosolLut,
     center_nm: f64,
