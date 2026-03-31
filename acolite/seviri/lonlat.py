@@ -11,6 +11,7 @@
 ##                2025-05-13 (QV) renamed sensor keyword to instrument
 ##                2025-05-19 (QV) added scanning angle base factor, added Himawari/AHI support
 ##                2026-02-23 (QV) add one pixel to column and line indexes
+##                2026-03-18 (QV) set pixel_offset = 0 for SEVIRI
 
 def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
             column_start = 0, column_end = None, line_start = 0, line_end = None):
@@ -34,6 +35,7 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
 
         ## scanning angle base factor
         sa_factor = 2**16
+        pixel_offset = 0
     elif instrument.upper() == 'FCI':
         ## earth dimensions and satellite distance (FCI)
         earth_radius_equator = 6378.137
@@ -68,6 +70,7 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
 
         ## scanning angle base factor
         sa_factor = 2**16
+        pixel_offset = 1
     elif instrument.upper() == 'AHI':
         ## earth dimensions and satellite distance (AHI)
         ## from users guide
@@ -98,6 +101,7 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
         p2 = 1737122264
         ## scanning angle base factor
         sa_factor = 2**16
+        pixel_offset = 1
     else:
         print('Instrument = {} not configured, use SEVIRI (MSG), FCI (MTG), or AHI (Himawari)'.format(instrument))
         return
@@ -111,7 +115,8 @@ def lonlat(lon_0 = 0.0, instrument = 'SEVIRI', ssd = 0.5,
         line_range = np.arange(line_start, nl)
     else:
         line_range = np.arange(line_start, line_end)
-    c, l = np.meshgrid(column_range + 1, line_range + 1) ## add one to the column and line ranges
+
+    c, l = np.meshgrid(column_range + pixel_offset, line_range + pixel_offset) ## add pixel_offset to the column and line ranges
 
     ## compute scanning angle
     x = (sa_factor * (c - coff) / cfac).astype(np.float32)

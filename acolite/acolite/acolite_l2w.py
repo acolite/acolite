@@ -49,7 +49,8 @@ def acolite_l2w(gem, output = None, settings = None,
     verbosity = setu['verbosity']
 
     ## nothing to do if no l2w_parameters requested
-    if setu['l2w_parameters'] == None: return(None)
+    if (setu['l2w_parameters'] is None): return
+    if (len(setu['l2w_parameters']) == 0): return
 
     ## set up output file
     if target_file is None:
