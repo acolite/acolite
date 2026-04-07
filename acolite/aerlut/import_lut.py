@@ -12,6 +12,7 @@
 ##                  2021-07-20 (QV) added retrieval of generic LUTs
 ##                  2021-10-22 (QV) compute ttot if not in LUT
 ##                2023-08-03 (QV) get lut url from ac.config
+##                2026-04-07 (QV) added luts_keep_extracted
 
 def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'romix'],
                override = False, sensor = None, get_remote = True,
@@ -58,7 +59,7 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
             print(sys.exc_info()[0])
             print('Failed to open LUT data from NetCDF (id='+lutid+')')
 
-        if unzipped: os.remove(lutnc) ## clear unzipped LUT
+        if (unzipped) & (not ac.setu['run']['luts_keep_extracted']): os.remove(lutnc) ## clear unzipped LUT
 
         if lut is None:
             print('Could not import LUT {} from {}'.format(lutid, lutdir))

@@ -10,6 +10,7 @@
 ##               2021-05-31 (QV) added remote lut retrieval
 ##               2021-07-20 (QV) added retrieval of generic LUTs
 ##                2023-08-03 (QV) get lut url from ac.config
+##                2026-04-07 (QV) added luts_keep_extracted
 
 def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, override=False,
                     get_remote = True, remote_base = None):
@@ -18,7 +19,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
     import scipy.interpolate
     from netCDF4 import Dataset
     import acolite as ac
-    
+
     ## use URL from main config
     if remote_base is None: remote_base = '{}'.format(ac.config['lut_url'])
 
@@ -51,7 +52,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                 ## read LUT
                 lut, meta = ac.shared.lutnc_import(lutnc)
                 lut = np.flip(lut, axis=1) ## flip raa
-                if unzipped: os.remove(lutnc) ## clear unzipped LUT
+                if (unzipped) & (not ac.setu['run']['luts_keep_extracted']): os.remove(lutnc) ## clear unzipped LUT
 
                 dim = [meta['wave'], meta['azi'], meta['thv'], meta['ths'], meta['tau']]
                 #if 'press' in meta:

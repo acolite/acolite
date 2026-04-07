@@ -624,6 +624,7 @@ lut_models=1,2
 lut_pressures=500,750,1013,1100
 lut_base_interface=ACOLITE-RSKY-202102-82W
 luts_reduce_dimensions=False
+luts_keep_extracted=True
 slicing=False
 
 # CDSE or EarthExplorer download
