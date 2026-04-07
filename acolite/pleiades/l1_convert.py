@@ -16,6 +16,7 @@
 ##                2025-02-10 (QV) cleaned up settings use
 ##                2025-09-15 (QV) fixed processing of Airbus "REFLECTANCE" data
 ##                                updated data reading and added half pixel to nc_projection
+##                2026-04-07 (QV) changed tile data test
 
 def l1_convert(inputfile, output = None, settings = None):
 
@@ -585,7 +586,8 @@ def l1_convert(inputfile, output = None, settings = None):
                             data = data_in
                         else:
                             #dsub = np.where((data_in>=1) & (data < 1))
-                            dsub = np.where((data_in>0) & (data == 0))
+                            #dsub = np.where((data_in>0) & (data == 0))
+                            dsub = np.where(np.isfinite(data_in) & np.isnan(data))
                             data[dsub] = data_in[dsub]
                     ## end run through tiles
 
