@@ -10,10 +10,19 @@
 ##                QV 2022-10-21 dtype and dataset names are now indexed
 ##                QV 2022-11-07 added PNEO support
 ##                QV 2022-11-09 changed bundle-FS and MS-FS component parsing
+##                2026-04-07 (QV) added file directory test, changed logic for tiles with individual meta files
 
-def bundle_test(file, listpan=True):
+def bundle_test(file_, listpan=True):
     import os, sys, fnmatch
     from xml.dom import minidom
+
+    if os.path.exists(file_):
+        if os.path.isdir(file_):
+            file = '{}'.format(file_)
+        else:
+            file = os.path.dirname(file_)
+    else:
+        return
 
     sensor=[]
     product=set()
@@ -23,7 +32,7 @@ def bundle_test(file, listpan=True):
     sub_file = []
 
     ## bundle metadata
-    meta_matches = ['VOL_PHR.XML', 'SPOT_VOL.XML', 'VOL_PNEO.XML']
+    meta_matches = ['VOL_PHR.XML', 'SPOT_VOL.XML', 'VOL_PNEO.XML', 'MTD_TL.XML']
     for i, fname in enumerate(os.listdir(file)):
         fname_ = fname.upper()
 
@@ -48,7 +57,10 @@ def bundle_test(file, listpan=True):
             sub_file.append(fname)
             img_dir.append(img)
             split = fname.split('_')
-            if 'PNEO' in split[-2]:
+            if len(split) == 2:
+                sensor = None
+                product.add(split[-1])
+            elif 'PNEO' in split[-2]:
                 sensor.append(split[-2])
                 product.add(split[-1])
             else:
@@ -68,13 +80,16 @@ def bundle_test(file, listpan=True):
         if ('PMS' in product): ptype = 'PMS'
         if ('MS' in product): ptype = 'MS'
         if ('MS-FS' in product): ptype = 'MS-FS'
+        if ('DATA' in product): ptype = 'DATA'
+
+    img_file.sort()
+    xml_file.sort()
 
     imagefile = []
     metafile= []
     imagedataset = []
     panimagefile = []
     panmetafile = []
-
 
     imagefile = []
     metafile= []
@@ -100,17 +115,26 @@ def bundle_test(file, listpan=True):
             sel_dataset = ''
             sel_panimage = ''
             sel_panmeta = ''
+            #print(img, img_match)
+
             if (fnmatch.fnmatch(img.upper(), img_match)):
                 sf = img.split('/')[-2]
                 md = [md for md in xml_file if (sf in md) & (fnmatch.fnmatch(md.upper(), xml_match))]
 
                 ## we have metadata and image
                 if (len(md) == 1):
-                    sel_image = img # imagefile.append(im[0])
-                    sel_meta = md[0] # metafile.append(md[0])
-                    for component in components:
-                        if sf == component['path'].split('/')[0]:
-                            sel_dataset=component['dataset']
+                    sel_image = img
+                    sel_meta = md[0]
+                elif (len(md) > 1):
+                    sel_image = img
+                    sel_image_bn, sel_image_ext = os.path.splitext(os.path.basename(sel_image))
+                    for m in md:
+                        if m.endswith(sel_image_bn[3:] + '.XML'):
+                            sel_meta = '{}'.format(m)
+
+                for component in components:
+                    if sf == component['path'].split('/')[0]:
+                        sel_dataset=component['dataset']
 
                 ## find tile to determine proper pan file (this is not perfect)
                 bn = os.path.basename(img)
@@ -138,6 +162,17 @@ def bundle_test(file, listpan=True):
         for i, sf in enumerate(sub_file):
             im = [im for im in img_file if (sf in im) & (fnmatch.fnmatch(im.upper(), '*IMG*PMS*'))]
             md = [md for md in xml_file if (sf in md) & (fnmatch.fnmatch(md.upper(), '*IMG*PMS*.XML'))]
+            if (len(im) >= 0) & (len(md) == 1):
+                imagefile+=im
+                metafile+=[md[0]]*len(im)
+                panimagefile+=['']*len(im)
+                panmetafile+=['']*len(im)
+
+    if (ptype == 'DATA'):
+        print(sub_file)
+        for i, sf in enumerate(sub_file):
+            im = [im for im in img_file if (sf in im) & (fnmatch.fnmatch(im.upper(), '*IMG*'))]
+            md = [md for md in xml_file if (sf in md) & (fnmatch.fnmatch(md.upper(), '*IMG*.XML'))]
             if (len(im) >= 0) & (len(md) == 1):
                 imagefile+=im
                 metafile+=[md[0]]*len(im)
