@@ -206,7 +206,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             except:
                 tile = ''
 
-            file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+            if os.path.isdir(bundle):
+                file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+            else:
+                file = bundle
 
             ## check if the files were named .TIF instead of .TIFF
             if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
@@ -399,7 +402,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
                 if verbosity > 1: print('{} - Band {} Processing tile {}/{}'.format(datetime.datetime.now().isoformat()[0:19], band, ti+1, ntiles), tile, offset)
 
-                file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+                if os.path.isdir(bundle):
+                    file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+                else:
+                    file = bundle
                 ## check if the files were named .TIF instead of .TIFF
                 if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
                 if not os.path.exists(file): continue
