@@ -316,6 +316,9 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             #print(dct['xdim'], dct['ydim'])
             #print(dct['xrange'], dct['yrange'])
 
+            ## update the global dimensions to match the computed dimensions
+            global_dims = dct['ydim'], dct['xdim']
+
             ## create pan version
             if pan_bundle is not None:
                 dct_pan = {k:dct[k] for k in dct}
