@@ -478,9 +478,11 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 if dtype == np.dtype('uint8'):
                     nodata = d == np.uint8(0)
                 elif dtype == np.dtype('uint16'):
-                    nodata = d == np.uint16(0)
+                    nodata_value = 0 if not pgc_bundle else 65535
+                    nodata = d == np.uint16(nodata_value)
                 elif dtype == np.dtype('float32'):
-                    nodata = d == np.float32(0)
+                    nodata_value = 0 if not pgc_bundle else -9999
+                    nodata = d == np.float32(nodata_value)
 
                 ## override cf for PGC bundle
                 if pgc_bundle:
