@@ -11,6 +11,7 @@
 ##                QV 2022-11-07 added PNEO support
 ##                QV 2022-11-09 changed bundle-FS and MS-FS component parsing
 ##                2026-04-07 (QV) added file directory test, changed logic for tiles with individual meta files
+##                2026-04-08 (QV) skip individual tile meta files
 
 def bundle_test(file_, listpan=True):
     import os, sys, fnmatch
@@ -122,15 +123,12 @@ def bundle_test(file_, listpan=True):
                 md = [md for md in xml_file if (sf in md) & (fnmatch.fnmatch(md.upper(), xml_match))]
 
                 ## we have metadata and image
-                if (len(md) == 1):
-                    sel_image = img
-                    sel_meta = md[0]
-                elif (len(md) > 1):
+                if (len(md) >= 1):
                     sel_image = img
                     sel_image_bn, sel_image_ext = os.path.splitext(os.path.basename(sel_image))
                     for m in md:
-                        if m.endswith(sel_image_bn[3:] + '.XML'):
-                            sel_meta = '{}'.format(m)
+                        if m[-9:-7] == '_R': continue # ignore tile specific files (copied by user?)
+                        sel_meta = '{}'.format(m)
 
                 for component in components:
                     if sf == component['path'].split('/')[0]:
