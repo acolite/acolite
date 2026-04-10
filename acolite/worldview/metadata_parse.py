@@ -61,6 +61,11 @@ def metadata_parse(metafile):
             band_indices=[1,2,3,4]
             band_tag_names = ["BAND_B", "BAND_G", "BAND_R", "BAND_N"]
 
+            ## add PAN band
+            band_names += ['PAN']
+            band_indices += [1]
+            band_tag_names += ['BAND_P']
+
         if metadata['SATID'] == 'WV03':
             metadata['satellite'] = 'WorldView3'
             metadata['sensor'] = 'WorldView3'
@@ -71,6 +76,12 @@ def metadata_parse(metafile):
                           1,2,3,4,5,6,7,8]
             band_tag_names = ["BAND_C","BAND_B","BAND_G","BAND_Y","BAND_R","BAND_RE","BAND_N", "BAND_N2",
                               "BAND_S1", "BAND_S2", "BAND_S3", "BAND_S4", "BAND_S5", "BAND_S6", "BAND_S7", "BAND_S8"]
+
+            ## add PAN band
+            band_names += ['PAN']
+            band_indices += [1]
+            band_tag_names += ['BAND_P']
+
         if metadata['SATID'] == 'WV02':
             metadata['satellite'] = 'WorldView2'
             metadata['sensor'] = 'WorldView2'
