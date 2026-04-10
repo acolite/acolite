@@ -21,7 +21,7 @@
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
-    import os, glob, dateutil.parser, datetime, time
+    import os, glob, dateutil.parser, datetime, time, re
     import numpy as np
     import scipy.interpolate
     import acolite as ac
@@ -79,9 +79,15 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
 
         ## test if we have the pan bundle as well
         pan_bundle = None
-        if bundle.endswith('MUL') & (not setu['worldview_skip_pan']):
+        if bundle.endswith('MUL') and (not setu['worldview_skip_pan']):
             if os.path.exists(bundle[0:-3] + 'PAN'):
                 pan_bundle = bundle[0:-3] + 'PAN'
+        elif meta["PGC"] and not setu['worldview_skip_pan']:
+            ## Try to find the pan bundle using PGC naming conventions
+            match = re.search(r"-(\w\d\w\w)-", bundle)
+            if match:
+                prod_code = match.group(1)
+                pan_bundle = bundle.replace(prod_code, "P1BS")
 
         pan_meta = None
         if (pan_bundle is not None):
@@ -436,7 +442,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 if pan_bundle is not None:
                     for tile_mdata_pan in pan_meta['TILE_INFO']:
                         if tile in tile_mdata_pan['FILENAME']:
-                            pan_file = '{}/{}'.format(pan_bundle,tile_mdata_pan['FILENAME'])
+                            if os.path.isdir(bundle):
+                                pan_file = '{}/{}'.format(pan_bundle,tile_mdata_pan['FILENAME'])
+                            else:
+                                pan_file = pan_bundle
                         if not os.path.exists(pan_file):
                             continue
                     ## full resolution pan output
