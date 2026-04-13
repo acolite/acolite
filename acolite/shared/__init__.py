@@ -78,6 +78,7 @@ from .interp2d import *
 from .derivative import *
 from .plane_fit import *
 from .stats import *
+from .glint_angle import *
 
 from .polylakes import *
 

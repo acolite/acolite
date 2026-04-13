@@ -29,6 +29,7 @@
 ##                2025-05-16 (QV) added filtering for sensor noise bias correction
 ##                2025-07-07 (QV) don't do model selection if only one model is used
 ##                2025-10-06 (QV) added dsf_aot_option=ancillary and dsf_aot_option=ancillary_fixed
+##                2026-04-13 (QV) added glint angle check for automatic glint correction
 
 def acolite_l2r(gem,
                 output = None,
@@ -1495,6 +1496,20 @@ def acolite_l2r(gem,
             ## write cirrus mean
             gemo.write('rho_cirrus', rho_cirrus)
     print('use_revlut', use_revlut)
+
+    ## automatically set glint correction based on glint angle
+    if setu['dsf_residual_glint_correction_glint_angle']:
+        ## compute scene centre glint angle
+        glint_angle = ac.shared.glint_angle(gem.data_mem['sza'+'_mean'][0][0],
+                                            gem.data_mem['vza'+'_mean'][0][0],
+                                            gem.data_mem['raa'+'_mean'][0][0])
+        if glint_angle <= setu['dsf_residual_glint_correction_glint_angle_threshold']:
+            print('Setting dsf_residual_glint_correction=True as glint angle ({:.1f}) <= dsf_residual_glint_correction_glint_angle_threshold ({:.1f})'.format(glint_angle, setu['dsf_residual_glint_correction_glint_angle_threshold']))
+            setu['dsf_residual_glint_correction'] = True
+        else:
+            print('Setting dsf_residual_glint_correction=False as glint angle ({:.1f}) > dsf_residual_glint_correction_glint_angle_threshold ({:.1f})'.format(glint_angle, setu['dsf_residual_glint_correction_glint_angle_threshold']))
+            setu['dsf_residual_glint_correction'] = False
+    ## end automatically set glint correction based on glint angle
 
     hyper_res = None
     ## compute surface reflectances

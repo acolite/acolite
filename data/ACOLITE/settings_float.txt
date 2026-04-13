@@ -30,6 +30,7 @@ cirrus_g_vnir
 cirrus_g_swir
 blackfill_max
 glint_mask_rhos_threshold
+dsf_residual_glint_correction_glint_angle_threshold
 l2w_mask_threshold
 l2w_mask_cirrus_threshold
 l2w_mask_high_toa_threshold

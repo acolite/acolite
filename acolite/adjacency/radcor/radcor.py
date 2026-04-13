@@ -43,6 +43,7 @@
 ##                2025-05-08 (QV) changed LUT handling
 ##                2025-07-07 (QV) check sun zenith angle
 ##                2025-12-08 (QV) added ancillary_fixed option, added tsdsf_exclude_bands
+##                2026-04-13 (QV) added glint angle check for automatic glint correction
 
 def radcor(ncf, settings = None):
     import os, json
@@ -539,6 +540,18 @@ def radcor(ncf, settings = None):
                 sza[sza>setu['sza_limit']] = setu['sza_limit']
         else:
             return
+
+    ## automatically set glint correction based on glint angle
+    if setu['dsf_residual_glint_correction_glint_angle']:
+        ## compute scene centre glint angle
+        glint_angle = ac.shared.glint_angle(sza, vza, raa)
+        if glint_angle <= setu['dsf_residual_glint_correction_glint_angle_threshold']:
+            print('Setting dsf_residual_glint_correction=True as glint angle ({:.1f}) <= dsf_residual_glint_correction_glint_angle_threshold ({:.1f})'.format(glint_angle, setu['dsf_residual_glint_correction_glint_angle_threshold']))
+            setu['dsf_residual_glint_correction'] = True
+        else:
+            print('Setting dsf_residual_glint_correction=False as glint angle ({:.1f}) > dsf_residual_glint_correction_glint_angle_threshold ({:.1f})'.format(glint_angle, setu['dsf_residual_glint_correction_glint_angle_threshold']))
+            setu['dsf_residual_glint_correction'] = False
+    ## end automatically set glint correction based on glint angle
 
     cos_sza = np.cos(np.radians(sza))
     cos_vza = np.cos(np.radians(vza))
