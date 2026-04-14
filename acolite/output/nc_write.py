@@ -28,6 +28,7 @@
 ##                2024-04-16 (QV) removed NetCDF compression parameters from keywords
 ##                2025-01-23 (QV) added break to dataset attributes check
 ##                2025-11-27 (QV) disabled the use of metadata_profile=beam
+##                2026-04-14 (QV) fix the RasterResolutionKm geocoding tag for metadata_profile=beam
 
 def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
                  new=False, attributes=None, update_attributes=False,
@@ -143,11 +144,20 @@ def nc_write(ncfile, dataset, data, wavelength=None, global_dims=None,
             with open(ac.config['data_dir'] + '/Shared/geocoding.xml', 'r', encoding = 'utf-8') as f:
                 geocoding = ''
                 for line in f.readlines():
+                    ## set raster resolution
+                    if 'RasterResolutionKm' in line:
+                        if nc_projection is not None:
+                            xres = (nc_projection['x']['data'][1] - nc_projection['x']['data'][0])/1000
+                        else:
+                            xres = 1
+                        line = line.replace('>0<', '>{}<'.format(xres))
+                    ## add line to geocoding
                     geocoding += line
             nc.setncattr('geocoding', geocoding)
 
         ## CF convention
-        nc.setncattr('Conventions', 'CF-1.7')
+        cf_conf = 'CF-1.7'
+        nc.setncattr('Conventions', cf_conf)
         ## to add: title , history , institution , source , comment and references
 
         if attributes is not None:
