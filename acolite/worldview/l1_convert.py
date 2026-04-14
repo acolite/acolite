@@ -112,16 +112,18 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 print('Image {} is already corrected by supplier.'.format(bundle))
                 print('RADIOMETRICLEVEL: {} RADIOMETRICENHANCEMENT: {}'.format(meta['RADIOMETRICLEVEL'], meta['RADIOMETRICENHANCEMENT']))
                 atmospherically_corrected = True
+                correction_name = 'acomp'
                 if not setu['convert_l2']: continue
 
         ## test if we have PGC bundle
         pgc_bundle = False
         if meta['PGC']:
             pgc_bundle = True
-            if meta['PGC_STRETCH'] in ['mr']:
+            if meta['PGC_STRETCH'] != 'ns': ## Assume all values except 'ns' (no stretch) indicate image has been corrected
                 print('Image {} is already corrected by supplier.'.format(bundle))
                 print('PGC_STRETCH: {}'.format(meta['PGC_STRETCH']))
                 atmospherically_corrected = True
+                correction_name = meta['PGC_STRETCH']
                 if not setu['convert_l2']: continue
 
         ## parse the metadata
@@ -550,7 +552,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
 
             ## set up dataset attributes
             ds = 'rhot_{}'.format(rsrd['wave_name'][band])
-            if atmospherically_corrected: ds = ds.replace('rhot_', 'rhos_acomp_')
+            if atmospherically_corrected: ds = ds.replace('rhot_', f'rhos_{correction_name}_')
 
             ds_att = {'wavelength': rsrd['wave_mu'][band]*1000, 'band_name': band, 'f0': f0_b[band]/10.}
             if gains != None:
