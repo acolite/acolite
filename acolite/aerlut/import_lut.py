@@ -59,7 +59,7 @@ def import_lut(lutid, lutdir, lut_par = ['utott', 'dtott', 'astot', 'ttot', 'rom
             print(sys.exc_info()[0])
             print('Failed to open LUT data from NetCDF (id='+lutid+')')
 
-        if (unzipped) & (not ac.setu['run']['luts_keep_extracted']): os.remove(lutnc) ## clear unzipped LUT
+        if (unzipped) & (not ac.settings['run']['luts_keep_extracted']): os.remove(lutnc) ## clear unzipped LUT
 
         if lut is None:
             print('Could not import LUT {} from {}'.format(lutid, lutdir))

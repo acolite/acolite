@@ -52,7 +52,7 @@ def import_rsky_lut(model, lutbase='ACOLITE-RSKY-202102-82W', sensor=None, overr
                 ## read LUT
                 lut, meta = ac.shared.lutnc_import(lutnc)
                 lut = np.flip(lut, axis=1) ## flip raa
-                if (unzipped) & (not ac.setu['run']['luts_keep_extracted']): os.remove(lutnc) ## clear unzipped LUT
+                if (unzipped) & (not ac.settings['run']['luts_keep_extracted']): os.remove(lutnc) ## clear unzipped LUT
 
                 dim = [meta['wave'], meta['azi'], meta['thv'], meta['ths'], meta['tau']]
                 #if 'press' in meta:
