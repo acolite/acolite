@@ -1,0 +1,55 @@
+## def netcdf.update_geocoding
+## updates the geocoding attribute for SNAP 13
+## written by Quinten Vanhellemont, RBINS
+## 2026-04-15
+## modifications:
+
+def update_geocoding(inputfile):
+    import acolite as ac
+    import numpy as np
+    from netCDF4 import Dataset
+
+    ## get current geocoding attribute
+    try:
+        with Dataset(inputfile, 'r') as nc:
+            geocoding_in = getattr(nc, 'geocoding')
+    except:
+        geocoding_in = ''
+
+    ## we need to update geocoding
+    if ('<RasterResolutionKm>0</RasterResolutionKm>' in geocoding_in) | (geocoding_in == ''):
+        ## read datasets
+        datasets = ac.shared.nc_datasets(inputfile)
+
+        ## compute xresolution in km
+        ## read projection info or latitude
+        if ('transverse_mercator' in datasets) & ('x' in datasets) &  ('x' in datasets):
+            x, xatt = ac.shared.nc_data(inputfile, 'x', attributes=True)
+            idx = int(len(x)/2)
+            xres = (x[idx] - x[idx-1]) / 2
+            del x
+        elif ('lat' in datasets) & ('lon' in datasets):
+            lat, latatt = ac.shared.nc_data(inputfile, 'lat', attributes=True)
+            idx, idy = int(lat.shape[0]/2), int(lat.shape[1]/2)
+            latmid = lat[idx, idy]
+            onedeglon, onedeglat = ac.shared.distance_in_ll(latmid)
+            latdiff = latmid - lat[idx-1, idy-1]
+            xres = np.abs(onedeglat * latdiff)
+            del lat
+        else:
+            xres = 1
+
+        ## read geocoding for beam format
+        ## add xres to RasterResolutionKm tag
+        with open(ac.config['data_dir'] + '/Shared/geocoding.xml', 'r', encoding = 'utf-8') as f:
+            geocoding = ''
+            for line in f.readlines():
+                if 'RasterResolutionKm' in line: line = line.replace('>0<', '>{}<'.format(xres))
+                geocoding += line
+
+        ## update attribute
+        with Dataset(inputfile, 'a') as nc:
+            nc.setncattr('geocoding', geocoding)
+        print('Updated geocoding attribute for {}'.format(inputfile))
+    else:
+        print('Did not update geocoding attribute for {}'.format(inputfile))
