@@ -2,10 +2,10 @@
 ## uploads all files in path to sftp, currently only with stat file size check
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-04-20
-## modifications: 2026-04-20 (QV) added skip paths
+## modifications: 2026-04-20 (QV) added skip paths, log_uploaded_files
 
 def upload(host, local_path, port = 22, remote_path = '/',
-            override = False, machine_append = '', skip_paths = [], ):
+            override = False, machine_append = '', skip_paths = [], log_uploaded_files = False):
 
     import os, glob, paramiko, netrc
 
@@ -24,12 +24,32 @@ def upload(host, local_path, port = 22, remote_path = '/',
         print('Could not load .netrc authentication for machine {}'.format(machine))
         return
 
+    ## check log
+    logged_files = []
+    if log_uploaded_files:
+        if local_path[-1] == os.path.sep:
+            log_file = '{}_upload.log'.format(local_path[0:-1])
+        else:
+            log_file = '{}_upload.log'.format(local_path)
+        print(log_file)
+        if (os.path.exists(log_file)) & (override):
+            os.remove(log_file)
+            print('Removed log file at {} because override = True'.format(log_file))
+        if os.path.exists(log_file):
+            ## read log
+            with open(log_file, 'r', encoding = 'utf-8') as f:
+                for line in f.readlines():
+                    line = line.strip()
+                    if len(line) > 0:
+                        logged_files.append(line)
+
     ## find local files
     local_files = glob.glob('{}/**'.format(local_path), recursive = True)
     local_files.sort()
     print('Recursively found {} files in {}'.format(len(local_files), local_path))
     if len(local_files) == 0: return
 
+    ## make a list of given skip paths
     if type(skip_paths) != list: skip_paths = [skip_paths]
 
     ## set up transport
@@ -48,6 +68,9 @@ def upload(host, local_path, port = 22, remote_path = '/',
             local_stat = os.stat(local_file)
             remote_dn = dn.replace(local_path, remote_path + '/')
             remote_file = '{}/{}'.format(remote_dn, bn)
+
+            ## skip file if logged
+            if (remote_file in logged_files) & (not override): continue
 
             ## skip matches in directory name
             skip_file = False
@@ -85,6 +108,12 @@ def upload(host, local_path, port = 22, remote_path = '/',
                            sftp.chdir(rp)
 
                 sftp.put(local_file, bn)
+
+                ## log upload
+                if log_uploaded_files:
+                    logged_files.append(remote_file)
+                    with open(log_file, 'a', encoding = 'utf-8') as f:
+                        f.write(remote_file + '\n')
             else:
                 print('File {} exists with correct size'.format(remote_file))
 
