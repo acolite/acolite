@@ -31,7 +31,7 @@ def upload(host, local_path, port = 22, remote_path = '/',
             log_file = '{}_upload.log'.format(local_path[0:-1])
         else:
             log_file = '{}_upload.log'.format(local_path)
-        print(log_file)
+        ## remove log file if override
         if (os.path.exists(log_file)) & (override):
             os.remove(log_file)
             print('Removed log file at {} because override = True'.format(log_file))
