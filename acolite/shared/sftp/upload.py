@@ -2,10 +2,10 @@
 ## uploads all files in path to sftp, currently only with stat file size check
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-04-20
-## modifications:
+## modifications: 2026-04-20 (QV) added skip paths
 
 def upload(host, local_path, port = 22, remote_path = '/',
-            override = False, machine_append = '',):
+            override = False, machine_append = '', skip_paths = [], ):
 
     import os, glob, paramiko, netrc
 
@@ -30,6 +30,8 @@ def upload(host, local_path, port = 22, remote_path = '/',
     print('Recursively found {} files in {}'.format(len(local_files), local_path))
     if len(local_files) == 0: return
 
+    if type(skip_paths) != list: skip_paths = [skip_paths]
+
     ## set up transport
     transport = paramiko.Transport((host, port))
     transport.connect(username = username, password = password)
@@ -46,6 +48,13 @@ def upload(host, local_path, port = 22, remote_path = '/',
             local_stat = os.stat(local_file)
             remote_dn = dn.replace(local_path, remote_path + '/')
             remote_file = '{}/{}'.format(remote_dn, bn)
+
+            ## skip matches in directory name
+            skip_file = False
+            for skip in skip_paths:
+                if type(skip) is not str: continue
+                if skip in dn: skip_file = True
+            if skip_file: continue
 
             ## test if file extist and get size
             upload = True
