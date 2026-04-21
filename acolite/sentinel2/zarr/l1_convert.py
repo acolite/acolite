@@ -6,6 +6,7 @@
 ##                2026-01-14 (QV) changed AUX interpolation and integrated to sentinel2.zarr
 ##                2026-02-26 (QV) fixed grid rotation and moved plane_fit_geom to settings as s2_geometry_plane_fit
 ##                                use geometry_res to determine geometry resolution
+##                                test geom using warp to target scene
 
 def l1_convert(inputfile, output = None, settings = None,
                 check_sensor = True,
@@ -372,22 +373,8 @@ def l1_convert(inputfile, output = None, settings = None,
                                                                   bounds_error = False, fill_value = np.nan)
             saa = interp_saa((band_y_mesh, band_x_mesh))
 
-            # ## warp to target scene
-            #if 'region' in dct_sub:
-            #    if dct_sub['region'] != dct_prj:
-            #    sza = ac.shared.warp_from_source(dct_prj, dct_sub, sza, fill_value = np.nan)
-            #    saa = ac.shared.warp_from_source(dct_prj, dct_sub, saa, fill_value = np.nan)
-
-            #if dct_sub != dct_prj:
-            if True:
-                #sza = ac.shared.warp_from_source(dct_sub, dct_prj, sza, warp_to = warp_to)
-                #saa = ac.shared.warp_from_source(dct_sub, dct_prj, saa, warp_to = warp_to)
-                #sza = ac.shared.warp_from_source(dct_prj, dct_sub, sza, warp_to = warp_to, source_srs = source_srs)
-                #saa = ac.shared.warp_from_source(dct_prj, dct_sub, saa, warp_to = warp_to, source_srs = source_srs)
-                #sza = ac.shared.warp_from_source(dct_prj, dct_sub, sza, fill_value = np.nan)
-                #saa = ac.shared.warp_from_source(dct_prj, dct_sub, saa, fill_value = np.nan)
-                #sza = ac.shared.warp_from_source(dct_sub, dct_prj, sza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                #saa = ac.shared.warp_from_source(dct_sub, dct_prj, saa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+            ## warp to target scene
+            if (dct_geom != dct_prj):
                 sza = ac.shared.warp_from_source(dct_geom, dct_prj, sza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                 saa = ac.shared.warp_from_source(dct_geom, dct_prj, saa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
 
@@ -398,7 +385,6 @@ def l1_convert(inputfile, output = None, settings = None,
             gemo.write('saa', saa, replace_nan = True,)
             if verbosity > 1: print('Wrote saa {}'.format(saa.shape))
             ## keep saa as we use it to compute raa
-            ##saa = None
 
         ## extract auxiliary data
         if setu['s2_auxiliary_include']:
@@ -518,16 +504,7 @@ def l1_convert(inputfile, output = None, settings = None,
                                                               target_mask = det_mask, target_mask_full = False, method='linear')
 
                     ## warp to target scene
-                    #if dct_sub != dct_prj:
-                    if True:
-                        #mean_vza = ac.shared.warp_from_source(dct_sub, dct_prj, mean_vza, warp_to = warp_to)
-                        #mean_vaa = ac.shared.warp_from_source(dct_sub, dct_prj, mean_vaa, warp_to = warp_to)
-                        #mean_vza = ac.shared.warp_from_source(dct_prj, dct_sub, mean_vza, warp_to = warp_to, source_srs = source_srs)
-                        #mean_vaa = ac.shared.warp_from_source(dct_prj, dct_sub, mean_vaa, warp_to = warp_to, source_srs = source_srs)
-                        #mean_vza = ac.shared.warp_from_source(dct_prj, dct_sub, mean_vza, fill_value = np.nan)
-                        #mean_vaa = ac.shared.warp_from_source(dct_prj, dct_sub, mean_vaa, fill_value = np.nan)
-                        #mean_vza = ac.shared.warp_from_source(dct_sub, dct_prj, mean_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
-                        #mean_vaa = ac.shared.warp_from_source(dct_sub, dct_prj, mean_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                    if (dct_geom != dct_prj):
                         mean_vza = ac.shared.warp_from_source(dct_geom, dct_prj, mean_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         mean_vaa = ac.shared.warp_from_source(dct_geom, dct_prj, mean_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
 
@@ -554,11 +531,7 @@ def l1_convert(inputfile, output = None, settings = None,
 
                     ## write detector footprint
                     if (setu['s2_write_dfoo']):
-                        #if dct_sub != dct_prj: ## warp to target scene
-                        if True:
-                            #dfoo_ = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to)
-                            #dfoo_ = ac.shared.warp_from_source(dct_prj, dct_sub, dfoo, fill_value = np.nan)
-                            #dfoo_ = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
+                        if (dct_geom != dct_prj):
                             dfoo_ = ac.shared.warp_from_source(dct_geom, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         else:
                             dfoo_ = dfoo * 1
@@ -613,12 +586,7 @@ def l1_convert(inputfile, output = None, settings = None,
                                                               target_mask = det_mask, target_mask_full = False, method='linear')
 
                     ## warp to target scene
-                    #if dct_sub != dct_prj:
-                    if True:
-                        #band_vza = ac.shared.warp_from_source(dct_sub, dct_prj, band_vza, warp_to = warp_to)
-                        #band_vaa = ac.shared.warp_from_source(dct_sub, dct_prj, band_vaa, warp_to = warp_to)
-                        #band_vza = ac.shared.warp_from_source(dct_prj, dct_sub, band_vza, fill_value = np.nan)
-                        #band_vaa = ac.shared.warp_from_source(dct_prj, dct_sub, band_vaa, fill_value = np.nan)
+                    if (dct_geom != dct_prj):
                         band_vza = ac.shared.warp_from_source(dct_geom, dct_prj, band_vza, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         band_vaa = ac.shared.warp_from_source(dct_geom, dct_prj, band_vaa, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
 
@@ -649,10 +617,7 @@ def l1_convert(inputfile, output = None, settings = None,
 
                     ## write band specific detector footprint
                     if (setu['s2_write_dfoo']) & (setu['s2_write_dfoo_per_band']):
-                        if True:
-                        #if dct_sub != dct_prj: ## warp to target scene
-                        #    #dfoo = ac.shared.warp_from_source(dct_sub, dct_prj, dfoo, warp_to = warp_to)
-                        #    dfoo = ac.shared.warp_from_source(dct_prj, dct_sub, dfoo, fill_value = np.nan)
+                        if (dct_geom != dct_prj):
                             dfoo = ac.shared.warp_from_source(dct_geom, dct_prj, dfoo, warp_to = warp_to, source_srs = source_srs, fill_value = np.nan)
                         ds = 'dfoo_{}'.format(rsrd['wave_name'][b])
                         gemo.write(ds, dfoo, replace_nan = True,)
