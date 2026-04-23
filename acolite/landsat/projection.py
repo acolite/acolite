@@ -4,6 +4,7 @@
 ## 2021-02-05
 ## modifications: 2021-02-05 (QV) now xrange/yrange represents UL->LR, with negative y pixel size
 ##                2021-02-05 (QV) added to_epsg
+##                2026-04-23 (QV) dimensions now (x,y), ranges as tuple, removed trailing space from proj4string
 
 def projection(meta):
     from pyproj import Proj
@@ -15,7 +16,9 @@ def projection(meta):
         prk = 'PROJECTION_PARAMETERS'
         pk = 'PRODUCT_METADATA'
 
-    dimensions = int(meta[pk]['REFLECTIVE_LINES']), int(meta[pk]['REFLECTIVE_SAMPLES']) ## Y, X
+    #dimensions = int(meta[pk]['REFLECTIVE_LINES']), int(meta[pk]['REFLECTIVE_SAMPLES']) ## Y, X
+    dimensions = int(meta[pk]['REFLECTIVE_SAMPLES']), int(meta[pk]['REFLECTIVE_LINES']) ## X, Y
+
     pixel = meta[prk]['GRID_CELL_SIZE_REFLECTIVE'] if 'GRID_CELL_SIZE_REFLECTIVE' in meta[prk] \
             else meta[prk]['GRID_CELL_SIZE_REFL']
     pixel = float(pixel)
@@ -41,7 +44,7 @@ def projection(meta):
                       '+zone={}'.format(abs(zone)),
                       '+datum={}'.format(datum),
                       '+units=m',
-                      '+no_defs ']
+                      '+no_defs']
         if zone < 0: proj4_list += ['+south']
 
 
@@ -61,7 +64,7 @@ def projection(meta):
                      '+y_0={}'.format(false_n),
                      '+datum={}'.format(datum),
                      '+units=m',
-                     '+no_defs ']
+                     '+no_defs']
 
     proj4_string = ' '.join(proj4_list)
     p = Proj(proj4_string)
@@ -82,9 +85,8 @@ def projection(meta):
                 ytag = 'PRODUCT_{}_CORNER_MAPY'.format(corner)
                 y.append(float(meta[pk][ytag]))
 
-    xrange = [min(x)-pixel_size[0]/2,max(x)+pixel_size[0]/2]
-    yrange = [max(y)-pixel_size[1]/2,min(y)+pixel_size[1]/2]
-
+    xrange = (min(x)-pixel_size[0]/2,max(x)+pixel_size[0]/2)
+    yrange = (max(y)-pixel_size[1]/2,min(y)+pixel_size[1]/2)
 
     dct = {'p': p, 'epsg':  p.crs.to_epsg(),
            'xrange': xrange, 'yrange': yrange,
