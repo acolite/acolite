@@ -6,6 +6,7 @@
 ##                2022-12-13 (QV) use transform from world file if available
 ##                2024-03-28 (QV) x/y range and pixel_size as lists
 ##                2025-01-24 (QV) allow passing of Open gdal dataset
+##                2026-04-23 (QV) ranges and pixel_sizes as tuple
 
 def projection_read(file, use_world_transform = True):
     from pyproj import Proj
@@ -76,16 +77,16 @@ def projection_read(file, use_world_transform = True):
         y0 = transform[3]
         dy = transform[5]
 
-    pixel_size = [dx, dy]
-    xrange = [x0,x0+dimx*dx]
-    yrange = [y0,y0+dimy*dy]
+    pixel_size = (dx, dy)
+    xrange = (x0,x0+dimx*dx)
+    yrange = (y0,y0+dimy*dy)
 
     ## make acolite generic dict
     dct = {'p': p, 'epsg': p.crs.to_epsg(),
            'Wkt': Wkt,  'proj4_string': src.ExportToProj4(), #p.crs.to_proj4()
            'xrange': xrange, 'yrange': yrange,
            'xdim':dimx, 'ydim': dimy,
-           'dimensions':(dimx, dimy),
+           'dimensions': (dimx, dimy),
            'pixel_size': pixel_size}
     dct['projection'] = 'EPSG:{}'.format(dct['epsg'])
     return(dct)
