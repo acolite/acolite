@@ -254,6 +254,7 @@ def l1_convert(inputfile, output = None, settings = None,
 
         ## get scene projection and extent
         dct = ac.landsat.projection(meta)
+        #dct = ac.shared.projection_read(fmeta['B1']['FILE'])
 
         ## full scene
         gatts['scene_xrange'] = dct['xrange']
@@ -304,13 +305,13 @@ def l1_convert(inputfile, output = None, settings = None,
 
         ## get projection info for netcdf
         if setu['netcdf_projection']:
-            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=False)
+            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel = False)
             ## PAN band projection - not used but why not compute it
             dct_prj_pan = {k: dct_prj[k] for k in dct_prj}
             dct_prj_pan['pixel_size'] = dct_prj_pan['pixel_size'][0]/pan_scale, dct_prj_pan['pixel_size'][1]/pan_scale
             dct_prj_pan['xdim'] *= pan_scale
             dct_prj_pan['ydim'] *= pan_scale
-            nc_projection_pan = ac.shared.projection_netcdf(dct_prj_pan, add_half_pixel=False)
+            nc_projection_pan = ac.shared.projection_netcdf(dct_prj_pan, add_half_pixel = False)
         else:
             nc_projection = None
             nc_projection_pan = None
@@ -348,11 +349,11 @@ def l1_convert(inputfile, output = None, settings = None,
             new = True
             new_pan = True
 
-        if new: ## half pixel offset for writing geotiff
-            gatts['xrange'][0]-=gatts['pixel_size'][0]/2
-            gatts['yrange'][0]-=gatts['pixel_size'][1]/2
-            gatts['xrange'][1]-=gatts['pixel_size'][0]/2
-            gatts['yrange'][1]-=gatts['pixel_size'][1]/2
+        #if new: ## half pixel offset for writing geotiff
+        #    gatts['xrange'][0]-=gatts['pixel_size'][0]/2
+        #    gatts['yrange'][0]-=gatts['pixel_size'][1]/2
+        #    gatts['xrange'][1]-=gatts['pixel_size'][0]/2
+        #    gatts['yrange'][1]-=gatts['pixel_size'][1]/2
 
         ## copy thermal constants to metadata
         mts = ['LEVEL1_THERMAL_CONSTANTS', 'TIRS_THERMAL_CONSTANTS', 'THERMAL_CONSTANTS'] ## Coll2, Coll1 L8, Coll1 L5/7
@@ -424,7 +425,7 @@ def l1_convert(inputfile, output = None, settings = None,
         if (setu['output_geolocation']):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=False)
+                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel = False)
                 gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon')
                 gemo.write('lat', lat)
@@ -434,7 +435,7 @@ def l1_convert(inputfile, output = None, settings = None,
         if (setu['output_xy']):
             if ('xm' not in datasets) or ('ym' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False)
+                x, y = ac.shared.projection_geo(dct_prj, xy = True, add_half_pixel = False)
                 gemo.write('xm', x)
                 x = None
                 if verbosity > 1: print('Wrote xm')
