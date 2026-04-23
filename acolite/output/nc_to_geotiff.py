@@ -10,6 +10,7 @@
 ##                2021-11-20 (QV) added match_file to extract projection from (esp if data is using RPC for geolocation?)
 ##                2021-12-08 (QV) added support for the netcdf projection
 ##                2022-03-22 (QV) added support for match_file with GCP
+##                2023-09-22 (QV) update Landsat file to shift to PixelIsPoint
 ##                2024-02-27 (QV) changed writing of nodata, changed COG options
 ##                2024-03-14 (QV) update settings handling
 ##                                removed some keywords
@@ -157,4 +158,5 @@ def nc_to_geotiff(f, settings = None, datasets = None):
         else:
             print('Unprojected data {}. Not outputting GeoTIFF files.'.format(f))
 
+    ## update Landsat metadata - test
     gem.close()
