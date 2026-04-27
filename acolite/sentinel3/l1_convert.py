@@ -324,6 +324,9 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         sza = np.nanmean(tpg['SZA'])
         vza = np.nanmean(tpg['OZA'])
         raa = np.nanmean(tpg['RAA'])
+        saa = np.nanmean(tpg['SAA'])
+        vaa = np.nanmean(tpg['OAA'])
+
         ## center lat and lon
         clat = np.nanmean(tpg['latitude'])
         clon = np.nanmean(tpg['longitude'])
@@ -441,6 +444,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsrd[sensor]['rsr'])
 
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
+                     'saa': saa, 'vaa': vaa, 
                      'isodate':isodate, 'global_dims':data_shape,
                      'se_distance': se_distance, 'acolite_file_type': 'L1R',
                      's3_product_type': s3_product_type, 's3_product_collection': s3_product_collection}
