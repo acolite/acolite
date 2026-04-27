@@ -99,7 +99,7 @@ sensor_noise_bias_correction_resampling=None
 sensor_noise=None
 
 ## Sentinel-3 options
-smile_correction=True
+smile_correction=False
 smile_correction_tgas=True
 use_tpg=False
 use_supplied_ancillary=True
