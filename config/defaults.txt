@@ -459,9 +459,12 @@ dsf_fixed_lut=ACOLITE-LUT-202110-MOD2
 dsf_tile_dimensions=100,100
 
 ## tiled processing options
-dsf_tile_smoothing=True
+dsf_tile_smoothing=False
 dsf_tile_smoothing_kernel_size=3
 dsf_tile_interp_method=linear
+dsf_tile_aot_smoothing=True
+dsf_tile_aot_smoothing_kernel_size=3
+dsf_tile_aot_interp_method=linear
 
 ## exponential options
 exp_mask_threshold=0.0215

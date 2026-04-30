@@ -1423,7 +1423,8 @@ def acolite_l2r(gem,
             for sidx, segment in enumerate(segment_data):
                 aot_out[segment_data[segment]['sub']] = aot_sel[sidx]
         elif setu['dsf_aot_estimate'] == 'tiled':
-            aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask=None, smooth=setu['dsf_tile_smoothing'], kern_size=setu['dsf_tile_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
+            aot_out = ac.shared.tiles_interp(aot_sel, xnew, ynew, target_mask = None, \
+                                            smooth = setu['dsf_tile_aot_smoothing'], kern_size = setu['dsf_tile_aot_smoothing_kernel_size'], method=setu['dsf_tile_interp_method'])
         else:
             if aot_sel.flatten().shape == (1,):
                 aot_out = np.repeat(aot_sel.flatten(), gem.gatts['data_elements']).reshape(gem.gatts['data_dimensions'])
