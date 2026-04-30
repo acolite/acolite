@@ -180,6 +180,7 @@ def l1_convert(inputfile, output = None, settings = None):
             band_waves = []
             band_widths = []
             band_irradiance = []
+            band_detectors = []
             for det in ['blue', 'red', 'SWIR']:
                 print('Reading data from detector {}'.format(det))
                 f0_det, f0_att = ac.shared.nc_data(file, '{}_solar_irradiance'.format(det), \
@@ -201,7 +202,9 @@ def l1_convert(inputfile, output = None, settings = None):
                 for wi, wave in enumerate(wv_det):
                     if not np.isfinite(wave): continue
 
-                    att = {'f0': f0_det[wi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave), 'width': bp_det[wi]}
+                    att = {'f0': f0_det[wi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave),
+                           'width': bp_det[wi], 'detector': det}
+                    ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
 
                     ## track gains
                     if setu['gains']:
@@ -233,8 +236,9 @@ def l1_convert(inputfile, output = None, settings = None):
                     band_waves.append(att['wave'])
                     band_widths.append(att['width'])
                     band_irradiance.append(att['f0'])
+                    band_detectors.append(att['detector'])
 
-                    ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
+
                     if setu['merge_tiles']:
                         if ds_name not in gemo.data_mem:
                             gemo.data_mem[ds_name] = np.zeros(data_shape) + np.nan
@@ -249,6 +253,7 @@ def l1_convert(inputfile, output = None, settings = None):
             gatts['band_waves'] = band_waves
             gatts['band_widths'] = band_widths
             gatts['band_irradiance'] = band_irradiance
+            gatts['band_detectors'] = band_detectors
             if setu['gains']: gatts['band_gains'] = band_gains
 
             ## compute relative azimuth

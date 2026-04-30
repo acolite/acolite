@@ -374,9 +374,8 @@ def acolite_l2r(gem,
                 gem.bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(b, gem.bands[b]['wave_name'])
                 gem.bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(b, gem.bands[b]['wave_name'])
             if setu['add_detector_name']:
-                dsname = rhot_ds[bi][5:]
-                gem.bands[b]['rhot_ds'] = 'rhot_{}'.format(dsname)
-                gem.bands[b]['rhos_ds'] = 'rhos_{}'.format(dsname)
+                gem.bands[b]['rhot_ds'] = 'rhot_{}_{}'.format(gem.gatts['band_detectors'][bi], gem.bands[b]['wave_name'])
+                gem.bands[b]['rhos_ds'] = 'rhos_{}_{}'.format(gem.gatts['band_detectors'][bi], gem.bands[b]['wave_name'])
             if setu['output_ed']:
                 gem.bands[b]['F0'] = f0_b[b]
                 gem.bands[b]['td_gas'] = tdg_b[b]
@@ -384,7 +383,7 @@ def acolite_l2r(gem,
                 if k not in ['wave']:
                     gem.bands[b][k] = tg_dict[k][b]
                     if setu['gas_transmittance'] is False: gem.bands[b][k] = 1.0
-            gem.bands[b]['wavelength']=gem.bands[b]['wave_nm']
+            gem.bands[b]['wavelength'] = gem.bands[b]['wave_nm']
 
             ## add sensor noise to band attributes
             if (setu['sensor_noise_bias_correction']) & (setu['sensor_noise'] is not None):
