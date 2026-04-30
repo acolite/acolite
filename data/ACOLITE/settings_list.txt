@@ -40,6 +40,10 @@ sensor_noise
 
 dsf_exclude_bands
 tsdsf_exclude_bands
+l1r_exclude_bands
+l2r_exclude_bands
+l1r_include_bands
+l2r_include_bands
 
 ndvi_wave
 ndvi_wave_diff

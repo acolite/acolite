@@ -53,6 +53,15 @@ convert_l2=False
 add_band_name=False
 add_detector_name=False
 
+## include/exclude bands from L1R or L2R files
+## named as the dataset would appear in the output NetCDF
+## starting with rhot_ for l1r and rhos_ for l2r
+## l1r currently only for PACE/OCI, l2r only for DSF
+l1r_include_bands=None
+l1r_exclude_bands=None
+l2r_include_bands=None
+l2r_exclude_bands=None
+
 ## compute contrabands
 compute_contrabands=False
 
