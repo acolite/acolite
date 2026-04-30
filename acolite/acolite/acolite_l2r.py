@@ -1527,6 +1527,17 @@ def acolite_l2r(gem,
 
         dsi = gem.bands[b]['rhot_ds']
         dso = gem.bands[b]['rhos_ds']
+
+        ## exclude/include band if requested
+        if setu['l2r_exclude_bands'] is not None:
+            if dso in setu['l2r_exclude_bands']:
+                print('Skipping {} which is in l2r_exclude_bands'.format(dso))
+                continue
+        if setu['l2r_include_bands'] is not None:
+            if dso not in setu['l2r_include_bands']:
+                print('Skipping {} which is not in l2r_include_bands'.format(dso))
+                continue
+
         cur_data, cur_att = gem.data(dsi, attributes=True)
 
         ## store rhot in output file
