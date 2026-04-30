@@ -233,11 +233,21 @@ def l1_convert(inputfile, output = None, settings = None):
                         att['wave_name'] = rsrd_swir['PACE_OCI_SWIR']['wave_name'][swir_b]
                     ## end SWIR gain and band name
 
+                    ## track band even if it would be excluded
                     band_waves.append(att['wave'])
                     band_widths.append(att['width'])
                     band_irradiance.append(att['f0'])
                     band_detectors.append(att['detector'])
 
+                    ## exclude/include band if requested
+                    if setu['l1r_exclude_bands'] is not None:
+                        if ds_name in setu['l1r_exclude_bands']:
+                            print('Skipping {} which is in l1r_exclude_bands'.format(ds_name))
+                            continue
+                    if setu['l1r_include_bands'] is not None:
+                        if ds_name not in setu['l1r_include_bands']:
+                            print('Skipping {} which is not in l1r_include_bands'.format(ds_name))
+                            continue
 
                     if setu['merge_tiles']:
                         if ds_name not in gemo.data_mem:
