@@ -7,6 +7,7 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2026-05-04 (QV) added half pixel to nc_projection x and y
 
 def l2_convert(inputfile, output = None, settings = None,
 
@@ -68,6 +69,9 @@ def l2_convert(inputfile, output = None, settings = None,
         if verbosity > 1: print('Importing metadata from {}'.format(bundle))
         meta = ac.landsat.metadata_read(mtl)
         fmeta = ac.landsat.metadata_bands(bundle, meta)
+
+        add_half_pixel_nc = True ## add half pixel to nc_projection to get pixel centre positions
+        add_half_pixel_geo = False ## no half pixel when computing coordinates - may need to be changed
 
         ## get relevant data from meta
         if 'PRODUCT_CONTENTS' in meta: ## COLL2
@@ -283,13 +287,13 @@ def l2_convert(inputfile, output = None, settings = None,
 
         ## get projection info for netcdf
         if setu['netcdf_projection']:
-            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel=False)
+            nc_projection = ac.shared.projection_netcdf(dct_prj, add_half_pixel = add_half_pixel_nc)
             ## PAN band projection - not used but why not compute it
             dct_prj_pan = {k: dct_prj[k] for k in dct_prj}
             dct_prj_pan['pixel_size'] = dct_prj_pan['pixel_size'][0]/pan_scale, dct_prj_pan['pixel_size'][1]/pan_scale
             dct_prj_pan['xdim'] *= pan_scale
             dct_prj_pan['ydim'] *= pan_scale
-            nc_projection_pan = ac.shared.projection_netcdf(dct_prj_pan, add_half_pixel=False)
+            nc_projection_pan = ac.shared.projection_netcdf(dct_prj_pan, add_half_pixel = add_half_pixel_nc)
         else:
             nc_projection = None
             nc_projection_pan = None
@@ -402,7 +406,7 @@ def l2_convert(inputfile, output = None, settings = None,
         if (setu['output_geolocation']):
             if ('lat' not in datasets) or ('lon' not in datasets):
                 if verbosity > 1: print('Writing geolocation lon/lat')
-                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel=False)
+                lon, lat = ac.shared.projection_geo(dct_prj, add_half_pixel = add_half_pixel_geo)
                 gemo.write('lon', lon)
                 if verbosity > 1: print('Wrote lon')
                 gemo.write('lat', lat)
@@ -412,7 +416,7 @@ def l2_convert(inputfile, output = None, settings = None,
         if (setu['output_xy']):
             if ('xm' not in datasets) or ('ym' not in datasets):
                 if verbosity > 1: print('Writing geolocation x/y')
-                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel=False)
+                x, y = ac.shared.projection_geo(dct_prj, xy=True, add_half_pixel = add_half_pixel_geo)
                 gemo.write('xm', x)
                 x = None
                 if verbosity > 1: print('Wrote xm')
