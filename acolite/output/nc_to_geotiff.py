@@ -18,6 +18,7 @@
 ##                2025-02-19 (QV) use settings.merge
 ##                2025-05-21 (QV) update settings parsing
 ##                2025-07-28 (QV) use export_geotiff_use_projection_key from settings
+##                2026-05-04 (QV) moved PixelIsPoint update to within section that uses gdal NetCDF driver
 
 def nc_to_geotiff(f, settings = None, datasets = None):
     import acolite as ac
@@ -72,6 +73,23 @@ def nc_to_geotiff(f, settings = None, datasets = None):
             dt = None
             print('Wrote {}'.format(outfile))
             outfiles.append(outfile)
+
+            ## update Landsat metadata - moved as it should not be needed when using code below without gdal NetCDF driver
+            if (gem.gatts['sensor'][0:2] in ['L4', 'L5', 'L7', 'L8', 'L9']):
+                print('Updating GeoTiFF tags for {}'.format(outfile))
+                ds = gdal.Open(outfile, gdal.GA_Update)
+                meta = ds.GetMetadata()
+                if meta.get('AREA_OR_POINT') != 'Point':
+                    ds.SetMetadata({'AREA_OR_POINT': 'Point'})
+                    print('Set AREA_OR_POINT to Point')
+                    trans_ = ds.GetGeoTransform()
+                    trans_ = (trans_[0]+trans_[1]/2, trans_[1], trans_[2], \
+                             trans_[3]+trans_[5]/2, trans_[4], trans_[5])
+                    ds.SetGeoTransform(trans_)
+                    print('Added half pixel to geotransform')
+                ds = None
+        ##
+
     else:
         tags = ['xrange', 'yrange', 'pixel_size', 'proj4_string']
         if all([t in gem.gatts for t in tags]) or (match_file is not None):
@@ -157,23 +175,5 @@ def nc_to_geotiff(f, settings = None, datasets = None):
                 outfiles.append(outfile)
         else:
             print('Unprojected data {}. Not outputting GeoTIFF files.'.format(f))
-
-    ## update Landsat metadata - test
-    if (gem.gatts['sensor'][0:2] in ['L4', 'L5', 'L7', 'L8', 'L9']):
-        print('Updating GeoTiFF tags')
-        for outfile in outfiles:
-            print('Updating {}'.format(outfile))
-            ds = gdal.Open(outfile, gdal.GA_Update)
-            meta = ds.GetMetadata()
-            if meta.get('AREA_OR_POINT') != 'Point':
-                ds.SetMetadata({'AREA_OR_POINT': 'Point'})
-                print('Set AREA_OR_POINT to Point')
-                trans_ = ds.GetGeoTransform()
-                trans_ = (trans_[0]+trans_[1]/2, trans_[1], trans_[2], \
-                         trans_[3]+trans_[5]/2, trans_[4], trans_[5])
-                ds.SetGeoTransform(trans_)
-                print('Added half pixel to geotransform')
-            ds = None
-    ##
 
     gem.close()
