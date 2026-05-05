@@ -16,7 +16,8 @@ def auth(machine):
     try:
         nr = netrc.netrc(os.environ['NETRC'])
     except KeyError:
-        nr = netrc.netrc()
+        if os.path.exists(os.path.expanduser('~/.netrc')):
+            nr = netrc.netrc()
     except:
         pass
 
