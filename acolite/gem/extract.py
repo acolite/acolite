@@ -422,7 +422,7 @@ def extract(st_lon, st_lat, sdate,
             ## store projection info in dct to be stored in nc gatts
             is_utm = '+proj=utm' in proj4_string
             zone = -999
-            m = re.search('\+zone=(.+?) ', proj4_string)
+            m = re.search('\\+zone=(.+?) ', proj4_string)
             if m: zone = int(m.group(1))
             dct = {'p': p,
                    #'epsg':  p.crs.to_epsg(),
