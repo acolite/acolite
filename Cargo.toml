@@ -1,0 +1,60 @@
+[package]
+name = "acolite-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["ACOLITE Contributors"]
+description = "High-performance atmospheric correction for aquatic remote sensing"
+license = "GPL-3.0"
+repository = "https://github.com/acolite/acolite"
+
+[[bin]]
+name = "acolite-rs"
+path = "src/main.rs"
+
+[dependencies]
+# Array processing
+ndarray = "0.15"
+rayon = "1.8"
+
+# Geospatial I/O
+tiff = "0.9"
+gdal = { version = "0.17", optional = true }
+
+# STAC and HTTP
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "rustls-tls", "json", "stream"] }
+tokio = { version = "1", features = ["rt", "macros", "rt-multi-thread"] }
+futures-util = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# I/O (optional - requires system libraries)
+netcdf = { version = "0.9", optional = true }
+hdf5 = { version = "0.8", optional = true }
+
+# Utilities
+thiserror = "1.0"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+env_logger = "0.11"
+dirs = "5.0"
+zeroize = "1.8"
+zarrs = { version = "0.23.5", features = ["filesystem"], optional = true }
+bzip2 = "0.5"
+zip = "2.1"
+
+[features]
+default = []
+full-io = ["netcdf", "hdf5"]
+gdal-support = ["gdal"]
+zarr = ["zarrs"]
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.4"
+tempfile = "3.8"
+walkdir = "2.4"
+
+[[bench]]
+name = "performance"
+harness = false
