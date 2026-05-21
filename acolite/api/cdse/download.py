@@ -5,6 +5,7 @@
 ## modifications: 2023-09-19 (QV) retrieve access token per url to avoid time outs
 ##                2023-10-22 (QV) added optional scenes list
 ##                2024-04-27 (QV) moved to acolite.api
+##                2026-05-21 (QV) check for point in scene name and printout dl failure
 
 def download(urls, scenes = [], output = None, auth = None, auth_url = None, netrc_machine = 'cdse',
                   extract_zip = True, remove_zip = True, override = False, verbosity = 1):
@@ -70,7 +71,10 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
 
         ## local files
         lfile = '{}/{}'.format(output, scene)
-        zfile = '{}/{}.zip'.format(output, scene[0:scene.find('.')])
+        if '.' in scene:
+            zfile = '{}/{}.zip'.format(output, scene[0:scene.find('.')])
+        else:
+            zfile = '{}/{}.zip'.format(output, scene)
 
         ## download if we don't have the scene
         if (override | (not os.path.exists(lfile)) & (not os.path.exists(zfile))):
@@ -108,8 +112,8 @@ def download(urls, scenes = [], output = None, auth = None, auth_url = None, net
                         if chunk: # filter out keep-alive new chunks
                             p.write(chunk)
             else:
-                print('An error occurred trying to download.')
-
+                print('An error occurred trying to download:')
+                print(dl)
         else:
             print('Local copy of {} exists'.format(scene))
 

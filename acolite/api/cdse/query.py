@@ -10,6 +10,7 @@
 ##                2024-12-04 (QV) added SLSTR
 ##                2024-12-18 (QV) added result checking and pagination info
 ##                2025-02-04 (QV) added S2C_MSI
+##                2026-05-21 (QV) added LANDSAT (note that download access is restricted)
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None, level = 1, sensor = None,
@@ -28,6 +29,7 @@ def query(scene = None, collection = None, product = None,
 
     ## get collection info from scene
     if scene is not None:
+        ## Sentinel-2
         if (scene[0:3] in ['S2A', 'S2B', 'S2C']):
             collection = "SENTINEL-2"
             if ('MSIL1C' in scene):
@@ -35,29 +37,38 @@ def query(scene = None, collection = None, product = None,
             if ('MSIL2A' in scene):
                 product = "S2MSI2A" ## S2MSI2A for Level 2 MSI data
 
+        ## Sentinel-3
         if ('SEN3' in scene) | (scene[0:3] in ['S3A', 'S3B']):
             collection = "SENTINEL-3"
             product = scene[4:15] ## OL_1_EFR___ for Level 1 full resolution OLCI data
             if product[0:2] == 'OL': sensor = 'OLCI'
             if product[0:2] == 'SL': sensor = 'SLSTR'
 
+        ## Landsat - only 8 and 9 since 2021
+        if (scene[0:4] in ['LC08', 'LO08', 'LT08', 'LC09', 'LO09', 'LT09']):
+            collection = "LANDSAT"
+
     ## if scene is not given we need at least collection and product info
     if (collection is None):
         print('Please provide collection (SENTINEL-2 or SENTINEL-3) for query without scene identifier')
         return
 
+    ## we use a different collection identification for Landsat
+    collection_key = None
     if (product is None):
-        ## use defaults
+        ## Sentinel-2 defaults
         if collection == 'SENTINEL-2':
+            product_key = 'productType'
             if level == 1:
                 product = "S2MSI1C"
             if level == 2:
                 product = "S2MSI2A"
 
-            if verbosity > 0: print('Using default product {} for {}'.format(product, collection))
+            if verbosity > 0: print('Using default product {}:{} for {}'.format(product_key,product, collection))
+        ## Sentinel-3 defaults
         if collection == 'SENTINEL-3':
+            product_key = 'productType'
             if sensor is None: sensor = 'OLCI'
-
             if sensor == 'OLCI':
                 if level == 1:
                     product = "OL_1_EFR___"
@@ -73,8 +84,19 @@ def query(scene = None, collection = None, product = None,
                 if level == 1:
                     product = 'SL_1_RBT___'
 
-            if verbosity > 0: print('Using default product {} for {}'.format(product, collection))
-        if (product is None):
+            if verbosity > 0: print('Using default product {}:{} for {}'.format(product_key, product, collection))
+        ## Landsat defaults
+        if collection == 'LANDSAT':
+            product_key = "productType"
+            ## if we use L1TP we miss out on L1GT data
+            #product = "L1TP"
+            #if verbosity > 0: print('Using default product {}:{} for {}'.format(product_key, product, collection))
+            ## use USGScollection attribute instead
+            collection_key = "USGScollection"
+            collection_id = "landsat-c2l1"
+            if verbosity > 0: print('Using default collection {}:{} for {}'.format(collection_key, collection_id, collection))
+
+        if (product_key is None):
             print('Please provide product (e.g. S2MSI1C or OL_1_EFR___)  for query without scene identifier')
             return
 
@@ -94,7 +116,8 @@ def query(scene = None, collection = None, product = None,
         query_list.append(f"contains(Name,'{scene_}')")
 
     if collection is not None:
-        query_list.append(f"Collection/Name eq '{collection}'")
+        if collection != 'LANDSAT':
+            query_list.append(f"Collection/Name eq '{collection}'")
 
     if start_date is not None:
         sdate = dateutil.parser.parse(start_date)
@@ -108,6 +131,10 @@ def query(scene = None, collection = None, product = None,
     ## OData intersection query
     if wkt is not None:
         query_list.append(f"OData.CSC.Intersects(area=geography'SRID=4326;{wkt}')")
+
+    ## search on collection key attribute (for Landsat)
+    if collection_key is not None:
+        query_list.append(f"Attributes/OData.CSC.StringAttribute/any(att:att/Name eq '{collection_key}' and att/OData.CSC.StringAttribute/Value eq '{collection_id}')")
 
     ## attribute queries
     if product is not None:
