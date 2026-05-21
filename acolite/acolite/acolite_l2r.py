@@ -45,7 +45,6 @@ def acolite_l2r(gem,
     import numpy as np
     import scipy.ndimage, scipy.interpolate, scipy.stats
     import acolite as ac
-    import skimage.measure
 
     time_start = datetime.datetime.now()
 
@@ -473,6 +472,7 @@ def acolite_l2r(gem,
 
     ## set up image segments
     if setu['dsf_aot_estimate'] == 'segmented':
+        import skimage.measure
         segment_data = {}
         rhot_ds = [ds for ds in gem.datasets if 'rhot_' in ds]
         finite_mask = np.isfinite(gem.data(rhot_ds[0]))
