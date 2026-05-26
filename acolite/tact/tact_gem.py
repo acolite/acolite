@@ -11,6 +11,7 @@
 ##                2024-04-17 (QV) use new gem NetCDF handling
 ##                2025-02-04 (QV) updated settings parsing
 ##                2025-02-10 (QV) cleaned up settings use
+##                2026-05-26 (QV) added era5_ecmwf
 
 def tact_gem(gem, output_file = True,
              output = None,
@@ -98,8 +99,11 @@ def tact_gem(gem, output_file = True,
             if verbosity>0: print('Skipping scene as crop is {:.0f}% blackfill'.format(100*nbf/npx))
             return
 
-    if setu['tact_profile_source'] == 'era5':
-        max_date = (datetime.datetime.now() - datetime.timedelta(days=92)).isoformat()
+    ## check if scene not too recent for ERA5 results
+    if setu['tact_profile_source'] in ['era5', 'era5_ecmwf']:
+        if setu['tact_profile_source'] == 'era5': day_offset = 92 ## from RDA
+        if setu['tact_profile_source'] == 'era5_ecmwf': day_offset = 6 ## from CDS
+        max_date = (datetime.datetime.now() - datetime.timedelta(days=day_offset)).isoformat()
         if gem.gatts['isodate'] > max_date:
             print('File too recent for TACT with {} profiles: after {}'.format(setu['tact_profile_source'], max_date))
             print('Run with tact_profile_source=gdas1 or tact_profile_source=ncep.reanalysis2 for NRT processing')
