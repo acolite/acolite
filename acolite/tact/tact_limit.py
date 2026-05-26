@@ -8,6 +8,7 @@
 ##                2022-08-02 (QV) moved era5 profiles to separate function, added gdas1 profile option
 ##                2022-08-11 (QV) added ecostress and reptran
 ##                2025-05-20 (QV) check if system uvspec binary is available
+##                2026-05-26 (QV) added era5_ecmwf
 
 def tact_limit(isotime, limit=None,
                   lat = None, lon = None, wave_range=[7, 14],
@@ -31,7 +32,7 @@ def tact_limit(isotime, limit=None,
     c_time = dt.hour + dt.minute/60 + dt.second/3600
 
     source_default = 'era5'
-    if source not in ['era5', 'gdas1', 'ncep.reanalysis2', 'merra2']: # 'ncep.reanalysis',
+    if source not in ['era5', 'era5_ecmwf', 'gdas1', 'ncep.reanalysis2', 'merra2']: # 'ncep.reanalysis',
         print('Source {} not configured. Using {}.'.format(source, source_default))
         source = '{}'.format(source_default)
 
@@ -55,6 +56,9 @@ def tact_limit(isotime, limit=None,
     obase = os.path.abspath(ac.config['grid_dir']) + '/{}/'.format(source)
     if source == 'era5':
         cells, to_run = ac.tact.profiles.era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+    if source == 'era5_ecmwf':
+        cells, to_run = ac.tact.profiles.era5_ecmwf(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+
     if source == 'gdas1':
         cells, to_run = ac.tact.profiles.gdas1(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source in ['merra2']:
