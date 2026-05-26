@@ -14,15 +14,14 @@
 ##                2025-10-06 (QV) added file_types keyword
 
 def download(date, local_dir = None, file_types = None,
-                       download=True, override = False, verbosity=0,
-                       get_url = "https://oceandata.sci.gsfc.nasa.gov/ob/getfile"):
+                   download = True, override = False, verbosity = 0):
 
     import os
     import dateutil.parser
     import urllib.request
 
     import acolite as ac
-    if local_dir == None: local_dir=ac.config['met_dir']
+    if local_dir is None: local_dir = ac.config['met_dir']
 
     ancillary_files = ac.ac.ancillary.list_files(date, file_types = file_types)
 
@@ -37,7 +36,7 @@ def download(date, local_dir = None, file_types = None,
                 yjd = basefile[1:8]
                 year = yjd[0:4]
                 jday = yjd[4:7]
-            url_file = '{}/{}'.format(get_url, basefile)
+            url_file = '{}/{}'.format(ac.config['oceandata_url'], basefile)
             local_file = '{}/{}/{}/{}'.format(local_dir,year,jday,basefile)
             local_file_unzipped = local_file.replace('.bz2', '')
 
