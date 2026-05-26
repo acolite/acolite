@@ -12,8 +12,9 @@
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
 ##                2025-05-19 (QV) convert lat/lon to float
+##                2026-05-26 (QV) moved to tact.profiles
 
-def tact_profiles_ncep(isotime, limit, obase = None, override = False, verbosity = 5,
+def ncep(isotime, limit, obase = None, override = False, verbosity = 5,
               source = 'ncep.reanalysis2', url_base = None, geo_step = 2.5, time_step = 6):
 
     import os

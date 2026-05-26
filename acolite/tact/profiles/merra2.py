@@ -10,8 +10,9 @@
 ## modifications: 2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
 ##                2025-05-19 (QV) convert lat/lon to float
+##                2026-05-26 (QV) moved to tact.profiles
 
-def tact_profiles_merra2(isotime, limit, obase = None, override = False, verbosity = 5, url_base = None):
+def merra2(isotime, limit, obase = None, override = False, verbosity = 5, url_base = None):
     print(isotime, limit)
 
     import os, json

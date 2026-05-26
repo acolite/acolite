@@ -54,13 +54,13 @@ def tact_limit(isotime, limit=None,
     ## directory to store retrieved profiles and simulation results
     obase = os.path.abspath(ac.config['grid_dir']) + '/{}/'.format(source)
     if source == 'era5':
-        cells, to_run = ac.tact.tact_profiles_era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+        cells, to_run = ac.tact.profiles.era5(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source == 'gdas1':
-        cells, to_run = ac.tact.tact_profiles_gdas1(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+        cells, to_run = ac.tact.profiles.gdas1(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source in ['merra2']:
-        cells, to_run = ac.tact.tact_profiles_merra2(isotime, limit, obase = obase, override = override, verbosity = verbosity)
+        cells, to_run = ac.tact.profiles.merra2(isotime, limit, obase = obase, override = override, verbosity = verbosity)
     if source in ['ncep.reanalysis', 'ncep.reanalysis2']:
-        cells, to_run = ac.tact.tact_profiles_ncep(isotime, limit, obase = obase, override = override, verbosity = verbosity, source = source)
+        cells, to_run = ac.tact.profiles.ncep(isotime, limit, obase = obase, override = override, verbosity = verbosity, source = source)
 
     ## space/time cells
     lat_cells, lon_cells, time_cells = cells

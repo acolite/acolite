@@ -14,8 +14,9 @@
 ##                2023-08-07 (QV) moved url_base to ACOLITE config file
 ##                2025-03-31 (QV) added encoding
 ##                2025-05-19 (QV) convert lat/lon to float
+##                2026-05-26 (QV) moved to tact.profiles
 
-def tact_profiles_era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = False,
+def era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = False,
               url_base = None, geo_step = 0.25):
 
     import os, time
