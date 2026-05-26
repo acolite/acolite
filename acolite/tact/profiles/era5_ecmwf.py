@@ -140,7 +140,11 @@ def era5_ecmwf(isotime, limit, obase = None, override = False, verbosity = 5, ge
                                     'data':[float(s) for s in data_list]}
                             with open(ofile, 'w', encoding = 'utf-8') as f:
                                 f.write(json.dumps(res))
-
+                                
+        ## delete downloaded netcdf
+        if delete:
+            os.remove(local_netcdf)
+            print('Deleted {}'.format(local_netcdf))
 
     ## read & reformat profiles
     to_run = []
