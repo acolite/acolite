@@ -10,6 +10,7 @@
 ##                2025-03-19 (QV) added MERIS RR FRS
 ##                2025-03-27 (QV) added EMIT
 ##                2025-09-11 (QV) added test for L1B and L1C collections
+##                2026-05-26 (QV) switched to tomllib for collections
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
@@ -18,7 +19,7 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
           envisat_meris_resolution = 'FRS', envisat_meris_version = 'v4.0',
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
-    import os, json
+    import os, json, tomllib
     import acolite as ac
 
     if (download) & (local_directory is None):
@@ -41,8 +42,8 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
         if sensoru in ['PACE', 'OCI', 'PACE_OCI']:
 
             ## read collection ids
-            with open('{}/API/pace_oci_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
-                pace_oci_collection_id = json.load(f)
+            with open('{}/API/pace_oci_collection_id.toml'.format(ac.config['data_dir']), 'rb') as f:
+                pace_oci_collection_id = tomllib.load(f)
 
             api = 'json'
             if level2: pace_oci_level = 'L2'
@@ -84,8 +85,8 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
         ## ENVISAT MERIS (L1 data only at the moment)
         elif sensoru in ['MERIS', 'ENVISAT_MERIS'] + envisat_meris_rr_aliases + envisat_meris_fr_aliases:
             ## read collection ids
-            with open('{}/API/envisat_meris_collection_id.json'.format(ac.config['data_dir']), 'r', encoding = 'utf-8') as f:
-                envisat_meris_collection_id = json.load(f)
+            with open('{}/API/envisat_meris_collection_id.toml'.format(ac.config['data_dir']), 'rb') as f:
+                envisat_meris_collection_id = tomllib.load(f)
 
             ## set resolution
             if sensoru in envisat_meris_fr_aliases: envisat_meris_resolution = 'FRS'
