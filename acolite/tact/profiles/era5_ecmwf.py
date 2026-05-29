@@ -45,7 +45,7 @@ def era5_ecmwf(isotime, limit, obase = None, override = False, verbosity = 5, ge
     lon_cells = [c_lon if c_lon >= 0 else c_lon + 360 for c_lon in lon_cells]
 
     ## time cells
-    time_cells = [int(np.floor(c_time)), int(np.ceil(c_time))]
+    time_cells = [int(np.floor(c_time)), int(np.floor(c_time))+1]
 
     ## check whether these files exist
     new_data = True if override else False
