@@ -11,6 +11,7 @@
 ##                2025-03-31 (QV) added encoding
 ##                2025-05-19 (QV) convert lat/lon to float
 ##                2026-05-26 (QV) moved to tact.profiles
+##                2026-05-29 (QV) fixed indexing
 
 def gdas1(isotime, limit, obase = None, override = False, verbosity = 5,
                url_base = None, geo_step = 0.25):
@@ -96,44 +97,41 @@ def gdas1(isotime, limit, obase = None, override = False, verbosity = 5,
                 prof = {}
 
                 ## open NetCDF
-                ds = netCDF4.Dataset(url)
-                datasets = ds.variables.keys()
+                with netCDF4.Dataset(url) as ds:
+                    datasets = ds.variables.keys()
 
-                ## run through datasets
-                for dsi in ['Relative_humidity_isobaric', 'Temperature_isobaric']:
-                    k = dsi[0].lower()
-                    ## get dimensions
-                    #levels = ds['isobaric'][:]
-                    coords = ds[dsi].getncattr('coordinates').split()
-                    levels = ds[coords[-3]][:]
-                    print(coords[-3], len(levels))
-                    lats = ds['lat'][:]
-                    lons = ds['lon'][:]
-                    times = [d.hour]
+                    ## run through datasets
+                    for dsi in ['Relative_humidity_isobaric', 'Temperature_isobaric']:
+                        k = dsi[0].lower()
+                        ## get dimensions
+                        #levels = ds['isobaric'][:]
+                        coords = ds[dsi].getncattr('coordinates').split()
+                        levels = ds[coords[-3]][:]
+                        print(coords[-3], len(levels))
+                        lats = ds['lat'][:]
+                        lons = ds['lon'][:]
+                        times = [d.hour]
 
-                    ## get geo and time bounds
-                    xbounds = [np.argsort(np.abs(lons-min(lon_cells)))[0], np.argsort(np.abs(lons-max(lon_cells)))[0]]
-                    ybounds = [np.argsort(np.abs(lats-min(lat_cells)))[0], np.argsort(np.abs(lats-max(lat_cells)))[0]]
-                    tidx = np.argsort(np.abs(time-c_time))[0:2]
+                        ## get geo and time bounds
+                        xbounds = [np.argsort(np.abs(lons-min(lon_cells)))[0], np.argsort(np.abs(lons-max(lon_cells)))[0]]
+                        ybounds = [np.argsort(np.abs(lats-max(lat_cells)))[0], np.argsort(np.abs(lats-min(lat_cells)))[0]]
 
-                    ## get lat and lon steps (should be == to lat_cells and lon_cells)
-                    blon = lons[xbounds[0]:xbounds[1]].data
-                    blat = lats[ybounds[1]:ybounds[0]].data
+                        ## get lat and lon steps (should be == to lat_cells and lon_cells)
+                        blon = lons[xbounds[0]:xbounds[1]+1].data
+                        blat = lats[ybounds[0]:ybounds[1]+1].data
 
-                    ## get bounding profiles for the four locations at times tidx
-                    prof[k] = {}
-                    prof[k]['levels'] = levels
-                    prof[k]['data'] = ds.variables[dsi][0, :, ybounds[1]:ybounds[0]+1, xbounds[0]:xbounds[1]+1]
-                ## close NetCDF
-                ds.close()
+                        ## get bounding profiles for the four locations at times tidx
+                        prof[k] = {}
+                        prof[k]['levels'] = levels
+                        prof[k]['data'] = ds.variables[dsi][0, :, ybounds[0]:ybounds[1]+1, xbounds[0]:xbounds[1]+1]
                 if verbosity > 0: print('Closed NetCDF {}'.format(url))
 
                 ## save profiles
                 if verbosity > 0: print('Saving individual profiles')
                 ti = '{}'.format(d.hour)
                 for par in prof:
-                    for i,la in enumerate(lat_cells):
-                        for j,lo in enumerate(lon_cells):
+                    for i,la in enumerate(blat):
+                        for j,lo in enumerate(blon):
                             odir = '{}/{}/{}/{}/{}'.format(obase, isodate, ti, la, lo)
                             if not os.path.exists(odir): os.makedirs(odir)
                             ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, ti, la, lo, par]]))
@@ -141,8 +139,7 @@ def gdas1(isotime, limit, obase = None, override = False, verbosity = 5,
                             res = {'time':float(ti),
                                    'levels':[float(s)/100 for s in prof[par]['levels']],
                                    'lat':float(la), 'lon':float(lo),
-                                   #'data':[float(s) for s in list(prof[par]['data'][:, i, j].data)]
-                                   'data':[float(s) for s in list(prof[par]['data'][:, len(lat_cells)-1-i, j].data)]
+                                   'data':[float(s) for s in list(prof[par]['data'][:, i, j].data)]
                                   }
 
                             if (not os.path.exists(ofile)) or (override):

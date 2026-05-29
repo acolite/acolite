@@ -13,6 +13,7 @@
 ##                2025-03-31 (QV) added encoding
 ##                2025-05-19 (QV) convert lat/lon to float
 ##                2026-05-26 (QV) moved to tact.profiles
+##                2026-05-29 (QV) fixed indexing
 
 def ncep(isotime, limit, obase = None, override = False, verbosity = 5,
               source = 'ncep.reanalysis2', url_base = None, geo_step = 2.5, time_step = 6):
@@ -103,36 +104,39 @@ def ncep(isotime, limit, obase = None, override = False, verbosity = 5,
                 print('Opening NetCDF {}'.format(url))
 
             ## open NetCDF
-            ds = netCDF4.Dataset(url)
-            datasets = ds.variables.keys()
+            with netCDF4.Dataset(url) as ds:
+                datasets = ds.variables.keys()
 
-            ## get dimensions
-            times = ds.variables['time'][:]
-            levels = ds.variables['level'][:]
-            lats = ds.variables['lat'][:]
-            lons = ds.variables['lon'][:]
+                ## get dimensions
+                times = ds.variables['time'][:]
+                levels = ds.variables['level'][:]
+                lats = ds.variables['lat'][:]
+                lons = ds.variables['lon'][:]
 
-            ## get geo and time bounds
-            xbounds = [np.argsort(np.abs(lons-min(lon_cells)))[0], np.argsort(np.abs(lons-max(lon_cells)))[0]]
-            ybounds = [np.argsort(np.abs(lats-min(lat_cells)))[0], np.argsort(np.abs(lats-max(lat_cells)))[0]]
-            tidx = np.argsort(np.abs(times-ct))[0:2]
+                ## get geo and time bounds
+                xbounds = [np.argsort(np.abs(lons-min(lon_cells)))[0], np.argsort(np.abs(lons-max(lon_cells)))[0]]
+                ybounds = [np.argsort(np.abs(lats-max(lat_cells)))[0], np.argsort(np.abs(lats-min(lat_cells)))[0]]
+                tidx = np.argsort(np.abs(times-ct))[0]
+                if ttime[tidx] <= c_time:
+                    tidx = [tidx, tidx+1]
+                else:
+                    tidx = [tidx-1, tidx]
 
-            ## get lat and lon steps (should be == to lat_cells and lon_cells)
-            blon = lons[xbounds[0]:xbounds[1]].data
-            blat = lats[ybounds[1]:ybounds[0]].data
-            btime = times[tidx].data
+                ## get lat and lon steps (should be == to lat_cells and lon_cells)
+                blon = lons[xbounds[0]:xbounds[1]+1].data
+                blat = lats[ybounds[0]:ybounds[0]+1].data
+                btime = times[tidx[0]:tidx[1]+1].data
 
-            ## get bounding profiles for the four locations at times tidx
-            prof = ds.variables[dsi][tidx, :, ybounds[1]:ybounds[0]+1, xbounds[0]:xbounds[1]+1]
-            ds.close()
+                ## get bounding profiles for the four locations at times tidx
+                prof = ds.variables[dsi][tidx[0]:tidx[1]+1, :, ybounds[0]:ybounds[1]+1, xbounds[0]:xbounds[1]+1]
             if verbosity > 0: print('Closed NetCDF {}'.format(url))
 
             ## save profiles
             if verbosity > 0: print('Saving individual profiles')
 
-            for i,la in enumerate(lat_cells):
-                for j,lo in enumerate(lon_cells):
-                    for k,ti in enumerate(time_cells):
+            for i,la in enumerate(blat):
+                for j,lo in enumerate(blon):
+                    for k,ti in enumerate(btime):
                         cur_time = dst + datetime.timedelta(seconds=ti*3600)
                         isodate = cur_time.isoformat()[0:10]
                         cur_hour = cur_time.hour
@@ -144,7 +148,7 @@ def ncep(isotime, limit, obase = None, override = False, verbosity = 5,
                         res = {'time':float(cur_hour),
                                'levels':[float(s) for s in list(levels.data)],
                                'lat':float(la), 'lon':float(lo),
-                               'data':[float(s) for s in list(prof[k, :, len(lat_cells)-1-i, j].data)]}
+                               'data':[float(s) for s in list(prof[k, :, i, j].data)]}
                         if res['levels'][0] > res['levels'][-1]:
                             res['levels'].reverse()
                             res['data'].reverse()

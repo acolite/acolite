@@ -15,6 +15,7 @@
 ##                2025-03-31 (QV) added encoding
 ##                2025-05-19 (QV) convert lat/lon to float
 ##                2026-05-26 (QV) moved to tact.profiles
+##                2026-05-29 (QV) fixed indexing
 
 def era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = False,
               url_base = None, geo_step = 0.25):
@@ -104,47 +105,49 @@ def era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = F
         if new_data:
             if verbosity > 0:
                 print('Opening NetCDF {}'.format(url))
-
             it = 0
             success = False
             while (it < 2) & (success == False):
                 try:
                     ## open NetCDF
-                    ds = netCDF4.Dataset(url)
-                    datasets = ds.variables.keys()
+                    with netCDF4.Dataset(url) as ds:
+                        datasets = ds.variables.keys()
 
-                    ## get dimensions
-                    utc_date = ds.variables[datpar][:]
-                    if grib: utc_date = np.asarray([np.int32('{}{}'.format(date, '{:.0f}'.format(t).zfill(2))) for t in utc_date])
-                    date = (utc_date/100).astype(int)
-                    ttime = (utc_date-date*100).astype(int)
-                    levels = ds.variables[levpar][:]
-                    lats = ds.variables[latpar][:]
-                    lons = ds.variables[lonpar][:]
-                    #times = ds.variables['time'][:]
+                        ## get dimensions
+                        utc_date = ds.variables[datpar][:]
+                        if grib: utc_date = np.asarray([np.int32('{}{}'.format(date, '{:.0f}'.format(t).zfill(2))) for t in utc_date])
+                        date = (utc_date/100).astype(int)
+                        ttime = (utc_date-date*100).astype(int)
+                        levels = ds.variables[levpar][:]
+                        lats = ds.variables[latpar][:]
+                        lons = ds.variables[lonpar][:]
+                        #times = ds.variables['time'][:]
 
-                    ## get geo and time bounds
-                    xbounds = [np.argsort(np.abs(lons-min(lon_cells)))[0], np.argsort(np.abs(lons-max(lon_cells)))[0]]
-                    ybounds = [np.argsort(np.abs(lats-min(lat_cells)))[0], np.argsort(np.abs(lats-max(lat_cells)))[0]]
-                    tidx = np.argsort(np.abs(ttime-c_time))[0:2]
+                        ## get geo and time bounds
+                        xbounds = [np.argsort(np.abs(lons-min(lon_cells)))[0], np.argsort(np.abs(lons-max(lon_cells)))[0]]
+                        ybounds = [np.argsort(np.abs(lats-max(lat_cells)))[0], np.argsort(np.abs(lats-min(lat_cells)))[0]]
+                        tidx = np.argsort(np.abs(ttime-c_time))[0]
+                        if ttime[tidx] <= c_time:
+                            tidx = [tidx, tidx+1]
+                        else:
+                            tidx = [tidx-1, tidx]
 
-                    ## get lat and lon steps (should be == to lat_cells and lon_cells)
-                    blon = lons[xbounds[0]:xbounds[1]].data
-                    blat = lats[ybounds[1]:ybounds[0]].data
-                    #btime = times[tidx].data
+                        ## get lat and lon steps (should be == to lat_cells and lon_cells)
+                        blon = lons[xbounds[0]:xbounds[1]+1].data
+                        blat = lats[ybounds[0]:ybounds[1]+1].data
+                        btime = ttime[tidx[0]:tidx[1]+1].data
 
-                    ## get bounding profiles for the four locations at times tidx
-                    prof = ds.variables[dsi][tidx, :, ybounds[1]:ybounds[0]+1, xbounds[0]:xbounds[1]+1]
-                    ds.close()
+                        ## get bounding profiles for the four locations at times tidx
+                        prof = ds.variables[dsi][tidx[0]:tidx[1]+1, :, ybounds[0]:ybounds[1]+1, xbounds[0]:xbounds[1]+1].data
                     if verbosity > 0: print('Closed NetCDF {}'.format(url))
                     success = True
-
                 except BaseException as err:
                     print('Could not open {}'.format(url))
                     print("Error {}, {}".format(err, type(err)))
                     if it < 2: time.sleep(10)
                     pass
                 it +=1
+
             if not success:
                 print('Failed to open {}'.format(url))
                 return()
@@ -152,17 +155,16 @@ def era5(isotime, limit, obase = None, override = False, verbosity = 5, grib = F
             ## save profiles
             if verbosity > 0: print('Saving individual profiles')
 
-            for i,la in enumerate(lat_cells):
-                for j,lo in enumerate(lon_cells):
-                    for k,ti in enumerate(time_cells):
+            for i,la in enumerate(blat):
+                for j,lo in enumerate(blon):
+                    for k,ti in enumerate(btime):
 
                         odir = '{}/{}/{}/{}/{}'.format(obase, isodate, ti, la, lo)
                         if not os.path.exists(odir): os.makedirs(odir)
                         ofile = '{}/{}.json'.format(odir, '_'.join([str(s) for s in [isodate, ti, la, lo, par]]))
 
                         res = {'time':float(ti),'levels':[float(l) for l in levels],'lat':float(la), 'lon':float(lo),
-                               #'data':[float(s) for s in list(prof[k, :, i, j].data)]
-                               'data':[float(s) for s in list(prof[k, :, len(lat_cells)-1-i, j].data)]}
+                               'data':[float(s) for s in list(prof[k, :, i, j].data)]}
                         if (not os.path.exists(ofile)) or (override):
                             with open(ofile, 'w', encoding = 'utf-8') as f:
                                 f.write(json.dumps(res))
