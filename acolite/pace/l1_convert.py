@@ -16,6 +16,7 @@
 ##                2025-03-03 (QV) added support for gains
 ##                2025-03-17 (QV) fixed application of gains
 ##                2025-03-18 (QV) fix for when no limit or sub is supplied
+##                2026-05-27 (QV) added inputfile to gatts, fix for band_data subsetting in level2 conversion
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json
@@ -119,7 +120,7 @@ def l1_convert(inputfile, output = None, settings = None):
             time = dateutil.parser.parse(isodate)
 
             ## output attributes
-            gatts = {'sensor': sensor, 'isodate': time.isoformat()}
+            gatts = {'sensor': sensor, 'isodate': time.isoformat(), 'inputfile': file}
             gatts['acolite_file_type'] = acolite_file_type
             oname =  '{}_{}'.format(gatts['sensor'],  time.strftime('%Y_%m_%d_%H_%M_%S'))
             if setu['merge_tiles']: oname+='_merged'
@@ -296,7 +297,15 @@ def l1_convert(inputfile, output = None, settings = None):
                     print(d.shape)
                     for wi in range(d.shape[2]):
                         ds_att = {k: att[k] for k in att}
-                        for k in band_atts: ds_att[k] = band_atts[k][wi]
+
+                        ## find index of current band wavelenth_3d in sensor band parameters wavelength
+                        wi_ = np.argsort(np.abs(band_atts['wavelength'] - band_atts['wavelength_3d'][wi]))[0]
+                        for k in band_atts:
+                            if k == 'wavelength_3d':
+                                ds_att[k] = band_atts[k][wi]
+                            else:
+                                ds_att[k] = band_atts[k][wi_]
+
                         ds_out = '{}_{}'.format(ds_name, ds_att['wavelength_3d'])
                         if setu['merge_tiles']:
                             if ds_out not in gemo.data_mem:
