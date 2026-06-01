@@ -305,8 +305,10 @@ def l1_convert(inputfile, output = None, settings = None):
                                 ds_att[k] = band_atts[k][wi]
                             else:
                                 ds_att[k] = band_atts[k][wi_]
-
+                        ## add wave_nm alias
+                        ds_att['wave_nm'] = ds_att['wavelength_3d']
                         ds_out = '{}_{}'.format(ds_name, ds_att['wavelength_3d'])
+
                         if setu['merge_tiles']:
                             if ds_out not in gemo.data_mem:
                                 gemo.data_mem[ds_out] = np.zeros(data_shape) + np.nan
