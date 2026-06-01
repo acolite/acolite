@@ -2,6 +2,7 @@ import acolite.shared.position
 import acolite.shared.limit
 import acolite.shared.netcdf
 import acolite.shared.sftp
+import acolite.shared.array
 
 from .auth import auth
 
@@ -78,7 +79,6 @@ from .square_response import *
 from .sun_position import *
 from .rsr_hyper import *
 from .interp2d import *
-from .derivative import *
 from .plane_fit import *
 from .stats import *
 from .glint_angle import *
