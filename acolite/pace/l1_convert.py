@@ -202,7 +202,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 for wi, wave in enumerate(wv_det):
                     if not np.isfinite(wave): continue
 
-                    att = {'f0': f0_det[wi], 'wave': wave, 'wave_name': '{:.0f}'.format(wave),
+                    att = {'f0': f0_det[wi], 'wave': wave, 'wave_nm': wave, 'wave_name': '{:.0f}'.format(wave),
                            'width': bp_det[wi], 'detector': det}
                     ds_name = 'rhot_{}_{}'.format(det, att['wave_name'])
 
