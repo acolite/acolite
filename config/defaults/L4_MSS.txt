@@ -26,3 +26,5 @@ dsf_aot_estimate=fixed
 rgb_red_wl=750
 rgb_green_wl=650
 rgb_blue_wl=550
+
+landsat_azi_use_band=4

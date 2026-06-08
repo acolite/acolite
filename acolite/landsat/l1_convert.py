@@ -18,6 +18,7 @@
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
 ##                2026-05-04 (QV) added half pixel to nc_projection x and y
+##                2026-06-08 (QV) moved landsat_azi_use_band to settings
 
 def l1_convert(inputfile, output = None, settings = None,
 
@@ -111,7 +112,6 @@ def l1_convert(inputfile, output = None, settings = None,
         global_dims = int(meta[rk]['REFLECTIVE_LINES']), int(meta[rk]['REFLECTIVE_SAMPLES'])
 
         ## some hard coded info
-        azi_use_band = '5'
         sat = 'L{}'.format(spacecraft_id[-1])
         pan_scale = 2
         satellite_sensor = None
@@ -144,8 +144,6 @@ def l1_convert(inputfile, output = None, settings = None,
                 thermal_bands = ['8']
             else:
                 thermal_bands = []
-            if sat in ['L4', 'L5']:
-                azi_use_band = '4'
         else:
             print(spacecraft_id, sensor_id)
             print('Not configured')
@@ -185,7 +183,7 @@ def l1_convert(inputfile, output = None, settings = None,
         sza = 90-float(meta[ik]['SUN_ELEVATION'])
         saa = float(meta[ik]['SUN_AZIMUTH'])
         ## compute view zenith angle
-        r,l,t,b, nadir_top, nadir_bottom,nadir_middle = ac.landsat.image_corners(bundle, meta, use_band = azi_use_band)
+        r,l,t,b, nadir_top, nadir_bottom,nadir_middle = ac.landsat.image_corners(bundle, meta, use_band = '{}'.format(setu['landsat_azi_use_band']))
         vaa = ac.shared.azimuth_two_points(nadir_top[0],nadir_top[1],nadir_bottom[0],nadir_bottom[1])
         raa = np.abs(saa-vaa)
         while raa > 180: raa = np.abs(360 - raa)
