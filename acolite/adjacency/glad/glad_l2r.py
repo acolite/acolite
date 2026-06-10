@@ -156,7 +156,7 @@ def glad_l2r(ncf, output = None, ofile = None,
         omega = np.arccos(cos2omega)/2
 
         ## read and resample refractive index
-        refri = ac.ac.refri()
+        refri = ac.shared.wopp.refri()
         refri_sen = ac.shared.rsr_convolute_dict(refri['wave']/1000, refri['n'], rsrd[sensor]['rsr'])
 
         ## compute fresnel reflectance for each n

@@ -1909,7 +1909,7 @@ def acolite_l2r(gem,
             del cos2omega
 
             ## read and resample refractive index
-            refri = ac.ac.refri()
+            refri = ac.shared.wopp.refri()
             refri_sen = ac.shared.rsr_convolute_dict(refri['wave']/1000, refri['n'], rsrd['rsr'])
 
             ## compute fresnel reflectance for the reference bands
