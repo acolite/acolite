@@ -12,7 +12,7 @@ def crat_nc(ncf, parameter = 'rhow', datasets = None, crat_config = 'defaults'):
     import numpy as np
 
     parameter_list = ['Rrs', 'rhow', 'rhos', 'rhosu']
-    sensor_list = ['PACE_OCI', 'PRISMA', 'ENMAP_HSI']
+    sensor_list = ['PACE_OCI', 'PRISMA', 'ENMAP_HSI', 'DESIS_HSI']
 
     if parameter not in parameter_list:
         print('Parameter {} not configured, use one of: '.format(parameter))
