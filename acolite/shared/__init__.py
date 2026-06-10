@@ -3,6 +3,7 @@ import acolite.shared.limit
 import acolite.shared.netcdf
 import acolite.shared.sftp
 import acolite.shared.array
+import acolite.shared.wopp
 
 from .auth import auth
 
