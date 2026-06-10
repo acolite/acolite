@@ -6,12 +6,12 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-06-03
-## modifications: 2026-06-10 (QV) added to ac.parameters.crat
-
+## modifications: 2026-06-10 (QV) added to ac.parameters.crat, changed settings to toml
 
 def crat(wave, rhow, crat_config = 'defaults'):
     import acolite as ac
     import numpy as np
+    import tomllib
 
     in_shape = rhow.shape
     ## add empty axes for 1 or 2D arrays
@@ -20,19 +20,23 @@ def crat(wave, rhow, crat_config = 'defaults'):
         rhow = np.expand_dims(rhow, axis = new_axis)
 
     ## read crat config
-    crat_file = ac.config['data_dir'] + "/Shared/algorithms/chl_crat/{}.txt".format(crat_config)
-    crat_cfg = ac.shared.import_config(crat_file)
-    crat_cfg = {k: float(crat_cfg[k]) for k in crat_cfg}
+    crat_file = ac.config['data_dir'] + "/Shared/algorithms/chl_crat/crat.toml"
+    crat_cfg = tomllib.load(open(crat_file, 'rb'))[crat_config]
+
+    ## smooth input spectrum
+    if crat_cfg['smooth']['iterations'] > 0:
+        rhow = ac.shared.array.convolve(rhow, window = crat_cfg['smooth']['window'],
+                                              iterations = crat_cfg['smooth']['iterations'])
 
     ## get water absorption
     awTS = ac.shared.wopp.aw_ts(crat_cfg['temperature'], crat_cfg['salinity'])
 
     ## compute reflectance at reference wavelength
-    lw1 = ac.shared.array.linear_weight(wave, crat_cfg['wave_ref'])
+    lw1 = ac.shared.array.linear_weight(wave, crat_cfg['wave']['ref'])
     rhow_ref = rhow[lw1[0], :, :] * lw1[1] + rhow[lw1[2], :, :] * lw1[3]
 
     ## find wavelengths where rhow == rhow_ref
-    wsub = np.where((wave >= crat_cfg['wave_min']) & (wave <= crat_cfg['wave_max']))
+    wsub = np.where((wave >= crat_cfg['wave']['min']) & (wave <= crat_cfg['wave']['max']))
     diff = rhow[wsub[0], :, :] - rhow_ref
     idx = np.argsort(np.abs(diff), axis = 0)[0, :, :]
 
@@ -85,7 +89,7 @@ def crat(wave, rhow, crat_config = 'defaults'):
     wave_2[np.where(tmp == False)] = np.nan
 
     ## resample aw and compute a difference
-    aw_1 = np.interp(crat_cfg['wave_ref'], awTS['wave'], awTS['awTS'])
+    aw_1 = np.interp(crat_cfg['wave']['ref'], awTS['wave'], awTS['awTS'])
     aw_2 = np.interp(wave_2, awTS['wave'], awTS['awTS'])
     a = (aw_2 - aw_1)
     c = a / crat_cfg['aphy']

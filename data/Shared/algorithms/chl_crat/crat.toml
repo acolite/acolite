@@ -1,0 +1,29 @@
+## configuration file for the CHL_CRAT algorithm
+## Ruddick et al. 2001 https://doi.org/10.1364/AO.40.003575
+[defaults]
+## temperature and salinity for WOPP aw computation
+temperature = 20
+salinity = 34
+## mass specific chlorophyll a absorption
+aphy = 0.016
+## smoothing options
+smooth.iterations = 0
+smooth.window = 5
+## wavelength configuration
+wave.ref = 672
+wave.min = 700
+wave.max = 740
+
+[smoothed]
+## temperature and salinity for WOPP aw computation
+temperature = 20
+salinity = 34
+## mass specific chlorophyll a absorption
+aphy = 0.016
+## smoothing options
+smooth.iterations = 3
+smooth.window = 5
+## wavelength configuration
+wave.ref = 672
+wave.min = 700
+wave.max = 740
