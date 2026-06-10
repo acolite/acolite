@@ -104,6 +104,12 @@ chl_re_mishra_nocheck,1,100,True,Calgae255,CHL Mishra,mg m$^{-3}$
 chl_re_bramich,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
 chl_re_bramich_nocheck,1,100,True,Calgae255,CHL Bramich,mg m$^{-3}$
 #
+## CHL_CRAT
+#
+chl_crat,1,100,True,Calgae255,CHL CRAT,mg m$^{-3}$
+chl_crat_defaults,1,100,True,Calgae255,CHL CRAT,mg m$^{-3}$
+chl_crat_smoothed,1,100,True,Calgae255,CHL CRAT,mg m$^{-3}$
+#
 ## indices
 #
 fai,-0.04,0.06,False,default,FAI $\rho_s$ (Hu et al. 2009),1

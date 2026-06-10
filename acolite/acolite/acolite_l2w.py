@@ -1079,6 +1079,30 @@ def acolite_l2w(gem, output = None, settings = None,
         #############################
 
         #############################
+        ## CHL_CRAT
+        if cur_par.startswith('chl_crat'):
+            mask = True ## water parameter so apply mask
+            par_attributes = {'algorithm': 'CRAT chlorophyll',
+                              'dataset': 'rhos'}
+            par_attributes['reference']='Ruddick et al. 2001'
+            par_attributes['algorithm']='CRAT'
+
+            ## find crat config
+            if cur_par == 'chl_crat':
+                crat_config = 'defaults'
+            else:
+                crat_config = cur_par.split('_')[-1]
+            par_attributes['algorithm_settings'] = crat_config
+
+            ## compute CRAT
+            par_data[cur_par] = ac.parameters.chl_crat.crat_nc(gemf,
+                                               parameter = par_attributes['dataset'],
+                                               crat_config = crat_config)
+            par_atts[cur_par] = par_attributes
+        ## CHL_CRAT
+        #############################
+
+        #############################
         ## QAA
         if (cur_par[0:3] == 'qaa') | (cur_par == 'qaa5') | (cur_par == 'qaa6') | (cur_par == 'qaaw') |\
            ((cur_par[0:3] == 'qaa') & (('_v5' in cur_par) | ('_v6' in cur_par) | ('_vw' in cur_par))):
