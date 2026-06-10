@@ -4,6 +4,7 @@ import acolite.shared.netcdf
 import acolite.shared.sftp
 import acolite.shared.array
 import acolite.shared.wopp
+import acolite.shared.xr
 
 from .auth import auth
 
