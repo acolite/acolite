@@ -19,6 +19,7 @@
 ##                2025-05-21 (QV) update settings parsing
 ##                2025-07-28 (QV) use export_geotiff_use_projection_key from settings
 ##                2026-05-04 (QV) removed PixelIsPoint update
+##                2026-06-11 (DP) use gdal.Warp instead of gdal.Translate for better nodata handling
 
 def nc_to_geotiff(f, settings = None, datasets = None):
     import acolite as ac
@@ -66,9 +67,20 @@ def nc_to_geotiff(f, settings = None, datasets = None):
             if ds in ['x', 'y', gem.gatts['projection_key']]: continue
             if (skip_geo) & (ds in ['lat', 'lon']): continue
             outfile = '{}_{}{}'.format(out, ds, '.tif')
+
+            # When _FillValue or missing_value are not defined in the netCDF file, the
+            # underlying netCDF reading library GDAL uses will convert NaN values to a
+            # default value based on the data type (e.g. 9.969209968386869e+36 for floats).
+            # This code block reads that value so that we can instruct gdal.Warp to:
+            #     NaN in netCDF -> default/fill value in memory -> NaN in GeoTiff
+            with gdal.Open('NETCDF:"{}":{}'.format(f, ds)) as dataset:
+                band = dataset.GetRasterBand(1)
+                src_nodata = band.GetNoDataValue()
+
             ## write geotiff
-            dt = gdal.Translate(outfile, 'NETCDF:"{}":{}'.format(f, ds),
-                                noData = np.nan,
+            dt = gdal.Warp(outfile, 'NETCDF:"{}":{}'.format(f, ds),
+                                srcNodata=src_nodata, dstNodata=np.nan,
+                                resampleAlg=gdal.GRA_NearestNeighbour,
                                 format = format, creationOptions = creationOptions)
             dt = None
             print('Wrote {}'.format(outfile))
