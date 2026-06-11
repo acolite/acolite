@@ -18,6 +18,7 @@
 ##                2025-04-07 (QV) change worldview_convert_l2 to convert_l2
 ##                2025-09-15 (QV) added rpc_use = False
 ##                2026-01-15 (QV) changed to rsr_dict, added basic support for PAN processing
+##                2026-06-11 (DP) improve handling of PGC distributed and/or processed imagery
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
