@@ -295,7 +295,8 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 lats = [meta['BAND_INFO'][bt][k] for k in meta['BAND_INFO'][bt] if 'LAT' in k]
                 lim = [min(lats), min(lons), max(lats), max(lons)]
             dct, nc_projection, warp_to = ac.shared.projection_setup(lim, setu['worldview_reproject_resolution'], \
-                                                                          res_method=setu['worldview_reproject_method'])
+                                                                          res_method=setu['worldview_reproject_method'],
+                                                                          add_half_pixel=True)
             global_dims = dct['ydim'], dct['xdim']
 
         ## final scene dimensions
@@ -348,7 +349,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             for k in ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'dimensions', 'zone']:
                 if k in dct: gatts[k] = dct[k]
 
-            if nc_projection is None: nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = False)
+            if nc_projection is None: nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
             gatts['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
 
         ## write results to output file
