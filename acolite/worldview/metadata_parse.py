@@ -11,6 +11,7 @@
 ##                2025-02-14 (QV) added Legion
 ##                2025-03-01 (QV) added PGC and PGC stretch identification
 ##                2025-03-31 (QV) added WV4 support
+##                2026-06-11 (DP) ignore XML namespaces if present for forward metadata compatibility
 
 def metadata_parse(metafile):
     import os, sys, fnmatch, dateutil.parser
@@ -30,10 +31,10 @@ def metadata_parse(metafile):
 
     ## check if PGC image
     metadata['PGC'] = False
-    node = xmldoc.getElementsByTagName('PGC_IMD')
+    node = xmldoc.getElementsByTagNameNS('*', 'PGC_IMD')
     if len(node) > 0:
         metadata['PGC'] = True
-        node = xmldoc.getElementsByTagName('STRETCH')
+        node = xmldoc.getElementsByTagNameNS('*', 'STRETCH')
         metadata['PGC_STRETCH'] = node[0].firstChild.nodeValue
 
     ## get image information
@@ -49,7 +50,7 @@ def metadata_parse(metafile):
                     "RADIOMETRICLEVEL", "RADIOMETRICENHANCEMENT"]
 
     for tag in metadata_tags:
-        node = xmldoc.getElementsByTagName(tag)
+        node = xmldoc.getElementsByTagNameNS('*', tag)
         if len(node) > 0: metadata[tag] = node[0].firstChild.nodeValue
 
     if 'SATID' in metadata:
@@ -149,9 +150,9 @@ def metadata_parse(metafile):
         #if band_tag == 'BAND_S1': band_index = 1 # reset counter for SWIR bands
         band_data = {'name':band_names[b], 'index':band_indices[b]}
         ## there are two tags in WV3 metadata
-        for t in xmldoc.getElementsByTagName(band_tag):
+        for t in xmldoc.getElementsByTagNameNS('*', band_tag):
             for tag in band_tags:
-                    node = t.getElementsByTagName(tag)
+                    node = t.getElementsByTagNameNS('*', tag)
                     if len(node) > 0:
                         band_data[tag]=float(node[0].firstChild.nodeValue)
         if len(band_data)>2: ## keep band only if in metadata
@@ -171,10 +172,10 @@ def metadata_parse(metafile):
                 "ULX","ULY","URX","URY",
                 "LRX","LRY","LLX","LLY"]
     tile_values=[]
-    for t in xmldoc.getElementsByTagName('TILE'):
+    for t in xmldoc.getElementsByTagNameNS('*', 'TILE'):
         tile = {}
         for tag in tile_tags:
-                node = t.getElementsByTagName(tag)
+                node = t.getElementsByTagNameNS('*', tag)
                 if len(node) > 0:
                     if tag == "FILENAME": val=node[0].firstChild.nodeValue
                     else: val=float(node[0].firstChild.nodeValue)
