@@ -10,7 +10,11 @@ def nc_read(file, dataset, group = None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
         if group is not None:
-            if group in nc.groups: nc = nc.groups[group]
+            if group in nc.groups:
+                nc = nc.groups[group]
+            else:
+                print('Group {} not in {}'.format(group, file))
+                return
         gatts = {attr : getattr(nc,attr) for attr in nc.ncattrs()}
         out_array = nc.variables[dataset][:]
     return (out_array, gatts)
@@ -21,7 +25,11 @@ def nc_read_all(ncf, group = None):
     with Dataset(ncf) as nc:
         gatts = {attr : getattr(nc,attr) for attr in nc.ncattrs()}
         if group is not None:
-            if group in nc.groups: nc = nc.groups[group]
+            if group in nc.groups:
+                nc = nc.groups[group]
+            else:
+                print('Group {} not in {}'.format(group, ncf))
+                return
         datasets = nc.variables.keys()
         data = {}
         atts = {}
@@ -41,7 +49,11 @@ def nc_data(file, dataset, crop=False, sub=None, attributes=False, group=None, d
     from netCDF4 import Dataset
     with Dataset(file) as nc:
         if group is not None:
-            if group in nc.groups: nc = nc.groups[group]
+            if group in nc.groups:
+                nc = nc.groups[group]
+            else:
+                print('Group {} not in {}'.format(group, file))
+                return
         if sub is None:
             if crop is False:
                 data = nc.variables[dataset][:]
@@ -83,7 +95,11 @@ def nc_atts(file, dataset, group = None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
         if group is not None:
-            if group in nc.groups: nc = nc.groups[group]
+            if group in nc.groups:
+                nc = nc.groups[group]
+            else:
+                print('Group {} not in {}'.format(group, file))
+                return
         atts = {attr : getattr(nc.variables[dataset],attr) for attr in nc.variables[dataset].ncattrs()}
     return atts
 
@@ -112,6 +128,10 @@ def nc_datasets(file, group = None):
     from netCDF4 import Dataset
     with Dataset(file) as nc:
         if group is not None:
-            if group in nc.groups: nc = nc.groups[group]
+            if group in nc.groups:
+                nc = nc.groups[group]
+            else:
+                print('Group {} not in {}'.format(group, file))
+                return
         ds = list(nc.variables.keys())
     return ds
