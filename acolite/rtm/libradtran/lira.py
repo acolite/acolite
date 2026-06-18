@@ -90,7 +90,7 @@ class lira(object):
 
     def write_inp_file(self):
         self.set_file_paths() ## set file paths in case they changed
-        if not os.path.exists(os.path.dirname(self.inp_file)):  os.makedirs(os.path.dirname(self.inp_file))
+        if not os.path.exists(self.output): os.makedirs(self.output)
         ## write key setting combinations
         with open(self.inp_file, 'w', encoding='utf-8') as f:
             for s in self.cfg: f.write('{} {}\n'.format(s, self.cfg[s]))

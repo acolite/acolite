@@ -106,7 +106,7 @@ def acpar(sza, vza, raa, ## geometry - required
         lr4.cfg["brdf_cam sal"] = "{}".format(sal)
         processes = 4
 
-    if not quiet: print('Running simulations')
+    if not quiet: print('Running {} simulations'.format(processes))
     t0 = time.time()
     if parallel: ## mp runs
         from multiprocessing import Pool
