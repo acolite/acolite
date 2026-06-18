@@ -7,6 +7,7 @@
 # modifications:  2025-01-30 (QV) moved polygon limit and limit buffer extension
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2026-06-18 (QV) added L2 conversion
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -34,7 +35,7 @@ def l1_convert(inputfile, output = None, settings = None):
     if verbosity > 1: print('Starting conversion of {} scenes'.format(nscenes))
 
     ## tested platforms
-    seadas_platforms = ['Seahawk1']
+    seadas_platforms = ['Seahawk1', 'Sentinel-2A', 'Sentinel-2B']
 
     ## run through inputfiles
     ofiles = []
@@ -51,6 +52,8 @@ def l1_convert(inputfile, output = None, settings = None):
         instrument = igatts['instrument']
         if platform.lower() in ['seahawk1', 'seahawk2']:
             platform = 'SeaHawk{}'.format(platform[-1])
+        if platform.lower() in ['sentinel-2a', 'sentinel-2b']:
+            platform = 'S2{}'.format(platform[-1])
         if instrument.lower() in ['hawkeye']:
             instrument = 'HawkEye'
         sensor = '{}_{}'.format(platform, instrument)
@@ -205,6 +208,17 @@ def l1_convert(inputfile, output = None, settings = None):
                 gemo.write('rhot_{}'.format(ds_att['wave_name']), data, ds_att = ds_att)
                 data = None
                 print('Wrote rhot_{}'.format(ds_att['wave_name']))
+        else:
+            ## level 2 data
+            data_group = 'geophysical_data'
+            datasets = ac.shared.nc_datasets(file, group = data_group)
+            for ds_name in datasets:
+                d, att = ac.shared.nc_data(file, ds_name, group=data_group, sub=sub, attributes = True, axis_3d = 2)
+                if d.dtype in [np.float32]: d[d.mask] = np.nan
+                gemo.write(ds_name, d, ds_att = att)
+                d = None
+                print('Wrote {}'.format(ds_name))
+        ## end level2 data
 
         gemo.gatts = {k: gatts[k] for k in gatts}
         gemo.gatts_update()

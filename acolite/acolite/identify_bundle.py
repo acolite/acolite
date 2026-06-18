@@ -297,6 +297,11 @@ def identify_bundle(bundle, input_type = None, output = None):
                 (gatts['instrument'] in ['HAWKEYE']):
                 input_type = 'SeaDAS'
                 break ## exit loop
+            ## SeaDAS l2gen data
+            datasets = ac.shared.nc_datasets(bundle, group = 'geophysical_data')
+            if ('Level-2 Data OC' in gatts['title']) & (len(datasets) != 0):
+                input_type = 'SeaDAS'
+                break ## exit loop
         except:
             pass ## continue to next sensor
         ## end SeaDAS L1B
