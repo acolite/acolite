@@ -90,6 +90,11 @@ def l1_convert(inputfile, output = None, settings = None):
             print('Format of {} not supported'.format(file))
             continue
 
+        ## do not convert L2 by default
+        if (not level1) & (not setu['convert_l2']):
+            print('To convert L2 files, set convert_l2 = True')
+            continue
+
         ## get band waves
         waves = ac.shared.nc_data(file, 'wavelength', group = sensor_group).data
 
@@ -210,8 +215,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 print('Wrote rhot_{}'.format(ds_att['wave_name']))
         else:
             ## level 2 data
-            data_group = 'geophysical_data'
-            datasets = ac.shared.nc_datasets(file, group = data_group)
+            datasets = ac.shared.nc_datasets(file, group = 'geophysical_data')
             for ds_name in datasets:
                 d, att = ac.shared.nc_data(file, ds_name, group=data_group, sub=sub, attributes = True, axis_3d = 2)
                 if d.dtype in [np.float32]: d[d.mask] = np.nan
