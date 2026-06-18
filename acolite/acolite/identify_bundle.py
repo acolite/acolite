@@ -678,6 +678,19 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## OCSMART
+        try:
+            gatts = ac.shared.nc_gatts(bundle)
+            groups_dict = ac.shared.nc_groups(bundle)
+            if (gatts == {}) & (groups_dict != {}):
+                input_type = 'OCSMART'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end OCSMART
+        ################
+
+        ################
         break ## exit loop
 
     ## remove the extracted bundle if it could not be identified

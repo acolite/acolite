@@ -341,6 +341,13 @@ def acolite_l1r(bundle, input_type=None):
     ## end Hyperfield
     ################
 
+    ################
+    ## OCSMART
+    if input_type == 'OCSMART':
+        l1r_files, setu = ac.ocsmart.l1_convert(bundle)
+    ## end OCSMART
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:
