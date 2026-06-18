@@ -1,12 +1,12 @@
-## def rgb_stack
+## def rgb.stack
 ## function to create RGB visualisation based on input array
 ## with fixed and autoscale options
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-06-10
-## modifications:
+## modifications: 2026-06-11 (QV) moved from shared.array.rgb_stack
 
-def rgb_stack(wavelength, data, scale = True,
+def stack(wavelength, data, scale = True,
               auto_range = False, auto_range_min = [5]*3, auto_range_max = [95]*3, auto_range_sigma = 0,
               rgb_wave = [650, 560, 480], rgb_min = [0] * 3, rgb_max = [0.15] * 3, ):
     import acolite as ac
