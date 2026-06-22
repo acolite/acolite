@@ -344,7 +344,7 @@ def acolite_l1r(bundle, input_type=None):
     ################
     ## OCSMART
     if input_type == 'OCSMART':
-        l1r_files, setu = ac.ocsmart.l1_convert(bundle)
+        l1r_files, setu = ac.convert.ocsmart(bundle)
     ## end OCSMART
     ################
 

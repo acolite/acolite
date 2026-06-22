@@ -1,11 +1,11 @@
-# def l1_convert
+# def convert.ocsmart
 # converts OCSMART he5 file to L2A ACOLITE NetCDF
 # written by Quinten Vanhellemont, RBINS
 # 2026-06-18
 #
-# modifications:
+# modifications: 2026-06-22 (QV) moved from ocsmart.l1_convert
 
-def l1_convert(inputfile, output = None, settings = None):
+def ocsmart(inputfile, output = None, settings = None):
     import numpy as np
     import datetime, dateutil.parser, os
     import acolite as ac
