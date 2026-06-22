@@ -348,6 +348,13 @@ def acolite_l1r(bundle, input_type=None):
     ## end OCSMART
     ################
 
+    ################
+    ## POLYMER
+    if input_type == 'POLYMER':
+        l1r_files, setu = ac.convert.polymer(bundle)
+    ## end POLYMER
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:
