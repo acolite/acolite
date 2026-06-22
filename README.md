@@ -57,21 +57,35 @@ TACT performance for Antarctic mountain sites and near shore waters was evaluate
 ## Distribution
 This repository contains all the source code to run ACOLITE in a Python environment. ACOLITE is also distributed as a binary package on the [releases page](https://github.com/acolite/acolite/releases) and is supported on the [ACOLITE forum](http://odnature.naturalsciences.be/remsem/acolite-forum/).
 
-## Dependencies
-ACOLITE is coded in Python 3, and requires the following Python packages to run: `numpy matplotlib scipy gdal libgdal-jp2openjpeg libgdal-netcdf pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy zarr`
+## Installation
+ACOLITE can be installed with a clone of this repository, and can be executed in an environment with the correct dependencies installed. To install and run ACOLITE:
+* cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
+* cd into the new acolite directory `cd acolite`
+* set up the correct Python packages or an acolite environment (see below)
+* run `python launch_acolite.py`
 
-A suitable Python environment can for example be set up using conda and the packages on conda-forge:
+If the "acolite" clone is in your path, then the code can be imported and used directly in other Python scripts. For example with the "acolite" clone in a git directory in your home:
+
+            import sys, os
+            user_home = os.path.expanduser("~")
+            sys.path.append('{}/git/acolite'.format(user_home))
+            import acolite as ac
+
+## Dependencies
+ACOLITE is coded in Python 3, and requires a suitable environment with a number of Python packages to run. This environment can for example be set up using (micro)mamba or conda and the packages on conda-forge:
+
+            micromamba create --file environment.yml
+or
+
+            conda env create --file environment.yml
+
+A more manual enviroment set up could be performed using:
 
             conda create -n acolite -c conda-forge python=3
             conda activate acolite
             conda install -c conda-forge numpy matplotlib scipy gdal libgdal-jp2openjpeg libgdal-netcdf pyproj scikit-image pyhdf pyresample netcdf4 h5py requests pygrib cartopy zarr fsspec aiohttp
 
 Note that the above command assumes the use of GDAL >= 3.9, with JP2000 support to process Sentinel-2 imagery, and NetCDF support to output GeoTIFF files, which are installed by libgdal-jp2openjpeg and libgdal-netcdf. For GDAL < 3.9 these libgdal packages are not required. In certain environments the fsspec and aiohttp packages are also required for processing of zarr data.
-
-## Installation
-* cd into a suitable directory and clone the git repository: `git clone --depth 1 https://github.com/acolite/acolite`
-* cd into the new acolite directory `cd acolite`
-* run `python launch_acolite.py`
 
 ## Ancillary and DEM/GED data download
 ACOLITE can automatically retrieve Copernicus DEM data (30 or 90 metre resolution) from the Amazon Web Services Public Datasets (e.g. https://registry.opendata.aws/copernicus-dem/). No account is necessary. The Copernicus 30 metre DEM is now the default DEM, but the use of a DEM needs to be set by dem_pressure=True.
@@ -92,6 +106,9 @@ ACOLITE tries to retrieve the credentials for accessing EARTHDATA either from yo
 TACT is now integrated into ACOLITE, and allows for processing of the Landsat thermal data to surface temperature. TACT needs libRadtran to be installed to perform simulations of the atmospheric down and upwelling radiances and transmittance: http://libradtran.org/doku.php
 
 libRadtran can be manually compiled and installed in the external directory, or an executable binary in your $PATH can be used, for example by installing the package from conda-forge:
+
+            micromamba install conda-forge::rubin-libradtran
+or
 
             conda install conda-forge::rubin-libradtran
 
