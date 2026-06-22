@@ -5,7 +5,7 @@
 #
 # modifications:
 
-def polymer(inputfile, output = None, settings = None, Rrs = False):
+def polymer(inputfile, output = None, settings = None, Rrs = True):
     import numpy as np
     import datetime, dateutil.parser, os
     import acolite as ac
