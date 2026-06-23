@@ -18,10 +18,11 @@
 ##                2025-04-07 (QV) change worldview_convert_l2 to convert_l2
 ##                2025-09-15 (QV) added rpc_use = False
 ##                2026-01-15 (QV) changed to rsr_dict, added basic support for PAN processing
+##                2026-06-11 (DP) improve handling of PGC distributed and/or processed imagery
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
-    import os, glob, dateutil.parser, datetime, time
+    import os, glob, dateutil.parser, datetime, time, re
     import numpy as np
     import scipy.interpolate
     import acolite as ac
@@ -79,9 +80,15 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
 
         ## test if we have the pan bundle as well
         pan_bundle = None
-        if bundle.endswith('MUL') & (not setu['worldview_skip_pan']):
+        if bundle.endswith('MUL') and (not setu['worldview_skip_pan']):
             if os.path.exists(bundle[0:-3] + 'PAN'):
                 pan_bundle = bundle[0:-3] + 'PAN'
+        elif meta["PGC"] and not setu['worldview_skip_pan']:
+            ## Try to find the pan bundle using PGC naming conventions
+            match = re.search(r"-(\w\d\w\w)-", bundle)
+            if match:
+                prod_code = match.group(1)
+                pan_bundle = bundle.replace(prod_code, "P1BS")
 
         pan_meta = None
         if (pan_bundle is not None):
@@ -106,16 +113,18 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 print('Image {} is already corrected by supplier.'.format(bundle))
                 print('RADIOMETRICLEVEL: {} RADIOMETRICENHANCEMENT: {}'.format(meta['RADIOMETRICLEVEL'], meta['RADIOMETRICENHANCEMENT']))
                 atmospherically_corrected = True
+                correction_name = 'acomp'
                 if not setu['convert_l2']: continue
 
         ## test if we have PGC bundle
         pgc_bundle = False
         if meta['PGC']:
             pgc_bundle = True
-            if meta['PGC_STRETCH'] in ['mr']:
+            if meta['PGC_STRETCH'] != 'ns': ## Assume all values except 'ns' (no stretch) indicate image has been corrected
                 print('Image {} is already corrected by supplier.'.format(bundle))
                 print('PGC_STRETCH: {}'.format(meta['PGC_STRETCH']))
                 atmospherically_corrected = True
+                correction_name = meta['PGC_STRETCH']
                 if not setu['convert_l2']: continue
 
         ## parse the metadata
@@ -206,7 +215,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             except:
                 tile = ''
 
-            file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+            if os.path.isdir(bundle):
+                file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+            else:
+                file = bundle
 
             ## check if the files were named .TIF instead of .TIFF
             if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
@@ -284,7 +296,8 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 lats = [meta['BAND_INFO'][bt][k] for k in meta['BAND_INFO'][bt] if 'LAT' in k]
                 lim = [min(lats), min(lons), max(lats), max(lons)]
             dct, nc_projection, warp_to = ac.shared.projection_setup(lim, setu['worldview_reproject_resolution'], \
-                                                                          res_method=setu['worldview_reproject_method'])
+                                                                          res_method=setu['worldview_reproject_method'],
+                                                                          add_half_pixel=True)
             global_dims = dct['ydim'], dct['xdim']
 
         ## final scene dimensions
@@ -313,6 +326,9 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             #print(dct['xdim'], dct['ydim'])
             #print(dct['xrange'], dct['yrange'])
 
+            ## update the global dimensions to match the computed dimensions
+            global_dims = dct['ydim'], dct['xdim']
+
             ## create pan version
             if pan_bundle is not None:
                 dct_pan = {k:dct[k] for k in dct}
@@ -334,7 +350,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
             for k in ['xrange', 'yrange', 'proj4_string', 'pixel_size', 'dimensions', 'zone']:
                 if k in dct: gatts[k] = dct[k]
 
-            if nc_projection is None: nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = False)
+            if nc_projection is None: nc_projection = ac.shared.projection_netcdf(dct, add_half_pixel = True)
             gatts['projection_key'] = [k for k in nc_projection if k not in ['x', 'y']][0]
 
         ## write results to output file
@@ -399,7 +415,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 offset = [int(tile_mdata['ULCOLOFFSET']), int(tile_mdata['ULROWOFFSET'])]
                 if verbosity > 1: print('{} - Band {} Processing tile {}/{}'.format(datetime.datetime.now().isoformat()[0:19], band, ti+1, ntiles), tile, offset)
 
-                file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+                if os.path.isdir(bundle):
+                    file = '{}/{}'.format(bundle,tile_mdata['FILENAME'])
+                else:
+                    file = bundle
                 ## check if the files were named .TIF instead of .TIFF
                 if not os.path.exists(file): file = file.replace('.TIFF', '.TIF')
                 if not os.path.exists(file): continue
@@ -427,7 +446,10 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 if pan_bundle is not None:
                     for tile_mdata_pan in pan_meta['TILE_INFO']:
                         if tile in tile_mdata_pan['FILENAME']:
-                            pan_file = '{}/{}'.format(pan_bundle,tile_mdata_pan['FILENAME'])
+                            if os.path.isdir(bundle):
+                                pan_file = '{}/{}'.format(pan_bundle,tile_mdata_pan['FILENAME'])
+                            else:
+                                pan_file = pan_bundle
                         if not os.path.exists(pan_file):
                             continue
                     ## full resolution pan output
@@ -469,9 +491,11 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                 if dtype == np.dtype('uint8'):
                     nodata = d == np.uint8(0)
                 elif dtype == np.dtype('uint16'):
-                    nodata = d == np.uint16(0)
+                    nodata_value = 0 if not pgc_bundle else 65535
+                    nodata = d == np.uint16(nodata_value)
                 elif dtype == np.dtype('float32'):
-                    nodata = d == np.float32(0)
+                    nodata_value = 0 if not pgc_bundle else -9999
+                    nodata = d == np.float32(nodata_value)
 
                 ## override cf for PGC bundle
                 if pgc_bundle:
@@ -530,7 +554,7 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
 
             ## set up dataset attributes
             ds = 'rhot_{}'.format(rsrd['wave_name'][band])
-            if atmospherically_corrected: ds = ds.replace('rhot_', 'rhos_acomp_')
+            if atmospherically_corrected: ds = ds.replace('rhot_', f'rhos_{correction_name}_')
 
             ds_att = {'wavelength': rsrd['wave_mu'][band]*1000, 'band_name': band, 'f0': f0_b[band]/10.}
             if gains != None:
