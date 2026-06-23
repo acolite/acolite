@@ -355,6 +355,13 @@ def acolite_l1r(bundle, input_type=None):
     ## end POLYMER
     ################
 
+    ################
+    ## C2RCC
+    if input_type == 'C2RCC':
+        l1r_files, setu = ac.convert.c2rcc(bundle)
+    ## end C2RCC
+    ################
+
     ## remove extracted files
     for i, im in enumerate(identification):
         try:

@@ -678,7 +678,7 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
-        ## OCSMART and POLYMER
+        ## OCSMART, POLYMER, and C2RCC
         try:
             gatts = ac.shared.nc_gatts(bundle)
             groups_dict = ac.shared.nc_groups(bundle)
@@ -688,9 +688,12 @@ def identify_bundle(bundle, input_type = None, output = None):
             if (('dir_static' in gatts) & ('dir_common' in gatts)) & (groups_dict == {}):
                 input_type = 'POLYMER'
                 break ## exit loop
+            if (('C2RCC' in igatts['product_type'])) & (groups_dict == {}):
+                input_type = 'C2RCC'
+                break ## exit loop
         except:
             pass ## continue to next sensor
-        ## end OCSMART and POLYMER
+        ## end OCSMART, POLYMER, and C2RCC
         ################
 
         ################
