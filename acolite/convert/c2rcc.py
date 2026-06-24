@@ -106,8 +106,12 @@ def c2rcc(inputfile, output = None, settings = None, Rrs = True):
                           'Kdmin_OOR_mask', 'Kd489_at_max_mask', 'Kdmin_at_max_mask', 'Valid_PE_mask',
                            #'c2rcc_flags','lat','lon',
                         ]
-        ## read RSR
-        rsrd = ac.shared.rsr_dict(sensor = sensor)[sensor]
+                        
+        ## read RSR with version
+        sensor_version = '{}'.format(sensor)
+        if setu['rsr_version'] is not None:
+            sensor_version = '{}_{}'.format(sensor, setu['rsr_version'])
+        rsrd = ac.shared.rsr_dict(sensor = sensor_version)[sensor_version]
 
         ## run through groups
         for group in [None]:
