@@ -496,6 +496,7 @@ rgb_rhosu=False
 rgb_rhoe=False
 rgb_rhorc=False
 rgb_rhow=False
+rgb_Rrs=False
 map_l1r=False
 map_l2r=False
 map_l2t=False
@@ -503,7 +504,7 @@ map_l2w=False
 
 # rgb maps to output per file type
 l1r_rgb_keys=rhot
-l2r_rgb_keys=rhos,rhosu,rhorc,rhotc,rhoe
+l2r_rgb_keys=rhos,rhosu,rhorc,rhotc,rhoe,Rrs
 l2w_rgb_keys=rhow
 
 # mapping options

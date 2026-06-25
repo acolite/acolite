@@ -658,6 +658,8 @@ def acolite_map(ncf, output = None,
                     bsc = np.nanpercentile(data.data, setu['rgb_autoscale_percentiles'])
                 else:
                     bsc = np.asarray((setu['rgb_min'][iw], setu['rgb_max'][iw]))
+                    if ('rho' not in ds_base): bsc /= np.pi ## for Rrs RGB
+
                 gamma = setu['rgb_gamma'][iw]
 
                 ## do RGB stretch
