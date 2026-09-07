@@ -77,6 +77,9 @@ netcdf_metadata_profile=beam
 landsat_qa_bands=PIXEL,RADSAT,SATURATION,AEROSOL
 landsat_qa_output=False
 landsat_azi_use_band=5
+landsat_output_pan=True
+landsat_output_pan_ms=True
+landsat_output_thermal=True
 
 ## Sentinel-2 options
 s2_target_res=10

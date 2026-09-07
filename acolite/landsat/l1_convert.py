@@ -19,14 +19,9 @@
 ##                2025-02-10 (QV) cleaned up settings use, output naming
 ##                2026-05-04 (QV) added half pixel to nc_projection x and y
 ##                2026-06-08 (QV) moved landsat_azi_use_band to settings
+##                2026-09-07 (QV) moved output_pan, output_pan_ms, output_thermal to settings
 
 def l1_convert(inputfile, output = None, settings = None,
-
-                output_pan = True,
-                output_pan_ms = True,
-                output_thermal = True,
-
-                usgs_reflectance = True,
 
                 check_sensor = True,
                 check_time = True,
@@ -453,7 +448,7 @@ def l1_convert(inputfile, output = None, settings = None,
                 if b in waves_names:
                     pan = False
                     if b in pan_bands: ## pan band
-                        if (not output_pan) & (not output_pan_ms): continue
+                        if (not setu['landsat_output_pan']) & (not setu['landsat_output_pan_ms']): continue
                         pan = True
                         mus_pan = scipy.ndimage.zoom(mus, zoom=pan_scale, order=1) if len(np.atleast_1d(mus))>1 else mus * 1
                         data = ac.landsat.read_toa(fmeta[b], sub=sub_pan, mus=mus_pan, warp_to=warp_to_pan)
@@ -469,7 +464,7 @@ def l1_convert(inputfile, output = None, settings = None,
                         data *= ds_att['toa_gain']
                         if verbosity > 1: print('Converting bands: Applied TOA gain {} to {}'.format(ds_att['toa_gain'], ds))
 
-                    if output_pan & pan:
+                    if setu['landsat_output_pan'] & pan:
                         ## write output
                         ofile_pan = ofile.replace('_L1R.nc', '_L1R_pan.nc')
                         if new_pan:
@@ -481,8 +476,12 @@ def l1_convert(inputfile, output = None, settings = None,
                         if verbosity > 1: print('Converting bands: Wrote {} to separate L1R_pan'.format(ds))
 
                     ## prepare for low res output
-                    if output_pan_ms & pan: data = scipy.ndimage.zoom(data, zoom=1/pan_scale, order=1)
-
+                    if pan:
+                        if setu['landsat_output_pan_ms']:
+                            data = scipy.ndimage.zoom(data, zoom=1/pan_scale, order=1)
+                        else:
+                            continue
+                            
                     ## clip data
                     if (setu['polygon_clip']): data[clip_mask] = np.nan
 
@@ -491,7 +490,7 @@ def l1_convert(inputfile, output = None, settings = None,
                     if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
                 else:
                     if b in thermal_bands:
-                        if output_thermal:
+                        if setu['landsat_output_thermal']:
                             ds = 'bt{}'.format(b).lower()
                             ds_att = {'band':b}
                             for k in fmeta[b]: ds_att[k] = fmeta[b][k]
