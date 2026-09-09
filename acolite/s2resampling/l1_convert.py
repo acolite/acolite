@@ -61,7 +61,7 @@ def l1_convert(inputfile, output = None, settings = None):
         gatts = {}
         gatts['sensor'] = sensor
         gatts['isodate'] = dt.isoformat()
-        gatts['acolite_file_type'] = 'S2R_L1R'
+        gatts['acolite_file_type'] = 'L1R_S2R'
 
         ## output file name
         oname = '{}_{}'.format(sensor, dt.strftime('%Y_%m_%d_%H_%M_%S'))
