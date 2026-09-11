@@ -24,6 +24,8 @@ def bundle_test(file):
             sensor = 'S2A_MSI'
         elif bn[0:3] == 'S2B':
             sensor = 'S2B_MSI'
+        elif bn[0:3] == 'S2C':
+            sensor = 'S2C_MSI'
         else:
             return
 

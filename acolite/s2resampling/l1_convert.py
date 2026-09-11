@@ -41,7 +41,10 @@ def l1_convert(inputfile, output = None, settings = None):
         sensor, gatts, datasets = ret
 
         ## sensor rsrd
-        rsrd = ac.shared.rsr_dict(sensor)[sensor]
+        if sensor == 'S2C_MSI':
+            rsrd = ac.shared.rsr_dict(f'{sensor}_V4')[f'{sensor}_V4']
+        else:
+            rsrd = ac.shared.rsr_dict(sensor)[sensor]
 
         ## get sensor specific defaults
         setd = ac.acolite.settings.parse(sensor)
