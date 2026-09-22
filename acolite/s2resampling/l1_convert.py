@@ -8,6 +8,7 @@
 ##                2024-05-22 (QV) update gem dataset atts
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2026-09-22 (QV) added S2C support
 
 def l1_convert(inputfile, output = None, settings = None):
     import numpy as np
@@ -40,15 +41,19 @@ def l1_convert(inputfile, output = None, settings = None):
         if (ret is None): continue
         sensor, gatts, datasets = ret
 
-        ## sensor rsrd
-        rsrd = ac.shared.rsr_dict(sensor)[sensor]
-
         ## get sensor specific defaults
         setd = ac.acolite.settings.parse(sensor)
         ## set sensor default if user has not specified the setting
         for k in setd:
             if k not in ac.settings['user']: setu[k] = setd[k]
         ## end set sensor specific defaults
+
+        ## sensor rsrd
+        if setu['rsr_version'] is None:
+            sensor_lut = '{}'.format(sensor)
+        else:
+            sensor_lut = '{}_{}'.format(sensor, setu['rsr_version'])
+        rsrd = ac.shared.rsr_dict(sensor_lut)[sensor_lut]
 
         verbosity = setu['verbosity']
         if output is None: output = setu['output']
