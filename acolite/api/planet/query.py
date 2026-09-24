@@ -94,7 +94,7 @@ def query(geojson_geometry, date_start, date_end = None,
             if fr>= min_cover:
                 covered_features.append(f)
 
-        print('Found {} features covering ROI > {:.2f}'.format(len(covered_features), min_cover), end='\n')
+        print('Found {} features with cloud cover < {:.2f}, covering ROI > {:.2f}'.format(len(covered_features), max_cloud, min_cover), end='\n')
         return(covered_features)
     else:
         return(features)
