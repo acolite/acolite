@@ -11,15 +11,19 @@
 ##                2025-03-27 (QV) added EMIT
 ##                2025-09-11 (QV) added test for L1B and L1C collections
 ##                2026-05-26 (QV) switched to tomllib for collections
+##                2026-09-28 (QV) added L3 and regex_filter
 
 def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_date = None, api = 'atom', verbosity = 5,
           download = False, local_directory = None, override = False,
           dataset = None, datacenter = None, collection_id = None,
-          pace_oci_nrt = False, pace_oci_version = 'v3.0', pace_oci_level = 'L1B', level2 = False, level2_type = 'AOP', ## for PACE L2 AOP data
+          pace_oci_nrt = False, pace_oci_version = 'v3.0', pace_oci_level = 'L1B', level2 = False,
+          level2_type = 'AOP', ## for PACE L2 AOP data
+          level3_type = 'AOP', ## for PACE L3 AOP data
+          filter_regex = None,
           envisat_meris_resolution = 'FRS', envisat_meris_version = 'v4.0',
           filter_time = True, filter_time_range = [11, 14]): ## time filter for viirs to be implemented
 
-    import os, json, tomllib
+    import os, json, tomllib, re
     import acolite as ac
 
     if (download) & (local_directory is None):
@@ -80,6 +84,14 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
                 else:
                     print('L2 type level2_type={} not recognised.'.format(level2_type))
                     print('For setting pace_oci_nrt={}.'.format(pace_oci_nrt))
+                    return
+            elif pace_oci_level == 'L3':
+                dataset = 'PACE_OCI_L3_{}'.format(level3_type)
+                print(pace_oci_collection_id[pace_oci_version].keys())
+                if ('L3_{}'.format(level3_type) in pace_oci_collection_id[pace_oci_version]):
+                    collection_id = pace_oci_collection_id[pace_oci_version]['L3_{}'.format(level3_type)]
+                else:
+                    print('L3 type level3_type={} not recognised.'.format(level3_type))
                     return
 
         ## ENVISAT MERIS (L1 data only at the moment)
@@ -186,6 +198,21 @@ def query(sensor, lon = None, lat = None, scene = None, start_date = None, end_d
         urls+=urls_
         files+=files_
     ## end run through different queries
+
+    ## set up regex filter
+    if filter_regex is not None:
+        regex = re.compile(filter_regex)
+        keep_indices = []
+        for i, url in enumerate(urls):
+            scene = os.path.basename(url)
+
+            if not re.match(regex, scene):
+                print('Scene {} did not match regex filter {}'.format(scene, filter_regex))
+                continue
+            keep_indices.append(i)
+        urls = [urls[i] for i in keep_indices]
+        files = [files[i] for i in keep_indices]
+    ## end regex filter
 
     ## return urls and files when not downloading
     if not download: return(urls, files)
