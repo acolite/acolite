@@ -903,6 +903,8 @@ def radcor(ncf, settings = None):
         if aer_anc is None: return
         aer_lut, aer_aot, aer_ang_mean = aer_anc
         best_mod = aer_md[aer_lut[-4:]]
+        if (setu['radcor_force_model'] is not None):
+            best_mod = setu['radcor_force_model']
         best_aot = aer_aot
         print('Setting aot={:.3f} (mean) and lut={} (mean angstrom={:.2f}) based on ancillary data'.format(aer_aot, aer_lut, aer_ang_mean))
     ## other aot estimates
