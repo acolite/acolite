@@ -19,7 +19,7 @@ def query(geojson_geometry, date_start, date_end = None,
     import acolite as ac
 
     # API Key stored as an env variable
-    if 'PL_API_KEY' in os.environ:
+    if ('PL_API_KEY' in os.environ) & (os.environ['PL_API_KEY'] != ''):
         PL_API_KEY = os.getenv('PL_API_KEY')
     else:
         print('PL_API_KEY not in environment. Please add your Planet API key as PL_API_KEY')
