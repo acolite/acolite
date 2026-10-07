@@ -11,10 +11,11 @@
 ##                2024-12-18 (QV) added result checking and pagination info
 ##                2025-02-04 (QV) added S2C_MSI
 ##                2026-05-21 (QV) added LANDSAT (note that download access is restricted)
+##                2026-10-07 (QV) added  relative_orbit query
 
 def query(scene = None, collection = None, product = None,
                start_date = None, end_date = None,  roi = None, level = 1, sensor = None,
-               cloud_cover = None, tile = None, processor_version = None, ## S2
+               cloud_cover = None, tile = None, processor_version = None, relative_orbit = None, ## S2
                bright_cover = None, timeliness = None, full_resolution = True, land = False, ## S3
                verbosity = 1,
                max_results = 1000, odata_url = None, attributes = False):
@@ -147,6 +148,8 @@ def query(scene = None, collection = None, product = None,
             print('MGRS tile length should be 5 characters: {}'.format(tile))
         else:
             query_list.append(f"Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'tileId' and att/OData.CSC.StringAttribute/Value eq '{tile}')")
+    if relative_orbit is not None:
+        query_list.append(f"Attributes/OData.CSC.IntegerAttribute/any(att:att/Name eq 'relativeOrbitNumber' and att/OData.CSC.IntegerAttribute/Value eq {relative_orbit})")
     if bright_cover is not None:
         query_list.append(f"Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq 'brightCover' and att/OData.CSC.DoubleAttribute/Value lt {bright_cover})")
     if timeliness is not None:
