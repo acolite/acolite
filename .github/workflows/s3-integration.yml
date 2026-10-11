@@ -1,0 +1,108 @@
+name: S3 OLCI Integration Test
+
+on:
+  # Run weekly and on manual trigger
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday 06:00 UTC
+  workflow_dispatch:
+  push:
+    branches: [feature/rust-port]
+    paths:
+      - "acolite/sentinel3/**"
+      - "acolite/ac/**"
+      - "acolite/output/**"
+      - "tests/regression/test_s3_e2e_pipeline.py"
+      - ".github/workflows/s3-integration.yml"
+
+env:
+  ACOLITE_TEST_CACHE: /tmp/acolite_s3_cache
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  s3-olci-e2e:
+    name: Sentinel-3 OLCI End-to-End
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev gdal-bin libnetcdf-dev libhdf5-dev
+
+      - name: Cache pip packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-s3-e2e-${{ hashFiles('environment.yml') }}
+          restore-keys: ${{ runner.os }}-pip-s3-e2e-
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install numpy scipy matplotlib gdal==$(gdal-config --version) \
+            netCDF4 h5py requests pyproj pyresample scikit-image pyhdf \
+            pytest pytest-timeout
+
+      - name: Cache S3 scene download
+        uses: actions/cache@v5
+        with:
+          path: /tmp/acolite_s3_cache
+          key: s3-olci-scene-${{ github.run_id }}
+          restore-keys: s3-olci-scene-
+
+      - name: Setup EarthData credentials
+        env:
+          EARTHDATA_u: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_p: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          echo "machine urs.earthdata.nasa.gov login ${EARTHDATA_u} password ${EARTHDATA_p}" > ~/.netrc
+          chmod 600 ~/.netrc
+
+      - name: Run E2E test
+        env:
+          EARTHDATA_u: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_p: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          python -m pytest tests/regression/test_s3_e2e_pipeline.py \
+            -v --timeout=900 -s \
+            --tb=short \
+            --junitxml=test-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: s3-e2e-results
+          path: |
+            test-results.xml
+            /tmp/acolite_s3_cache/output/geotiff/rhos_560.tif
+
+      - name: Report performance metrics
+        if: success()
+        run: |
+          echo "## S3 OLCI E2E Performance" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # Extract timing from pytest output (captured in junit xml)
+          python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('test-results.xml')
+          root = tree.getroot()
+          suite = root.find('.//testsuite')
+          if suite is not None:
+              tests = int(suite.get('tests', 0))
+              failures = int(suite.get('failures', 0))
+              time_s = float(suite.get('time', 0))
+              print(f'| Metric | Value |')
+              print(f'|--------|-------|')
+              print(f'| Tests | {tests} |')
+              print(f'| Passed | {tests - failures} |')
+              print(f'| Total time | {time_s:.1f}s |')
+          " >> $GITHUB_STEP_SUMMARY

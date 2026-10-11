@@ -1,0 +1,379 @@
+name: Benchmark Suite
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/rust-port]
+    paths:
+      - "src/**"
+      - "examples/**"
+      - "acolite/sentinel2/**"
+      - "acolite/sentinel3/**"
+      - "acolite/landsat/**"
+      - "acolite/ac/**"
+      - ".github/workflows/benchmark-suite.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: info
+
+jobs:
+  # ─── Build Rust once, share across benchmark jobs ────────────────────────────
+  build:
+    name: Build Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y libgdal-dev libnetcdf-dev libhdf5-dev pkg-config
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('Cargo.lock') }}
+      - name: Build benchmark examples
+        run: |
+          cargo build --release --features "full-io,gdal-support" --example process_sentinel3
+          cargo build --release --features "full-io,gdal-support" --example process_sentinel2_ac
+          cargo build --release --features "full-io,gdal-support" --example process_landsat
+      - name: Upload binaries
+        uses: actions/upload-artifact@v5
+        with:
+          name: rust-binaries
+          path: target/release/examples/
+
+  # ─── S3 OLCI Benchmark ──────────────────────────────────────────────────────
+  s3-olci:
+    name: S3 OLCI
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - name: Install deps
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgdal-dev libnetcdf-dev libhdf5-dev
+          pip install "numpy<2" && pip install --no-build-isolation GDAL==$(gdal-config --version)
+          pip install scipy netCDF4 h5py requests pyproj pyresample scikit-image pyhdf python-dateutil
+      - uses: actions/download-artifact@v5
+        with: { name: rust-binaries, path: rust-binaries }
+      - name: Fix permissions
+        run: chmod +x rust-binaries/process_*
+      - name: Setup EarthData
+        env:
+          EARTHDATA_u: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_p: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          echo "machine urs.earthdata.nasa.gov login ${EARTHDATA_u} password ${EARTHDATA_p}" > ~/.netrc
+          chmod 600 ~/.netrc
+      - name: Download & Benchmark
+        env:
+          EARTHDATA_u: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_p: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys, os, time, resource, json, requests, zipfile, netrc
+          from pathlib import Path
+          sys.path.insert(0, ".")
+
+          cache = Path("/tmp/s3_cache")
+          cache.mkdir(exist_ok=True)
+
+          # Download S3 OLCI scene
+          existing = list(cache.glob("*.SEN3"))
+          if not (existing and any(existing[0].glob("*.nc"))):
+              from datetime import datetime, timedelta
+              end = datetime.utcnow(); start = end - timedelta(days=14)
+              resp = requests.get("https://cmr.earthdata.nasa.gov/search/granules.json",
+                  params={"short_name": "S3A_OL_1_EFR", "provider": "LAADS",
+                          "bounding_box": "141,-36.5,145,-33.5",
+                          "temporal": f"{start:%Y-%m-%dT00:00:00Z},{end:%Y-%m-%dT23:59:59Z}",
+                          "page_size": "3"}, timeout=30)
+              entries = resp.json()["feed"]["entry"]
+              granule = None
+              for e in entries:
+                  links = [l["href"] for l in e.get("links",[]) if l["href"].startswith("https://") and l["href"].endswith(".zip")]
+                  if links: granule = {"id": e.get("producer_granule_id",""), "url": links[0]}; break
+              assert granule
+              # Download with bearer token
+              u = os.environ.get("EARTHDATA_u",""); p = os.environ.get("EARTHDATA_p","")
+              session = requests.Session()
+              tr = session.post("https://urs.earthdata.nasa.gov/api/users/token", auth=(u,p), timeout=30)
+              if tr.ok: session.headers["Authorization"] = f"Bearer {tr.json()['access_token']}"
+              r = session.get(granule["url"], allow_redirects=True, stream=True, timeout=300)
+              r.raise_for_status()
+              zp = cache / granule["id"]
+              with open(zp,"wb") as f:
+                  for chunk in r.iter_content(128*1024): f.write(chunk)
+              with zipfile.ZipFile(zp) as zf: zf.extractall(cache)
+              zp.unlink()
+
+          sen3 = next(cache.glob("*.SEN3"))
+          limit = [-36.0, 141.0, -34.5, 143.0]
+
+          # Python
+          import acolite as ac
+          t0 = time.time()
+          ac.acolite.acolite_run(settings={"inputfile": str(sen3), "output": str(cache/"py"),
+              "limit": limit, "verbosity": 0, "dsf_aot_estimate": "fixed",
+              "l2w_parameters": None, "rgb_rhot": False, "rgb_rhos": False, "map_l2w": False})
+          py_time = time.time() - t0
+          py_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+
+          # Rust
+          import subprocess
+          t0 = time.time()
+          r = subprocess.run(["./rust-binaries/process_sentinel3",
+              "--scene", str(sen3), "--limit", ",".join(map(str,limit)),
+              "--output", str(cache/"rust")], capture_output=True, text=True, timeout=120,
+              env={**os.environ, "RUST_LOG": "warn"})
+          rust_time = time.time() - t0
+
+          results = {"sensor": "S3 OLCI", "python_s": round(py_time,1), "rust_s": round(rust_time,1),
+                     "speedup": round(py_time/rust_time,1) if rust_time > 0 else 0,
+                     "python_mb": round(py_rss), "rust_mb": 0,
+                     "scene": sen3.name, "roi": "737×828 (limit subset)"}
+          Path("/tmp/s3_result.json").write_text(json.dumps(results))
+          print(json.dumps(results, indent=2))
+          PYEOF
+      - uses: actions/upload-artifact@v5
+        with: { name: result-s3, path: /tmp/s3_result.json }
+
+  # ─── Landsat 8 Benchmark ────────────────────────────────────────────────────
+  landsat:
+    name: Landsat 8
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - name: Install deps
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgdal-dev libnetcdf-dev libhdf5-dev
+          pip install "numpy<2" && pip install --no-build-isolation GDAL==$(gdal-config --version)
+          pip install scipy netCDF4 h5py requests pyproj pyresample scikit-image pyhdf python-dateutil
+      - uses: actions/download-artifact@v5
+        with: { name: rust-binaries, path: rust-binaries }
+      - name: Fix permissions
+        run: chmod +x rust-binaries/process_*
+      - name: Download & Benchmark
+        run: |
+          python3 - <<'PYEOF'
+          import sys, os, time, resource, json, requests, subprocess
+          from pathlib import Path
+          sys.path.insert(0, ".")
+
+          cache = Path("/tmp/landsat_cache")
+          cache.mkdir(exist_ok=True)
+          scene_id = "LC08_L1TP_094085_20130408_20170505_01_T1"
+          scene_dir = cache / scene_id
+
+          # Download from GCS
+          if not (scene_dir.exists() and any(f.stat().st_size > 1_000_000 for f in scene_dir.glob("*_B*.TIF"))):
+              scene_dir.mkdir(exist_ok=True)
+              gcs = f"https://storage.googleapis.com/gcp-public-data-landsat/LC08/01/094/085/{scene_id}"
+              session = requests.Session()
+              for b in range(1,8):
+                  fname = f"{scene_id}_B{b}.TIF"
+                  r = session.get(f"{gcs}/{fname}", stream=True, timeout=120)
+                  if r.status_code == 200:
+                      with open(scene_dir/fname,"wb") as f:
+                          for chunk in r.iter_content(128*1024): f.write(chunk)
+              for f in [f"{scene_id}_MTL.txt", f"{scene_id}_ANG.txt"]:
+                  r = session.get(f"{gcs}/{f}", timeout=30)
+                  if r.ok: (scene_dir/f).write_bytes(r.content)
+
+          limit = [-36.5, 142.5, -35.5, 143.5]
+
+          # Python
+          import acolite as ac
+          t0 = time.time()
+          ac.acolite.acolite_run(settings={"inputfile": str(scene_dir), "output": str(cache/"py"),
+              "limit": limit, "verbosity": 0, "dsf_aot_estimate": "fixed",
+              "l2w_parameters": None, "rgb_rhot": False, "rgb_rhos": False, "map_l2w": False})
+          py_time = time.time() - t0
+          py_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+
+          # Rust
+          t0 = time.time()
+          r = subprocess.run(["./rust-binaries/process_landsat",
+              "--file", str(scene_dir), "--limit", ",".join(map(str,limit)),
+              "--output", str(cache/"rust"), "--aot-mode", "fixed"],
+              capture_output=True, text=True, timeout=120, env={**os.environ, "RUST_LOG": "warn"})
+          rust_time = time.time() - t0
+
+          results = {"sensor": "Landsat 8", "python_s": round(py_time,1), "rust_s": round(rust_time,1),
+                     "speedup": round(py_time/rust_time,1) if rust_time > 0 else 0,
+                     "python_mb": round(py_rss), "rust_mb": 0,
+                     "scene": scene_id, "roi": "3763×3079 (windowed read)"}
+          Path("/tmp/landsat_result.json").write_text(json.dumps(results))
+          print(json.dumps(results, indent=2))
+          PYEOF
+      - uses: actions/upload-artifact@v5
+        with: { name: result-landsat, path: /tmp/landsat_result.json }
+
+  # ─── S2 MSI Benchmark ───────────────────────────────────────────────────────
+  s2-msi:
+    name: Sentinel-2
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - name: Install deps
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgdal-dev libnetcdf-dev libhdf5-dev
+          pip install "numpy<2" && pip install --no-build-isolation GDAL==$(gdal-config --version)
+          pip install scipy netCDF4 h5py requests pyproj pyresample scikit-image pyhdf python-dateutil
+      - uses: actions/download-artifact@v5
+        with: { name: rust-binaries, path: rust-binaries }
+      - name: Fix permissions
+        run: chmod +x rust-binaries/process_*
+      - name: Download & Benchmark
+        env:
+          CDSE_u: ${{ secrets.CDSE_USERNAME }}
+          CDSE_p: ${{ secrets.CDSE_PASSWORD }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys, os, time, resource, json, requests, zipfile, subprocess
+          from pathlib import Path
+          sys.path.insert(0, ".")
+
+          cache = Path("/tmp/s2_cache")
+          cache.mkdir(exist_ok=True)
+          limit = [-38.0, 144.5, -37.5, 145.2]
+
+          # Download from CDSE (tile T55HBU, Port Phillip Bay)
+          existing = list(cache.glob("S2*_MSIL1C_*.SAFE"))
+          if not (existing and (existing[0]/"MTD_MSIL1C.xml").exists()):
+              u = os.environ.get("CDSE_u",""); p = os.environ.get("CDSE_p","")
+              tr = requests.post("https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",
+                  data={"grant_type":"password","username":u,"password":p,"client_id":"cdse-public"}, timeout=30)
+              assert tr.ok, f"CDSE token failed: {tr.status_code}"
+              token = tr.json()["access_token"]
+              # Search for T55HBU summer scene
+              resp = requests.get("https://catalogue.dataspace.copernicus.eu/odata/v1/Products",
+                  params={"$filter": "Collection/Name eq 'SENTINEL-2' and Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'productType' and att/OData.CSC.StringAttribute/Value eq 'S2MSI1C') and contains(Name,'T55HBU') and ContentDate/Start ge 2024-01-01T00:00:00.000Z and ContentDate/Start le 2024-02-28T23:59:59.000Z",
+                         "$top": 3, "$orderby": "ContentDate/Start desc"}, timeout=30)
+              products = resp.json()["value"]
+              assert products, "No S2 products"
+              product = products[0]
+              session = requests.Session()
+              session.headers["Authorization"] = f"Bearer {token}"
+              r = session.get(f"https://zipper.dataspace.copernicus.eu/odata/v1/Products({product['Id']})/$value",
+                  stream=True, timeout=300)
+              r.raise_for_status()
+              zp = cache/"scene.zip"
+              with open(zp,"wb") as f:
+                  for chunk in r.iter_content(128*1024): f.write(chunk)
+              with zipfile.ZipFile(zp) as zf: zf.extractall(cache)
+              zp.unlink()
+
+          safe_dir = next(cache.glob("S2*_MSIL1C_*.SAFE"))
+
+          # Python (with same limit)
+          import acolite as ac
+          t0 = time.time()
+          ac.acolite.acolite_run(settings={"inputfile": str(safe_dir), "output": str(cache/"py"),
+              "limit": limit, "verbosity": 0, "s2_target_res": 20, "dsf_aot_estimate": "fixed",
+              "l2w_parameters": None, "rgb_rhot": False, "rgb_rhos": False, "map_l2w": False})
+          py_time = time.time() - t0
+          py_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+
+          # Rust (with same limit)
+          t0 = time.time()
+          r = subprocess.run(["./rust-binaries/process_sentinel2_ac",
+              "--file", str(safe_dir), "--limit", ",".join(map(str,limit)),
+              "--res", "20", "--output", str(cache/"rust"), "--aot-mode", "fixed"],
+              capture_output=True, text=True, timeout=300, env={**os.environ, "RUST_LOG": "warn"})
+          rust_time = time.time() - t0
+
+          results = {"sensor": "S2 MSI", "python_s": round(py_time,1), "rust_s": round(rust_time,1),
+                     "speedup": round(py_time/rust_time,1) if rust_time > 0 else 0,
+                     "python_mb": round(py_rss), "rust_mb": 0,
+                     "scene": safe_dir.name, "roi": "~2800×1500 (windowed read, 20m)"}
+          Path("/tmp/s2_result.json").write_text(json.dumps(results))
+          print(json.dumps(results, indent=2))
+          PYEOF
+      - uses: actions/upload-artifact@v5
+        with: { name: result-s2, path: /tmp/s2_result.json }
+
+  # ─── Collate Results ─────────────────────────────────────────────────────────
+  report:
+    name: Update Results
+    runs-on: ubuntu-latest
+    needs: [s3-olci, landsat, s2-msi]
+    if: always()
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: feature/rust-port }
+      - uses: actions/download-artifact@v5
+        with: { path: /tmp/results }
+      - name: Generate BENCHMARK_RESULTS.md
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+          from pathlib import Path
+
+          results_dir = Path("/tmp/results")
+          sensors = []
+          for f in sorted(results_dir.rglob("*.json")):
+              try: sensors.append(json.loads(f.read_text()))
+              except: pass
+
+          run_url = f"https://github.com/{os.environ.get('GITHUB_REPOSITORY','')}/actions/runs/{os.environ.get('GITHUB_RUN_ID','')}"
+          sha = os.environ.get("GITHUB_SHA", "unknown")[:8]
+
+          # Generate markdown
+          lines = ["<!-- AUTO-GENERATED by benchmark-suite.yml — do not edit manually -->"]
+          lines.append("# ACOLITE-RS Benchmark Results\n")
+
+          # Top badges
+          for s in sensors:
+              name = s["sensor"].replace(" ", "_")
+              sp = s["speedup"]
+              color = "brightgreen" if sp >= 5 else "green" if sp >= 3 else "yellow" if sp >= 2 else "red" if sp > 0 else "lightgrey"
+              badge_text = f"{sp}×_faster" if sp > 0 else "failed"
+              lines.append(f"![{s['sensor']}](https://img.shields.io/badge/{name}-{badge_text}-{color})")
+          lines.append(f"[![CI]({run_url}/badge.svg)]({run_url})")
+          lines.append("")
+          lines.append(f"_[Benchmark run]({run_url}) • commit {sha}_\n")
+          lines.append("---\n")
+
+          # Per-sensor tables
+          for s in sensors:
+              lines.append(f"## {s['sensor']} — Dark Spectrum Fitting\n")
+              lines.append("| Metric | Python | Rust | Improvement |")
+              lines.append("|--------|--------|------|-------------|")
+              if s["speedup"] > 0:
+                  lines.append(f"| **Processing time** | {s['python_s']}s | {s['rust_s']}s | **{s['speedup']}× faster** |")
+              else:
+                  lines.append(f"| **Processing time** | {s['python_s']}s | failed | — |")
+              if s["python_mb"] > 0:
+                  lines.append(f"| **Peak memory** | {s['python_mb']} MB | — | — |")
+              lines.append(f"\n**Scene**: `{s['scene']}`  ")
+              lines.append(f"**ROI**: {s['roi']}  ")
+              lines.append(f"**Algorithm**: DSF atmospheric correction, fixed AOT\n")
+              lines.append("---\n")
+
+          Path("BENCHMARK_RESULTS.md").write_text("\n".join(lines))
+          print("\n".join(lines))
+          PYEOF
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add BENCHMARK_RESULTS.md
+          git diff --cached --quiet || git commit -m "ci: update benchmark results [skip ci]"
+          git push || true
