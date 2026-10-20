@@ -6,11 +6,12 @@
 ## modifications: 2025-12-16 (QV) added dataset keyword, moved wavelengths and rgb range to keywords
 ##                2026-01-15 (QV) added export_netcdf option, added to acolite.masking
 ##                2026-02-11 (QV) added masks as keyword
+##                2026-10-20 (QV) added netcdf_name as keyword
 
 def ocm(ncf, output = None, plot_rgb = True, plot_mask = False, plot_rgb_mask = True,
                   rgb_range = [0, 0.15], rgb_default = [665, 560, 490], wave_ref = [665, 560, 885],
                   fill_nan = True, fill_value = 0, dataset = 'rhot', masks = None,
-                  export_maps = False, export_netcdf = False, return_mask = True):
+                  export_maps = False, export_netcdf = False, netcdf_name = 'OCM', return_mask = True):
     import os
     import acolite as ac
     import matplotlib.pyplot as plt
@@ -64,7 +65,7 @@ def ocm(ncf, output = None, plot_rgb = True, plot_mask = False, plot_rgb_mask = 
         else:
             odir = os.path.abspath(output)
         bn = os.path.basename(ncf)
-        ofile = '{}/{}_OCM.nc'.format(odir, bn[0:-3])
+        ofile = '{}/{}_{}.nc'.format(odir, bn[0:-3], netcdf_name)
         gemo = ac.gem.gem(ofile, new = True)
         gemo.gatts = {g: gatts[g] for g in gatts}
         gemo.nc_projection = ac.shared.nc_projection_read(ncf)
