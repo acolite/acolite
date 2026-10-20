@@ -109,7 +109,7 @@ def ocm(ncf, output = None, plot_rgb = True, plot_mask = False, plot_rgb_mask = 
 
         ## make mask figure
         if plot_mask:
-            mask_out = '{}/{}_{}_mask.png'.format(odir, bno, dataset)
+            mask_out = '{}/{}_{}_{}_mask.png'.format(odir, bno, dataset, netcdf_name)
             for m in masks:
                 cmap = mpl.colors.ListedColormap(mpl.colors.to_rgb(masks[m]['color']))
                 mask = (pred_mask == m) * 1.0
@@ -123,7 +123,7 @@ def ocm(ncf, output = None, plot_rgb = True, plot_mask = False, plot_rgb_mask = 
 
         ## make RGB mask figure
         if plot_rgb_mask:
-            rgb_mask_out = '{}/{}_{}_RGB_mask.png'.format(odir, bno, dataset)
+            rgb_mask_out = '{}/{}_{}_RGB_{}_mask.png'.format(odir, bno, dataset, netcdf_name)
 
             plt.imshow(rgb_scaled)
             xlim = plt.xlim()
