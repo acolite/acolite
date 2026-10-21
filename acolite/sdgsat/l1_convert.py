@@ -122,7 +122,7 @@ def l1_convert(inputfile, output = None, settings = None):
             f0_b = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data']*10, rsrd['rsr'])
 
             ## make global attributes for L1R NetCDF
-            gatts = {'sensor':sensor, 'sensor_lut': sensor_lut, 'isodate':isodate, #'global_dims':global_dims,
+            gatts = {'sensor': sensor, 'sensor_lut': sensor_lut, 'isodate':isodate, #'global_dims':global_dims,
                      'sza':sza, 'vza':vza, 'raa':raa, 'vaa': vaa, 'saa': saa,
                      'doy': doy, 'se_distance': se_distance,
                      'mus': np.cos(sza*(np.pi/180.)), 'acolite_file_type': 'L1R'}
@@ -135,7 +135,8 @@ def l1_convert(inputfile, output = None, settings = None):
 
             if sensor == 'KX10_TIS':
                 gatts['thermal_bands'] = [b for b in rsrd['rsr_bands']]
-                gatts['thermal_sensor'] = sensor_lut
+                gatts['thermal_sensor'] = sensor
+                gatts['thermal_sensor_version'] = sensor_lut
 
                 ## read thermal coefficients
                 tcfile = ac.config['data_dir']+'/SDGSAT/KX10_TIS_thermal_coefficients.json'

@@ -12,6 +12,7 @@
 ##                2025-02-04 (QV) updated settings parsing
 ##                2025-02-10 (QV) cleaned up settings use
 ##                2026-05-26 (QV) added era5_ecmwf
+##                2026-10-21 (QV) added thermal rsr versioning
 
 def tact_gem(gem, output_file = True,
              output = None,
@@ -76,6 +77,12 @@ def tact_gem(gem, output_file = True,
         if verbosity > 0: print('TACT Processing of {} not supported'.format(gem.gatts['sensor']))
         return
 
+    ## determine thermal sensor
+    if 'thermal_sensor_version' in gem.gatts:
+        thermal_sensor_sim = gem.gatts['thermal_sensor_version']
+    else:
+        thermal_sensor_sim = gem.gatts['thermal_sensor']
+
     ## check if we need to run tact
     run_tact = False
     for b in gem.gatts['thermal_bands']:
@@ -126,8 +133,6 @@ def tact_gem(gem, output_file = True,
     else:
         em = None
 
-    if verbosity > 0: print('Running tact for {}'.format(gemf))
-
     if target_file is None:
         output_name = os.path.basename(gemf).replace('.nc', '')
         output_name = output_name.replace('_L1R', '')
@@ -150,7 +155,7 @@ def tact_gem(gem, output_file = True,
     ## radiative transfer
     thd, simst, lonc, latc = ac.tact.tact_limit(gem.gatts['isodate'],
                                                 lon = lon, lat = lat,
-                                                satsen=gem.gatts['thermal_sensor'],
+                                                satsen = thermal_sensor_sim,
                                                 wave_range = setu['tact_range'],
                                                 reptran = setu['tact_reptran'],
                                                 source = setu['tact_profile_source'])
@@ -181,13 +186,13 @@ def tact_gem(gem, output_file = True,
             if setu['tact_emissivity'] == 'ged':
                 if em_ged is None:
                     ## determine bands
-                    if gem.gatts['thermal_sensor'] in ['L8_TIRS', 'L9_TIRS']:
+                    if thermal_sensor_sim in ['L8_TIRS', 'L9_TIRS']:
                         bands = [13, 14]
                         bkeys = {'10':0, '11':1}
-                    elif gem.gatts['thermal_sensor'] in ['L5_TM', 'L7_ETM']:
+                    elif thermal_sensor_sim in ['L5_TM', 'L7_ETM']:
                         bands = [13]
                         bkeys = {'6':0}
-                    elif gem.gatts['thermal_sensor'] in ['ISS_ECOSTRESS']:
+                    elif thermal_sensor_sim in ['ISS_ECOSTRESS']:
                         bands = [10, 11, 12, 13, 14]
                         bkeys = {'1':0, '2':1, '3':2, '4':3, '5':4}
                     ## load GED emissivity
@@ -221,12 +226,11 @@ def tact_gem(gem, output_file = True,
                     e = em_ndvi[bk]
 
             if (e is None) & (em is not None):
-                e = em[gem.gatts['thermal_sensor']][bk]
-                #print(e, gem.gatts['thermal_sensor'], bk)
+                e = em[thermal_sensor_sim][bk]
 
             if e is None:
-                print('Emissivity for {} {} not configured.'.format(gem.gatts['thermal_sensor'], bk))
-                print('Ls and ST will not be computed for {} {}.'.format(gem.gatts['thermal_sensor'], bk))
+                print('Emissivity for {} {} not configured.'.format(thermal_sensor_sim, bk))
+                print('Ls and ST will not be computed for {} {}.'.format(thermal_sensor_sim, bk))
                 continue
 
             ## shape emissivity to tile dimensions
