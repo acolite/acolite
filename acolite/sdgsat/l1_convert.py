@@ -9,10 +9,11 @@
 ##                2025-01-30 (QV) moved polygon limit
 ##                2025-02-04 (QV) improved settings handling
 ##                2025-02-10 (QV) cleaned up settings use, output naming
+##                2026-10-21 (QV) added KX10_TIS support
 
 def l1_convert(inputfile, output = None, settings = None):
     import os
-    import dateutil.parser, time
+    import dateutil.parser, time, json
     import numpy as np
     import acolite as ac
 
@@ -46,6 +47,8 @@ def l1_convert(inputfile, output = None, settings = None):
         t0 = time.time()
         ## find meta and cal for given bundle
         metafiles, calfiles, imgfiles = ac.sdgsat.bundle_test(bundle)
+        if len(metafiles) == 0:
+            metafiles, calfiles, imgfiles = ac.sdgsat.bundle_test(bundle, sensor = 'KX10_TIS')
 
         ## run through metafiles
         for mi, mf in enumerate(metafiles):
@@ -54,12 +57,12 @@ def l1_convert(inputfile, output = None, settings = None):
 
             ## read meta and calibration
             meta = ac.sdgsat.metadata(mf)
-            cal = ac.sdgsat.calibration(cf)
 
             ## identify sensor
             sensor = '{}_{}'.format(meta['SatelliteID'], meta['SensorID'])
-            ## read rsr
-            rsrd = ac.shared.rsr_dict(sensor)[sensor]
+
+            ## load calibration
+            cal = ac.sdgsat.calibration(cf, sensor = sensor)
 
             ## get sensor specific defaults
             setd = ac.acolite.settings.parse(sensor)
@@ -67,6 +70,17 @@ def l1_convert(inputfile, output = None, settings = None):
             for k in setd:
                 if k not in ac.settings['user']: setu[k] = setd[k]
             ## end set sensor specific defaults
+
+            if setd['rsr_version'] is not None:
+                sensor_lut = '{}_{}'.format(sensor, setd['rsr_version'])
+            else:
+                sensor_lut = '{}'.format(sensor)
+
+            ## read rsr
+            if sensor_lut.startswith('KX10_TIS'):
+                rsrd = ac.shared.rsr_dict(sensor_lut, wave_range = [7,14], wave_step = 0.05)[sensor_lut]
+            else:
+                rsrd = ac.shared.rsr_dict(sensor_lut)[sensor_lut]
 
             verbosity = setu['verbosity']
             if output is None: output = setu['output']
@@ -92,7 +106,13 @@ def l1_convert(inputfile, output = None, settings = None):
             raa = np.abs(saa-vaa)
             while raa > 180: raa = abs(raa-360)
 
-            dtime = dateutil.parser.parse(meta['CenterTime-Acamera'])
+            ## get scene centre time
+            for k in ['CenterTime', 'CenterTime-Acamera']:
+                try:
+                    dtime = dateutil.parser.parse(meta[k])
+                    break
+                except:
+                    pass
             isodate = dtime.isoformat()
             doy = dtime.strftime('%j')
             se_distance = ac.shared.distance_se(doy)
@@ -102,7 +122,7 @@ def l1_convert(inputfile, output = None, settings = None):
             f0_b = ac.shared.rsr_convolute_dict(f0['wave']/1000, f0['data']*10, rsrd['rsr'])
 
             ## make global attributes for L1R NetCDF
-            gatts = {'sensor':sensor, 'isodate':isodate, #'global_dims':global_dims,
+            gatts = {'sensor':sensor, 'sensor_lut': sensor_lut, 'isodate':isodate, #'global_dims':global_dims,
                      'sza':sza, 'vza':vza, 'raa':raa, 'vaa': vaa, 'saa': saa,
                      'doy': doy, 'se_distance': se_distance,
                      'mus': np.cos(sza*(np.pi/180.)), 'acolite_file_type': 'L1R'}
@@ -112,6 +132,18 @@ def l1_convert(inputfile, output = None, settings = None):
                 gatts['{}_wave'.format(b)] = rsrd['wave_nm'][b]
                 gatts['{}_name'.format(b)] = rsrd['wave_name'][b]
                 gatts['{}_f0'.format(b)] = f0_b[b]
+
+            if sensor == 'KX10_TIS':
+                gatts['thermal_bands'] = [b for b in rsrd['rsr_bands']]
+                gatts['thermal_sensor'] = sensor_lut
+
+                ## read thermal coefficients
+                tcfile = ac.config['data_dir']+'/SDGSAT/KX10_TIS_thermal_coefficients.json'
+                coeffs = json.load(open(tcfile, 'r'))
+
+                for bk in coeffs['thermal_coefficients']:
+                    for k in coeffs['thermal_coefficients'][bk]:
+                        gatts['{}_CONSTANT_BAND_{}'.format(k, bk)] = coeffs['thermal_coefficients'][bk][k]
 
             ## output name
             oname = '{}_{}'.format(gatts['sensor'], dtime.strftime('%Y_%m_%d_%H_%M_%S'))
@@ -259,27 +291,58 @@ def l1_convert(inputfile, output = None, settings = None):
                         ds_att['offset'] = gains[band]['offset']
                         ds_att['gains_parameter'] = setu['gains_parameter']
 
-                    if setu['output_lt']:
-                        ds = 'Lt_{}'.format(rsrd['wave_name'][band])
+                    if sensor == 'KX10_MII':
                         ## write toa radiance
-                        gemo.write(ds, data, ds_att = ds_att)
+                        if setu['output_lt']:
+                            ds = 'Lt_{}'.format(rsrd['wave_name'][band])
+                            gemo.write(ds, data, ds_att = ds_att)
 
-                    ## convert to rhot
-                    ds = 'rhot_{}'.format(rsrd['wave_name'][band])
-                    f0 = gatts['{}_f0'.format(band)]/10
-                    data *= (np.pi * gatts['se_distance']**2) / (f0 * np.nanmean(gatts['mus']))
+                        ## convert to rhot
+                        ds = 'rhot_{}'.format(rsrd['wave_name'][band])
+                        f0 = gatts['{}_f0'.format(band)]/10
+                        data *= (np.pi * gatts['se_distance']**2) / (f0 * np.nanmean(gatts['mus']))
 
-                    ## apply gains
-                    if (gains != None) & (setu['gains_parameter'] == 'reflectance'):
-                        print('Applying gain {} and offset {} to TOA reflectance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
-                        data = gains[band]['gain'] * data + gains[band]['offset']
+                        ## apply gains
+                        if (gains != None) & (setu['gains_parameter'] == 'reflectance'):
+                            print('Applying gain {} and offset {} to TOA reflectance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
+                            data = gains[band]['gain'] * data + gains[band]['offset']
 
-                    data[nodata] = np.nan
-                    if (setu['polygon_clip']): data[clip_mask] = np.nan
+                        data[nodata] = np.nan
+                        if (setu['polygon_clip']): data[clip_mask] = np.nan
 
-                    ## write to netcdf file
-                    gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
-                    if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
+                        ## write to netcdf file
+                        gemo.write(ds, data, ds_att = ds_att, replace_nan = True)
+                        if verbosity > 1: print('Converting bands: Wrote {} ({})'.format(ds, data.shape))
+
+                    elif sensor == 'KX10_TIS':
+                        ## add masking
+                        data[nodata] = np.nan
+                        if (setu['polygon_clip']): data[clip_mask] = np.nan
+                        data[data<0] = np.nan
+
+                        for k in coeffs['thermal_coefficients'][band]:
+                            ds_att[k] = coeffs['thermal_coefficients'][band][k]
+
+                        ## compute with Planck equation from SDGSAT-1-User-Manual
+                        #ds = 'bt{}'.format(band).lower()
+                        #wl = rsrd['wave_mu'][band] ## band centre wavelength in micron
+                        #h = 6.626 * 1e-34 # J s Planck constant
+                        #c = 2.9979 * 1e8 # m s-1 speed of light
+                        #k = 1.3806 * 1e-23 # J/K Boltzmann constant
+                        #data = (1e6 * h * c / (k * wl)) / np.log(2*1e24 * h * c**2 / (data * wl **5) + 1)
+
+                        ## compute BT from LT using K1 and K2 coeffs
+                        ## K1 and K2 are used in TACT anyway
+                        bt = ds_att['K2']/(np.log(ds_att['K1']/data)+1)
+                        bt[bt<0] = np.nan
+
+                        print('Writing {}'.format('lt{}'.format(b)))
+                        gemo.write('lt{}'.format(b), data, ds_att = ds_att)
+                        Lt = None
+
+                        print('Writing {}'.format('bt{}'.format(b)))
+                        gemo.write('bt{}'.format(b), bt, ds_att = ds_att)
+                        bt = None
 
             ## close file
             gemo.close()

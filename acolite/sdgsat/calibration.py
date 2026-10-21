@@ -3,9 +3,9 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-01-03
-## modifications:
+## modifications: 2026-10-21 (QV) added KX10_TIS support
 
-def calibration(calfile):
+def calibration(calfile, sensor = 'KX10_MII'):
     from xml.dom import minidom
 
     try:
@@ -20,8 +20,10 @@ def calibration(calfile):
         print('Error opening metadata file.')
         sys.exit()
 
+    sensor_tag = sensor.split('_')[-1]
+
     caldata = {}
-    cdom = xmldoc.getElementsByTagName('MII')
+    cdom = xmldoc.getElementsByTagName(sensor_tag)
     if len(cdom) > 0:
         tdom = cdom[0].getElementsByTagName('bandsIDList')
         if tdom[0].firstChild is not None:

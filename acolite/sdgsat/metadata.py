@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-01-03
-## modifications:
+## modifications: 2026-10-21 (QV) added KX10_TIS support
 
 def metadata(metafile):
     import dateutil.parser
@@ -18,17 +18,19 @@ def metadata(metafile):
         print('Error opening metadata file.')
         sys.exit()
 
+    timetags = ['StartTime', 'CenterTime', 'EndTime']
+
     metadata = {}
     tags = ['SatelliteID', 'SensorID',
             'RollSatelliteAngle','PitchSatelliteAngle', 'YawSatelliteAngle',
             'SolarAzimuth', 'SolarZenith']
+    tags += timetags
     for tag in tags:
         tdom = xmldoc.getElementsByTagName(tag)
         if len(tdom) > 0:
             if tdom[0].firstChild is None: continue
             metadata[tag] = tdom[0].firstChild.nodeValue
 
-    timetags = ['StartTime', 'CenterTime', 'EndTime']
     for tt in timetags:
         cdom = xmldoc.getElementsByTagName(tt)
         if len(cdom) > 0:

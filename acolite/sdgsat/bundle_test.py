@@ -3,15 +3,16 @@
 ## written by Quinten Vanhellemont, RBINS
 ## 2023-01-03
 ## modifications: 2023-02-18 (QV) track all tiffs
+##                2026-10-21 (QV) added KX10_TIS support
 
-def bundle_test(bundle, sen='KX10_MII'):
+def bundle_test(bundle, sensor = 'KX10_MII'):
     import glob, os
 
     ##
     if os.path.isfile(bundle) & ('.meta.xml' in bundle):
         metafiles = [bundle]
     else:
-        metafiles = glob.glob('{}/{}_*.meta.xml'.format(bundle, sen))
+        metafiles = glob.glob('{}/{}_*.meta.xml'.format(bundle, sensor))
         metafiles.sort()
 
     ## find associated cal and image files
@@ -21,7 +22,8 @@ def bundle_test(bundle, sen='KX10_MII'):
         dn = os.path.dirname(mf)
         bn = os.path.basename(mf)
         sn = bn.replace('.meta.xml', '')
-        im = glob.glob('{}/{}_*.tif'.format(dn, sn))#[0]
+        im = glob.glob('{}/{}_*.tif'.format(dn, sn))
+        im += glob.glob('{}/{}*.tiff'.format(dn, sn))
         im.sort()
         imgfiles.append(im)
 

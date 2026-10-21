@@ -385,12 +385,12 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
         ## SDGSAT-1 KX10 MII
         try:
-            metafiles, calfiles, imgfiles = ac.sdgsat.bundle_test(bundle)
+            metafiles, calfiles, imgfiles = ac.sdgsat.bundle_test(bundle, sensor = 'KX10_MII')
+            if len(metafiles) == 0: metafiles, calfiles, imgfiles = ac.sdgsat.bundle_test(bundle, sensor = 'KX10_TIS')
             for mi, mf in enumerate(metafiles):
                 meta = ac.sdgsat.metadata(mf)
-                cal = ac.sdgsat.calibration(calfiles[mi])
                 sensor = '{}_{}'.format(meta['SatelliteID'], meta['SensorID'])
-                if sensor in ['KX10_MII']:
+                if sensor in ['KX10_MII', 'KX10_TIS']:
                     input_type = 'SDGSAT'
                     break ## exit loop
         except:

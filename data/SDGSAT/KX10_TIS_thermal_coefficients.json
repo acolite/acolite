@@ -1,0 +1,1 @@
+{"readme": "K1 and K2 computed for SDGSAT bands, fitted to Planck equation from SDGSAT-1-User-Manual", "author": "Quinten Vanhellemont", "date": "2026-10-21", "url": "", "thermal_coefficients": {"1": {"K1": 1659.170773341234, "K2": 1537.4315182447315}, "2": {"K1": 825.8343904287834, "K2": 1337.1993450221644}, "3": {"K1": 529.6801960566987, "K2": 1223.5460223285206}}}

@@ -1,0 +1,11 @@
+## ACOLITE default settings for SDGSAT-1 KX10 TIS
+##
+## Note that it is not recommended to edit this file to change settings.
+## Instead make a new empty settings file for your run, listing only the
+## settings you want to change from the ones in this defaults file.
+##
+
+rsr_version=EXT
+
+rgb_rhot=False
+rgb_rhos=False
