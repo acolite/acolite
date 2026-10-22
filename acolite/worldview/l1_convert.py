@@ -19,6 +19,7 @@
 ##                2025-09-15 (QV) added rpc_use = False
 ##                2026-01-15 (QV) changed to rsr_dict, added basic support for PAN processing
 ##                2026-06-11 (DP) improve handling of PGC distributed and/or processed imagery
+##                2026-10-22 (QV) fixed scaling issue with PGC ns data
 
 def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None):
 
@@ -497,36 +498,24 @@ def l1_convert(inputfile, output = None, inputfile_swir = None, settings = None)
                     nodata_value = 0 if not pgc_bundle else -9999
                     nodata = d == np.float32(nodata_value)
 
-                ## override cf for PGC bundle
-                if pgc_bundle:
-                    if dtype == np.dtype('uint8'): cf = 1/200.
-                    elif dtype == np.dtype('uint16'): cf = 1/2000.
-                    else : cf = 1.0
-                    print('PGC scaling factor for stretch {}, dtype {}: {:.4f}'.format(meta['PGC_STRETCH'], dtype, cf))
-                    cf *= (gatts['se_distance']**2) / gatts['mus']
-                    print('PGC scaling factor with sun earth distance and zenith angle: {:.4f}'.format(cf))
-
                 ## convert to float and scale to TOA reflectance
                 d = d.astype(np.float32) * cf
 
-                ## convert from original MAXAR bundle
-                if not pgc_bundle:
-                    if (gains != None) & (setu['gains_parameter'] == 'radiance'):
-                        print('Applying gain {} and offset {} to TOA radiance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
-                        d = gains[band]['gain'] * d + gains[band]['offset']
-                    d *= (np.pi * gatts['se_distance']**2) / (f0_b[band]/10. * gatts['mus'])
-                    if (gains != None) & (setu['gains_parameter'] == 'reflectance'):
-                        print('Applying gain {} and offset {} to TOA reflectance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
-                        d = gains[band]['gain'] * d + gains[band]['offset']
+                ## if user supplied radiance gains
+                if (gains != None) & (setu['gains_parameter'] == 'radiance'):
+                    print('Applying gain {} and offset {} to TOA radiance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
+                    d = gains[band]['gain'] * d + gains[band]['offset']
+
+                ## convert from original or PGC bundle since only 'ns' nostretch data should end up here
+                d *= (np.pi * gatts['se_distance']**2) / (f0_b[band]/10. * gatts['mus'])
+
+                ## if user supplied reflectance gains
+                if (gains != None) & (setu['gains_parameter'] == 'reflectance'):
+                    print('Applying gain {} and offset {} to TOA reflectance for band {}'.format(gains[band]['gain'], gains[band]['offset'], band))
+                    d = gains[band]['gain'] * d + gains[band]['offset']
 
                 ## apply mask
                 d[nodata] = np.nan
-
-                ## make new data full array for the current band
-                #if band == 'PAN':
-                #    if data_full is None: data_full = np.zeros(global_dims_pan) + np.nan
-                #else:
-                #    if data_full is None: data_full = np.zeros(global_dims) + np.nan
 
                 if data_full is None: data_full = np.zeros(global_dims) + np.nan
 
