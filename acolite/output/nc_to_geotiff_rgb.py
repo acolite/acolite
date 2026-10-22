@@ -11,6 +11,7 @@
 ##                2024-04-16 (QV) use gem NetCDF handling
 ##                2025-01-20 (QV) added use of rgb_datasets and unified output naming with png outputs
 ##                2025-05-21 (QV) update settings parsing
+##                2026-10-22 (QV) support for extra rho dataset names
 
 def nc_to_geotiff_rgb(f, settings = None, min_wave = 2,
                         rgb_datasets = ['rhot', 'rhos', 'rhotc', 'rhosu', 'rhorc', 'rhow'],
@@ -73,7 +74,10 @@ def nc_to_geotiff_rgb(f, settings = None, min_wave = 2,
         tempfiles = []
         for ii, wave in enumerate([setu['rgb_red_wl'], setu['rgb_green_wl'],setu['rgb_blue_wl']]):
             wi, w = ac.shared.closest_idx(cwaves, wave)
-            ds = '{}_{}'.format(base, w)
+            ds = [d for d in cds if d.endswith('{}'.format(w))]
+            if len(ds) == 0: continue
+            ds = ds[0]
+
             outfile = '{}_{}{}'.format(out, ds, '_temp.tif')
             ifile = '{}_{}{}'.format(out, ds, '.tif')
 
