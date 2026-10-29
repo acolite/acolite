@@ -6,6 +6,7 @@
 ## modifications: 2024-05-21 (QV) skip negative rhos masking if rhos datasets are not present
 ##                2024-01-31 (QV) use first dataset to determine dimensions
 ##                2025-02-04 (QV) updated settings parsing
+##                2026-10-29 (QV) add dataset test for VIIRS IM mixed pixel flag
 
 def acolite_flags(gem, create_flags_dataset=True, write_flags_dataset=False, return_flags_dataset=True):
     import acolite as ac
@@ -158,16 +159,22 @@ def acolite_flags(gem, create_flags_dataset=True, write_flags_dataset=False, ret
             setu['viirs_mask_immixed_bands'] = [setu['viirs_mask_immixed_bands']]
         for imc in setu['viirs_mask_immixed_bands']:
             ib, mb = imc.split('/')
-            ds0 = [ds for ds in rhot_ds if ib in ds][0]
-            ds1 = [ds for ds in rhot_ds if mb in ds][0]
-            cur_data0 = gem.data(ds0)
-            cur_data1 = gem.data(ds1)
-            if mix_mask is None: mix_mask = np.zeros(cur_data0.shape).astype(bool)
-            if setu['viirs_mask_immixed_rat']:
-                mix_mask = (mix_mask) | (np.abs(1-(cur_data0/cur_data1)) > setu['viirs_mask_immixed_maxrat'])
-            if setu['viirs_mask_immixed_dif']:
-                mix_mask = (mix_mask) | (np.abs(cur_data0-cur_data1) > setu['viirs_mask_immixed_maxdif'])
-        flags = (flags) | (mix_mask.astype(np.int32)*(2**setu['flag_exponent_mixed']))
+            ds0 = [ds for ds in rhot_ds if ib in ds]
+            ds1 = [ds for ds in rhot_ds if mb in ds]
+            if (len(ds0) > 0) & (len(ds1) > 0):
+                ds0 = ds0[0]
+                ds1 = ds1[0]
+                cur_data0 = gem.data(ds0)
+                cur_data1 = gem.data(ds1)
+                if mix_mask is None: mix_mask = np.zeros(cur_data0.shape).astype(bool)
+                if setu['viirs_mask_immixed_rat']:
+                    mix_mask = (mix_mask) | (np.abs(1-(cur_data0/cur_data1)) > setu['viirs_mask_immixed_maxrat'])
+                if setu['viirs_mask_immixed_dif']:
+                    mix_mask = (mix_mask) | (np.abs(cur_data0-cur_data1) > setu['viirs_mask_immixed_maxdif'])
+            else:
+                print('Could not find matching I and M bands')
+        if mix_mask is not None:
+            flags = (flags) | (mix_mask.astype(np.int32)*(2**setu['flag_exponent_mixed']))
         mix_mask = None
     ## end mixed pixels mask
     ####
