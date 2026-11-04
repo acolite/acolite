@@ -9,12 +9,14 @@
 ##                 2022-09-22 (QV) added rpc_dem option
 ##                 2025-09-15 (QV) added rpc_use
 ##                 2025-11-17 (QV) added source_srs
+##                 2026-11-04 (QV) added support for nodata, scale and offset
 
 def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'bilinear'
                  target_res = None, sub = None, gdal_meta = False, source_srs = None,
                  rpc_use = True, rpc_dem = None, targetAlignedPixels = False):
 
     import os, sys, fnmatch, json
+    import numpy as np
     from osgeo import gdal
     gdal.UseExceptions()
 
@@ -30,6 +32,15 @@ def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'b
 
     nrows=ds.RasterYSize
     ncols=ds.RasterXSize
+
+    if (idx is not None):
+        nodata = ds.GetRasterBand(idx).GetNoDataValue()
+        offset = ds.GetRasterBand(idx).GetOffset()
+        scale = ds.GetRasterBand(idx).GetScale()
+    else:
+        nodata = ds.GetRasterBand(1).GetNoDataValue()
+        offset = ds.GetRasterBand(1).GetOffset()
+        scale = ds.GetRasterBand(1).GetScale()
 
     if gdal_meta:
         try:
@@ -113,6 +124,17 @@ def read_band(file, idx = None, warp_to = None, warp_alg = 'near', # 'cubic', 'b
             else:
                 data = ds.ReadAsArray()
             if close: ds = None
+
+    ## mask data and convert using scale and offset
+    mask = None
+    if (nodata is not None):
+        mask = data == nodata
+    if (scale is not None) & (offset is not None):
+        data = data.astype(type(scale))
+        data *= scale
+        data += offset
+    if mask is not None:
+        if data.dtype in ['float', 'float32', 'float64']: data[mask] = np.nan
 
     if gdal_meta:
         return(md, data)
