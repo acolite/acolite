@@ -897,7 +897,7 @@ def radcor(ncf, settings = None):
         best_mod = setu['radcor_force_model']
         best_aot = setu['radcor_force_aot']
     ## use ancillary aerosol information
-    elif setu['radcor_aot_estimate'].startswith('ancillary'):
+    elif setu['radcor_aot_estimate'] in ['ancillary_fixed']:
         print('Retrieving AOT from ancillary data for RAdCor processing')
         aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
         if aer_anc is None: return
