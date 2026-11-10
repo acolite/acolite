@@ -901,7 +901,7 @@ def radcor(ncf, settings = None):
         print('Retrieving AOT from ancillary data for RAdCor processing')
         aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
         if aer_anc is None: return
-        aer_lut, aer_aot, aer_ang_mean = aer_anc
+        aer_lut, aer_aot, aer_ang_mean, aer_ssa = aer_anc
         best_mod = aer_md[aer_lut[-4:]]
         best_aot = aer_aot
 

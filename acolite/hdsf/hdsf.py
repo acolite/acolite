@@ -39,7 +39,7 @@ def hdsf(ncf, output = None, settings = None):
             print('Running hybrid DSF with ancillary aerosol information')
             aer_anc = ac.ac.ancillary.aer.select(gem.gatts['isodate'], np.nanmean(gem.data('lon')), np.nanmean(gem.data('lat')))
             if aer_anc is None: return
-            aer_lut, aer_aot, aer_ang_mean = aer_anc
+            aer_lut, aer_aot, aer_ang_mean, aer_ssa = aer_anc
             print('Setting aer_depth={:.3f} (mean) and aer_model={} (mean angstrom={:.2f}) based on ancillary data'.format(np.nanmean(aer_aot), aer_lut, aer_ang_mean))
             aer_depth = np.nanmean(aer_aot)
             aer_model = aer_lut[-1]

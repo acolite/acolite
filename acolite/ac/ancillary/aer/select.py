@@ -3,7 +3,7 @@
 ##
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-12-08
-## modifications:
+## modifications: 2026-10-11 (QV) added ssa
 
 def select(date, lon, lat, resolved = False):
 
@@ -22,6 +22,8 @@ def select(date, lon, lat, resolved = False):
     else:
         aer_ang = aer_anc['data']['TOTANGSTR']['interp']
         aer_aot = aer_anc['data']['TOTEXTTAU']['interp']
+        ## SSA ratio of scattering to total extinction
+        aer_ssa = aer_anc['data']['TOTSCATAU']['interp'] / aer_anc['data']['TOTEXTTAU']['interp']
         aer_ang_mean = np.nanmean(aer_ang)
 
         ## 6SV models C(ontinental) 1.08, M(aritime) 0.28,
@@ -37,4 +39,4 @@ def select(date, lon, lat, resolved = False):
             anc_aot = np.asarray(aer_aot)
         else:
             anc_aot = np.nanmean(aer_aot) * 1
-    return(anc_lut, anc_aot, aer_ang_mean)
+    return(anc_lut, anc_aot, aer_ang_mean, aer_ssa)
