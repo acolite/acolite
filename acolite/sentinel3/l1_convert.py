@@ -444,7 +444,7 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
         f0_b = ac.shared.rsr_convolute_dict(np.asarray(f0['wave'])/1000, np.asarray(f0['data'])*10, rsrd[sensor]['rsr'])
 
         gatts = {'sensor':sensor, 'sza':sza, 'vza':vza, 'raa':raa,
-                     'saa': saa, 'vaa': vaa, 
+                     'saa': saa, 'vaa': vaa,
                      'isodate':isodate, 'global_dims':data_shape,
                      'se_distance': se_distance, 'acolite_file_type': 'L1R',
                      's3_product_type': s3_product_type, 's3_product_collection': s3_product_collection}
@@ -577,7 +577,10 @@ def l1_convert(inputfile, output = None, settings = None, write_l2_err = False):
                 ds = '{}'.format(dname)
                 ds_att = None
                 if setu['verbosity'] > 2: print('{} - Reading dataset {}'.format(datetime.datetime.now().isoformat()[0:19], ds), end='\n')
-                if data[dname].dtype not in (np.float32, np.float64): continue
+                if data[dname].dtype not in (np.float32, np.float64, np.int8, np.int16, np.uint64):
+                    print('Skipping {}'.format(dname))
+                    print(data[dname].dtype)
+                    continue
 
                 ## write data
                 gemo.write(ds, data[dname], ds_att = ds_att)
