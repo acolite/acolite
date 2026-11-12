@@ -16,6 +16,7 @@
 ##                2024-04-16 (QV) update NetCDF writing, speed up read using gem
 ##                2025-01-30 (QV) use run instead of user settings
 ##                2025-02-04 (QV) improved settings handling
+##                2026-11-12 (QV) track datatypes
 
 def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None, output_counts = False):
 
@@ -213,6 +214,7 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
     data_in_stack = None
     datasets_out = []
     datasets_att = {}
+    datasets_types = []
     for ds in datasets:
         #data_in, att = ac.shared.nc_data(ncf, ds, attributes=True)
         data_in, att = gem.data(ds, attributes = True)
@@ -224,6 +226,7 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
             data_in_stack = np.dstack((data_in_stack, data_in))
         datasets_out.append(ds)
         datasets_att[ds] = att
+        datasets_types.append(data_in.dtype)
         data_in = None
 
     ## close input dataset
@@ -316,10 +319,8 @@ def project_acolite_netcdf(ncf, output = None, settings = None, target_file=None
 
     ## write results
     for di, ds in enumerate(datasets_out):
-        if ds in ['l2_flags']: continue
-
         if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds, data_out_stack[:,:,di].shape[0], data_out_stack[:,:,di].shape[1]))
-        gemo.write(ds, data_out_stack[:,:,di], ds_att = datasets_att[ds])
+        gemo.write(ds, data_out_stack[:,:,di].astype(datasets_types[di]), ds_att = datasets_att[ds])
         if output_counts:
             if setu['verbosity'] > 2: print('Writing {} {}x{}'.format(ds+'_n', data_out_counts[:,:,di].shape[0], data_out_counts[:,:,di].shape[1]))
             gemo.write(ds+'_n', data_out_counts[:,:,di])
