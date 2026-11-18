@@ -32,11 +32,11 @@ from acolite import himawari
 from acolite import goes
 from acolite import goci
 
-
 from acolite import gf
 from acolite import amazonia
 from acolite import formosat
 from acolite import deimos
+from acolite import satellogic
 
 from acolite import ecostress
 from acolite import haiyang

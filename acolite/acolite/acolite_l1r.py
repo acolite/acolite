@@ -342,6 +342,13 @@ def acolite_l1r(bundle, input_type=None):
     ################
 
     ################
+    ## Satellogic
+    if input_type == 'Satellogic':
+        l1r_files, setu = ac.satellogic.l1_convert(bundle)
+    ## end Satellogic
+    ################
+
+    ################
     ## OCSMART
     if input_type == 'OCSMART':
         l1r_files, setu = ac.convert.ocsmart(bundle)

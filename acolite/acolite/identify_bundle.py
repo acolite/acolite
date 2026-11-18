@@ -652,6 +652,18 @@ def identify_bundle(bundle, input_type = None, output = None):
         ################
 
         ################
+        ## Satellogic NewSat
+        try:
+            items = ac.satellogic.bundle_test(bundle)
+            if len(items) > 0:
+                input_type = 'Satellogic'
+                break ## exit loop
+        except:
+            pass ## continue to next sensor
+        ## end Satellogic NewSat
+        ################
+
+        ################
         ## Haiyang
         try:
             ret = ac.haiyang.bundle_test(bundle)
