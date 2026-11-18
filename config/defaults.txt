@@ -645,6 +645,7 @@ lut_base_interface=ACOLITE-RSKY-202102-82W
 luts_reduce_dimensions=False
 luts_keep_extracted=True
 slicing=False
+sensor_lut=None
 
 # CDSE or EarthExplorer download
 scene_download=False

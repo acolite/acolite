@@ -154,18 +154,23 @@ def acolite_l2r(gem,
         rsrd = ac.shared.rsr_dict(rsrd={gem.gatts['sensor']:{'rsr':rsr}})
         del rsr
     else:
-        if setu['rsr_version'] is None:
-            rsrd = ac.shared.rsr_dict(gem.gatts['sensor'])
-        else: ## use versioned RSR
-            sensor_version = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
+        if (setu['rsr_version'] is None) & (setu['sensor_lut'] is None):
+            sensor_version = '{}'.format(gem.gatts['sensor'])
+        elif setu['sensor_lut'] is not None:
+            sensor_version = '{}'.format(setu['sensor_lut'])
             rsrd = ac.shared.rsr_dict(sensor_version)
+        elif setu['rsr_version'] is not None: ## use versioned RSR
+            sensor_version = '{}_{}'.format(gem.gatts['sensor'], setu['rsr_version'])
+        ## load rsr for sensor_version
+        rsrd = ac.shared.rsr_dict(sensor_version)
 
-    if gem.gatts['sensor'] in rsrd:
-        sensor_lut = '{}'.format(gem.gatts['sensor'])
-        rsrd = rsrd[sensor_lut]
-    elif (sensor_version is not None) & (sensor_version in rsrd):
+    ## subset to sensor_version
+    if (sensor_version is not None) & (sensor_version in rsrd):
         print('Using RSR {} for sensor {}'.format(sensor_version, gem.gatts['sensor']))
         sensor_lut = '{}'.format(sensor_version)
+        rsrd = rsrd[sensor_lut]
+    elif gem.gatts['sensor'] in rsrd:
+        sensor_lut = '{}'.format(gem.gatts['sensor'])
         rsrd = rsrd[sensor_lut]
     else:
         print('Could not find {} RSR'.format(gem.gatts['sensor']))
