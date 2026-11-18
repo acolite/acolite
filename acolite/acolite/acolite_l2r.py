@@ -1391,6 +1391,9 @@ def acolite_l2r(gem,
         if aot_sel.shape == (1,1):
             gemo.gatts['ac_aot_550'] = aot_sel[0][0]
             gemo.gatts['ac_model'] = luts[aot_lut[0][0]]
+        else:
+            gemo.gatts['ac_aot_550'] = aot_sel.flatten()[0]
+            gemo.gatts['ac_model'] = luts[aot_lut.flatten()[0]]
 
         if setu['dsf_fixed_aot'] is None:
             ## store fitting parameter
