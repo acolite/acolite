@@ -9,6 +9,7 @@
 ## modifications: 2024-04-24 (QV) added as function, added sensor aliases dict, added PS_22
 ##                2025-02-01 (QV) added Pleiades 1A and 1B, WorldView2 and 3
 ##                2025-02-05 (QV) added MERIS
+##                2026-11-19 (QV) added NewSat
 
 def import_fits(sensor, bands, aer_models = ['C', 'M']):
     import acolite as ac
@@ -31,6 +32,9 @@ def import_fits(sensor, bands, aer_models = ['C', 'M']):
                'PlanetScope_0e': 'PS_0E', 'PlanetScope_0f': 'PS_0F10', 'PlanetScope_22': 'PS_22',
                'PHR1A': 'Pld_PHRA', 'PHR1B': 'Pld_PHRB', 'WorldView2': 'WV2', 'WorldView3': 'WV3',
                'EN1_MERIS': 'EV_MERIS',}
+
+    ## select NewSat average RSR for NewSat
+    if sensor.startswith('NewSat'): aliases[sensor] = 'NewSatAve'
 
     ## Load PSF data
     coefs_psf_ray = {}

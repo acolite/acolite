@@ -44,6 +44,7 @@
 ##                2025-07-07 (QV) check sun zenith angle
 ##                2025-12-08 (QV) added ancillary_fixed option, added tsdsf_exclude_bands
 ##                2026-04-13 (QV) added glint angle check for automatic glint correction
+##                2026-11-19 (QV) added NewSat
 
 def radcor(ncf, settings = None):
     import os, json
@@ -402,7 +403,9 @@ def radcor(ncf, settings = None):
         if setu['region_name'] not in oname: oname+='_{}'.format(setu['region_name']) ## QV 2024-03-28
     ofile = '{}/{}.nc'.format(output, oname)
 
-    if setu['rsr_version'] is not None:
+    if setu['sensor_lut'] is not None:
+        sensor_lut = '{}'.format(setu['sensor_lut'])
+    elif setu['rsr_version'] is not None:
         sensor_lut = '{}_{}'.format(sensor, setu['rsr_version'])
     else:
         sensor_lut = '{}'.format(sensor)
@@ -481,6 +484,9 @@ def radcor(ncf, settings = None):
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         elif sensor in ['SeaHawk1_HawkEye']:
             resolution = 120.
+            print('Warning: Experimental RAdCor processing for {}'.format(sensor))
+        elif sensor.startswith('NewSat'):
+            resolution = 0.7
             print('Warning: Experimental RAdCor processing for {}'.format(sensor))
         else:
             print('RAdCor processing not implemented for {}'.format(sensor))
