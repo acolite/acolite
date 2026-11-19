@@ -61,3 +61,8 @@ __pycache__/
 # Specific to Mac
 
 .DS_Store
+
+
+# Added by cargo
+
+/target
