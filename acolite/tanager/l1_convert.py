@@ -2,7 +2,7 @@
 ## converts Tanager L1B RAD data to l1r NetCDF for acolite
 ## written by Quinten Vanhellemont, RBINS
 ## 2025-07-22
-## modifications:
+## modifications: 2026-11-19 (QV) added support for ortho_radiance
 
 def l1_convert(inputfile, output = None, settings = None):
     import netCDF4, os
@@ -47,10 +47,20 @@ def l1_convert(inputfile, output = None, settings = None):
         ## open metadata
         meta = ac.tanager.metadata(bundle)
 
-        ## read location data
+        ## find group key
+        group_key = None
         with netCDF4.Dataset(bundle) as nc:
-            lat = nc.groups['HDFEOS']['SWATHS']['HYP']['Geolocation Fields']['Latitude'][:]
-            lon = nc.groups['HDFEOS']['SWATHS']['HYP']['Geolocation Fields']['Longitude'][:]
+            if 'SWATHS' in nc['HDFEOS'].groups.keys(): group_key = 'SWATHS'
+            if 'GRIDS' in nc['HDFEOS'].groups.keys(): group_key = 'GRIDS'
+
+        ## read location data
+        if group_key == 'SWATHS':
+            with netCDF4.Dataset(bundle) as nc:
+                lat = nc.groups['HDFEOS'][group_key]['HYP']['Geolocation Fields']['Latitude'][:]
+                lon = nc.groups['HDFEOS'][group_key]['HYP']['Geolocation Fields']['Longitude'][:]
+        if group_key == 'GRIDS':
+            dct = ac.tanager.projection(bundle)
+            lon, lat = ac.shared.projection_geo(dct, add_half_pixel = True)
 
         ## find image subset
         sub = None
@@ -73,15 +83,15 @@ def l1_convert(inputfile, output = None, settings = None):
         ## read geometry
         with netCDF4.Dataset(bundle) as nc:
             if sub is None:
-                vaa = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sensor_azimuth'][:]
-                vza = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sensor_zenith'][:]
-                saa = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sun_azimuth'][:]
-                sza = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sun_zenith'][:]
+                vaa = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sensor_azimuth'][:]
+                vza = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sensor_zenith'][:]
+                saa = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sun_azimuth'][:]
+                sza = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sun_zenith'][:]
             else:
-                vaa = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sensor_azimuth'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
-                vza = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sensor_zenith'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
-                saa = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sun_azimuth'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
-                sza = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['sun_zenith'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                vaa = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sensor_azimuth'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                vza = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sensor_zenith'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                saa = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sun_azimuth'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                sza = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['sun_zenith'][sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
         ## relative azimuth
         raa = np.abs(saa-vaa)
@@ -183,9 +193,9 @@ def l1_convert(inputfile, output = None, settings = None):
             with netCDF4.Dataset(bundle) as nc:
                 if setu['verbosity'] > 1: print('Reading radiance cube')
                 if sub is None:
-                    rad = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['toa_radiance'][:]
+                    rad = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['toa_radiance'][:]
                 else:
-                    rad = nc.groups['HDFEOS']['SWATHS']['HYP']['Data Fields']['toa_radiance'][:, sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
+                    rad = nc.groups['HDFEOS'][group_key]['HYP']['Data Fields']['toa_radiance'][:, sub[1]:sub[1]+sub[3], sub[0]:sub[0]+sub[2]]
 
         ## run through bands and store rhot
         for bi, b in enumerate(bands):
