@@ -121,12 +121,15 @@ def l1_convert(inputfile, output = None, settings = None):
                 gatts['{}_name'.format(b)] = rsrd['wave_name'][b]
                 gatts['{}_f0'.format(b)] = f0_b[b]
 
+            ## image file path
+            image_file = items[it][image_key]
+
             ## set up projection
             warp_to, dct_prj, sub = None, None, None
             nc_projection = None
             try:
                 ## get projection from image
-                dct = ac.shared.projection_read(file)
+                dct = ac.shared.projection_read(image_file)
             except:
                 if setu['verbosity'] > 1: print('Could not determine image projection')
                 dct = None
@@ -142,7 +145,6 @@ def l1_convert(inputfile, output = None, settings = None):
                     continue
                 sub = dct_sub['sub']
 
-            image_file = items[it][image_key]
             if dct is not None:
                 if sub is None:
                     dct_prj = {k:dct[k] for k in dct}
