@@ -3,7 +3,7 @@
 ## note: works with L1C sample data from s3://satellogic-sample-data
 ## written by Quinten Vanhellemont, RBINS
 ## 2026-11-17
-## modifications:
+## modifications: 2026-11-19 (QV) added support for L1D files
 
 def l1_convert(inputfile, output = None, settings = None):
     import os, json, glob
@@ -39,17 +39,24 @@ def l1_convert(inputfile, output = None, settings = None):
         acolite_file_type = 'L1R'
         ds_base = 'rhot'
         for ii, it in enumerate(items):
-            #if ii > 1: continue
+            image_key = None
+            if 'analytic' in items[it]: # L1C
+                image_key = 'analytic'
+            elif 'TOA_0' in items[it]: # L1D
+                image_key = 'TOA_0'
+            if image_key is None: continue
 
-            #with open(items[it]['toa_factors'], 'r') as f:
-            #    toaf = json.load(f)
-
-            with open(items[it]['2_2_0'], 'r') as f:
+            with open(items[it]['meta'], 'r') as f:
                 meta = json.load(f)
 
             date = meta['properties']['datetime']
             dtime = dateutil.parser.parse(date)
-            sensor = 'NewSat'+meta['properties']['platform'][6:]
+
+            if 'satl:sat_id' in meta['properties']: ## L1D
+                sensor = 'NewSat'+meta['properties']['satl:sat_id'][6:]
+            else: ## L1C
+                sensor = 'NewSat'+meta['properties']['platform'][6:]
+
             vaa = meta['properties']['view:azimuth']
             #meta['properties']['view:off_nadir']
             vza = meta['properties']['view:incidence_angle']
@@ -135,7 +142,7 @@ def l1_convert(inputfile, output = None, settings = None):
                     continue
                 sub = dct_sub['sub']
 
-            image_file = items[it]['analytic']
+            image_file = items[it][image_key]
             if dct is not None:
                 if sub is None:
                     dct_prj = {k:dct[k] for k in dct}
@@ -152,7 +159,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 ## set up nc_projection
                 nc_projection = ac.shared.projection_netcdf(dct_prj)
             else:
-                ret = ac.shared.warp_and_merge(items[it]['analytic'], output = output,
+                ret = ac.shared.warp_and_merge(items[it][image_key], output = output,
                                                limit = setu['limit'], resolution = setu['default_projection_resolution'])
                 if len(ret) == 3:
                     image_file = ret[0]
@@ -195,7 +202,7 @@ def l1_convert(inputfile, output = None, settings = None):
                 cdata = cdata.astype(np.float32) * 0.0001
 
                 ## write toa radiance
-                #if setu['output_lt']: print('Lt writing not configured for Satellogic')
+                if setu['output_lt']: print('Lt writing not configured for Satellogic')
 
                 ## write reflectance
                 gemo.write(ds, cdata, ds_att = ds_att)
