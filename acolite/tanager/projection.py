@@ -10,28 +10,17 @@ def projection(bundle):
 
     with netCDF4.Dataset(bundle, 'r') as nc:
         struct_string = nc['HDFEOS INFORMATION']['StructMetadata.0'][()]
-        struct_list = []
-        for line in struct_string.split('\n'):
-            line = line.strip('\t')
-            struct_list.append(line)
-
         epsg_code = nc['HDFEOS']['GRIDS']['HYP'].getncattr('epsg_code')
 
     projection = 'EPSG:{}'.format(epsg_code)
     p = Proj(projection)
 
-    # for l in struct_list:
-    #     if l.startswith('UpperLeftPointMtrs'):
-    #         UL = [float(v) for v in l.split('=')[1][1:-2].split(',')]
-    #     if l.startswith('LowerRightMtrs'):
-    #         LR = [float(v) for v in l.split('=')[1][1:-2].split(',')]
-    #     if l.startswith('Projection'):
-    #         projection = l.split('=')[1]
-    #     if l.startswith('ZoneCode'):
-    #         zone = l.split('=')[1]
-    #     if l.startswith('SphereCode'):
-    #         sphere = l.split('=')[1]
 
+    ## parse the metadata
+    struct_list = []
+    for line in struct_string.split('\n'):
+        line = line.strip('\t')
+        struct_list.append(line)
     struct_dict = {}
     for l in struct_list:
         sp = l.split('=')
@@ -43,7 +32,6 @@ def projection(bundle):
                 struct_dict[sp[0]] = sp[1][1:-2].split(',')
             else:
                 struct_dict[sp[0]] = sp[1]
-
 
     xrange = [float(struct_dict['UpperLeftPointMtrs'][0]), float(struct_dict['LowerRightMtrs'][0])]
     yrange = [float(struct_dict['UpperLeftPointMtrs'][1]), float(struct_dict['LowerRightMtrs'][1])]
