@@ -71,8 +71,8 @@ def l1_convert(inputfile, output = None, settings = None):
                 if k not in ac.settings['user']: setu[k] = setd[k]
             ## end set sensor specific defaults
 
-            if setd['rsr_version'] is not None:
-                sensor_lut = '{}_{}'.format(sensor, setd['rsr_version'])
+            if setu['rsr_version'] is not None:
+                sensor_lut = '{}_{}'.format(sensor, setu['rsr_version'])
             else:
                 sensor_lut = '{}'.format(sensor)
 
