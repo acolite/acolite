@@ -5,7 +5,8 @@
 ## settings you want to change from the ones in this defaults file.
 ##
 
-rsr_version=EXT
+## use extracted RSR
+#rsr_version=EXT
 
 rgb_rhot=False
 rgb_rhos=False
